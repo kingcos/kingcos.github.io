@@ -87,13 +87,13 @@
 
 <meta name="description" content="目前对 Java 的理解应用仅限于皮毛，若有不妥，虚心接受。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Java 与 Oracle 数据库中的时间类型小窥">
+<meta property="og:title" content="Java 与 Oracle 中的时间类型小窥">
 <meta property="og:url" content="https://maimieng.com/2016/13/index.html">
 <meta property="og:site_name" content="V2M">
 <meta property="og:description" content="目前对 Java 的理解应用仅限于皮毛，若有不妥，虚心接受。">
-<meta property="og:updated_time" content="2016-07-17T00:26:58.000Z">
+<meta property="og:updated_time" content="2016-07-17T02:06:53.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Java 与 Oracle 数据库中的时间类型小窥">
+<meta name="twitter:title" content="Java 与 Oracle 中的时间类型小窥">
 <meta name="twitter:description" content="目前对 Java 的理解应用仅限于皮毛，若有不妥，虚心接受。">
 
 
@@ -116,7 +116,7 @@
   };
 </script>
 
-  <title> Java 与 Oracle 数据库中的时间类型小窥 | V2M </title>
+  <title> Java 与 Oracle 中的时间类型小窥 | V2M </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -266,7 +266,7 @@
             
             
               
-                Java 与 Oracle 数据库中的时间类型小窥
+                Java 与 Oracle 中的时间类型小窥
               
             
           </h1>
@@ -323,7 +323,28 @@
 </li>
 </ul>
 <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>暑假学校培训，因此整理一下之前在学习过程中比较困惑的地方。方便未来查阅，也使自己能够更深入了解 Java。这次来说一说日期，因为数据库和 Java 本身都有许多存储日期的类型，那么如何选择合适的类型，并正确的存入以及读取日期便很重要。网上的资料也有些参差不齐，因此我个人整理于此，并附上可以实际运行的代码。</p>
-<h2 id="Java-中的日期类型简介"><a href="#Java-中的日期类型简介" class="headerlink" title="Java 中的日期类型简介"></a>Java 中的日期类型简介</h2><table>
+<h2 id="Java-中的日期类型简介"><a href="#Java-中的日期类型简介" class="headerlink" title="Java 中的日期类型简介"></a>Java 中的日期类型简介</h2><h3 id="子父类关系"><a href="#子父类关系" class="headerlink" title="子父类关系"></a>子父类关系</h3><table>
+<thead>
+<tr>
+<th>java.lang.Object</th>
+<th>java.lang.Object</th>
+<th>java.lang.Object</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>java.util.Date</td>
+<td>java.util.Date</td>
+<td>java.util.Date</td>
+</tr>
+<tr>
+<td>-</td>
+<td>java.sql.Timestamp</td>
+<td>java.sql.Date</td>
+</tr>
+</tbody>
+</table>
+<h3 id="精度"><a href="#精度" class="headerlink" title="精度"></a>精度</h3><table>
 <thead>
 <tr>
 <th>类型</th>
@@ -334,20 +355,29 @@
 </thead>
 <tbody>
 <tr>
-<td>描 述</td>
-<td>Java 日期</td>
-<td>SQL 时间戳</td>
-<td>SQL 日期</td>
-</tr>
-<tr>
-<td>精 度</td>
+<td><strong>精度</strong></td>
 <td><strong>年 月 日 时 分 秒</strong></td>
 <td><strong>年 月 日 时 分 秒 毫微秒</strong></td>
 <td><strong>年 月 日</strong></td>
 </tr>
 </tbody>
 </table>
-<h3 id="子父类关系"><a href="#子父类关系" class="headerlink" title="子父类关系"></a>子父类关系</h3><h2 id="针对数据库中类型选择相应的-Java-类型"><a href="#针对数据库中类型选择相应的-Java-类型" class="headerlink" title="针对数据库中类型选择相应的 Java 类型"></a>针对数据库中类型选择相应的 Java 类型</h2><h2 id="多种日期类型转换"><a href="#多种日期类型转换" class="headerlink" title="多种日期类型转换"></a>多种日期类型转换</h2><h2 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h2><h2 id="Calendar"><a href="#Calendar" class="headerlink" title="Calendar"></a>Calendar</h2>
+<h3 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a>初始化</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> com.maimieng.demo;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TestInitTime</span> </span>&#123;</div><div class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</div><div class="line">		java.util.Date utilDate_1 = <span class="keyword">new</span> java.util.Date();</div><div class="line">		java.util.Date utilDate_2 = <span class="keyword">new</span> java.util.Date(System.currentTimeMillis());</div><div class="line">		java.sql.Timestamp sqlTimestamp = <span class="keyword">new</span> java.sql.Timestamp(System.currentTimeMillis());</div><div class="line">		java.sql.Date sqlDate = <span class="keyword">new</span> java.sql.Date(System.currentTimeMillis());</div><div class="line">		</div><div class="line">		System.out.println(<span class="string">"utilDate_1 =\t"</span> + utilDate_1);</div><div class="line">		System.out.println(<span class="string">"utilDate_2 =\t"</span> + utilDate_2);</div><div class="line">		System.out.println(<span class="string">"sqlTimestamp =\t"</span> + sqlTimestamp);</div><div class="line">		System.out.println(<span class="string">"sqlDate =\t"</span> + sqlDate);</div><div class="line">	&#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// OUTPUT:</span></div><div class="line"><span class="comment">// utilDate_1 =	Sun Jul 17 09:26:07 CST 2016</span></div><div class="line"><span class="comment">// utilDate_2 =	Sun Jul 17 09:26:07 CST 2016</span></div><div class="line"><span class="comment">// sqlTimestamp =	2016-07-17 09:26:07.342</span></div><div class="line"><span class="comment">// sqlDate =	2016-07-17</span></div></pre></td></tr></table></figure>
+<p>上述的初始化均使用了各自<strong>未过时</strong>的构造函数，输出打印后，可以看到明显的精度区别。</p>
+<blockquote>
+<p>PS<br><code>System.currentTimeMillis()</code>: 返回以毫秒为单位的当前时间。</p>
+</blockquote>
+<h2 id="多种日期类型转换"><a href="#多种日期类型转换" class="headerlink" title="多种日期类型转换"></a>多种日期类型转换</h2><p><code>String</code> -&gt; <code>java.util.Date</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">String date = <span class="string">"2016-7-17 14:30:05"</span>;</div><div class="line">DateFormat dateFormat = <span class="keyword">new</span> SimpleDateFormat(<span class="string">"yyyy-MM-dd hh:mm:ss"</span>);</div></pre></td></tr></table></figure>
+<p><code>java.util.Date</code> 与 <code>java.sql.Timestamp</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// java.util.Date -&gt; java.sql.Timestamp</span></div><div class="line">java.util.Date utilDate_1 = dateFormat.parse(date);</div><div class="line">java.sql.Timestamp sqlTimestamp_1 = <span class="keyword">new</span> java.sql.Timestamp(utilDate_1.getTime());</div><div class="line">System.out.println(utilDate_1 + <span class="string">" 转换为 "</span> + sqlTimestamp_1);</div><div class="line">		</div><div class="line"><span class="comment">// java.util.Date &lt;- java.sql.Timestamp</span></div><div class="line">java.util.Date utilDate_2 = <span class="keyword">new</span> java.util.Date(sqlTimestamp_1.getTime());</div><div class="line">System.out.println(sqlTimestamp_1 + <span class="string">" 转换为 "</span> + utilDate_2);</div></pre></td></tr></table></figure>
+<p> <code>java.util.Date</code> 与 <code>java.sql.Date</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"></div></pre></td></tr></table></figure>
+<h2 id="针对数据库中类型选择相应的-Java-类型"><a href="#针对数据库中类型选择相应的-Java-类型" class="headerlink" title="针对数据库中类型选择相应的 Java 类型"></a>针对数据库中类型选择相应的 Java 类型</h2><h2 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h2><h2 id="Calendar"><a href="#Calendar" class="headerlink" title="Calendar"></a>Calendar</h2><h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><a href="http://docs.oracle.com/javase/8/docs/api/" target="_blank" rel="external">JavaSE 8 API 说明（Oracle 官方英文版）</a></li>
+<li></li>
+</ul>
+
       
     </div>
 
@@ -416,7 +446,7 @@
   <div class="comments" id="comments">
     
       <div class="ds-thread" data-thread-key="2016/13/"
-           data-title="Java 与 Oracle 数据库中的时间类型小窥" data-url="https://maimieng.com/2016/13/">
+           data-title="Java 与 Oracle 中的时间类型小窥" data-url="https://maimieng.com/2016/13/">
       </div>
     
   </div>
@@ -554,7 +584,7 @@
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Java-中的日期类型简介"><span class="nav-number">2.</span> <span class="nav-text">Java 中的日期类型简介</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#子父类关系"><span class="nav-number">2.1.</span> <span class="nav-text">子父类关系</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#针对数据库中类型选择相应的-Java-类型"><span class="nav-number">3.</span> <span class="nav-text">针对数据库中类型选择相应的 Java 类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#多种日期类型转换"><span class="nav-number">4.</span> <span class="nav-text">多种日期类型转换</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#实例"><span class="nav-number">5.</span> <span class="nav-text">实例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Calendar"><span class="nav-number">6.</span> <span class="nav-text">Calendar</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Java-中的日期类型简介"><span class="nav-number">2.</span> <span class="nav-text">Java 中的日期类型简介</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#子父类关系"><span class="nav-number">2.1.</span> <span class="nav-text">子父类关系</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#精度"><span class="nav-number">2.2.</span> <span class="nav-text">精度</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#初始化"><span class="nav-number">2.3.</span> <span class="nav-text">初始化</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#多种日期类型转换"><span class="nav-number">3.</span> <span class="nav-text">多种日期类型转换</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#针对数据库中类型选择相应的-Java-类型"><span class="nav-number">4.</span> <span class="nav-text">针对数据库中类型选择相应的 Java 类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#实例"><span class="nav-number">5.</span> <span class="nav-text">实例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Calendar"><span class="nav-number">6.</span> <span class="nav-text">Calendar</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考资料"><span class="nav-number">7.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
             
           </div>
         </section>
