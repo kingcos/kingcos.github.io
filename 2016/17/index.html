@@ -91,7 +91,7 @@
 <meta property="og:url" content="https://maimieng.com/2016/17/index.html">
 <meta property="og:site_name" content="V2M">
 <meta property="og:description" content="探究 iOS 中 UIImage 中两种不同 Initializers 带来的内存问题本文使用 Swift 版本为 3.0 beta。">
-<meta property="og:updated_time" content="2016-08-13T16:46:10.000Z">
+<meta property="og:updated_time" content="2016-08-13T16:53:30.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="UIImage 内存管理问题">
 <meta name="twitter:description" content="探究 iOS 中 UIImage 中两种不同 Initializers 带来的内存问题本文使用 Swift 版本为 3.0 beta。">
@@ -346,14 +346,21 @@
 </ul>
 </li>
 </ul>
-<h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>近几天接触 iOS 的 UI 学习，由于 Swift 更新太快太频繁，因此看的是 Obj-C 的项目，自己修改为 Swift 3.0 beta 可编译运行的版本。Xcode 8.0 随着几个版本的更迭也趋于稳定，不过在不同 beta 版中，Swift 3.0 beta 的语法也略有改动，之前整理的 <a href="">初探 Swift 3.0</a> 系列也会略有过时了。这次是制作一个简单的图片浏览器，而且会动态的展示 GIF 动画，因此需要处理 animation 以及多张图片。如果不进行适当的内存管理，那么程序将在 iOS 设备上崩溃，造成极差的用户体验。不过，鉴于刚刚入门 iOS，所以某些行为或说法也许不太得当，需要学习的地方还有很多，故若有纰漏，还望指出。</p>
-<h3 id="UIImage-中的两个-Initializers"><a href="#UIImage-中的两个-Initializers" class="headerlink" title="UIImage 中的两个 Initializers"></a><code>UIImage</code> 中的两个 Initializers</h3><p>该小节拷贝自 Xcode 的 Documentation &amp; API Reference，并翻译。</p>
+<h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>近几天接触 iOS 的 UI 学习，由于 Swift 更新太快太频繁，因此看的是 Obj-C 的项目，自己修改为 Swift 3.0 beta 可编译运行的版本。Xcode 8.0 随着几个版本的更迭也趋于稳定，不过在不同 beta 版中，Swift 3.0 beta 的语法也略有改动，之前整理的 <a href="">初探 Swift 3.0</a> 系列也会略有过时了。这次是制作一个简单的图片浏览器，而且会动态的展示（伪） GIF 动画，因此需要处理 animation 以及多张图片。如果不进行适当的内存管理，那么大量的图片占用内存，将使得程序在 iOS 设备上崩溃，造成极差的用户体验。因此本文浅显地分析两种不同的 <code>UIImage</code> 初始化方法，为以后的使用做以适当铺垫。</p>
+<p>不过，鉴于刚刚入门 iOS，所以某些行为或说法也许不太得当，需要学习的地方还有很多，故若有纰漏，还望指出。</p>
+<h3 id="UIImage-中的两个-Initializers"><a href="#UIImage-中的两个-Initializers" class="headerlink" title="UIImage 中的两个 Initializers"></a><code>UIImage</code> 中的两个 Initializers</h3><p>该小节摘自 Xcode 的 Documentation &amp; API Reference 部分内容，并翻译。</p>
 <h4 id="Loading-and-Caching-Images-init-named-String"><a href="#Loading-and-Caching-Images-init-named-String" class="headerlink" title="Loading and Caching Images init?(named: String)"></a>Loading and Caching Images <code>init?(named: String)</code></h4><p><strong>加载并缓存图像</strong> <code>init?(named: String)</code></p>
-<p>Returns the image object associated with the specified filename.</p>
-<p>返回指定文件名所关联的图像对象。</p>
+<p>Returns the image object associated with the specified filename.<br>返回指定文件名所关联的图像对象。</p>
+<p>Discussion</p>
+<p>This method looks in the system caches for an image object with the specified name and returns the variant of that image that is best suited for the main screen. If a matching image object is not already in the cache, this method locates and loads the image data from disk or from an available asset catalog, and then returns the resulting object.</p>
+<p>The system may purge cached image data at any time to free up memory. Purging occurs only for images that are in the cache but are not currently being used.</p>
+<p>In iOS 9 and later, this method is thread safe.</p>
+<p>Special Considerations</p>
+<p>If you have an image file that will only be displayed once and wish to ensure that it does not get added to the system’s cache, you should instead create your image using imageWithContentsOfFile:. This will keep your single-use image out of the system image cache, potentially improving the memory use characteristics of your app.</p>
 <h4 id="Creating-and-Initializing-Image-Objects-init-contentsOfFile-String"><a href="#Creating-and-Initializing-Image-Objects-init-contentsOfFile-String" class="headerlink" title="Creating and Initializing Image Objects init?(contentsOfFile: String)"></a>Creating and Initializing Image Objects <code>init?(contentsOfFile: String)</code></h4><p><strong>创建并初始化图像对象</strong> <code>init?(contentsOfFile: String)</code></p>
-<p>Initializes and returns the image object with the contents of the specified file.</p>
-<p>初始化并返回指定文件内容的图像对象</p>
+<p>Initializes and returns the image object with the contents of the specified file.<br>初始化并返回指定文件内容的图像对象。</p>
+<p>Discussion</p>
+<p>This method loads the image data into memory and marks it as purgeable. If the data is purged and needs to be reloaded, the image object loads that data again from the specified path.</p>
 
       
     </div>
