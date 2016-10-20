@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://maimieng.com/"/>
-  <updated>2016-10-17T05:34:19.000Z</updated>
+  <updated>2016-10-03T02:23:05.000Z</updated>
   <id>https://maimieng.com/</id>
   
   <author>
@@ -14,144 +14,6 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
-  
-  <entry>
-    <title>Key-value coding 键值编码</title>
-    <link href="https://maimieng.com/2016/26/"/>
-    <id>https://maimieng.com/2016/26/</id>
-    <published>2016-10-16T16:00:00.000Z</published>
-    <updated>2016-10-17T05:34:19.000Z</updated>
-    
-    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>iOS Basis<br></blockquote><br><a id="more"></a><br><a href="https://developer.apple.com/library/content/documentation/General/Conceptual/DevPedia-CocoaCore/KeyValueCoding.html#//apple_ref/doc/uid/TP40008195-CH25-SW3" target="_blank" rel="external">Key-value coding 键值对编程</a></p>
-<p>Key-value coding is a mechanism for indirectly accessing an object’s attributes and relationships using string identifiers. It underpins or is related to several mechanisms and technologies special to Cocoa programming, among them Core Data, application scriptability, the bindings technology, and the language feature of declared properties. (Scriptability and bindings are specific to Cocoa on OS X.) You can also use key-value coding to simplify your program code.</p>
-<p>键值对编码，是一种使用字符串（标识符）间接访问对象属性和关系的机制。其支撑或涉及 Cocoa 编程中特有的一些机制和技术，包括 Core Data，应用程序脚本化，绑定技术，以及声明属性的语言特性（脚本化和绑定技术仅针对 macOS Cocoa）。同样，你可以使用键值编码以简化程序代码。</p>
-<h2 id="Object-Properties-and-KVC-对象属性和-KVC"><a href="#Object-Properties-and-KVC-对象属性和-KVC" class="headerlink" title="Object Properties and KVC 对象属性和 KVC"></a>Object Properties and KVC 对象属性和 KVC</h2><p>Central to key-value coding (or KVC) is the general notion of properties. A property refers to a unit of state that an object encapsulates. A property can be one of two general types: an attribute (for example, <code>name</code>, <code>title</code>, <code>subtotal</code>, or <code>textColor</code>) or a relationship to other objects. Relationships can be either to-one or to-many. The value for a to-many relationship is typically an array or set, depending on whether the relationship is ordered or unordered.</p>
-<p>键值编码（KVC）的核心是属性的普遍概念。属性指对象封装的状态集合。一个属性可以是两种一般类型之一：属性（例如，<code>name</code>，<code>title</code>，<code>subtotal</code>，<code>textColor</code>），或是与其他对象的关系。关系可以为一对一或一对多。一对多关系通常为数组或集合，取决于其是否有序。</p>
-<p>KVC locates an object’s property through a key, which is a string identifier. A key usually corresponds to the name of an accessor method or instance variable defined by the object. The key must conform to certain conventions: It must be ASCII encoded, begin with a lowercase letter, and have no whitespace. A key path is a string of dot-separated keys that is used to specify a sequence of object properties to traverse. The property of the first key in the sequence is relative to a specific object (<code>employee1</code> in the following diagram), and each subsequent key is evaluated relative to the value of the previous property.</p>
-<p>KVC 通过键定位对象属性，即字符串（标识符）。键通常与对象定义的访问方法或实例变量名称相符。键必须遵从以下规范：其必须为 ASCII 编码，以小写字母开头，中间无空格。键路径是使用点分割键的字符串，以指定需要遍历的对象属性序列。属性序列的第一个键即特定对象（示意图中的 <code>employee1</code>），每个子键是相对于前一个键来计算的。</p>
-<h2 id="Making-a-Class-KVC-Compliant-构建兼容-KVC-类"><a href="#Making-a-Class-KVC-Compliant-构建兼容-KVC-类" class="headerlink" title="Making a Class KVC Compliant 构建兼容 KVC 类"></a>Making a Class KVC Compliant 构建兼容 KVC 类</h2><p><img src="https://developer.apple.com/library/content/documentation/General/Conceptual/DevPedia-CocoaCore/Art/key_value_coding_2x.png" alt="Key-value coding"></p>
-<p>The <code>NSKeyValueCoding</code> informal protocol makes KVC possible. Two of its methods—<a href="https://developer.apple.com/reference/objectivec/nsobject/1412591-value" target="_blank" rel="external">valueForKey:</a> and <a href="https://developer.apple.com/reference/objectivec/nsobject/1415969-setvalue" target="_blank" rel="external">setValue:forKey:</a>—are particularly important because they fetch and set a property’s value when given its key. <code>NSObject</code> provides a default implementation of these methods, and if a class is compliant with key-value coding, it can rely on this implementation.</p>
-<p><code>NSKeyValueCoding</code> 非正式协议使得 KVC 成为可能。其中的两个方法-<a href="https://developer.apple.com/reference/objectivec/nsobject/1412591-value" target="_blank" rel="external">valueForKey:</a> 和 <a href="https://developer.apple.com/reference/objectivec/nsobject/1415969-setvalue" target="_blank" rel="external">setValue:forKey:</a>-是极其重要的，因为当传入给定的键，它们被用来获取和设置属性值。<code>NSObject</code> 提供了这些方法的默认实现，并且如果一个类兼容 KVC，其需要依赖该实现。</p>
-<p>How you make a property KVC compliant depends on whether that property is an attribute, a to-one relationship, or a to-many relationship. For attributes and to-one relationships, a class must implement at least one of the following in the given order of preference (<em>key</em> refers to the property key):</p>
-<p>如何使得属性兼容 KVC 取决于该属性是否是属性，一对一关系，或一对多关系。对于属性和一对一关系，类必须在给定的设定中至少实现其中之一（<em>key</em> 即属性键）：</p>
-<ol>
-<li>The class has a declared property with the name <em>key</em>.</li>
-<li>It implements accessor methods named <em>key</em> and, if the property is mutable, <code>setKey:</code>. (If the property is a Boolean attribute, the getter accessor method has the form <code>isKey</code>.)</li>
-<li><p>It declares an instance variable of the form <em>key</em> or <em>_key</em>.</p>
-</li>
-<li><p>类声明了一个名为 <em>key</em> 的属性</p>
-</li>
-<li>类实现了名为 <em>key</em> 的访问方法，如果属性可变，<code>setKey:</code>。（如果属性为布尔值，getter 访问方法应为  <code>isKey</code>。）</li>
-<li>类声明了 <em>key</em> 或 <em>_key</em> 的实例变量</li>
-</ol>
-<p>Implementing KVC compliance for a to-many relationship is a more complicated procedure. Refer to the document that definitively describes key-value coding to learn what this procedure is.</p>
-<p>为一对多关系实现 KVC 兼容，步骤将更加复杂。参考引用的权威论证文档，即可了解该步骤。</p>
-<h2 id="Prerequisite-Articles-预读文章"><a href="#Prerequisite-Articles-预读文章" class="headerlink" title="Prerequisite Articles 预读文章"></a>Prerequisite Articles 预读文章</h2><p><a href="https://developer.apple.com/library/content/documentation/General/Conceptual/DevPedia-CocoaCore/ObjectModeling.html#//apple_ref/doc/uid/TP40008195-CH41-SW1" target="_blank" rel="external">Object modeling</a><br><a href="https://developer.apple.com/library/content/documentation/General/Conceptual/DevPedia-CocoaCore/AccessorMethod.html#//apple_ref/doc/uid/TP40008195-CH2-SW1" target="_blank" rel="external">Accessor method</a></p>
-<p><a href="https://maimieng.com/2016/24/">Object modeling 中文版-对象模型化</a><br><a href="https://maimieng.com/2016/25/">Accessor method 中文版-访问方法</a></p>
-<h2 id="Related-Articles-相关文章"><a href="#Related-Articles-相关文章" class="headerlink" title="Related Articles 相关文章"></a>Related Articles 相关文章</h2><p><a href="https://developer.apple.com/library/content/documentation/General/Conceptual/DevPedia-CocoaCore/DeclaredProperty.html#//apple_ref/doc/uid/TP40008195-CH13-SW1" target="_blank" rel="external">Declared property 声明属性</a></p>
-<h2 id="Definitive-Discussion-权威论证"><a href="#Definitive-Discussion-权威论证" class="headerlink" title="Definitive Discussion 权威论证"></a>Definitive Discussion 权威论证</h2><p><a href="https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/KeyValueCoding/Articles/KeyValueCoding.html#//apple_ref/doc/uid/10000107i" target="_blank" rel="external"><em>Key-Value Coding Programming Guide 键值对编程指南</em></a></p>
-<hr>
-<p>Updated: 2015-10-21<br>´</p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;iOS Basis&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
-    
-    </summary>
-    
-    
-      <category term="Translation" scheme="https://maimieng.com/tags/Translation/"/>
-    
-      <category term="iOS" scheme="https://maimieng.com/tags/iOS/"/>
-    
-      <category term="Objective-C" scheme="https://maimieng.com/tags/Objective-C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Accessor method 访问方法</title>
-    <link href="https://maimieng.com/2016/25/"/>
-    <id>https://maimieng.com/2016/25/</id>
-    <published>2016-10-16T16:00:00.000Z</published>
-    <updated>2016-10-17T05:34:02.000Z</updated>
-    
-    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>KVC 预读文章<br></blockquote><br><a id="more"></a></p>
-<h2 id="Accessor-method-访问方法"><a href="#Accessor-method-访问方法" class="headerlink" title="Accessor method 访问方法"></a><a href="https://developer.apple.com/library/content/documentation/General/Conceptual/DevPedia-CocoaCore/AccessorMethod.html#//apple_ref/doc/uid/TP40008195-CH2-SW1" target="_blank" rel="external">Accessor method 访问方法</a></h2><p>An accessor method is an instance method that gets or sets the value of a property of an object. In Cocoa’s terminology, a method that retrieves the value of an object’s property is referred to as a getter method, or “getter;” a method that changes the value of an object’s property is referred to as a setter method, or “setter.” These methods are often found in pairs, providing API for getting and setting the property values of an object.</p>
-<p>访问方法是一个获取或设置对象属性值的实例方法。在 Cocoa 术语中，一个取出对象属性值的方法被称为获取方法，即 getter；一个改变对象属性值的方法被称为设置方法，即 setter。这些方法经常成对出现，提供获取和设置对象属性值的接口。</p>
-<ul>
-<li><p>You should use accessor methods rather than directly accessing state data because they provide an abstraction layer. Here are just two of the benefits that accessor methods provide:</p>
-</li>
-<li><p>你应当使用访问方法，而不是直接访问状态数据，因为它们提供了一个抽象层。使用访问方法有以下两个好处：</p>
-</li>
-<li><p>You don’t need to rewrite your code if the manner in which a property is represented or stored changes.<br>Accessor methods often implement important behavior that occurs whenever a value is retrieved or set. For example, setter methods frequently implement memory management code and notify other objects when a value is changed.</p>
-</li>
-<li><p>如果属性的表示或存储方式改变，不需要重写代码。访问方法通常实现重要的行为，无论属性值何时被获取或设置。例如，setter 方法经常实现内存管理代码并当值被改变后通知其他对象。</p>
-</li>
-</ul>
-<h2 id="Naming-Conventions-命名规范"><a href="#Naming-Conventions-命名规范" class="headerlink" title="Naming Conventions 命名规范"></a>Naming Conventions 命名规范</h2><p>Because of the importance of this pattern, Cocoa defines some conventions for naming accessor methods. Given a property of type <code>type</code> and called <code>name</code>, you should typically implement accessor methods with the following form:</p>
-<p>由于该模式的重要性，Cocoa 定义了一些规范以命名访问方法。给定一个 <code>type</code> 类型属性并命名为 <code>name</code>，通常，你应当按照下列格式实现访问方法：</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">- (type)name;</div><div class="line">- (<span class="keyword">void</span>)setName:(type)newName;</div></pre></td></tr></table></figure>
-<p>The one exception is a property that is a Boolean value. Here the getter method name may be <code>isName</code>. For example:</p>
-<p>有一个例外是布尔值。它的 getter 方法是 <code>isName</code>。举个例子：</p>
-<figure class="highlight objc"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">- (<span class="built_in">BOOL</span>)isHidden;</div><div class="line">- (<span class="keyword">void</span>)setHidden:(<span class="built_in">BOOL</span>)newHidden;</div></pre></td></tr></table></figure>
-<p>This naming convention is important because much other functionality in Cocoa relies upon it, in particular key-value coding. Cocoa does not use <code>getName</code> because methods that start with “get” in Cocoa indicate that the method will return values by reference.</p>
-<p>命名规范是很重要的，因为 Cocoa 中的许多其他特性依赖于此，尤其是键值编码。Cocoa 不使用 <code>getName</code>，因为在 Cocoa 中以 get 开头的方法暗示将返回引用值。</p>
-<h2 id="Prerequisite-Articles-预读文章"><a href="#Prerequisite-Articles-预读文章" class="headerlink" title="Prerequisite Articles 预读文章"></a>Prerequisite Articles 预读文章</h2><p><a href="https://developer.apple.com/library/content/documentation/General/Conceptual/DevPedia-CocoaCore/KeyValueCoding.html#//apple_ref/doc/uid/TP40008195-CH25-SW1" target="_blank" rel="external">Key-value coding 键值编码</a></p>
-<h2 id="Related-Articles-相关文章"><a href="#Related-Articles-相关文章" class="headerlink" title="Related Articles 相关文章"></a>Related Articles 相关文章</h2><p><a href="https://developer.apple.com/library/content/documentation/General/Conceptual/DevPedia-CocoaCore/MemoryManagement.html#//apple_ref/doc/uid/TP40008195-CH27-SW1" target="_blank" rel="external">Memory management 内存管理</a><br><a href="https://developer.apple.com/library/content/documentation/General/Conceptual/DevPedia-CocoaCore/DeclaredProperty.html#//apple_ref/doc/uid/TP40008195-CH13-SW1" target="_blank" rel="external">Declared property 声明属性</a></p>
-<h2 id="Definitive-Discussion-权威论述"><a href="#Definitive-Discussion-权威论述" class="headerlink" title="Definitive Discussion 权威论述"></a>Definitive Discussion 权威论述</h2><p><a href="https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/ProgrammingWithObjectiveC/EncapsulatingData/EncapsulatingData.html#//apple_ref/doc/uid/TP40011210-CH5-SW5" target="_blank" rel="external">Use Accessor Methods to Get or Set Property Values 使用访问方法获取或设置属性值</a></p>
-<hr>
-<p>Updated: 2015-10-21</p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;KVC 预读文章&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
-    
-    </summary>
-    
-    
-      <category term="Translation" scheme="https://maimieng.com/tags/Translation/"/>
-    
-      <category term="iOS" scheme="https://maimieng.com/tags/iOS/"/>
-    
-      <category term="Objective-C" scheme="https://maimieng.com/tags/Objective-C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Object modeling 对象模型化</title>
-    <link href="https://maimieng.com/2016/24/"/>
-    <id>https://maimieng.com/2016/24/</id>
-    <published>2016-10-15T16:00:00.000Z</published>
-    <updated>2016-10-17T05:34:07.000Z</updated>
-    
-    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>KVC 预读文章<br></blockquote><br><a id="more"></a></p>
-<h2 id="Object-modeling-对象模型化"><a href="#Object-modeling-对象模型化" class="headerlink" title="Object modeling 对象模型化"></a><a href="https://developer.apple.com/library/content/documentation/General/Conceptual/DevPedia-CocoaCore/ObjectModeling.html#//apple_ref/doc/uid/TP40008195-CH41-SW1" target="_blank" rel="external">Object modeling 对象模型化</a></h2><p>Object modeling is the process of designing the objects or classes through which an object-oriented application examines and manipulates some service. Numerous modeling techniques are possible; the Cocoa development environment does not recommend one over another.</p>
-<p>对象模型化，是指设计对象或类的过程，使得面向对象的应用程序可以检验并操作一些服务。许多模型化技术均是可行的；但 Cocoa 开发环境不建议交叉使用。</p>
-<p>Typically, the characteristics of a class should make sense in context. Aspects such as the names of the class itself, its variables, and its methods should be recognisable to a nonprogrammer who is familiar with the service being modeled. Exactly what classes you use in your application, what attributes each class has, and what the relationships are between the classes may depend on the way you present information to the user and how you expect the user to interact with your application.</p>
-<p>通常来说，一个类的特征应当在上下文中有实际意义。诸如类名，变量以及方法，应当易于被熟悉模型化服务的非编程人员辨识。尤其是应用程序中使用什么类，每个类拥有什么属性，以及类之间的什么关系可能会决定展示信息给用户的方式，以及期望用户如何与你的应用程序交互。</p>
-<h2 id="Prerequisite-Articles-预读文章"><a href="#Prerequisite-Articles-预读文章" class="headerlink" title="Prerequisite Articles 预读文章"></a>Prerequisite Articles 预读文章</h2><p>(None)</p>
-<p>无</p>
-<h2 id="Related-Articles-相关文章"><a href="#Related-Articles-相关文章" class="headerlink" title="Related Articles 相关文章"></a>Related Articles 相关文章</h2><p><a href="https://developer.apple.com/library/content/documentation/General/Conceptual/DevPedia-CocoaCore/MVC.html#//apple_ref/doc/uid/TP40008195-CH32-SW1" target="_blank" rel="external">Model-View-Controller 模型-视图-控制器</a></p>
-<hr>
-<p>Updated: 2015-10-21</p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;KVC 预读文章&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
-    
-    </summary>
-    
-    
-      <category term="Translation" scheme="https://maimieng.com/tags/Translation/"/>
-    
-      <category term="iOS" scheme="https://maimieng.com/tags/iOS/"/>
-    
-      <category term="Objective-C" scheme="https://maimieng.com/tags/Objective-C/"/>
-    
-  </entry>
   
   <entry>
     <title>Intellij IDEA 配置 Code Style</title>
@@ -1225,6 +1087,383 @@
       <category term="Tools" scheme="https://maimieng.com/tags/Tools/"/>
     
       <category term="Git/GitHub" scheme="https://maimieng.com/tags/Git-GitHub/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Java BBS</title>
+    <link href="https://maimieng.com/2016/6/"/>
+    <id>https://maimieng.com/2016/6/</id>
+    <published>2016-05-11T16:00:00.000Z</published>
+    <updated>2016-05-29T15:45:00.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>Java Web 告别之作<br></blockquote><br><a id="more"></a><br><strong>Info:</strong></p>
+<ul>
+<li>Mac OS 10.11.4</li>
+<li>JDK 1.7</li>
+<li>Tomcat 7.0</li>
+<li>MySQL 5.7</li>
+<li>Eclipse for Java EE MARS.2</li>
+<li>Navicat 11.1</li>
+</ul>
+<h2 id="杂七杂八"><a href="#杂七杂八" class="headerlink" title="杂七杂八"></a>杂七杂八</h2><ul>
+<li><p><strong>Powered by Struts 1.3</strong></p>
+<ul>
+<li>支持注册，登录</li>
+<li>注册信息：用户名，密码，邮箱</li>
+<li>登录验证：用户名，密码，验证码：防止暴力破解</li>
+<li>注册用户名不得与他人重复</li>
+<li>留言信息：发言者，发言标题，发言时间，发言内容</li>
+<li>留言可供登录用户回复</li>
+<li>回复信息：回复者，回复内容，回复时间</li>
+</ul>
+</li>
+<li><p><strong>Powered by Spring MVC + MyBatis</strong></p>
+<ul>
+<li>使用 Spring MVC + MyBatis 实现相同功能</li>
+</ul>
+</li>
+</ul>
+<h2 id="Spring-MVC-MyBatis"><a href="#Spring-MVC-MyBatis" class="headerlink" title="Spring MVC + MyBatis"></a><a href="https://github.com/kingcos/CourseDesign/blob/master/JavaBBS/BBS_with_SpringMVC_MyBatis" target="_blank" rel="external">Spring MVC + MyBatis</a></h2><blockquote>
+<p>一个不小心，我就写出来了。。。<br>此代码参考了 Struts 1.3 版本，还参考了当时学习 Spring MVC + MyBatis 的代码，因此合成。</p>
+</blockquote>
+<h3 id="技能树"><a href="#技能树" class="headerlink" title="技能树"></a>技能树</h3><ul>
+<li>Java EE</li>
+<li>Spring MVC</li>
+<li>MyBatis</li>
+<li>SQL</li>
+<li>HTML</li>
+</ul>
+<h3 id="如何将项目跑在自己电脑上"><a href="#如何将项目跑在自己电脑上" class="headerlink" title="如何将项目跑在自己电脑上"></a>如何将项目跑在自己电脑上</h3><p>大部分同 <strong>Powered by Struts 1.3</strong>，数据库名尽量更换，以防错误出现，SQL 文件放置在项目<strong>根目录下的 sql 文件夹</strong>中。</p>
+<h4 id="数据库配置"><a href="#数据库配置" class="headerlink" title="数据库配置"></a>数据库配置</h4><p>将项目导入 IDE 中，打开 <code>BBS_with_SpringMVC_MyBatis/config/db.properties</code>，更改为适合本机的配置。</p>
+<hr>
+<h2 id="Struts-1-3"><a href="#Struts-1-3" class="headerlink" title="Struts 1.3"></a><a href="https://github.com/kingcos/CourseDesign/tree/master/JavaBBS/BBS_by_mm" target="_blank" rel="external">Struts 1.3</a></h2><blockquote>
+<p>注意<br>基础要求已经全部完成，将在<strong>完成进阶一</strong>后公开<br>此次基础部分均由本人独立完成，几乎未参考其他资料，毕竟 Struts 1.3 太过久远，查到的资料几乎没有参考价值</p>
+</blockquote>
+<h3 id="技能树-1"><a href="#技能树-1" class="headerlink" title="技能树"></a>技能树</h3><ul>
+<li>Java EE</li>
+<li>Struts 1.x</li>
+<li>SQL</li>
+<li>HTML</li>
+</ul>
+<h3 id="如何将项目跑在自己电脑上-1"><a href="#如何将项目跑在自己电脑上-1" class="headerlink" title="如何将项目跑在自己电脑上"></a>如何将项目跑在自己电脑上</h3><p>项目本身肯定是不包含数据库的，所以需要自己创建数据库并配置。另外，由于不是太懂数据库设计，没有设置外键，但是由于基础要求不高，所以也算是能完成要求＝＝</p>
+<p>SQL 文件放置在项目<strong>根目录下的 sql 文件夹</strong>中。</p>
+<h4 id="数据库配置-1"><a href="#数据库配置-1" class="headerlink" title="数据库配置"></a>数据库配置</h4><p>将项目导入 IDE 中，打开 <code>BBS_by_mm/WebRoot/META-INF/context.xml</code>，更改为适合本机的配置。</p>
+<p>打开 <code>BBS_by_mm/src/com.maimieng.Dao/DatabaseConnection.java</code>，更改为适合本机的配置。</p>
+<h4 id="如果项目有红叉…"><a href="#如果项目有红叉…" class="headerlink" title="如果项目有红叉…"></a>如果项目有红叉…</h4><p>那么可能是 JDK 或者 Tomcat 版本不一致，导致找不到 Jar 包，请在 <code>项目右键－Build Path－Configure Build Path...</code>，替换为本机的版本，如果想避免错误，尽量使用与此同一版本的 JDK 和 Tomcat。</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/jbbs_01.png" alt="jbbs_01"></p>
+<h4 id="Why-Eclipse"><a href="#Why-Eclipse" class="headerlink" title="Why Eclipse?"></a>Why Eclipse?</h4><p>有些同学可能会说，MyEclipse 更加方便好用，但是 MyEclipse 是商业软件，破解的软件既损害了开发者利益，也使得软件可能存在奇怪的问题，因此本人不会使用 MyEclipse 开发。但是，该项目可以导入 MyEclipse。如果你是一名开发者，那么我建议，从现在起，做一名拥护正版的开发者吧。</p>
+<h2 id="项目代码"><a href="#项目代码" class="headerlink" title="项目代码"></a>项目代码</h2><p><a href="https://github.com/kingcos/CourseDesign" target="_blank" rel="external"><strong>点我查看</strong></a></p>
+<p>打开速度可能会很慢，但是你能打开我的博客，就应该打开这个网站，美好的事情，慢一点，也值得。<br>下载的方法也在里面写了，以后所有的大作业，也许都会公布在博客，项目都会发布到 GitHub。<br>当然，我的代码也不可能确定毫无 Bug，能修复尽量修复，如果暂时没有修复，会列出。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;Java Web 告别之作&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="Exam Points" scheme="https://maimieng.com/tags/Exam-Points/"/>
+    
+      <category term="Java" scheme="https://maimieng.com/tags/Java/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Maven for Mac</title>
+    <link href="https://maimieng.com/2016/5/"/>
+    <id>https://maimieng.com/2016/5/</id>
+    <published>2016-05-10T16:00:00.000Z</published>
+    <updated>2016-05-29T15:44:38.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>Maven for Mac<br></blockquote><br><a id="more"></a><br><strong>Info:</strong></p>
+<ul>
+<li>Mac OS 10.11.4</li>
+<li><a href="https://maven.apache.org" target="_blank" rel="external">Apache Maven 3.3.9</a></li>
+<li>JDK 1.7</li>
+<li>Eclipse MARS.2 for Java EE</li>
+</ul>
+<h3 id="关于"><a href="#关于" class="headerlink" title="关于"></a>关于</h3><p>Mac 上的中文资料相较于 Windows 实在是很匮乏，而 Maven 作为一个优秀的项目管理工具，确实值得一学。因此，我个人记录一下学习 Maven 的过程，也便于日后温习。</p>
+<p>Maven 已经集成在最新的 Eclipse EE MARS.2，所以如果想直接查看 Maven for Eclipse 的同学可以直接跳过前面的”瞎折腾”。</p>
+<h3 id="下载"><a href="#下载" class="headerlink" title="下载"></a>下载</h3><ol>
+<li>点击 <a href="https://maven.apache.org/download.cgi" target="_blank" rel="external">下载页面</a> </li>
+<li>选择 Binary 版本 &amp; Link 的下载链接，进行下载</li>
+</ol>
+<blockquote>
+<p>注意<br>Maven 3.3 版本需要 JDK 1.7 或以上版本<br>(It still allows you to build against 1.3 and other JDK versions by <a href="https://maven.apache.org/guides/mini/guide-using-toolchains.html" target="_blank" rel="external">Using Toolchains</a></p>
+</blockquote>
+<h3 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h3><p>解压缩，得到如图所示的文件</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_01.png" alt="maven4mac_01"></p>
+<p>将 <code>apache-maven-3.3.9</code> 整个文件夹放在 <code>/usr/local/</code> 目录（也可按自己习惯放置在其他路径，但配置时要以实际路径为准）下，如图所示</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_02.png" alt="maven4mac_02"></p>
+<blockquote>
+<p>注意<br>使用 <code>Finder</code>-<code>前往</code>-<code>前往文件夹...</code> 即可进入隐藏的  <code>/usr/local/</code>  目录</p>
+</blockquote>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_03.png" alt="maven4mac_03"></p>
+<p>在终端控制器运行 <code>echo $JAVA_HOME</code> 命令查看 JDK 环境变量是否配置成功（具体配置方法可 Google）</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_04.png" alt="maven4mac_04"></p>
+<p>在终端控制器运行 <code>export PATH=/usr/local/apache-maven-3.3.9/bin:$PATH</code> 配置 Maven 的环境变量，并在终端输入 <code>mvn -v</code> 查看 Maven 版本，测试是否配置成功，如图即为成功配置</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_05.png" alt="maven4mac_05"></p>
+<h3 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h3><h4 id="POM-xml"><a href="#POM-xml" class="headerlink" title="POM.xml"></a>POM.xml</h4><p>在 文稿即 <code>/Users/kingcos/Documents</code> 下，新建文件夹作为项目文件夹，命名为 <code>MavenDemo</code>，写入以下内容，并保存为 <code>POM.xml</code> 于根目录中</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_06.png" alt="maven4mac_06"></p>
+<p>POM.xml</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</div><div class="line"><span class="tag">&lt;<span class="name">project</span> <span class="attr">xmlns</span>=<span class="string">"http://maven.apache.org/POM/4.0.0"</span></span></div><div class="line">         <span class="attr">xmlns:xsi</span>=<span class="string">"http://www.w3.org/2001/XMLSchema-instance"</span></div><div class="line">         <span class="attr">xsi:schemaLocation</span>=<span class="string">"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd "</span>&gt;</div><div class="line">    <span class="tag">&lt;<span class="name">modelVersion</span>&gt;</span>4.0.0<span class="tag">&lt;/<span class="name">modelVersion</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.maimieng.maven.demo<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-demo<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>SNAPSHOT-0.0.1<span class="tag">&lt;/<span class="name">version</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">project</span>&gt;</span></div></pre></td></tr></table></figure>
+<h4 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h4><p>使用 Maven，源代码 <code>.java</code> <strong>必须</strong>放在项目根目录的 <code>src/main/java</code> 下，再加上其所在包的文件夹下，所以 Hello.java 的绝对路径：<code>/Users/kingcos/Documents/MavenDemo/src/main/java/com/maimieng/hello/Hello.java</code>（源代码的资源文件<strong>必须</strong>放置在 <code>src/main/resources</code>）</p>
+<p>Hello.java</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> com.maimieng.hello;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Hello</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">sayHello</span><span class="params">(String name)</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> <span class="string">"Hello, "</span> + name;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</div><div class="line">        System.out.println(<span class="string">"Hello, world!"</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在终端将目录切换到项目文件夹，输入 <code>mvn compile</code>，即可执行编译</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_07.png" alt="maven4mac_07"></p>
+<p>编译完成，将在项目文件夹出现新的 <code>target</code> 文件夹，编译后的字节码文件，即在其中的 <code>classes</code> 文件夹内</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_08.png" alt="maven4mac_08"></p>
+<h4 id="配置-Maven-本地仓库"><a href="#配置-Maven-本地仓库" class="headerlink" title="配置 Maven 本地仓库"></a>配置 Maven 本地仓库</h4><p>默认仓库，位于 <code>/Users/USERNAME/.m2</code> USERNAME 为个人用户名，不易管理</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_19.png" alt="maven4mac_19"></p>
+<p>前往 <code>/usr/local</code>，打开 <code>apache-maven-3.3.9/conf/settings.xml</code></p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_09.png" alt="maven4mac_09"></p>
+<p>在 <code>settings.xml</code> 插入一行 <code>&lt;localRepository&gt;/Users/kingcos/Documents/Maven/repo&lt;/localRepository&gt;</code>，仓库路径可自定义，本文中设置为 <code>/Users/kingcos/Documents/Maven/repo</code>，复制此 <code>settings.xml</code> 文件</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_10.png" alt="maven4mac_10"></p>
+<p>前往 <code>/Users/kingcos/Documents/Maven/repo</code>，将 <code>settings.xml</code> 粘贴于此</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_11.png" alt="maven4mac_11"></p>
+<p>再次 <code>mvn compile</code>，执行编译，Maven 会下载依赖到新的本地仓库中，等待下载完毕，进行编译</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_12.png" alt="maven4mac_12"></p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_13.png" alt="maven4mac_13"></p>
+<blockquote>
+<p>注意<br>由于第一次编译过了，且无改动，所以此次只进行了下载依赖，编译提示 <code>nothing to compile</code>，如想看到编译，可提前删除 <code>target</code> 文件夹，再次编译</p>
+</blockquote>
+<h4 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h4><p>在 <code>POM.xml</code> 中 <code>&lt;project&gt;&lt;/&lt;project&gt;</code> 中添加</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></div><div class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>junit<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></div><div class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>junit<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></div><div class="line">        <span class="tag">&lt;<span class="name">version</span>&gt;</span>4.10<span class="tag">&lt;/<span class="name">version</span>&gt;</span></div><div class="line">        <span class="tag">&lt;<span class="name">scope</span>&gt;</span>test<span class="tag">&lt;/<span class="name">scope</span>&gt;</span></div><div class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></div></pre></td></tr></table></figure>
+<p>使用 Maven，测试代码 <code>.java</code> <strong>必须</strong>放在项目根目录的 <code>src/test/java</code> 下，再加上其所在包的文件夹下，所以 TestHello.java 的绝对路径：<code>/Users/kingcos/Documents/MavenDemo/src/test/j/com/maimeing/hello/TestHello.java</code>（测试代码的资源文件<strong>必须</strong>放置在 <code>src/test/resources</code>）</p>
+<p>TestHello.java</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> com.maimieng.hello;</div><div class="line"></div><div class="line"><span class="keyword">import</span> org.junit.*;</div><div class="line"><span class="keyword">import</span> <span class="keyword">static</span> junit.framework.Assert.*;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TestHello</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="meta">@Test</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testHello</span><span class="params">()</span> </span>&#123;</div><div class="line">        Hello h = <span class="keyword">new</span> Hello();</div><div class="line">        assertEquals(h.sayHello(<span class="string">"Maven"</span>), <span class="string">"Hello, Maven"</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>终端输入 <code>mvn test</code></p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_14.png" alt="maven4mac_14"></p>
+<p>如图即测试成功</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_15.png" alt="maven4mac_15"></p>
+<h4 id="命令"><a href="#命令" class="headerlink" title="命令"></a>命令</h4><p>终端输入命令</p>
+<h5 id="mvn-clean"><a href="#mvn-clean" class="headerlink" title="mvn clean"></a><code>mvn clean</code></h5><p>清除生成的文件，如图即清除成功（默认清除 <code>target</code> 文件夹）</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_16.png" alt="maven4mac_16"></p>
+<h5 id="mvn-clean-compile"><a href="#mvn-clean-compile" class="headerlink" title="mvn clean compile"></a><code>mvn clean compile</code></h5><p>先清理，再进行编译</p>
+<h5 id="mvn-clean-test"><a href="#mvn-clean-test" class="headerlink" title="mvn clean test"></a><code>mvn clean test</code></h5><p>先清理，再进行测试</p>
+<h5 id="mvn-clean-package"><a href="#mvn-clean-package" class="headerlink" title="mvn clean package"></a><code>mvn clean package</code></h5><p>先清理，再进行编译，测试，打包</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_17.png" alt="maven4mac_17"></p>
+<h5 id="mvn-clean-install"><a href="#mvn-clean-install" class="headerlink" title="mvn clean install"></a><code>mvn clean install</code></h5><p>先清理，再进行编译，测试，打包，并安装到本地仓库，供其它项目使用</p>
+<h5 id="mvn-clean-deploy"><a href="#mvn-clean-deploy" class="headerlink" title="mvn clean deploy"></a><code>mvn clean deploy</code></h5><p>先清理，再进行编译，测试，打包，并发布到服务器，供其他人使用</p>
+<h5 id="mvn-archetype-generate"><a href="#mvn-archetype-generate" class="headerlink" title="mvn archetype:generate"></a><code>mvn archetype:generate</code></h5><p>可根据输入的信息，自动生成 Maven 构建，也可使用 Eclipse</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_18.png" alt="maven4mac_18"></p>
+<h3 id="Maven-for-Eclipse"><a href="#Maven-for-Eclipse" class="headerlink" title="Maven for Eclipse"></a>Maven for Eclipse</h3><p>配置自己的 Maven，settings，及仓库</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_20.png" alt="maven4mac_20"></p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_21.png" alt="maven4mac_21"></p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_22.png" alt="maven4mac_22"></p>
+<h4 id="新建-Maven-项目"><a href="#新建-Maven-项目" class="headerlink" title="新建 Maven 项目"></a>新建 Maven 项目</h4><p>打开 Eclipse，在左边的 Package Explorer 中右键，<code>new</code>-<code>Other</code> 并如图选择 Maven Project</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_23.png" alt="maven4mac_23"></p>
+<p>第一页无需改动</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_24.png" alt="maven4mac_24"></p>
+<p>第二页如果建立非 Web 项目，即默认此图配置</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_25.png" alt="maven4mac_25"></p>
+<p>建立 Web 项目，需如图选择 <code>webapp</code></p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_26.png" alt="maven4mac_26"></p>
+<p>设置 <code>Group Id</code> 和 <code>Artifact Id</code> 以及包名，点击 <code>Finish</code> 即可完成建立</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_27.png" alt="maven4mac_27"></p>
+<h5 id="部署-Jetty"><a href="#部署-Jetty" class="headerlink" title="部署 Jetty"></a>部署 Jetty</h5><p>在 <code>pom.xml</code> 中配置插件</p>
+<p><code>&lt;build&gt;</code> 内：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">plugins</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">plugin</span>&gt;</span></div><div class="line">	  <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.mortbay.jetty<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></div><div class="line">	  <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>jetty-maven-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></div><div class="line">	  <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></div><div class="line">	    <span class="tag">&lt;<span class="name">scanIntervalSeconds</span>&gt;</span>10<span class="tag">&lt;/<span class="name">scanIntervalSeconds</span>&gt;</span></div><div class="line">	    <span class="tag">&lt;<span class="name">webApp</span>&gt;</span></div><div class="line">	      <span class="tag">&lt;<span class="name">contextPath</span>&gt;</span>/test<span class="tag">&lt;/<span class="name">contextPath</span>&gt;</span></div><div class="line">	    <span class="tag">&lt;/<span class="name">webApp</span>&gt;</span></div><div class="line">	    <span class="tag">&lt;<span class="name">connectors</span>&gt;</span></div><div class="line">	       <span class="tag">&lt;<span class="name">connector</span> <span class="attr">implementation</span>=<span class="string">"org.eclipse.jetty.server.nio.SelectChannelConnector"</span>&gt;</span></div><div class="line">	          <span class="tag">&lt;<span class="name">port</span>&gt;</span>9090<span class="tag">&lt;/<span class="name">port</span>&gt;</span></div><div class="line">	          <span class="tag">&lt;<span class="name">maxIdleTime</span>&gt;</span>60000<span class="tag">&lt;/<span class="name">maxIdleTime</span>&gt;</span></div><div class="line">	       <span class="tag">&lt;/<span class="name">connector</span>&gt;</span></div><div class="line">	     <span class="tag">&lt;/<span class="name">connectors</span>&gt;</span></div><div class="line">	  <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></div><div class="line">	<span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></div></pre></td></tr></table></figure>
+<p>在项目上右键，<code>Run As</code>-<code>Maven Build...</code>，如图输入 <code>jetty:run</code> 即可运行</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/maven4mac_28.png" alt="maven4mac_28"></p>
+<p>打开 <a href="http://localhost:9090/test/" target="_blank" rel="external">http://localhost:9090/test/</a> 测试（端口号可在上方代码处更改，<code>9090</code> 仅供参考）</p>
+<h3 id="Maven-with-Tomcat"><a href="#Maven-with-Tomcat" class="headerlink" title="Maven with Tomcat"></a>Maven with Tomcat</h3><h4 id="按如下配置"><a href="#按如下配置" class="headerlink" title="按如下配置"></a>按如下配置</h4><p>POM.xml</p>
+<p><code>&lt;build&gt;</code> 内：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">plugins</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">plugin</span>&gt;</span></div><div class="line">	   <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.tomcat.maven<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></div><div class="line">		<span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>tomcat7-maven-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></div><div class="line">		<span class="tag">&lt;<span class="name">version</span>&gt;</span>2.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></div><div class="line">		<span class="tag">&lt;<span class="name">configuration</span>&gt;</span></div><div class="line">			<span class="tag">&lt;<span class="name">url</span>&gt;</span>http://localhost:8080/manager/text<span class="tag">&lt;/<span class="name">url</span>&gt;</span></div><div class="line">			<span class="tag">&lt;<span class="name">username</span>&gt;</span>admin<span class="tag">&lt;/<span class="name">username</span>&gt;</span></div><div class="line">			<span class="tag">&lt;<span class="name">password</span>&gt;</span>admin<span class="tag">&lt;/<span class="name">password</span>&gt;</span>			<span class="tag">&lt;<span class="name">path</span>&gt;</span>/$&#123;project.artifactId&#125;<span class="tag">&lt;/<span class="name">path</span>&gt;</span></div><div class="line">		<span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></div><div class="line">	<span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></div></pre></td></tr></table></figure>
+<p>Maven 仓库内的 settings.xml</p>
+<p><code>&lt;servers&gt;</code> 内：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">server</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">id</span>&gt;</span>tomcat7<span class="tag">&lt;/<span class="name">id</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">username</span>&gt;</span>admin<span class="tag">&lt;/<span class="name">username</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">password</span>&gt;</span>admin<span class="tag">&lt;/<span class="name">password</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">server</span>&gt;</span></div></pre></td></tr></table></figure>
+<p>外部 Tomcat 路径下的 <code>conf/tomcat-users.xml</code></p>
+<p><code>&lt;tomcat-users&gt;</code> 内：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">role</span> <span class="attr">rolename</span>=<span class="string">"manager-gui"</span>/&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">role</span> <span class="attr">rolename</span>=<span class="string">"manager-script"</span>/&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">user</span> <span class="attr">username</span>=<span class="string">"admin"</span> <span class="attr">password</span>=<span class="string">"admin"</span> <span class="attr">roles</span>=<span class="string">"manager-gui,manager-script"</span>/&gt;</span></div></pre></td></tr></table></figure>
+<h4 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h4><p>运行 Tomcat，打开 <a href="http://localhost:8080/manager" target="_blank" rel="external">http://localhost:8080/manager</a>，在弹窗中输入账号密码，均为 <code>admin</code>，查看是否能登入管理页面，如果可以即可进行下一步，若有错，请检查上述是否设置正确。</p>
+<h4 id="运行"><a href="#运行" class="headerlink" title="运行"></a>运行</h4><p><strong>先运行 Tomcat</strong>，再项目右键－Run As－6 Maven Build…－<code>Tomcat7:redeploy</code>，出现 <code>Build SUCCESS</code>，即为配置成功。以后每次修改项目文件，保存后，不需重启 Tomcat，重新发布即可。</p>
+<h4 id="One-more-thing…"><a href="#One-more-thing…" class="headerlink" title="One more thing…"></a>One more thing…</h4><p>我在配置完以上并运行以后，有时候仍会报 <code>in</code> 错，然后在开启 Tomcat 的条件下进行验证，发现并不能验证成功，这是因为外部 Tomcat 路径下的 <code>conf/tomcat-users.xml</code> 又还原到了原始状态，需要再次添加上面的内容才可，暂时不知道什么原因导致的。</p>
+<p>具体项目中使用，详见 <a href="http://maimieng.com/2016/programming/jbbs/">Java BBS</a>。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;Maven for Mac&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="Tips" scheme="https://maimieng.com/tags/Tips/"/>
+    
+      <category term="Java" scheme="https://maimieng.com/tags/Java/"/>
+    
+      <category term="Tools" scheme="https://maimieng.com/tags/Tools/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>FCC</title>
+    <link href="https://maimieng.com/2016/4/"/>
+    <id>https://maimieng.com/2016/4/</id>
+    <published>2016-03-20T16:00:00.000Z</published>
+    <updated>2016-05-28T13:04:02.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>FCC 难点<br></blockquote><br><a id="more"></a></p>
+<h2 id="JavaScript"><a href="#JavaScript" class="headerlink" title="JavaScript"></a>JavaScript</h2><blockquote>
+</blockquote>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+</blockquote>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+</blockquote>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+</blockquote>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+</blockquote>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>Manipulate Arrays With push / pop / shift / unshift</p>
+</blockquote>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">var</span> myArray = [[<span class="string">"John"</span>, <span class="number">23</span>], [<span class="string">"cat"</span>, <span class="number">2</span>]];</div><div class="line"></div><div class="line">myArray.push([<span class="string">"dog"</span>, <span class="number">3</span>]);</div><div class="line"><span class="comment">// ["John", 23], ["cat", 2], ["dog", 3]</span></div><div class="line"></div><div class="line"><span class="keyword">var</span> removedFromMyArray = myArray.pop();</div><div class="line"><span class="comment">// ["John", 23], ["cat", 2]</span></div><div class="line"></div><div class="line"><span class="keyword">var</span> removedFromMyArray = myArray.shift();</div><div class="line"><span class="comment">// ["cat", 2]</span></div><div class="line"></div><div class="line">myArray.unshift([<span class="string">"Paul"</span>,<span class="number">35</span>]);</div><div class="line"><span class="comment">// ["Paul",35], ["cat", 2]</span></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>Quoting Strings with Single Quotes</p>
+</blockquote>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">var</span> myStr = <span class="string">'&lt;a href="http://www.example.com" target="_blank"&gt;Link&lt;/a&gt;'</span>;</div></pre></td></tr></table></figure>
+<h2 id="Project"><a href="#Project" class="headerlink" title="Project"></a>Project</h2><blockquote>
+<p>Get Set for our Front End Development Projects</p>
+</blockquote>
+<ul>
+<li><a href="http://maimieng.com/skipsrc/fcc/01">Build a Tribute Page</a></li>
+<li><p><a href="https://codepen.io/kingcos/full/YqOPPB/" target="_blank" rel="external">Code Pen</a></p>
+</li>
+<li><p><a href="">Build a Personal Portfolio Webpage</a></p>
+</li>
+</ul>
+<hr>
+<h2 id="jQuery"><a href="#jQuery" class="headerlink" title="jQuery"></a>jQuery</h2><blockquote>
+<p>Disable an Element Using jQuery &amp; Change Text Inside an Element Using jQuery &amp; Remove an Element Using jQuery &amp; Use appendTo to Move Elements with jQuery &amp; Clone an Element Using jQuery &amp; Target the Parent of an Element Using jQuery &amp; Target the Children of an Element Using jQuery &amp; Target a Specific Child of an Element Using jQuery &amp; Target Even Numbered Elements Using jQuery &amp; Use jQuery to Modify the Entire Page</p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="javascript"></span></div><div class="line">    $(<span class="built_in">document</span>).ready(<span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">        $(<span class="string">"#target1"</span>).css(<span class="string">"color"</span>, <span class="string">"red"</span>);</div><div class="line">        $(<span class="string">"#target1"</span>).prop(<span class="string">"disabled"</span>, <span class="literal">true</span>);</div><div class="line">        <span class="comment">// .text(): only alters text without adding tags</span></div><div class="line">        <span class="comment">// .html(): add HTML tags and text within an element</span></div><div class="line">        $(<span class="string">"#target4"</span>).html(<span class="string">"&lt;i&gt;#target4&lt;/i&gt;"</span>);</div><div class="line">        $(<span class="string">"#target4"</span>).remove();</div><div class="line">        <span class="comment">// appendTo(): move element</span></div><div class="line">        $(<span class="string">"#target2"</span>).appendTo(<span class="string">"#right-well"</span>);</div><div class="line">        $(<span class="string">"#target5"</span>).clone().appendTo(<span class="string">"#left-well"</span>);</div><div class="line">        $(<span class="string">"#target1"</span>).parent().css(<span class="string">"background-color"</span>, <span class="string">"red"</span>);</div><div class="line">        $(<span class="string">"#right-well"</span>).children().css(<span class="string">"color"</span>, <span class="string">"orange"</span>);</div><div class="line">        $(<span class="string">".target:nth-child(2)"</span>).addClass(<span class="string">"animated bounce"</span>);</div><div class="line">        $(<span class="string">".target:even"</span>).addClass(<span class="string">"animated shake"</span>);</div><div class="line">        $(<span class="string">"body"</span>).addClass(<span class="string">"animated hinge"</span>);</div><div class="line">    &#125;);</div><div class="line"><span class="tag">&lt;/<span class="name">script</span>&gt;</span></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>Target the same element with multiple jQuery Selectors &amp; Remove Classes from an element with jQuery &amp; Change the CSS of an Element Using jQuery</p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="javascript"></span></div><div class="line">    $(<span class="built_in">document</span>).ready(<span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">        $(<span class="string">"button"</span>).addClass(<span class="string">"animated bounce"</span>);</div><div class="line">        $(<span class="string">".well"</span>).addClass(<span class="string">"animated shake"</span>);</div><div class="line">        $(<span class="string">"#target3"</span>).addClass(<span class="string">"animated fadeOut"</span>);</div><div class="line">        $(<span class="string">"button"</span>).removeClass(<span class="string">"btn-default"</span>);</div><div class="line">        $(<span class="string">"#target1"</span>).css(<span class="string">"color"</span>, <span class="string">"red"</span>);</div><div class="line">    &#125;);</div><div class="line"><span class="tag">&lt;/<span class="name">script</span>&gt;</span></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>Learn how Script Tags and Document Ready Work &amp; Target Elements by Class / ID Using jQuery</p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="javascript"></span></div><div class="line">    <span class="comment">// Dollar sign operator</span></div><div class="line">    $(<span class="built_in">document</span>).ready(<span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</div><div class="line">        $(<span class="string">"button"</span>).addClass(<span class="string">"animated bounce"</span>);</div><div class="line">        $(<span class="string">".well"</span>).addClass(<span class="string">"animated shaked"</span>);</div><div class="line">        $(<span class="string">"#target3"</span>).addClass(<span class="string">"animated fadeOut"</span>);</div><div class="line">    &#125;);</div><div class="line"><span class="tag">&lt;/<span class="name">script</span>&gt;</span></div></pre></td></tr></table></figure>
+<h2 id="Bootstrap"><a href="#Bootstrap" class="headerlink" title="Bootstrap"></a>Bootstrap</h2><blockquote>
+<p>Create a Bootstrap Headline &amp; House our page within a Bootstrap Container Fluid Div &amp; Create a Bootstrap Row &amp; Split your Bootstrap Row &amp; Create Bootstrap Wells &amp; Add Elements within your Bootstrap Wells &amp; Apply the Default Bootstrap Button Style &amp; Create a Class to Target with jQuery Selectors &amp; Add ID Attributes to Bootstrap Elements &amp; Label Bootstrap Wells &amp; Give Each Element a Unique ID &amp; Label Bootstrap Buttons &amp; Use Comments to Clarify Code</p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"container-fluid"</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">h3</span> <span class="attr">class</span>=<span class="string">"text-primary text-center"</span>&gt;</span>jQuery Playground<span class="tag">&lt;/<span class="name">h3</span>&gt;</span></div><div class="line"></div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"row"</span>&gt;</span></div><div class="line">        <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-6"</span>&gt;</span></div><div class="line">            <span class="tag">&lt;<span class="name">h4</span>&gt;</span>#left-well<span class="tag">&lt;/<span class="name">h4</span>&gt;</span></div><div class="line">            <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"well"</span> <span class="attr">id</span>=<span class="string">"left-well"</span>&gt;</span></div><div class="line">                <span class="tag">&lt;<span class="name">button</span> <span class="attr">id</span>=<span class="string">"target1"</span> <span class="attr">class</span>=<span class="string">"btn btn-default target"</span>&gt;</span>#target1<span class="tag">&lt;/<span class="name">button</span>&gt;</span></div><div class="line">                <span class="tag">&lt;<span class="name">button</span> <span class="attr">id</span>=<span class="string">"target2"</span> <span class="attr">class</span>=<span class="string">"btn btn-default target"</span>&gt;</span>#target2<span class="tag">&lt;/<span class="name">button</span>&gt;</span></div><div class="line">                <span class="tag">&lt;<span class="name">button</span> <span class="attr">id</span>=<span class="string">"target3"</span> <span class="attr">class</span>=<span class="string">"btn btn-default target"</span>&gt;</span>#target3<span class="tag">&lt;/<span class="name">button</span>&gt;</span></div><div class="line">            <span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line">        <span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line"></div><div class="line">        <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-6"</span>&gt;</span></div><div class="line">            <span class="tag">&lt;<span class="name">h4</span>&gt;</span>#right-well<span class="tag">&lt;/<span class="name">h4</span>&gt;</span></div><div class="line">            <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"well"</span> <span class="attr">id</span>=<span class="string">"right-well"</span>&gt;</span></div><div class="line">                <span class="tag">&lt;<span class="name">button</span> <span class="attr">id</span>=<span class="string">"target4"</span> <span class="attr">class</span>=<span class="string">"btn btn-default target"</span>&gt;</span>#target4<span class="tag">&lt;/<span class="name">button</span>&gt;</span></div><div class="line">                <span class="tag">&lt;<span class="name">button</span> <span class="attr">id</span>=<span class="string">"target5"</span> <span class="attr">class</span>=<span class="string">"btn btn-default target"</span>&gt;</span>#target5<span class="tag">&lt;/<span class="name">button</span>&gt;</span></div><div class="line">                <span class="tag">&lt;<span class="name">button</span> <span class="attr">id</span>=<span class="string">"target6"</span> <span class="attr">class</span>=<span class="string">"btn btn-default target"</span>&gt;</span>#target6<span class="tag">&lt;/<span class="name">button</span>&gt;</span></div><div class="line">            <span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line">    <span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">div</span>&gt;</span></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>Line up Form Elements Responsively with Bootstrap</p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"row"</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-7"</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">input</span> <span class="attr">type</span>=<span class="string">"text"</span> <span class="attr">class</span>=<span class="string">"form-control"</span> <span class="attr">placeholder</span>=<span class="string">"cat photo URL"</span> <span class="attr">required</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-5"</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">button</span> <span class="attr">type</span>=<span class="string">"submit"</span> <span class="attr">class</span>=<span class="string">"btn btn-primary"</span>&gt;</span><span class="tag">&lt;<span class="name">i</span> <span class="attr">class</span>=<span class="string">"fa fa-paper-plane"</span>&gt;</span><span class="tag">&lt;/<span class="name">i</span>&gt;</span> Submit<span class="tag">&lt;/<span class="name">button</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">div</span>&gt;</span></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>Style Text Inputs as Form Controls</p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">input</span> <span class="attr">type</span>=<span class="string">"text"</span> <span class="attr">class</span>=<span class="string">"form-control"</span> <span class="attr">placeholder</span>=<span class="string">"cat photo URL"</span> <span class="attr">required</span>&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">button</span> <span class="attr">type</span>=<span class="string">"submit"</span> <span class="attr">class</span>=<span class="string">"btn btn-primary"</span>&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">i</span> <span class="attr">class</span>=<span class="string">"fa fa-paper-plane"</span>&gt;</span><span class="tag">&lt;/<span class="name">i</span>&gt;</span>Submit</div><div class="line"><span class="tag">&lt;/<span class="name">button</span>&gt;</span></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>Responsively Style Radio Buttons &amp; Responsively Style Checkboxes</p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"row"</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-6"</span>&gt;</span><span class="tag">&lt;<span class="name">label</span>&gt;</span><span class="tag">&lt;<span class="name">input</span> <span class="attr">type</span>=<span class="string">"radio"</span> <span class="attr">name</span>=<span class="string">"indoor-outdoor"</span>&gt;</span> Indoor<span class="tag">&lt;/<span class="name">label</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-6"</span>&gt;</span><span class="tag">&lt;<span class="name">label</span>&gt;</span><span class="tag">&lt;<span class="name">input</span> <span class="attr">type</span>=<span class="string">"radio"</span> <span class="attr">name</span>=<span class="string">"indoor-outdoor"</span>&gt;</span> Outdoor<span class="tag">&lt;/<span class="name">label</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line">    <span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line"></div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"row"</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-4"</span>&gt;</span><span class="tag">&lt;<span class="name">label</span>&gt;</span><span class="tag">&lt;<span class="name">input</span> <span class="attr">type</span>=<span class="string">"checkbox"</span> <span class="attr">name</span>=<span class="string">"personality"</span>&gt;</span> Loving<span class="tag">&lt;/<span class="name">label</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-4"</span>&gt;</span><span class="tag">&lt;<span class="name">label</span>&gt;</span><span class="tag">&lt;<span class="name">input</span> <span class="attr">type</span>=<span class="string">"checkbox"</span> <span class="attr">name</span>=<span class="string">"personality"</span>&gt;</span> Lazy<span class="tag">&lt;/<span class="name">label</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-4"</span>&gt;</span><span class="tag">&lt;<span class="name">label</span>&gt;</span><span class="tag">&lt;<span class="name">input</span> <span class="attr">type</span>=<span class="string">"checkbox"</span> <span class="attr">name</span>=<span class="string">"personality"</span>&gt;</span> Crazy<span class="tag">&lt;/<span class="name">label</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">div</span>&gt;</span></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>Add Font Awesome Icons to our Buttons &amp; Add Font Awesome Icons to all of our Buttons</p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">link</span> <span class="attr">rel</span>=<span class="string">"stylesheet"</span> <span class="attr">href</span>=<span class="string">"//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css"</span>/&gt;</span></div><div class="line"></div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"row"</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-4"</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">button</span> <span class="attr">class</span>=<span class="string">"btn btn-block btn-primary"</span>&gt;</span><span class="tag">&lt;<span class="name">i</span> <span class="attr">class</span>=<span class="string">"fa fa-thumbs-up"</span>&gt;</span><span class="tag">&lt;/<span class="name">i</span>&gt;</span> Like<span class="tag">&lt;/<span class="name">button</span>&gt;</span></div><div class="line">    <span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-4"</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">button</span> <span class="attr">class</span>=<span class="string">"btn btn-block btn-info"</span>&gt;</span><span class="tag">&lt;<span class="name">i</span> <span class="attr">class</span>=<span class="string">"fa fa-info-circle"</span>&gt;</span><span class="tag">&lt;/<span class="name">i</span>&gt;</span> Info<span class="tag">&lt;/<span class="name">button</span>&gt;</span></div><div class="line">    <span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-4"</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">button</span> <span class="attr">class</span>=<span class="string">"btn btn-block btn-danger"</span>&gt;</span><span class="tag">&lt;<span class="name">i</span> <span class="attr">class</span>=<span class="string">"fa fa-trash"</span>&gt;</span><span class="tag">&lt;/<span class="name">i</span>&gt;</span> Delete<span class="tag">&lt;/<span class="name">button</span>&gt;</span></div><div class="line">    <span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">div</span>&gt;</span></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>Create a Custom Heading</p>
+</blockquote>
+<p><img src="https://i.imgur.com/FaYuui8.png" alt=""></p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"row"</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-8"</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">h2</span> <span class="attr">class</span>=<span class="string">"text-primary text-center"</span>&gt;</span>CatPhotoApp<span class="tag">&lt;/<span class="name">h2</span>&gt;</span></div><div class="line">    <span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line">    </div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-4"</span>&gt;</span></div><div class="line">        <span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"#"</span>&gt;</span><span class="tag">&lt;<span class="name">img</span> <span class="attr">class</span>=<span class="string">"img-responsive thick-green-border"</span> <span class="attr">src</span>=<span class="string">"https://bit.ly/fcc-relaxing-cat"</span>&gt;</span><span class="tag">&lt;/<span class="name">a</span>&gt;</span></div><div class="line">    <span class="tag">&lt;/<span class="name">div</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">div</span>&gt;</span></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>Ditch Custom CSS for Bootstrap</p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">h2</span> <span class="attr">class</span>=<span class="string">"text-center text-primary"</span>&gt;</span>CatPhotoApp<span class="tag">&lt;/<span class="name">h2</span>&gt;</span></div><div class="line"></div><div class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"#"</span>&gt;</span><span class="tag">&lt;<span class="name">img</span> <span class="attr">class</span>=<span class="string">"thick-green-border img-responsive"</span> <span class="attr">src</span>=<span class="string">"https://bit.ly/fcc-relaxing-cat"</span>&gt;</span><span class="tag">&lt;/<span class="name">a</span>&gt;</span></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>Use the Bootstrap Grid to Put Elements Side By Side</p>
+</blockquote>
+<p><img src="https://i.imgur.com/FaYuui8.png" alt="col-md-*"></p>
+<ul>
+<li><code>col-md-*</code></li>
+<li><code>md</code>: medium</li>
+<li><code>*</code>: a number specifying how many columns wide the element should be</li>
+<li><code>col-xs-*</code></li>
+<li><code>xs</code>: extra small (like an extra-small mobile phone screen)</li>
+<li><code>*</code>: the number of columns specifying how many columns wide the element should be</li>
+</ul>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"row"</span>&gt;</span> </div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-4"</span>&gt;</span><span class="tag">&lt;<span class="name">button</span> <span class="attr">class</span>=<span class="string">"btn btn-block btn-primary"</span>&gt;</span>Like<span class="tag">&lt;/<span class="name">button</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span> </div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-4"</span>&gt;</span><span class="tag">&lt;<span class="name">button</span> <span class="attr">class</span>=<span class="string">"btn btn-block btn-info"</span>&gt;</span>Info<span class="tag">&lt;/<span class="name">button</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span> </div><div class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"col-xs-4"</span>&gt;</span><span class="tag">&lt;<span class="name">button</span> <span class="attr">class</span>=<span class="string">"btn btn-block btn-danger"</span>&gt;</span>Delete<span class="tag">&lt;/<span class="name">button</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span> </div><div class="line"><span class="tag">&lt;/<span class="name">div</span>&gt;</span></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>Call out Optional Actions with Button Info &amp; Warn your Users of a Dangerous Action</p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">button</span> <span class="attr">class</span>=<span class="string">"btn btn-block btn-info"</span>&gt;</span>Info<span class="tag">&lt;/<span class="name">button</span>&gt;</span></div><div class="line"></div><div class="line"><span class="tag">&lt;<span class="name">button</span> <span class="attr">class</span>=<span class="string">"btn btn-block btn-danger"</span>&gt;</span>Delete<span class="tag">&lt;/<span class="name">button</span>&gt;</span></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>Make Images Mobile Responsive &amp; Center Text with Bootstrap &amp; Create a Bootstrap Button &amp; Create a Block Element Bootstrap Button &amp; Taste the Bootstrap Button Color Rainbow</p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">img</span> <span class="attr">class</span>=<span class="string">"img-responsive"</span> <span class="attr">src</span>=<span class="string">"http://bit.ly/fcc-running-cats"</span>&gt;</span></div><div class="line"></div><div class="line"><span class="tag">&lt;<span class="name">h2</span> <span class="attr">class</span>=<span class="string">"red-text text-center"</span>&gt;</span>CatPhotoApp<span class="tag">&lt;/<span class="name">h2</span>&gt;</span></div><div class="line"></div><div class="line"><span class="tag">&lt;<span class="name">button</span> <span class="attr">class</span>=<span class="string">"btn btn-block btn-primary"</span>&gt;</span>Like<span class="tag">&lt;/<span class="name">button</span>&gt;</span></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>Use Responsive Design with Bootstrap Fluid Containers</p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="comment">&lt;!-- Responsive Design --&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">link</span> <span class="attr">rel</span>=<span class="string">"stylesheet"</span> <span class="attr">href</span>=<span class="string">"//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css"</span>/&gt;</span></div><div class="line"></div><div class="line"><span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"container-fluid"</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">div</span>&gt;</span></div></pre></td></tr></table></figure>
+<h2 id="HTML-amp-CSS"><a href="#HTML-amp-CSS" class="headerlink" title="HTML &amp; CSS"></a>HTML &amp; CSS</h2><blockquote>
+<p>Override All Other Styles by using Important</p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="undefined"></span></div><div class="line">    body &#123;</div><div class="line">        background-color: black;</div><div class="line">        font-family: Monospace;</div><div class="line">        color: green;</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">    #orange-text &#123;</div><div class="line">        color: orange;</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">    .pink-text &#123;</div><div class="line">        color: pink !important;</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">    .blue-text &#123;</div><div class="line">        color: blue;</div><div class="line">    &#125;</div><div class="line"><span class="tag">&lt;/<span class="name">style</span>&gt;</span></div><div class="line"></div><div class="line"><span class="tag">&lt;<span class="name">h1</span> <span class="attr">id</span>=<span class="string">"orange-text"</span> <span class="attr">class</span>=<span class="string">"pink-text blue-text"</span> <span class="attr">style</span>=<span class="string">"color: white"</span>&gt;</span>Hello World!<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>Adjusting the Padding of an Element &amp; Adjust the Margin of an Element</p>
+</blockquote>
+<ul>
+<li>An element’s <code>padding</code> controls the amount of space between the element and its border.</li>
+<li>An element’s <code>margin</code> controls the amount of space between an element’s border and surrounding elements.</li>
+</ul>
+<hr>
+<blockquote>
+<p>Use HTML5 to Require a Field</p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">input</span> <span class="attr">type</span>=<span class="string">"text"</span> <span class="attr">placeholder</span>=<span class="string">"cat photo URL"</span> <span class="attr">required</span>&gt;</span></div><div class="line"><span class="comment">&lt;!-- <span class="doctag">Note:</span> This field does not work in Safari. --&gt;</span></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>Import a Google Font</p>
+</blockquote>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="comment">&lt;!-- Call --&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">link</span> <span class="attr">href</span>=<span class="string">"http://fonts.googleapis.com/css?family=Lobster"</span> <span class="attr">rel</span>=<span class="string">"stylesheet"</span> <span class="attr">type</span>=<span class="string">"text/css"</span>&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="undefined"></span></div><div class="line">    h2 &#123;</div><div class="line">        font-family: Lobster;</div><div class="line">    &#125;</div><div class="line"><span class="tag">&lt;/<span class="name">style</span>&gt;</span></div><div class="line"></div><div class="line"><span class="tag">&lt;<span class="name">h2</span>&gt;</span>CatPhotoApp<span class="tag">&lt;/<span class="name">h2</span>&gt;</span></div></pre></td></tr></table></figure>
+<blockquote>
+<p>Fill in the Blank with Placeholder Text</p>
+</blockquote>
+<ul>
+<li><a href="https://zh.wikipedia.org/wiki/Lorem_ipsum" target="_blank" rel="external"><code>lorem ipsum text</code></a></li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;FCC 难点&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="Front end" scheme="https://maimieng.com/tags/Front-end/"/>
     
   </entry>
   
