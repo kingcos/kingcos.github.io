@@ -4,146 +4,6 @@
   
     
     <entry>
-      <title><![CDATA[初探 Swift 中的 KVO]]></title>
-      <url>https://maimieng.com/2016/28/</url>
-      <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>Key-Value Observer<br></blockquote><br><a id="more"></a></p>
-<ul>
-<li>Info:<ul>
-<li>macOS X 10.12.1 Beta 4</li>
-<li>Xcode 8.1 Beta 3</li>
-<li>Swift 3</li>
-</ul>
-</li>
-</ul>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Key-Value Observer 中文译为「键值观察器」，简称 KVO。它们都是 iOS 开发中极其重要且基础的概念。苹果官网对于 KVC 以及 KVO 有详细的编程指南，但均是基于 Objective-C 语言。Swift 也继承了该特性，但是 KVO 常用于从网络获取请求进行处理，而我暂时没有学到，所以这次只是简单探究下 Swift 中的 KVO。</p>
-<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2>]]></content>
-    </entry>
-    
-    <entry>
-      <title><![CDATA[初探 Swift 中的 KVC]]></title>
-      <url>https://maimieng.com/2016/27/</url>
-      <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>Key-Value Coding<br></blockquote><br><a id="more"></a></p>
-<ul>
-<li>Info:<ul>
-<li>macOS X 10.12.1 Beta 4</li>
-<li>Xcode 8.1 Beta 3</li>
-<li>Swift 3</li>
-</ul>
-</li>
-</ul>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Key-Value Coding 中文译为「键值编码」，简称 KVC。是 iOS 开发中极其重要且基础的概念。苹果官网对于 KVC 有详细的编程指南，但均是基于 Objective-C 语言。Swift 也继承了该特性，KVC 常用于从网络获取请求进行处理，这次只是简单探究下 Swift 中的 KVC。</p>
-<p>在 Swift 中想要兼容 KVC，需要该类继承 <code>NSObject</code>。下面是 KVC 中常用的几个方法：</p>
-<ul>
-<li>根据传入的 <code>key</code>，设置 <code>value</code>：</li>
-</ul>
-<p><code>func setValue(_ value: Any?, forKey key: String)</code></p>
-<ul>
-<li>根据传入的 <code>keyPath</code>，设置 <code>value</code>，<code>keyPath</code> 即键路径可利用 <code>.</code> 遍历至键：</li>
-</ul>
-<p><code>func setValue(_ value: Any?, forKeyPath keyPath: String)</code></p>
-<ul>
-<li>根据传入的字典，设值，如果字典中有对象不存在的属性，则会抛出异常：</li>
-</ul>
-<p><code>func setValuesForKeys(_ keyedValues: [String : Any])</code></p>
-<ul>
-<li>当为不存在的某个键设值时，默认调用该方法抛出 <code>NSUndefinedKeyException</code> 异常，子类可重写该方法：</li>
-</ul>
-<p><code>func setValue(_ value: Any?, forUndefinedKey key: String)</code></p>
-<ul>
-<li>设置特定键的值为 <code>nil</code> 时，默认调用该方法抛出 <code>NSInvalidArgumentException</code>，子类可重写该方法（注：官方称该方法针对标量值（scalar value），例如整型和浮点型）对于其他类型没有提到，在 Demo 中有详细的列出是否支持）：</li>
-</ul>
-<p><code>func setNilValueForKey(_ key: String)</code></p>
-<h2 id="Demo"><a href="#Demo" class="headerlink" title="Demo"></a>Demo</h2><p>KVC 兼容的类，需要继承自 <code>NSObject</code>。在学习 KVC 的过程中，发现并不是所有的数据类型都支持通过 KVC 设值。KVC 设值的方便之处在于可以动态的设值，即使封装在内部的细节也可以设值，而且可以自动将类型转换（注意：有些类型是不可行的）。这种特性使得从网络获取的数据可以轻松设置到模型中。以下的 Demo，选取了几个常用的 Swift 中的数据类型，测试一下是否支持 KVC 以及是否在设置 <code>nil</code> 值时调用 <code>setNilValueForKey</code> 方法。</p>
-<p>DataType.swift</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">DataType</span>: <span class="title">NSObject</span> </span>&#123;</div><div class="line">    <span class="keyword">var</span> aInt: <span class="type">Int</span> = <span class="number">0</span></div><div class="line">    <span class="keyword">var</span> bUInt: <span class="type">UInt</span> = <span class="number">0</span></div><div class="line">    <span class="keyword">var</span> cFloat: <span class="type">Float</span> = <span class="number">0.0</span></div><div class="line">    <span class="keyword">var</span> dDouble: <span class="type">Double</span> = <span class="number">0.0</span></div><div class="line">    <span class="keyword">var</span> eBool: <span class="type">Bool</span> = <span class="literal">false</span></div><div class="line">    <span class="keyword">var</span> fCharacter: <span class="type">Character</span> = <span class="string">"f"</span></div><div class="line">    <span class="keyword">var</span> gString: <span class="type">String</span> = <span class="string">""</span></div><div class="line">    <span class="keyword">var</span> hArray: [<span class="type">Any</span>] = [<span class="number">0</span>]</div><div class="line">    <span class="keyword">var</span> iDictionary: [<span class="type">String</span>: <span class="type">Any</span>] = [<span class="string">"0"</span>: <span class="number">0</span>]</div><div class="line">    <span class="keyword">var</span> jTuple: (<span class="type">Int</span>, <span class="type">Int</span>) = (<span class="number">0</span>, <span class="number">0</span>)</div><div class="line">    <span class="keyword">var</span> kOptional: <span class="type">Int</span>?</div><div class="line">    <span class="keyword">var</span> lObject: <span class="type">Type</span> = <span class="type">Type</span>()</div><div class="line">    </div><div class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">setNilValueForKey</span><span class="params">(<span class="number">_</span> key: String)</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(<span class="string">"You set nil for \(key)"</span>)</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Type</span>: <span class="title">NSObject</span> </span>&#123;</div><div class="line">    <span class="keyword">var</span> prop = <span class="number">0</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>main.swift</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">let</span> o = <span class="type">DataType</span>()</div></pre></td></tr></table></figure>
-<h3 id="Int"><a href="#Int" class="headerlink" title="Int"></a><code>Int</code></h3><p>main.swift</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">o.setValue(<span class="string">"1"</span>, forKeyPath: <span class="string">"aInt"</span>)</div><div class="line"><span class="built_in">print</span>(<span class="string">"aInt: \(o.aInt)"</span>)</div><div class="line">o.setValue(<span class="literal">nil</span>, forKeyPath: <span class="string">"aInt"</span>)</div><div class="line"></div><div class="line"><span class="comment">// aInt: 1</span></div><div class="line"><span class="comment">// You set nil for aInt</span></div></pre></td></tr></table></figure>
-<p><strong><code>Int</code> 支持 <code>setValue</code> 自动转换设值，且支持设值为 <code>nil</code> 时调用 <code>setNilValueForKey</code> 方法。</strong></p>
-<h3 id="UInt"><a href="#UInt" class="headerlink" title="UInt"></a><code>UInt</code></h3><p>main.swift</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 不支持通过自动转换</span></div><div class="line"><span class="comment">// Error: -[Swift._NSContiguousString unsignedLongLongValue]: unrecognized selector sent to instance</span></div><div class="line"><span class="comment">// o.setValue("1", forKeyPath: "bUInt")</span></div><div class="line">o.setValue(<span class="number">1</span>, forKeyPath: <span class="string">"bUInt"</span>)</div><div class="line"><span class="built_in">print</span>(o.bUInt)</div><div class="line">o.setValue(<span class="literal">nil</span>, forKeyPath: <span class="string">"bUInt"</span>)</div><div class="line"></div><div class="line"><span class="comment">// 1</span></div><div class="line"><span class="comment">// You set nil for bUInt</span></div></pre></td></tr></table></figure>
-<p><strong><code>UInt</code> 支持 <code>setValue</code> 设值，但不支持自动转换，且支持设值为 <code>nil</code> 时调用 <code>setNilValueForKey</code> 方法。</strong></p>
-<h3 id="Float"><a href="#Float" class="headerlink" title="Float"></a><code>Float</code></h3><p>main.swift</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">o.setValue(<span class="string">"1"</span>, forKeyPath: <span class="string">"cFloat"</span>)</div><div class="line"><span class="built_in">print</span>(o.cFloat)</div><div class="line">o.setValue(<span class="literal">nil</span>, forKeyPath: <span class="string">"cFloat"</span>)</div><div class="line"></div><div class="line"><span class="comment">// 1.0</span></div><div class="line"><span class="comment">// You set nil for cFloat</span></div></pre></td></tr></table></figure>
-<p><strong><code>Float</code> 支持 <code>setValue</code> 自动转换设值，且支持设值为 <code>nil</code> 时调用 <code>setNilValueForKey</code> 方法。</strong></p>
-<h3 id="Double"><a href="#Double" class="headerlink" title="Double"></a><code>Double</code></h3><p>main.swift</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">o.setValue(<span class="string">"1"</span>, forKeyPath: <span class="string">"dDouble"</span>)</div><div class="line"><span class="built_in">print</span>(o.dDouble)</div><div class="line">o.setValue(<span class="literal">nil</span>, forKeyPath: <span class="string">"dDouble"</span>)</div><div class="line"></div><div class="line"><span class="comment">// 1.0</span></div><div class="line"><span class="comment">// You set nil for dDouble</span></div></pre></td></tr></table></figure>
-<p><strong><code>Double</code> 支持 <code>setValue</code> 自动转换设值，且支持设值为 <code>nil</code> 时调用 <code>setNilValueForKey</code> 方法。</strong></p>
-<h3 id="Bool"><a href="#Bool" class="headerlink" title="Bool"></a><code>Bool</code></h3><p>main.swift</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 不支持通过自动转换</span></div><div class="line"><span class="comment">// Error: -[Swift._NSContiguousString charValue]: unrecognized selector sent to instance</span></div><div class="line"><span class="comment">// o.setValue("true", forKeyPath: "eBool")</span></div><div class="line">o.setValue(<span class="literal">true</span>, forKeyPath: <span class="string">"eBool"</span>)</div><div class="line"><span class="built_in">print</span>(o.eBool)</div><div class="line">o.setValue(<span class="literal">nil</span>, forKeyPath: <span class="string">"eBool"</span>)</div><div class="line"></div><div class="line"><span class="comment">// true</span></div><div class="line"><span class="comment">// You set nil for eBool</span></div></pre></td></tr></table></figure>
-<p><strong><code>Bool</code> 支持 <code>setValue</code> 设值，但不支持自动转换，且支持设值为 <code>nil</code> 时调用 <code>setNilValueForKey</code> 方法。</strong></p>
-<h3 id="Character"><a href="#Character" class="headerlink" title="Character"></a><code>Character</code></h3><p>main.swift</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 不支持 setValue</span></div><div class="line"><span class="comment">// Error: [&lt;DataType&gt; setValue:forUndefinedKey:]: this class is not key value coding-compliant for the key fCharacter.</span></div><div class="line"><span class="comment">// let b: Character = "b"</span></div><div class="line"><span class="comment">// o.setValue(b, forKeyPath: "fCharacter")</span></div><div class="line"><span class="comment">// o.setValue(nil, forKeyPath: "fCharacter")</span></div></pre></td></tr></table></figure>
-<p><strong><code>Character</code> 不支持 setValue。</strong></p>
-<h3 id="String"><a href="#String" class="headerlink" title="String"></a><code>String</code></h3><p>main.swift</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">o.setValue(<span class="string">"gString"</span>, forKeyPath: <span class="string">"gString"</span>)</div><div class="line"><span class="built_in">print</span>(o.gString)</div><div class="line">o.setValue(<span class="literal">nil</span>, forKeyPath: <span class="string">"gString"</span>)</div><div class="line"><span class="built_in">print</span>(o.gString)</div><div class="line"></div><div class="line"><span class="comment">// gString</span></div><div class="line"><span class="comment">//</span></div></pre></td></tr></table></figure>
-<p><strong><code>String</code> 支持 <code>setValue</code> 设值，设值为 <code>nil</code> 时不调用 <code>setNilValueForKey</code> 方法，但可以清空。</strong></p>
-<h3 id="Array-lt-Int-gt"><a href="#Array-lt-Int-gt" class="headerlink" title="Array&lt;Int&gt;"></a><code>Array&lt;Int&gt;</code></h3><p>main.swift</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 不支持自动转换</span></div><div class="line"><span class="comment">// Error: -[Swift._NSContiguousString count]: unrecognized selector sent to instance</span></div><div class="line"><span class="comment">// o.setValue("1", forKeyPath: "hArray")</span></div><div class="line">o.setValue([<span class="number">1</span>], forKeyPath: <span class="string">"hArray"</span>)</div><div class="line"><span class="built_in">print</span>(o.hArray)</div><div class="line">o.setValue(<span class="literal">nil</span>, forKeyPath: <span class="string">"hArray"</span>)</div><div class="line"><span class="built_in">print</span>(o.hArray)</div><div class="line"></div><div class="line"><span class="comment">// [1]</span></div><div class="line"><span class="comment">// []</span></div></pre></td></tr></table></figure>
-<p><strong><code>Array&lt;Int&gt;</code> 支持 <code>setValue</code> 设值，但不支持自动转换，设值为 <code>nil</code> 时不调用 <code>setNilValueForKey</code> 方法，但可以清空。</strong></p>
-<h3 id="Dictionary"><a href="#Dictionary" class="headerlink" title="Dictionary"></a><code>Dictionary</code></h3><p>main.swift</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 不支持自动转换</span></div><div class="line"><span class="comment">// Error: -[Swift._NSContiguousString count]: unrecognized selector sent to instance</span></div><div class="line"><span class="comment">// o.setValue("[\"2\": 2]", forKeyPath: "iDictionary")</span></div><div class="line">o.setValue([<span class="string">"2"</span>: <span class="number">2</span>], forKeyPath: <span class="string">"iDictionary"</span>)</div><div class="line"><span class="built_in">print</span>(o.iDictionary)</div><div class="line">o.setValue(<span class="literal">nil</span>, forKeyPath: <span class="string">"iDictionary"</span>)</div><div class="line"><span class="built_in">print</span>(o.iDictionary)</div><div class="line"></div><div class="line"><span class="comment">// ["2": 2]</span></div><div class="line"><span class="comment">// [:]</span></div></pre></td></tr></table></figure>
-<p><strong><code>Dictionary</code> 支持 <code>setValue</code> 设值，但不支持自动转换，设值为 <code>nil</code> 时不调用 <code>setNilValueForKey</code> 方法，但可以清空。</strong></p>
-<h3 id="Tuple"><a href="#Tuple" class="headerlink" title="Tuple"></a><code>Tuple</code></h3><p>main.swift</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 不支持 setValue</span></div><div class="line"><span class="comment">// Error: [&lt;DataType&gt; setValue:forUndefinedKey:]: this class is not key value coding-compliant for the key jTuple.</span></div><div class="line"><span class="comment">// let t = (1, 1)</span></div><div class="line"><span class="comment">// o.setValue(t, forKeyPath: "jTuple")</span></div><div class="line"><span class="comment">// o.setValue(nil, forKeyPath: "jTuple")</span></div></pre></td></tr></table></figure>
-<p><strong><code>Tuple</code> 不支持 setValue。</strong></p>
-<h3 id="Optional"><a href="#Optional" class="headerlink" title="Optional"></a><code>Optional</code></h3><p>main.swift</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 不支持 setValue</span></div><div class="line"><span class="comment">// Error: [&lt;DataType&gt; setValue:forUndefinedKey:]: this class is not key value coding-compliant for the key kOptional.</span></div><div class="line"><span class="comment">// o.setValue(1, forKeyPath: "kOptional")</span></div><div class="line"><span class="comment">// o.setValue(nil, forKeyPath: "kOptional")</span></div></pre></td></tr></table></figure>
-<p><strong><code>Optional</code> 不支持 setValue。</strong></p>
-<h3 id="自定义类"><a href="#自定义类" class="headerlink" title="自定义类"></a>自定义类</h3><p>main.swift</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">o.setValue(<span class="string">"1"</span>, forKeyPath: <span class="string">"lObject.prop"</span>)</div><div class="line"><span class="built_in">print</span>(o.lObject.prop)</div><div class="line"><span class="comment">// 不支持设值 nil</span></div><div class="line"><span class="comment">// Error: [&lt;Type&gt; setNilValueForKey]: could not set nil as the value for the key prop.</span></div><div class="line"><span class="comment">//o.setValue(nil, forKeyPath: "lObject.prop")</span></div><div class="line"></div><div class="line"><span class="comment">// 1</span></div></pre></td></tr></table></figure>
-<p><strong>自定义类的对象的属性支持 <code>setValue</code> 自动转换设值，但不支持设值为 <code>nil</code>。</strong></p>
-<h3 id="NSDictionary"><a href="#NSDictionary" class="headerlink" title="NSDictionary"></a><code>NSDictionary</code></h3><p>main.swift</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">let</span> nsDict: <span class="type">NSDictionary</span> = [<span class="string">"1"</span>: <span class="number">1</span>]</div><div class="line">o.setValue(nsDict, forKeyPath: <span class="string">"mNSDictionary"</span>)</div><div class="line"><span class="built_in">print</span>(o.mNSDictionary[<span class="string">"1"</span>])</div><div class="line"></div><div class="line"><span class="keyword">let</span> swiftDict = [<span class="string">"2"</span>: <span class="number">2</span>]</div><div class="line">o.setValue(swiftDict, forKeyPath: <span class="string">"mNSDictionary"</span>)</div><div class="line"><span class="built_in">print</span>(o.mNSDictionary[<span class="string">"2"</span>])</div><div class="line"></div><div class="line">o.setValue(<span class="literal">nil</span>, forKeyPath: <span class="string">"mNSDictionary"</span>)</div><div class="line"><span class="built_in">print</span>(o.mNSDictionary[<span class="string">"2"</span>])</div><div class="line"></div><div class="line"><span class="comment">// Optional(1)</span></div><div class="line"><span class="comment">// Optional(2)</span></div><div class="line"><span class="comment">// nil</span></div></pre></td></tr></table></figure>
-<p><strong><code>NSDictionary</code> 支持 <code>setValue</code> 设值（支持 Swift 中的 <code>Dictionary</code> 以及 <code>NSDictionary</code>），但不支持自动转换，设值为 <code>nil</code> 时不调用 <code>setNilValueForKey</code> 方法，但可以清空。</strong></p>
-<h3 id="NSArray"><a href="#NSArray" class="headerlink" title="NSArray"></a><code>NSArray</code></h3><p>main.swift</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">o.setValue(<span class="string">"a"</span>, forKeyPath: <span class="string">"nNSArray"</span>)</div><div class="line"><span class="built_in">print</span>(o.nNSArray)</div><div class="line">o.setValue(<span class="literal">nil</span>, forKeyPath: <span class="string">"nNSArray"</span>)</div><div class="line"><span class="built_in">print</span>(o.nNSArray == <span class="literal">nil</span>)</div><div class="line"></div><div class="line"><span class="comment">// a</span></div><div class="line"><span class="comment">// true</span></div></pre></td></tr></table></figure>
-<p><strong><code>NSArray</code> 支持 <code>setValue</code> 设值（<code>NSArray</code> 存储 <code>Any</code> 类型，因此不存在自动转换），设值为 <code>nil</code> 时不调用 <code>setNilValueForKey</code> 方法，但会设值为 <code>nil</code>。</strong></p>
-<h2 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h2><p>这次将 Swift 中的一些数据类型拿出来单独测试了 KVC，结果来看有部分类型对此支持并不完全，所以在往后从网络获取数据一定要进行相应的处理再 <code>setValue</code>。也最好重写 <code>func setValue(_ value: Any?, forUndefinedKey key: String)</code>，必要时重写 <code>func setNilValueForKey(_ key: String)</code>。Swift 是一门强类型语言，就要求程序员多加注意类型转换等其他问题，以减少或避免程序崩溃，带来不好的用户体验。</p>
-]]></content>
-    </entry>
-    
-    <entry>
-      <title><![CDATA[在 iOS 项目中新建 Module]]></title>
-      <url>https://maimieng.com/2016/24/</url>
-      <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>Access Control Prerequisite Article<br></blockquote><br><a id="more"></a></p>
-<ul>
-<li>Info:<ul>
-<li>macOS X 10.12.1 Beta 4</li>
-<li>Xcode 8.1 Beta 3</li>
-</ul>
-</li>
-</ul>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Module，中文译为「标准部件；模块」。iOS 中的 Module 类似于 Java 中的 Jar 包，也可以称作第三方库，或者框架（Framework)。Swift 中的访问控制就涉及到了不同 Module 下的情况，因此简单记录下如何在 iOS 项目中新建 Module。</p>
-<h2 id="Demo"><a href="#Demo" class="headerlink" title="Demo"></a>Demo</h2><p>首先建立一个 iOS Single View Application。</p>
-<p>选择 File-New-Target。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/new_module_1.png" alt="File"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/new_module_2.png" alt="New"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/new_module_3.png" alt="Target"></p>
-<p>选择 Cocoa Touch Framework。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/new_module_4.png" alt="Cocoa Touch Framework"></p>
-<p>如图，即为建立的 Module（此处建立两个方便后续测试访问控制修饰符）。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/new_module_5.png" alt="新建完成"></p>
-<p>使用时，<code>import ModuleA</code> 即可。</p>
-]]></content>
-    </entry>
-    
-    <entry>
-      <title><![CDATA[生日记]]></title>
-      <url>https://maimieng.com/2016/26/</url>
-      <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>生命不息，向死而生。<br></blockquote><br><a id="more"></a><br>在 QQ 空间里朋友送的礼物提醒下，似乎快要过生日了。虽然在今天之前也知道自己快要过生日了，但是到了这一天也似乎没什么分别。可能是最近有些忙碌，可能其实生日也算不了什么吧。也好久没有什么理由写点什么了，这里总是冷冰冰的技术文也不太好，所以还是写点什么，记录下吧。</p>
-<p>很遗憾，大学似乎在知乎大神口中是绚丽多彩的，在小时代中也是很精彩的。而我这几年的重心只放在了学习上，虽说可能比不上 985／211</p>
-<p>来到大学已两年有余，大一刚进来的时候，一心想要进入卓越班，也想拿到国家奖学金。毕竟这所大学不怎么样，没有什么能够证明自己。结果，卓越班迟迟未开始，拿着专业第一的成绩才发现国家奖学金仅仅属于大三，结果连国家励志也没有拿到。说实话，那时候心里很不服，但我只是想，不就再努力一年嘛，有什么大不了的。</p>
-<p>大一的暑假似乎是完全浪费的，由于在家里我的惰性很强，可能是习惯竞争的环境。虽然我不玩游戏，但也没有去学习，只是在暑假的最后一段时间，学了学 Java 基础，很欣慰，当时的笔记得到了浙大翁凯老师的微博推荐。</p>
-<p>大一就那样过去了，迎来了大二。大二，进入了卓越班，考过了四级，六级。虽然这样看来算是有点成绩，而且大二的杂事少多了，我也退出了社团，但现在看来，大二这一年所学习的有些杂乱，虽然对于计算机的热情仍在，但缺少方向。由于大四就可以出去实习，最近也看了一些招聘帖，所以也是感觉时间紧迫，要学有所长，而不是蜻蜓点水。</p>
-<p>从大一到现在，我的学习环境几乎都是在宿舍，虽然在大二时有去过汇森学习，也去过图书馆，但最久的还是宿舍。虽然有时候觉得在宿舍效率低，但是似乎我已经习惯了这个嘈杂的环境。至少我认为，虽然我身在宿舍，但我所做的事是学习，</p>
-<p>今年最好的生日礼物，算是获得了国家奖学金吧。金钱固然重要，但这张奖状算是对我这两年的一个肯定吧。毕竟没有多少人知道我所做的，没有多少人肯定我所做的，没有正面的反馈，想要单单靠热情来驱动，的确是挺难的。老罗曾经说过，具体原话是否如此不太记得:“通过干干净净地赚钱来证明，在中国是可以做到干干净净地赚钱”。我不清楚也不关心老罗是否干净的赚钱。我只是觉得，通过自己的努力，在没有出身也可以尽力做到最好。</p>
-<p>今天呢，Apple 宣布 2016 年 10 月 27 日召开发布会，360 云盘宣布即将关闭。每天，都有不同的事情发生，最近在听一档关于日本的播客，很有深度，引人思考。人的一生不过几十年，多去尝试，多去思考，虽然荆棘遍地，人心叵测，但我仍愿意相信美好。生命不息，向死而生。</p>
-]]></content>
-    </entry>
-    
-    <entry>
       <title><![CDATA[浅谈 Swift 3 中的访问控制]]></title>
       <url>https://maimieng.com/2016/25/</url>
       <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>Access Control in Swift 3.0<br></blockquote><br><a id="more"></a></p>
@@ -211,6 +71,45 @@
 <li><a href="https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/AccessControl.html" target="_blank" rel="external">Access Control</a></li>
 <li><a href="https://maimieng.com/2016/24/">在 iOS 项目中新建 Module</a></li>
 </ul>
+]]></content>
+    </entry>
+    
+    <entry>
+      <title><![CDATA[生日记]]></title>
+      <url>https://maimieng.com/2016/26/</url>
+      <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>生命不息，向死而生。<br></blockquote><br><a id="more"></a><br>在 QQ 空间里朋友送的礼物提醒下，似乎快要过生日了。虽然在今天之前也知道自己快要过生日了，但是到了这一天也似乎没什么分别。可能是最近有些忙碌，可能其实生日也算不了什么吧。也好久没有什么理由写点什么了，这里总是冷冰冰的技术文也不太好，所以还是写点什么，记录下吧。</p>
+<p>很遗憾，大学似乎在知乎大神口中是绚丽多彩的，在小时代中也是很精彩的。而我这几年的重心只放在了学习上，虽说可能比不上 985／211</p>
+<p>来到大学已两年有余，大一刚进来的时候，一心想要进入卓越班，也想拿到国家奖学金。毕竟这所大学不怎么样，没有什么能够证明自己。结果，卓越班迟迟未开始，拿着专业第一的成绩才发现国家奖学金仅仅属于大三，结果连国家励志也没有拿到。说实话，那时候心里很不服，但我只是想，不就再努力一年嘛，有什么大不了的。</p>
+<p>大一的暑假似乎是完全浪费的，由于在家里我的惰性很强，可能是习惯竞争的环境。虽然我不玩游戏，但也没有去学习，只是在暑假的最后一段时间，学了学 Java 基础，很欣慰，当时的笔记得到了浙大翁凯老师的微博推荐。</p>
+<p>大一就那样过去了，迎来了大二。大二，进入了卓越班，考过了四级，六级。虽然这样看来算是有点成绩，而且大二的杂事少多了，我也退出了社团，但现在看来，大二这一年所学习的有些杂乱，虽然对于计算机的热情仍在，但缺少方向。由于大四就可以出去实习，最近也看了一些招聘帖，所以也是感觉时间紧迫，要学有所长，而不是蜻蜓点水。</p>
+<p>从大一到现在，我的学习环境几乎都是在宿舍，虽然在大二时有去过汇森学习，也去过图书馆，但最久的还是宿舍。虽然有时候觉得在宿舍效率低，但是似乎我已经习惯了这个嘈杂的环境。至少我认为，虽然我身在宿舍，但我所做的事是学习，</p>
+<p>今年最好的生日礼物，算是获得了国家奖学金吧。金钱固然重要，但这张奖状算是对我这两年的一个肯定吧。毕竟没有多少人知道我所做的，没有多少人肯定我所做的，没有正面的反馈，想要单单靠热情来驱动，的确是挺难的。老罗曾经说过，具体原话是否如此不太记得:“通过干干净净地赚钱来证明，在中国是可以做到干干净净地赚钱”。我不清楚也不关心老罗是否干净的赚钱。我只是觉得，通过自己的努力，在没有出身也可以尽力做到最好。</p>
+<p>今天呢，Apple 宣布 2016 年 10 月 27 日召开发布会，360 云盘宣布即将关闭。每天，都有不同的事情发生，最近在听一档关于日本的播客，很有深度，引人思考。人的一生不过几十年，多去尝试，多去思考，虽然荆棘遍地，人心叵测，但我仍愿意相信美好。生命不息，向死而生。</p>
+]]></content>
+    </entry>
+    
+    <entry>
+      <title><![CDATA[在 iOS 项目中新建 Module]]></title>
+      <url>https://maimieng.com/2016/24/</url>
+      <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>Access Control Prerequisite Article<br></blockquote><br><a id="more"></a></p>
+<ul>
+<li>Info:<ul>
+<li>macOS X 10.12.1 Beta 4</li>
+<li>Xcode 8.1 Beta 3</li>
+</ul>
+</li>
+</ul>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Module，中文译为「标准部件；模块」。iOS 中的 Module 类似于 Java 中的 Jar 包，也可以称作第三方库，或者框架（Framework)。Swift 中的访问控制就涉及到了不同 Module 下的情况，因此简单记录下如何在 iOS 项目中新建 Module。</p>
+<h2 id="Demo"><a href="#Demo" class="headerlink" title="Demo"></a>Demo</h2><p>首先建立一个 iOS Single View Application。</p>
+<p>选择 File-New-Target。</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/new_module_1.png" alt="File"></p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/new_module_2.png" alt="New"></p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/new_module_3.png" alt="Target"></p>
+<p>选择 Cocoa Touch Framework。</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/new_module_4.png" alt="Cocoa Touch Framework"></p>
+<p>如图，即为建立的 Module（此处建立两个方便后续测试访问控制修饰符）。</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/new_module_5.png" alt="新建完成"></p>
+<p>使用时，<code>import ModuleA</code> 即可。</p>
 ]]></content>
     </entry>
     
