@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://maimieng.com/"/>
-  <updated>2016-10-26T09:55:41.000Z</updated>
+  <updated>2016-10-26T17:06:53.000Z</updated>
   <id>https://maimieng.com/</id>
   
   <author>
@@ -14,6 +14,39 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>初探 Swift 中的 KVC 之补充</title>
+    <link href="https://maimieng.com/2016/29/"/>
+    <id>https://maimieng.com/2016/29/</id>
+    <published>2016-10-26T16:00:00.000Z</published>
+    <updated>2016-10-26T17:06:53.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>根据官网 10.24 - 10.27 最新更新<br></blockquote><br><a id="more"></a></p>
+<h2 id="Swift-3-0-1-中的-KVC"><a href="#Swift-3-0-1-中的-KVC" class="headerlink" title="Swift 3.0.1 中的 KVC"></a>Swift 3.0.1 中的 KVC</h2><p>按照官网，其实在 Swift 3.0 中已经为如下写法，但我是根据 10 月 24 日更新的 KVC 编程指南中的链接才发现该更新的。<code>#keyPath</code> 表达式使得键（路径）更加安全，因为其可以在编译时检查，极大程度避免传入 undefinedkey。但在测试中，也发现了其中的问题，如果该属性在外界无法访问，那么 <code>#keyPath</code> 也无能为力，但仍传入字符串可以做到动态设置。Demo 包含在下面的 Demo 中。</p>
+<h2 id="使用-KVC-设置访问控制属性"><a href="#使用-KVC-设置访问控制属性" class="headerlink" title="使用 KVC 设置访问控制属性"></a>使用 KVC 设置访问控制属性</h2><p>在前面，我已经大致总结了 Swift 中的<a href="https://maimieng.com/2016/25/">访问控制</a>以及 <a href="https://maimieng.com/2016/27/">KVC</a>，其实很不全面，而且漏掉了 KVC 可以突破访问控制修饰的限制。似乎这样做会破坏封装，但这也是 Cocoa 的一个特性，使得我们可以在<strong>运行时</strong>进行更加灵活的设置。这次结合两者谈谈简单说下。</p>
+<h3 id="Demo"><a href="#Demo" class="headerlink" title="Demo"></a>Demo</h3><p>在 Demo 中，将各个访问控制修饰符均列出，但他们都能通过 KVC 设值。</p>
+<p>Person.swift</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">open <span class="class"><span class="keyword">class</span> <span class="title">Person</span>: <span class="title">NSObject</span> </span>&#123;</div><div class="line">    <span class="keyword">dynamic</span> open <span class="keyword">var</span> openProp = <span class="string">""</span></div><div class="line">    <span class="keyword">dynamic</span> <span class="keyword">public</span> <span class="keyword">var</span> publicProp = <span class="string">""</span></div><div class="line">    <span class="keyword">dynamic</span> <span class="keyword">internal</span> <span class="keyword">var</span> internalProp = <span class="string">""</span></div><div class="line">    <span class="keyword">dynamic</span> fileprivate <span class="keyword">var</span> fileprivateProp = <span class="string">""</span></div><div class="line">    <span class="keyword">dynamic</span> <span class="keyword">private</span> <span class="keyword">var</span> privateProp = <span class="string">""</span></div><div class="line">    </div><div class="line">    <span class="keyword">override</span> open <span class="keyword">var</span> description: <span class="type">String</span> &#123;</div><div class="line">        <span class="keyword">return</span> <span class="string">"[<span class="subst">\(openProp)</span>, <span class="subst">\(publicProp)</span>, <span class="subst">\(internalProp)</span>, <span class="subst">\(fileprivateProp)</span>, <span class="subst">\(privateProp)</span>]"</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>main.swift</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">var</span> p = <span class="type">Person</span>()</div><div class="line"></div><div class="line">p.setValue(<span class="string">"open"</span>, forKey: #keyPath(<span class="type">Person</span>.openProp))</div><div class="line">p.setValue(<span class="string">"public"</span>, forKey: #keyPath(<span class="type">Person</span>.publicProp))</div><div class="line">p.setValue(<span class="string">"internal"</span>, forKey: #keyPath(<span class="type">Person</span>.internalProp))</div><div class="line">p.setValue(<span class="string">"fileprivate"</span>, forKey: <span class="string">"fileprivateProp"</span>)</div><div class="line">p.setValue(<span class="string">"private"</span>, forKey: <span class="string">"privateProp"</span>)</div><div class="line"></div><div class="line"><span class="built_in">print</span>(p)</div><div class="line"></div><div class="line"><span class="comment">// [open, public, internal, fileprivate, private]</span></div></pre></td></tr></table></figure>
+<h2 id="集合属性的-KVC"><a href="#集合属性的-KVC" class="headerlink" title="集合属性的 KVC"></a>集合属性的 KVC</h2><p><a href="http://swiftcafe.io/2016/01/03/kvc/" target="_blank" rel="external">漫谈 KVC 与 KVO</a>，这篇文章在写上篇 KVC 时已经看过，但没有注意末尾提到的集合属性的 KVC，感谢<a href="http://weibo.com/u/2305821027" target="_blank" rel="external">木杉</a>同学的提问，才让我注意到这个细节。</p>
+<p>关于这点，我查了很多资料，尤其是关心苹果的官方 KVC 指南，令我惊喜的是，官方的 KVC 编程指南的最新更新日期是 2016 年 10 月 24 日，我特意查了更新历史，上一次更新要追溯的 2012 年。完备的文档才是开发者的能够与时俱进开发的根基。指南中说的很清晰，当我们操作集合（一对多）属性时，通常会使用效率更高的可变代理方法（定义在协议中）。</p>
+<h3 id="Demo-1"><a href="#Demo-1" class="headerlink" title="Demo"></a>Demo</h3><h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p><a href="http://swiftcafe.io/2016/01/03/kvc/" target="_blank" rel="external">漫谈 KVC 与 KVO</a><br><a href="https://maimieng.com/2016/27/">初探 Swift 中的 KVC</a><br><a href="https://maimieng.com/2016/25/">浅谈 Swift 3 中的访问控制</a></p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;根据官网 10.24 - 10.27 最新更新&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="Swift" scheme="https://maimieng.com/tags/Swift/"/>
+    
+      <category term="iOS" scheme="https://maimieng.com/tags/iOS/"/>
+    
+  </entry>
   
   <entry>
     <title>浅谈 Swift 中的属性（Property）</title>
@@ -1229,90 +1262,6 @@
       <category term="Hexo" scheme="https://maimieng.com/tags/Hexo/"/>
     
       <category term="Blog" scheme="https://maimieng.com/tags/Blog/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Android Studio 项目目录翻译</title>
-    <link href="https://maimieng.com/2016/9/"/>
-    <id>https://maimieng.com/2016/9/</id>
-    <published>2016-05-20T16:00:00.000Z</published>
-    <updated>2016-05-29T15:45:26.000Z</updated>
-    
-    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>翻译是为了更好地理解。<br></blockquote><br><a id="more"></a><br>Info:</p>
-<ul>
-<li>Android Studio 2.1.1</li>
-<li>Mac OS 10.11.5</li>
-</ul>
-<p><strong>Activities</strong></p>
-<blockquote>
-<p>An activity is one of the distinguishing features of the Android framework. Activities provide the user with access to your app, and there may be many activities. An application will usually have a main activity for when the user launches the application, another activity for when she selects some content to view, for example, and other activities for when she performs other tasks within the app. See <a href="https://developer.android.com/guide/components/activities.html" target="_blank" rel="external">Activities</a> for more information.</p>
-</blockquote>
-<p>Activity 是 Android 框架的特色之一。<br>Activity 向用户提供了访问应用的入口，并且（一个应用）可能拥有多个 Activity。<br>当用户打开应用，通常有一个主 Activity，当用户选择一些内容到视图将会有另外的 Activity，举个例子，当用户在应用中执行其他任务，其他 Activity 将会被加载。<br><a href="https://developer.android.com/guide/components/activities.html" target="_blank" rel="external">点此查看更多关于 Activity 的信息</a>。</p>
-<p>在翻译之前，我们先建立一个项目，以下翻译以此为基准</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/2016/11/1.png" alt="2016/11/1"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/2016/11/2.png" alt="2016/11/2"></p>
-<h3 id="app-src-main-res-layout-activity-main-xml"><a href="#app-src-main-res-layout-activity-main-xml" class="headerlink" title="app/src/main/res/layout/activity_main.xml"></a><strong><code>app/src/main/res/layout/activity_main.xml</code></strong></h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">&lt;?xml version="1.0" encoding="utf-8"?&gt;</div><div class="line"><span class="tag">&lt;<span class="name">RelativeLayout</span> <span class="attr">xmlns:android</span>=<span class="string">"http://schemas.android.com/apk/res/android"</span></span></div><div class="line">    <span class="attr">xmlns:tools</span>=<span class="string">"http://schemas.android.com/tools"</span></div><div class="line">    <span class="attr">android:layout_width</span>=<span class="string">"match_parent"</span></div><div class="line">    <span class="attr">android:layout_height</span>=<span class="string">"match_parent"</span></div><div class="line">    <span class="attr">android:paddingBottom</span>=<span class="string">"@dimen/activity_vertical_margin"</span></div><div class="line">    <span class="attr">android:paddingLeft</span>=<span class="string">"@dimen/activity_horizontal_margin"</span></div><div class="line">    <span class="attr">android:paddingRight</span>=<span class="string">"@dimen/activity_horizontal_margin"</span></div><div class="line">    <span class="attr">android:paddingTop</span>=<span class="string">"@dimen/activity_vertical_margin"</span></div><div class="line">    <span class="attr">tools:context</span>=<span class="string">"com.maimieng.myapplication.MainActivity"</span>&gt;</div><div class="line"></div><div class="line">    <span class="tag">&lt;<span class="name">TextView</span></span></div><div class="line">        <span class="attr">android:layout_width</span>=<span class="string">"wrap_content"</span></div><div class="line">        <span class="attr">android:layout_height</span>=<span class="string">"wrap_content"</span></div><div class="line">        <span class="attr">android:text</span>=<span class="string">"Hello World!"</span> /&gt;</div><div class="line"><span class="tag">&lt;/<span class="name">RelativeLayout</span>&gt;</span></div></pre></td></tr></table></figure>
-<blockquote>
-<p>This XML layout file is for the activity you added when you created the project with Android Studio. Following the New Project workflow, Android Studio presents this file with both a text view and a preview of the screen UI. The file contains some default interface elements from the material design library, including the <a href="https://developer.android.com/training/appbar/index.html" target="_blank" rel="external">app bar</a> and a floating action button. It also includes a separate layout file with the main content.</p>
-</blockquote>
-<p>当使用 Android Studio 创建项目，该 XML 布局文件即代表添加的 Activity。<br>随着新建项目的流程进行，AS 通过一个文本视图和屏幕 UI 的预览来渲染此文件。<br>该文件包含一些 Material Design 库中默认的界面元素，包括<a href="https://developer.android.com/training/appbar/index.html" target="_blank" rel="external">应用条</a>和一个浮动的按钮。<br>同样也包含一个含有主内容的单独的布局文件。</p>
-<h3 id="app-src-main-res-layout-content-main-xml"><a href="#app-src-main-res-layout-content-main-xml" class="headerlink" title="app/src/main/res/layout/content_main.xml"></a><code>app/src/main/res/layout/content_main.xml</code></h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="comment">&lt;!-- 该文件貌似已在最新的 AS 中默认不存在 --&gt;</span></div></pre></td></tr></table></figure>
-<blockquote>
-<p>This XML layout file resides in <code>activity_main.xml</code>, and contains some settings and a TextView element that displays the message, “Hello world!”.</p>
-</blockquote>
-<p>该 XML 布局文件隶属于 <code>activity_main.xml</code>，并包含一些设置和一个显示 “Hello world!” 信息的 TextView （文本视图）元素。</p>
-<h3 id="app-src-main-java-com-maimieng-myapplication-MainActivity-java"><a href="#app-src-main-java-com-maimieng-myapplication-MainActivity-java" class="headerlink" title="app/src/main/java/com.maimieng.myapplication/MainActivity.java"></a><strong><code>app/src/main/java/com.maimieng.myapplication/MainActivity.java</code></strong></h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> com.maimieng.myapplication;</div><div class="line"></div><div class="line"><span class="keyword">import</span> android.support.v7.app.AppCompatActivity;</div><div class="line"><span class="keyword">import</span> android.os.Bundle;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MainActivity</span> <span class="keyword">extends</span> <span class="title">AppCompatActivity</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onCreate</span><span class="params">(Bundle savedInstanceState)</span> </span>&#123;</div><div class="line">        <span class="keyword">super</span>.onCreate(savedInstanceState);</div><div class="line">        setContentView(R.layout.activity_main);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<blockquote>
-<p>A tab for this file appears in Android Studio when the New Project workflow finishes. When you select the file you see the class definition for the activity you created. When you build and run the app, the <a href="https://developer.android.com/reference/android/app/Activity.html" target="_blank" rel="external">Activity</a> class starts the activity and loads the layout file that says “Hello World!”</p>
-</blockquote>
-<p>当新建项目的流程完成，AS 将会显示该文件的标签页。<br>当你选中该文件，将看到你所创建的 Activity 的类定义。<br>当你构建并运行应用，Activity 类启动 <a href="https://developer.android.com/reference/android/app/Activity.html" target="_blank" rel="external">Activity</a> 并载入布局文件，显示 “Hello World!”。</p>
-<h3 id="app-src-main-AndroidManifest-xml"><a href="#app-src-main-AndroidManifest-xml" class="headerlink" title="app/src/main/AndroidManifest.xml"></a><strong><code>app/src/main/AndroidManifest.xml</code></strong></h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line">&lt;?xml version="1.0" encoding="utf-8"?&gt;</div><div class="line"><span class="tag">&lt;<span class="name">manifest</span> <span class="attr">xmlns:android</span>=<span class="string">"http://schemas.android.com/apk/res/android"</span></span></div><div class="line">    <span class="attr">package</span>=<span class="string">"com.maimieng.myapplication"</span>&gt;</div><div class="line"></div><div class="line">    <span class="tag">&lt;<span class="name">application</span></span></div><div class="line">        <span class="attr">android:allowBackup</span>=<span class="string">"true"</span></div><div class="line">        <span class="attr">android:icon</span>=<span class="string">"@mipmap/ic_launcher"</span></div><div class="line">        <span class="attr">android:label</span>=<span class="string">"@string/app_name"</span></div><div class="line">        <span class="attr">android:supportsRtl</span>=<span class="string">"true"</span></div><div class="line">        <span class="attr">android:theme</span>=<span class="string">"@style/AppTheme"</span>&gt;</div><div class="line">        <span class="tag">&lt;<span class="name">activity</span> <span class="attr">android:name</span>=<span class="string">".MainActivity"</span>&gt;</span></div><div class="line">            <span class="tag">&lt;<span class="name">intent-filter</span>&gt;</span></div><div class="line">                <span class="tag">&lt;<span class="name">action</span> <span class="attr">android:name</span>=<span class="string">"android.intent.action.MAIN"</span> /&gt;</span></div><div class="line"></div><div class="line">                <span class="tag">&lt;<span class="name">category</span> <span class="attr">android:name</span>=<span class="string">"android.intent.category.LAUNCHER"</span> /&gt;</span></div><div class="line">            <span class="tag">&lt;/<span class="name">intent-filter</span>&gt;</span></div><div class="line">        <span class="tag">&lt;/<span class="name">activity</span>&gt;</span></div><div class="line">    <span class="tag">&lt;/<span class="name">application</span>&gt;</span></div><div class="line"></div><div class="line"><span class="tag">&lt;/<span class="name">manifest</span>&gt;</span></div></pre></td></tr></table></figure>
-<blockquote>
-<p>The <a href="https://developer.android.com/guide/topics/manifest/manifest-intro.html" target="_blank" rel="external"><code>manifest file</code></a> describes the fundamental characteristics of the app and defines each of its components. You’ll revisit this file as you follow these lessons and add more components to your app.</p>
-</blockquote>
-<p>该清单文件描述了应用的基本特征并定义其中的各个组件。<br>当你按照本教程，将会再次访问该文件并向你的应用添加更多组件。</p>
-<h3 id="app-build-gradle"><a href="#app-build-gradle" class="headerlink" title="app/build.gradle"></a><strong><code>app/build.gradle</code></strong></h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line">apply plugin: 'com.android.application'</div><div class="line"></div><div class="line">android &#123;</div><div class="line">    compileSdkVersion 23</div><div class="line">    buildToolsVersion "23.0.3"</div><div class="line"></div><div class="line">    defaultConfig &#123;</div><div class="line">        applicationId "com.maimieng.myapplication"</div><div class="line">        minSdkVersion 14</div><div class="line">        targetSdkVersion 23</div><div class="line">        versionCode 1</div><div class="line">        versionName "1.0"</div><div class="line">    &#125;</div><div class="line">    buildTypes &#123;</div><div class="line">        release &#123;</div><div class="line">            minifyEnabled false</div><div class="line">            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line">dependencies &#123;</div><div class="line">    compile fileTree(dir: 'libs', include: ['*.jar'])</div><div class="line">    testCompile 'junit:junit:4.12'</div><div class="line">    compile 'com.android.support:appcompat-v7:23.4.0'</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<blockquote>
-<p>Android Studio uses Gradle to compile and build your app. There is a <code>build.gradle</code> file for each module of your project, as well as a <code>build.gradle</code> file for the entire project. Usually, you’re only interested in the       <code>build.gradle</code> file for the module, in this case the app or application module. This is where your app’s build dependencies are set, including the <code>defaultConfig</code> settings:</p>
-</blockquote>
-<p>AS 使用 Gradle 编译并构建应用。<br>项目的每一个模块将含有一个 <code>build.gradle</code> 文件，一整个项目对应一个 <code>build.gradle</code> 文件。<br>通常，你只需关注模块的  <code>build.gradle</code> 文件，即这种情况下的应用模块。<br>这是应用构建依赖所放置的地方，包括 <code>defaultConfig</code> 设置：</p>
-<ul>
-<li><code>compiledSdkVersion</code> is the platform version against which you will compile your app. By default, this is set to the latest version of Android available in your SDK. (It should be Android 4.1 or greater; if you don’t have such a version available, you must install one using the <a href="https://developer.android.com/studio/intro/update.html" target="_blank" rel="external">SDK Manager</a>.) You can still build your app to support older versions, but setting this to the latest version allows you to enable new features and optimize your app for a great user experience on the latest devices.</li>
-<li><code>compiledSdkVersion</code> 是你将编译应用的平台版本。<br>默认情况下，其设置为你的 SDK 中可获得到的 Android 最高版本。<br>（其应该是 Android 4.1 或更高，如果你没有这样的版本，你必须使用 <a href="https://developer.android.com/studio/intro/update.html" target="_blank" rel="external">SDK 管理器</a>下载一个。）<br>你仍然可以构建支持较老版本的应用，但是设置此为最新版本将允许你开启新的特性并为持有最新设备的用户显著优化你的应用体验。</li>
-<li><code>applicationId</code> is the fully qualified package name for your application that you specified during the New Project workflow.</li>
-<li><code>applicationId</code> 是你的应用的完全限定包名，这在新建项目流程中由你指定。</li>
-<li><code>minSdkVersion</code> is the Minimum SDK version you specified during the New Project workflow. This is the earliest version of the Android SDK that your app supports.</li>
-<li><code>minSdkVersion</code> 是你在新建项目流程中指定的最低 SDK 版本。<br>这是应用支持最早的 Android SDK 版本。</li>
-<li><code>targetSdkVersion</code> indicates the highest version of Android with which you have tested your application. As new versions of Android become available, you should test your app on the new version and update this value to match the latest API level and thereby take advantage of new platform features. For more information, read <a href="https://developer.android.com/training/basics/supporting-devices/platforms.html" target="_blank" rel="external">Supporting Different Platform Versions</a>.</li>
-<li><code>targetSdkVersion</code> 暗示你已经测试过的应用的最高版本。<br>当新的 Android 版本可以获得，你应当在新版本测试你的应用，并更新其值，以匹配最新的 API 等级，并因此利用新平台的特性。<br>有关更多信息，查看 <a href="https://developer.android.com/training/basics/supporting-devices/platforms.html" target="_blank" rel="external">Supporting Different Platform Versions</a>。</li>
-</ul>
-<p>See <a href="https://developer.android.com/studio/build/index.html" target="_blank" rel="external">Building Your Project with Gradle</a> for more information about Gradle.</p>
-<p>查看 <a href="https://developer.android.com/studio/build/index.html" target="_blank" rel="external">Building Your Project with Gradle</a> 获得更多关于 Gradle 的信息。</p>
-<p>Note also the <code>/res</code> subdirectories that contain the <a href="https://developer.android.com/guide/topics/resources/overview.html" target="_blank" rel="external">resources</a> for your application:</p>
-<p>同样注意 <code>/res</code> 子目录其包含的<a href="https://developer.android.com/guide/topics/resources/overview.html" target="_blank" rel="external">应用资源</a>：</p>
-<h3 id="drawable-lt-density-gt"><a href="#drawable-lt-density-gt" class="headerlink" title="drawable-&lt;density&gt;/"></a><strong><code>drawable-&lt;density&gt;/</code></strong></h3><p>Directories for <a href="https://developer.android.com/guide/topics/resources/drawable-resource.html" target="_blank" rel="external">drawable resources</a>, other than launcher icons, designed for various <a href="https://developer.android.com/training/multiscreen/screendensities.html" target="_blank" rel="external">densities</a>.</p>
-<p><a href="https://developer.android.com/guide/topics/resources/drawable-resource.html" target="_blank" rel="external">可绘制资源</a>目录，不同于启动图标，其为不同密度设计。</p>
-<h3 id="layout"><a href="#layout" class="headerlink" title="layout/"></a><strong><code>layout/</code></strong></h3><p>Directory for files that define your app’s user interface like <code>activity_main.xml</code>, discussed above, which describes a basic layout for the <code>MainActivity</code> class.</p>
-<p>定义应用用户界面的文件目录，例如 <code>activity_main.xml</code>，上面谈到过，其描述了 <code>MainActivity</code> 类的基本布局。</p>
-<h3 id="menu"><a href="#menu" class="headerlink" title="menu/"></a><strong><code>menu/</code></strong></h3><p>Directory for files that define your app’s menu items.</p>
-<p>定义应用菜单项的文件目录。</p>
-<h3 id="mipmap"><a href="#mipmap" class="headerlink" title="mipmap/"></a><strong><code>mipmap/</code></strong></h3><p>Launcher icons reside in the <code>mipmap/</code> folder rather than the <code>drawable/</code> folders. This folder contains the <code>ic_launcher.png</code> image that appears when you run the default app.</p>
-<p>启动图标隶属于 <code>mipmap/</code> 文件夹，而不是 <code>drawable/</code> 文件夹。<br>该文件夹包含当你运行默认应用的 <code>ic_launcher.png</code> 图片。</p>
-<h3 id="values"><a href="#values" class="headerlink" title="values/"></a><strong><code>values/</code></strong></h3><p>Directory for other XML files that contain a collection of resources, such as string and color definitions.</p>
-<p>包含资源集合的其他 XML 目录，例如字符串和颜色定义。</p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;翻译是为了更好地理解。&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
-    
-    </summary>
-    
-    
-      <category term="Translation" scheme="https://maimieng.com/tags/Translation/"/>
-    
-      <category term="Android" scheme="https://maimieng.com/tags/Android/"/>
     
   </entry>
   
