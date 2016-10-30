@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://maimieng.com/"/>
-  <updated>2016-10-29T16:29:31.000Z</updated>
+  <updated>2016-10-30T16:42:34.000Z</updated>
   <id>https://maimieng.com/</id>
   
   <author>
@@ -14,6 +14,46 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>UITableViewCell 的简单优化</title>
+    <link href="https://maimieng.com/2016/31/"/>
+    <id>https://maimieng.com/2016/31/</id>
+    <published>2016-10-30T16:00:00.000Z</published>
+    <updated>2016-10-30T16:42:34.000Z</updated>
+    
+    <content type="html"><![CDATA[<blockquote class="blockquote-center">
+
+<p></p></blockquote><br><a id="more"></a><p></p>
+<ul>
+<li>Info:<ul>
+<li>macOS 10.12.1</li>
+<li>Xcode 8.1</li>
+<li>Swift 3.0</li>
+</ul>
+</li>
+</ul>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>UITableView 是 iOS 开发中极其重要且经常使用的视图，有时候也直接使用 UITableViewController。和 Android 中的 ListView 一样，列表视图总是和内存分不开，因为他们可以承载很多条不同的信息，而随着用户手指滑动，需要即时呈现，不卡顿，不拖沓。因此对其的优化便与生俱来。</p>
+<h2 id="Demo"><a href="#Demo" class="headerlink" title="Demo"></a>Demo</h2><p>首先，使用一个 static 常量存储复用 ID。之后在 <code>viewDidLoad</code> 中为自定义 Cell 注册该 ID（使用自定义 Cell 可以更加方便，自由的自定义表格 Cell 中的内容）。然后在 <code>func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath)</code> 方法中使用静态常量作为复用 ID，若 Cell 已存在于缓存池则取出，反之创建。</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> UIKit</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">TableViewController</span>: <span class="title">UITableViewController</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">static</span> <span class="keyword">let</span> id = <span class="string">"reuseIdentifier"</span></div><div class="line">    </div><div class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">viewDidLoad</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="keyword">super</span>.viewDidLoad()</div><div class="line">        </div><div class="line">        tableView.register(<span class="type">CustomCell</span>.<span class="keyword">self</span>, forCellReuseIdentifier: <span class="type">TableViewController</span>.id)</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">didReceiveMemoryWarning</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="keyword">super</span>.didReceiveMemoryWarning()</div><div class="line">        <span class="comment">// Dispose of any resources that can be recreated.</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">numberOfSections</span><span class="params">(<span class="keyword">in</span> tableView: UITableView)</span></span> -&gt; <span class="type">Int</span> &#123;</div><div class="line">        <span class="keyword">return</span> <span class="number">1</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">tableView</span><span class="params">(<span class="number">_</span> tableView: UITableView, numberOfRowsInSection section: Int)</span></span> -&gt; <span class="type">Int</span> &#123;</div><div class="line">        <span class="keyword">return</span> <span class="number">200</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    </div><div class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">tableView</span><span class="params">(<span class="number">_</span> tableView: UITableView, cellForRowAt indexPath: IndexPath)</span></span> -&gt; <span class="type">UITableViewCell</span> &#123;</div><div class="line">        </div><div class="line">        <span class="keyword">let</span> cell = tableView.dequeueReusableCell(withIdentifier: <span class="type">TableViewController</span>.id, <span class="keyword">for</span>: indexPath)</div><div class="line">        cell.textLabel?.text = <span class="string">"<span class="subst">\(indexPath.row)</span>"</span></div><div class="line">        <span class="keyword">return</span> cell</div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">CustomCell</span>: <span class="title">UITableViewCell</span> </span>&#123;&#125;</div></pre></td></tr></table></figure>
+<h2 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h2><h3 id="Swift-中的-static"><a href="#Swift-中的-static" class="headerlink" title="Swift 中的 static"></a>Swift 中的 static</h3><h3 id="register"><a href="#register" class="headerlink" title="register"></a>register</h3><figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">register</span><span class="params">(<span class="number">_</span> cellClass: AnyClass?, forCellReuseIdentifier identifier: String)</span></span></div></pre></td></tr></table></figure>
+<h3 id="dequeueReusableCell"><a href="#dequeueReusableCell" class="headerlink" title="dequeueReusableCell"></a>dequeueReusableCell</h3><figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">dequeueReusableCell</span><span class="params">(withIdentifier identifier: String)</span></span> -&gt; <span class="type">UITableViewCell</span>?</div></pre></td></tr></table></figure>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;blockquote class=&quot;blockquote-center&quot;&gt;
+
+&lt;p&gt;&lt;/blockquote&gt;&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="Swift" scheme="https://maimieng.com/tags/Swift/"/>
+    
+      <category term="iOS" scheme="https://maimieng.com/tags/iOS/"/>
+    
+  </entry>
   
   <entry>
     <title>简单使用 UIColor 生成 UIImage</title>
@@ -1252,34 +1292,6 @@
       <category term="Tips" scheme="https://maimieng.com/tags/Tips/"/>
     
       <category term="Hardware" scheme="https://maimieng.com/tags/Hardware/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>那一年...高考</title>
-    <link href="https://maimieng.com/2016/11/"/>
-    <id>https://maimieng.com/2016/11/</id>
-    <published>2016-06-24T16:00:00.000Z</published>
-    <updated>2016-06-24T16:26:06.000Z</updated>
-    
-    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>Is this my destiny?<br></blockquote><br><a id="more"></a><br>今天可以查高考分数了，又是一个几家欢喜几家愁的日子。</p>
-<p>两年前的今天，我查了自己分数，476，刚刚好二本线。可以说是一个相当差的成绩，当时想，不论怎样，我都不会去复读，因为浪费了一年时间。而现在想想，如果当时浪费一年，也许就不会在这里浪费四年。</p>
-<p>然而选择早已做出，在这里再后悔也没有什么用，只有继续前行，才能尽量靠近当初的梦。也许进不了一所好的院校让我的一生失去很多机会，但是谁又知道会是什么样呢？</p>
-<p>但愿，未来我还能坚持自己，坚持自己的方向。</p>
-<p>晚安。</p>
-<p>2016.6.25 凌晨</p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;Is this my destiny?&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
-    
-    </summary>
-    
-    
-      <category term="Life" scheme="https://maimieng.com/tags/Life/"/>
-    
-      <category term="Essay" scheme="https://maimieng.com/tags/Essay/"/>
     
   </entry>
   
