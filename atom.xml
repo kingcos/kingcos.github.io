@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://maimieng.com/"/>
-  <updated>2016-10-31T11:31:54.000Z</updated>
+  <updated>2016-11-02T09:54:57.000Z</updated>
   <id>https://maimieng.com/</id>
   
   <author>
@@ -14,6 +14,59 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>小窥 iOS 中的 Target-Action 设计模式</title>
+    <link href="https://maimieng.com/2016/32/"/>
+    <id>https://maimieng.com/2016/32/</id>
+    <published>2016-11-01T16:00:00.000Z</published>
+    <updated>2016-11-02T09:54:57.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>Design Pattern in iOS<br></blockquote><br><a id="more"></a></p>
+<ul>
+<li>Info:<ul>
+<li>macOS 10.12.1</li>
+<li>Xcode 8.2 Beta 1</li>
+<li>Swift 3.0</li>
+</ul>
+</li>
+</ul>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>在前两天学习 iOS 中的 UISlider 控件时，看到官方文档提到，Slider 使用了 Target-Action 设计模式。即当用户移动滑块，将通知应用。同理，UIButton 也使用了该设计模式。那么，我们能从这个设计模式中学到什么呢？</p>
+<h2 id="Target-Action"><a href="#Target-Action" class="headerlink" title="Target-Action"></a>Target-Action</h2><p>Target-Action，意为 目标-行为，行为即要调用的方法，目标即消息的接收对象（Objective-C 语言使用消息机制，类似但不同于方法调用，该两种概念可能未来会进行探讨）。整个过程为：用户点击按钮，触发某事件发生，该消息由按钮传到另外的接收对象，接收对象再做相应处理。接收对象可以为任何对象，但通常为控制器（Controller）。</p>
+<h2 id="Responder-Chain"><a href="#Responder-Chain" class="headerlink" title="Responder Chain"></a>Responder Chain</h2><p>在有关于 Target-Action 的官方文档章节中，提到了通过设置 Target 为 nil 来使用响应链。这样可以使得在运行时（Runtime）决定 Target 对象。关于此的探讨可以参照 Dominik Hauser 的 Utilize The Responder Chain For Target-Action 一文。</p>
+<p>但是鉴于个人能力有限，而且在其原文中，作者新加了这么一句话：</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/target_action_1.png" alt="Utilize The Responder Chain For Target-Action"></p>
+<p>显然，作者虽然了解响应链的存在，但不会去使用。</p>
+<h2 id="Demo"><a href="#Demo" class="headerlink" title="Demo"></a>Demo</h2><h3 id="Interface-Builder"><a href="#Interface-Builder" class="headerlink" title="Interface Builder"></a>Interface Builder</h3><p>通过 Interface Builder 可以拖线来实现（注意 Connection 选择 Action）。</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/target_action_2.png" alt="Action"></p>
+<p>之后便可以在其内部进行其他操作。</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@IBAction</span> <span class="function"><span class="keyword">func</span> <span class="title">buttonClick</span><span class="params">(<span class="number">_</span> sender: Any)</span></span> &#123;</div><div class="line">	<span class="comment">// do something...</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>当然，也可以先定义方法，再拖线，这样也是允许的。</p>
+<h3 id="Code"><a href="#Code" class="headerlink" title="Code"></a>Code</h3><p>通过代码进行绑定 Target，可以先采用将控件拖线至代码中，这时 Connection 选择 Outlet。纯代码可以无视拖线。</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/target_action_3.png" alt="Outlet"></p>
+<p>之后便可以通过 <code>addTarget(_:action:for:)</code> 来绑定 Target 和 Action。</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/target_action_4.png" alt="addTarget(_:action:for:)"></p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">viewDidLoad</span><span class="params">()</span></span> &#123;</div><div class="line">    <span class="keyword">super</span>.viewDidLoad()</div><div class="line">    </div><div class="line">    demoButton.addTarget(<span class="keyword">self</span>,</div><div class="line">                         action: #selector(demoFunc),</div><div class="line">                         <span class="keyword">for</span>: .touchUpInside)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">demoFunc</span><span class="params">()</span></span> &#123;</div><div class="line">    <span class="comment">// do something...</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="selector"><a href="#selector" class="headerlink" title="#selector()"></a><code>#selector()</code></h2><p>据考证，<code>#selector()</code> 是 Swift 2.2 中新增的写法。使得选择方法更加安全，因为 IDE 可以自动提示自动补全，即可在编译时刻检查。</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/target_action_5.png" alt="Selector 结构体"></p>
+<p><code>#selector()</code> 在 Swift 中为 <code>Selector</code> 结构体类型，但其本质是 Objective-C 的运行时概念。如果有方法为 <code>private</code>，则需要在方法前加上 <code>@objc</code> 才能运行正常。</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">viewDidLoad</span><span class="params">()</span></span> &#123;</div><div class="line">    <span class="keyword">super</span>.viewDidLoad()</div><div class="line">    <span class="keyword">let</span> selectorStruct = #selector(demoFunc)</div><div class="line"></div><div class="line">    demoButton.addTarget(<span class="keyword">self</span>,</div><div class="line">                         action: selectorStruct,</div><div class="line">                         <span class="keyword">for</span>: .touchUpInside)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="meta">@objc</span> <span class="keyword">private</span> <span class="function"><span class="keyword">func</span> <span class="title">demoFunc</span><span class="params">()</span></span> &#123;</div><div class="line">    <span class="comment">// do something...</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>关于 <code>Selector</code> 也可以参考喵神的文章，所有本文提及的文章均在参考资料中列出。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p><a href="https://developer.apple.com/library/content/documentation/General/Conceptual/Devpedia-CocoaApp/TargetAction.html#//apple_ref/doc/uid/TP40009071-CH3" target="_blank" rel="external">Target-Action</a><br><a href="https://developer.apple.com/library/content/documentation/General/Conceptual/CocoaEncyclopedia/Target-Action/Target-Action.html#//apple_ref/doc/uid/TP40010810-CH12" target="_blank" rel="external">Target-Action</a><br><a href="http://swiftandpainless.com/utilize-the-responder-chain-for-target-action/" target="_blank" rel="external">Utilize The Responder Chain For Target-Action</a><br><a href="http://swift.gg/2016/01/06/utilize-the-responder-chain-for-target-action/" target="_blank" rel="external">在 Target-Action 中使用响应链</a><br><a href="http://swifter.tips/selector/" target="_blank" rel="external">SELECTOR</a></p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;Design Pattern in iOS&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="Swift" scheme="https://maimieng.com/tags/Swift/"/>
+    
+      <category term="iOS" scheme="https://maimieng.com/tags/iOS/"/>
+    
+  </entry>
   
   <entry>
     <title>UITableViewCell 的简单优化</title>
@@ -1235,59 +1288,6 @@
       <category term="Java" scheme="https://maimieng.com/tags/Java/"/>
     
       <category term="Oracle" scheme="https://maimieng.com/tags/Oracle/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>电池过放修复 Tips</title>
-    <link href="https://maimieng.com/2016/12/"/>
-    <id>https://maimieng.com/2016/12/</id>
-    <published>2016-07-02T16:00:00.000Z</published>
-    <updated>2016-07-02T17:22:14.000Z</updated>
-    
-    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>平板只有两种，iPad 和其他<br></blockquote><br><a id="more"></a></p>
-<ul>
-<li>Info:<ul>
-<li>WT8</li>
-<li>数据线</li>
-<li>电源</li>
-</ul>
-</li>
-</ul>
-<h4 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h4><p>前段时间为了方便看视频，买了一个平板 TOSHIBA WT8。性能一般，但也足够用了。内存 2G，硬盘 32G，加上内存卡，去掉系统及软件，也就 20G 左右，捉襟见肘。</p>
-<p>六级前下载了很多视频，天天带着看，天天都充电。考完六级就期末了，开始准备期末考试了，所以就没有再管过平板，一直放在书架上。偶尔还会充充电，但是这次不知怎么回事，充电闪屏，不充电又按电源键没反应，查了一番才知道电池过放这个概念。不过，按理说，很多新的电池加入了这道保护措施，但很明显，这个平板不支持。再搜一番，只得拆机。</p>
-<h4 id="正文"><a href="#正文" class="headerlink" title="正文"></a>正文</h4><p>其他品牌可参照，拆机前务必搜索拆机视频或拆机图再下手，以免出现不良后果</p>
-<ol>
-<li>将平板后盖拆开（WT8 只需要从边缘打开，用硬卡片划开）</li>
-<li>将电池排线取下（小心谨慎）</li>
-<li>明确电池排线正负极</li>
-<li>将数据线的 Micro USB 头拆掉，将<strong>红色（+）</strong>和<strong>黑色（-）</strong>里的铜线露出</li>
-<li>将数据线<strong>红色正极</strong>与机器电池<strong>正极</strong>相接触</li>
-<li>将数据线<strong>黑色负极</strong>与机器电池<strong>负极</strong>相接触</li>
-<li>将数据线插入 5V USB 接口</li>
-<li>接触时间 1 秒即可</li>
-<li>组装回去</li>
-<li>测试是否能充电</li>
-<li>装回去</li>
-</ol>
-<blockquote>
-<p>可能的原因：</p>
-<p>带保护的锂电过放时，保护电路会自动断开，用高电压充一下可使保护电路重新接通</p>
-</blockquote>
-<h4 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h4><p>好的产品应当是为人服务的，不应当是折腾的。初中，高中时候折腾 iPhone 越狱美化，Android 刷机，现在只想老老实实一部手机稳定的用下去。也许是折腾累了，不过这些设备终究是为我们所服务的。如果太过折腾，那便是玩具。</p>
-<p>所以，我还是想把这个平板出了，也许未来还是会购置 iPad mini 2/4 吧。</p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;平板只有两种，iPad 和其他&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
-    
-    </summary>
-    
-    
-      <category term="Tips" scheme="https://maimieng.com/tags/Tips/"/>
-    
-      <category term="Hardware" scheme="https://maimieng.com/tags/Hardware/"/>
     
   </entry>
   
