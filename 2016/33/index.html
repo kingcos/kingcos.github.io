@@ -85,16 +85,15 @@
 
 
 
-<meta name="description" content="探究 iOS 中 UIImage 中两种不同 Initializers 带来的内存问题本文使用 Swift 版本为 3.0 beta。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="浅谈 UIImage 内存管理问题">
-<meta property="og:url" content="https://maimieng.com/2016/16/index.html">
+<meta property="og:title" content="初探 iOS 中自定义 UIView 的初始化过程">
+<meta property="og:url" content="https://maimieng.com/2016/33/index.html">
 <meta property="og:site_name" content="V2M">
-<meta property="og:description" content="探究 iOS 中 UIImage 中两种不同 Initializers 带来的内存问题本文使用 Swift 版本为 3.0 beta。">
-<meta property="og:updated_time" content="2016-08-29T03:24:02.000Z">
+<meta property="og:image" content="https://maimieng.com/1">
+<meta property="og:updated_time" content="2016-11-03T16:17:16.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="浅谈 UIImage 内存管理问题">
-<meta name="twitter:description" content="探究 iOS 中 UIImage 中两种不同 Initializers 带来的内存问题本文使用 Swift 版本为 3.0 beta。">
+<meta name="twitter:title" content="初探 iOS 中自定义 UIView 的初始化过程">
+<meta name="twitter:image" content="https://maimieng.com/1">
 
 
 
@@ -116,7 +115,7 @@
   };
 </script>
 
-  <title> 浅谈 UIImage 内存管理问题 | V2M </title>
+  <title> 初探 iOS 中自定义 UIView 的初始化过程 | V2M </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -289,7 +288,7 @@
             
             
               
-                浅谈 UIImage 内存管理问题
+                初探 iOS 中自定义 UIView 的初始化过程
               
             
           </h1>
@@ -301,8 +300,8 @@
               <i class="fa fa-calendar-o"></i>
             </span>
             <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-08-14T00:00:00+08:00" content="2016-08-14">
-              2016-08-14
+            <time itemprop="dateCreated" datetime="2016-11-02T00:00:00+08:00" content="2016-11-02">
+              2016-11-02
             </time>
           </span>
 
@@ -312,8 +311,8 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/2016/16/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/16/" itemprop="commentsCount"></span>
+                <a href="/2016/33/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/33/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -336,30 +335,59 @@
       
 
       
-        <p><blockquote class="blockquote-center"><br>探究 iOS 中 UIImage 中两种不同 Initializers 带来的内存问题<br>本文使用 Swift 版本为 3.0 beta。<br></blockquote><br><a id="more"></a></p>
+        <blockquote class="blockquote-center">
+
+<p></p></blockquote><br><a id="more"></a><p></p>
 <ul>
 <li>Info:<ul>
-<li>Swift 3.0 beta</li>
-<li>Xcode 8.0 beta 5</li>
-<li>macOS Sierra Public Beta 3</li>
+<li>macOS 10.12.1</li>
+<li>Xcode 8.2 Beta 1</li>
+<li>Swift 3.0</li>
 </ul>
 </li>
 </ul>
-<h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>近几天接触 iOS 的 UI 学习，由于 Swift 更新太快太频繁，因此看的是 Obj-C 的项目，自己修改为 Swift 3.0 beta 可编译运行的版本。Xcode 8.0 随着几个版本的更迭也趋于稳定，不过在不同 beta 版中，Swift 3.0 beta 的语法也略有改动，之前整理的 <a href="https://maimieng.com/ipro/note">初探 Swift 3.0 系列</a>也会略有过时了。这次是制作一个简单的图片浏览器，而且会动态的展示（伪） GIF 动画，因此需要处理 animation 以及多张图片。如果不进行适当的内存管理，那么大量的图片占用内存，将使得程序在 iOS 设备上崩溃，造成极差的用户体验。因此本文浅显地分析两种不同的 <code>UIImage</code> 初始化方法，为以后的使用做以适当铺垫。</p>
-<p>不过，鉴于刚刚入门 iOS，所以某些行为或说法也许不太得当，需要学习的地方还有很多，故若有纰漏，还望指出。</p>
-<h3 id="init-named-String"><a href="#init-named-String" class="headerlink" title="init?(named: String)"></a><code>init?(named: String)</code></h3><blockquote>
-<p>Loading and Caching Images <code>init?(named: String)</code><br>Returns the image object associated with the specified filename.<br><strong>Discussion</strong><br>This method looks in the system caches for an image object with the specified name and returns the variant of that image that is best suited for the main screen. If a matching image object is not already in the cache, this method locates and loads the image data from disk or from an available asset catalog, and then returns the resulting object.<br>The system may purge cached image data at any time to free up memory. Purging occurs only for images that are in the cache but are not currently being used.<br>In iOS 9 and later, this method is thread safe.<br><strong>Special Considerations</strong><br>If you have an image file that will only be displayed once and wish to ensure that it does not get added to the system’s cache, you should instead create your image using <code>imageWithContentsOfFile:</code>. This will keep your single-use image out of the system image cache, potentially improving the memory use characteristics of your app.</p>
-<p><strong>加载并缓存图像</strong> <code>init?(named: String)</code><br>返回指定文件名所关联的图像对象。<br><strong>论述</strong><br>该方法在系统缓存中寻找指定名称的图像对象，并返回最适合主屏幕的图像的变体。若对应的图像对象已不存在于缓存，则该方法将在磁盘或存在的资源目录中定位并载入图像数据，并返回结果对象。<br>系统可能随时清空图像数据以释放内存。清空操作只会发生在处于缓存但当前未被使用的图像。<br>在 iOS 9 及以上版本，该方法是线程安全的。<br><strong>特殊考虑</strong><br>如果图像文件只需显示一次，且希望确保其不会被添加到系统的缓存中，你应当使用 <code>imageWithContentsOfFile:</code> 方法。该方法将保证其在系统图像缓存以外的单一使用，潜在提升 app 的内存使用特性。</p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>在 StoryBoard 和 Xib 出现之后，iOS UI 开发出现了三足鼎立之势。本文不涉及 StoryBoard、Xib、纯代码的优劣之分。仅仅涉及几个初始化方法：<code>awakeFromNib()</code> &amp; <code>init(frame:)</code> &amp; <code>init(coder:)</code>，探讨他们何时调用，为何调用。</p>
+<h2 id="Xib-amp-Nib"><a href="#Xib-amp-Nib" class="headerlink" title="Xib &amp; Nib"></a>Xib &amp; Nib</h2><p>ib 是 Interface Builder 的缩写，即界面构造器。这里简要说下，Xib 和 Nib 各是什么，有什么区别。</p>
+<p>Xib 实际是一个 XML 文件，而 Nib 是二进制文件。当应用编译时，Xib 文件被翻译为 Nib。所以在 Xcode 中，我们可以自己新建 Xib 文件来构造 UI，而当编译时，Xcode 会自动生成相应的 Nib 文件，而不需我们额外关注。关于其详细介绍，您可以参考文末的资料。</p>
+<blockquote>
+<p>OK! Talk is cheap, show me the code!</p>
 </blockquote>
-<h3 id="init-contentsOfFile-String"><a href="#init-contentsOfFile-String" class="headerlink" title="init?(contentsOfFile: String)"></a><code>init?(contentsOfFile: String)</code></h3><blockquote>
-<p>Creating and Initializing Image Objects <code>init?(contentsOfFile: String)</code><br>Initializes and returns the image object with the contents of the specified file.<br><strong>Discussion</strong><br>This method loads the image data into memory and marks it as purgeable. If the data is purged and needs to be reloaded, the image object loads that data again from the specified path.</p>
-<p><strong>创建并初始化图像对象</strong> <code>init?(contentsOfFile: String)</code><br>初始化并返回指定文件内容的图像对象。<br><strong>论述</strong><br>该方法加载图像数据到内存，并标记其可以被清空。如果数据被清空，需要重新载入，图像对象将会从指定路径再次加载数据。</p>
-</blockquote>
-<h3 id="Demo"><a href="#Demo" class="headerlink" title="Demo"></a>Demo</h3><p>如苹果官方文档所述，这两个 Initializer 虽然都是加载图片，但是一个做了缓存，另一个并没有。所以 <code>init?(named: String)</code> 更适合加载 icon 等占用小的图片，而 <code>init?(contentsOfFile: String)</code> 适合较大的图片。</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// init?(named: String)</span></div><div class="line"><span class="keyword">let</span> demoIcon = <span class="type">UIImage</span>(named: <span class="string">"DemoIcon"</span>)</div><div class="line"></div><div class="line"><span class="comment">// init?(contentsOfFile: String)</span></div><div class="line"><span class="keyword">let</span> demoImagePath = <span class="type">Bundle</span>.main.path(forResource: <span class="string">"DemoImage.png"</span>, ofType: <span class="literal">nil</span>)</div><div class="line"><span class="keyword">let</span> demoImage = <span class="type">UIImage</span>(contentsOfFile: demoImagePath ?? <span class="string">""</span>)</div></pre></td></tr></table></figure>
-<p><code>init?(named: String)</code> 常用于加载小且常用的 icon，其初始化的图片，占用的缓存只会在程序退出时才清空，即使消除强引用仍会占用缓存。而 <code>init?(contentsOfFile: String)</code> 初始化的图片，在没有强引用时便会自动销毁。</p>
-<p>而 <code>init?(contentsOfFile: String)</code> 使用有一些注意点。该方法的参数是图片的全路径，所以需要通过 Bundle 来获取，而且需要带上后缀名。需要注意的是，如果图片放置在 <code>Assets.xcassets</code> 中，Bundle 是无法获取到的，需要直接复制到项目中。否则的话 <code>demoImagePath</code> 将为 <code>nil</code>，导致无法获取到图片，程序也将可能崩溃。</p>
-<h3 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h3><p>Xcode Documentation &amp; API Reference</p>
+<h2 id="Demo"><a href="#Demo" class="headerlink" title="Demo"></a>Demo</h2><p>在下面的 Demo 中，统一将自定义 UIView 命名为 MyView。</p>
+<p>MyView.swift</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> UIKit</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyView</span>: <span class="title">UIView</span> </span>&#123;</div><div class="line">	<span class="comment">// methods</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="Interface-Builder"><a href="#Interface-Builder" class="headerlink" title="Interface Builder"></a>Interface Builder</h3><p>如果使用 Interface Builder 拖控件，那么其默认属于 UIView 类型。为将其改为自定义控件，需要将 Utilities 中 Identity inspector 的 Custom Class 改为 MyView。</p>
+<p><img src="1" alt="Custom Class 改为 MyView"></p>
+<p>为了方便看出调用顺序，将 MyView.swift 改为如下：</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> UIKit</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyView</span>: <span class="title">UIView</span> </span>&#123;</div><div class="line">    </div><div class="line">    <span class="keyword">override</span> <span class="keyword">init</span>(frame: <span class="type">CGRect</span>) &#123;</div><div class="line">        <span class="keyword">super</span>.<span class="keyword">init</span>(frame: frame)</div><div class="line">        </div><div class="line">        <span class="built_in">print</span>(<span class="string">"init(frame:)"</span>)</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">    <span class="keyword">required</span> <span class="keyword">init</span>?(coder aDecoder: <span class="type">NSCoder</span>) &#123;</div><div class="line">        <span class="keyword">super</span>.<span class="keyword">init</span>(coder: aDecoder)</div><div class="line">        </div><div class="line">        <span class="built_in">print</span>(<span class="string">"init(coder:)"</span>)</div><div class="line">        <span class="comment">// fatalError("init(coder:) has not been implemented")</span></div><div class="line">    &#125;</div><div class="line">    </div><div class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">awakeFromNib</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="keyword">super</span>.awakeFromNib()</div><div class="line">        </div><div class="line">        <span class="built_in">print</span>(<span class="string">"awakeFromNib()"</span>)</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>之后运行即可在屏幕上看到该自定义 UIView，控制台输出：</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">init</span>(coder:)</div><div class="line">awakeFromNib()</div></pre></td></tr></table></figure>
+<h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p>通过打印的输出，可以看出使用 Interface Builder 载入 View 不会调用 <code>init(frame:)</code> 方法，而是调用了 <code>init(coder:)</code>。<code>init(coder:)</code> 是 NSCoding 协议中的方法，NSCoding 是负责编码解码，归档处理的协议。</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">required</span> <span class="keyword">init</span>?(coder aDecoder: <span class="type">NSCoder</span>)</div></pre></td></tr></table></figure>
+<p>代码中的 <code>init(coder:)</code> 与平时见到的其他初始化方法有点不同：<code>required</code> 是指其为必要构造器，即子类「必须」重写该构造器，但当父类的构造器可以完全满足初始化时，也可不重写。<code>init?</code> 是指其为可失败构造器，即其可以 <code>return nil</code> 告知外界构造失败。若想详细了解 Swift 中的构造器，可以参考苹果官方文档。</p>
+<p><code>init(coder:)</code> 的调用处于 Nib <strong>载入时</strong>，而 <code>awakeFromNib()</code> 的调用处于 Nib <strong>载入后</strong>。Nib 的载入过程如下：</p>
+<ol>
+<li>Nib 文件内容和引用的资源文件加载到内存；</li>
+<li>反归档存储于 Nib 文件的图像数据对象并初始化；<ol>
+<li>遵从 NSCoding 的对象（UIView &amp; UIViewController）调用 <code>init(coder:)</code></li>
+<li>其他对象调用其他构造器方法</li>
+</ol>
+</li>
+<li>建立对象间连接：Outlet &amp; Action</li>
+<li>实现 <code>awakeFromNib()</code> 的对象调用该方法</li>
+</ol>
+<p>需要注意的是，<code>awakeFromNib()</code> 中需要调用父类的该方法以保证父类的进行额外初始化。而在本例中重写的 <code>init(coder:)</code> 目的主要是查看调用顺序，并没有加入特别的操作。因此在实际使用中，如果使用 Interface Builder，可以不重写该方法。</p>
+<h3 id="Code"><a href="#Code" class="headerlink" title="Code"></a>Code</h3><p>MyView.swift</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> UIKit</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyView</span>: <span class="title">UIView</span> </span>&#123;</div><div class="line">    </div><div class="line">    <span class="keyword">override</span> <span class="keyword">init</span>(frame: <span class="type">CGRect</span>) &#123;</div><div class="line">        <span class="keyword">super</span>.<span class="keyword">init</span>(frame: frame)</div><div class="line">        </div><div class="line">        <span class="built_in">print</span>(<span class="string">"init(frame:)"</span>)</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">    <span class="keyword">required</span> <span class="keyword">init</span>?(coder aDecoder: <span class="type">NSCoder</span>) &#123;</div><div class="line">        <span class="built_in">fatalError</span>(<span class="string">"init(coder:) has not been implemented"</span>)</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">awakeFromNib</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="keyword">super</span>.awakeFromNib()</div><div class="line">        </div><div class="line">        <span class="built_in">print</span>(<span class="string">"awakeFromNib"</span>)</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>ViewController.swift</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> UIKit</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">ViewController</span>: <span class="title">UIViewController</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">viewDidLoad</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="keyword">super</span>.viewDidLoad()</div><div class="line">        </div><div class="line">        <span class="keyword">let</span> myView = <span class="type">MyView</span>(frame: <span class="type">CGRect</span>(x: <span class="number">100</span>, y: <span class="number">100</span>, width: <span class="number">50</span>, height: <span class="number">50</span>))</div><div class="line">        myView.backgroundColor =  .black</div><div class="line">        view.addSubview(myView)</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>之后运行即可在屏幕上看到该自定义 UIView，控制台输出：</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">init</span>(frame:)</div></pre></td></tr></table></figure>
+<h4 id="小结-1"><a href="#小结-1" class="headerlink" title="小结"></a>小结</h4><p>通过纯代码创建自定义 UIView，便只调用 <code>init(frame:)</code> 方法，不涉及 Nib 的方法，因此不会调用 <code>awakeFromNib()</code> 和 <code>init(coder:)</code>。而由于 <code>init(coder:)</code> 为必要构造器，因此重写 <code>init(frame:)</code> 时，必须实现该方法。</p>
+<p>有时，为了便于从 Interface Builder 和纯代码都能创建自定义 UIView 对象，可以将 <code>init(coder:)</code> 方法改为：</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">required</span> <span class="keyword">init</span>?(coder aDecoder: <span class="type">NSCoder</span>) &#123;</div><div class="line">    <span class="keyword">super</span>.<span class="keyword">init</span>(coder: aDecoder)</div><div class="line">    <span class="comment">// fatalError("init(coder:) has not been implemented")</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>若保留 <code>fatalError()</code>，则从 Nib 初始化时会无条件输出语句并停止运行。</p>
+<h2 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h2><p>可能是强迫症作祟，学习中每遇到一个知识点，都想要查看官方文档或者 Google 出为什么，然后自己敲代码验证，再总结出一篇文章，投稿给简书、掘金。一篇文章有时要耗费一两天，因为查阅的资料都是略有过时且几乎全为英文，但自己挺享受这样的学习状态，也很享受分享给大家之后获得的收藏所带来的鼓励。最近也看了很多实习生的招聘，现在深感基础的重要，未来可能会倾向一些基础，例如数据结构、算法、网络等知识。也希望自己在寒假或下学期能找一份 iOS 实习，虽然自己也有所涉猎 Android 等其他的一些技术栈，但还是对 iOS 最感兴趣。Come on!</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p><a href="https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/LoadingResources/CocoaNibs/CocoaNibs.html" target="_blank" rel="external">Nib Files</a><br><a href="https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID203" target="_blank" rel="external">Initialization</a></p>
 
       
     </div>
@@ -413,17 +441,13 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2016/15/" rel="next" title="Maven 3 安装第三方 JAR 向导翻译及 Demo">
-                <i class="fa fa-chevron-left"></i> Maven 3 安装第三方 JAR 向导翻译及 Demo
+              <a href="/2016/32/" rel="next" title="小窥 iOS 中的 Target-Action 设计模式">
+                <i class="fa fa-chevron-left"></i> 小窥 iOS 中的 Target-Action 设计模式
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2016/17/" rel="prev" title="Sketch 中的版本控制">
-                Sketch 中的版本控制 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -449,8 +473,8 @@
           
   <div class="comments" id="comments">
     
-      <div class="ds-thread" data-thread-key="2016/16/"
-           data-title="浅谈 UIImage 内存管理问题" data-url="https://maimieng.com/2016/16/">
+      <div class="ds-thread" data-thread-key="2016/33/"
+           data-title="初探 iOS 中自定义 UIView 的初始化过程" data-url="https://maimieng.com/2016/33/">
       </div>
     
   </div>
@@ -611,7 +635,7 @@
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#init-named-String"><span class="nav-number">2.</span> <span class="nav-text">init?(named: String)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#init-contentsOfFile-String"><span class="nav-number">3.</span> <span class="nav-text">init?(contentsOfFile: String)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Demo"><span class="nav-number">4.</span> <span class="nav-text">Demo</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#参考资料"><span class="nav-number">5.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Xib-amp-Nib"><span class="nav-number">2.</span> <span class="nav-text">Xib & Nib</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Demo"><span class="nav-number">3.</span> <span class="nav-text">Demo</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Interface-Builder"><span class="nav-number">3.1.</span> <span class="nav-text">Interface Builder</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#小结"><span class="nav-number">3.1.1.</span> <span class="nav-text">小结</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Code"><span class="nav-number">3.2.</span> <span class="nav-text">Code</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#小结-1"><span class="nav-number">3.2.1.</span> <span class="nav-text">小结</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#后记"><span class="nav-number">4.</span> <span class="nav-text">后记</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考资料"><span class="nav-number">5.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
             
           </div>
         </section>
