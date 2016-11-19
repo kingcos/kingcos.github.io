@@ -91,10 +91,13 @@
 <meta property="og:url" content="https://maimieng.com/2016/37/index.html">
 <meta property="og:site_name" content="V2M">
 <meta property="og:description" content="道理都懂，但还是连不上的话你就应该来看看…">
-<meta property="og:updated_time" content="2016-11-19T04:06:31.000Z">
+<meta property="og:image" content="https://o7y30w6c6.qnssl.com/blog/ubuntu_mysql_1.png">
+<meta property="og:image" content="https://o7y30w6c6.qnssl.com/blog/ubuntu_mysql_2.png">
+<meta property="og:updated_time" content="2016-11-19T05:46:08.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="腾讯云 Ubuntu 安装并远程访问 MySQL">
 <meta name="twitter:description" content="道理都懂，但还是连不上的话你就应该来看看…">
+<meta name="twitter:image" content="https://o7y30w6c6.qnssl.com/blog/ubuntu_mysql_1.png">
 
 
 
@@ -344,17 +347,35 @@
 <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>为了完成作业，不让服务器闲置，决定把数据库放在远程。免去本地配置的麻烦，这次的配置是基于腾讯的学生云，系统选择的是 Ubuntu Server 14.04.01 LTS 64 位，顺便学习下命令行操作。</p>
 <h2 id="步骤"><a href="#步骤" class="headerlink" title="步骤"></a>步骤</h2><p>安装和配置的步骤比较详细，如果你已经安装过 MySQL 可以跳过相应章节。</p>
 <h3 id="配置服务器安全组"><a href="#配置服务器安全组" class="headerlink" title="配置服务器安全组"></a>配置服务器安全组</h3><p>服务器的安全组可以在腾讯云上修改、配置。因为 MySQL 默认远程访问端口为 3306，因此，我们至少要开放该端口。这里由于我的服务器仅供折腾，所以开放了所有端口，实际使用的服务器应当考虑到相应的安全问题。</p>
-<p><img src="" alt="配置服务器安全组"></p>
-<h3 id="修改服务器-root-账户密码"><a href="#修改服务器-root-账户密码" class="headerlink" title="修改服务器 root 账户密码"></a>修改服务器 root 账户密码</h3><p>腾讯云默认会提供一个 ubuntu 账户，在装系统时可以设置密码，而 root 账户的密码需要在使用 ubuntu 账户登录服务器后设置。</p>
-<p>使用 ubuntu 账户登录服务器（0.0.0.0 替换为你的服务器 IP）</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/ubuntu_mysql_1.png" alt="配置服务器安全组"></p>
+<h3 id="设置服务器-root-账户密码"><a href="#设置服务器-root-账户密码" class="headerlink" title="设置服务器 root 账户密码"></a>设置服务器 root 账户密码</h3><p>在后面的使用中，我们需要 root 账户的权限，因此需要设置 root 账户的密码。腾讯云默认会提供一个 ubuntu 账户，在装系统时可以设置密码。</p>
+<p>使用 ubuntu 账户登录服务器（0.0.0.0 替换为你的服务器 IP）。</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ssh ubuntu@0.0.0.0</div></pre></td></tr></table></figure>
-<h3 id="安装-MySQL"><a href="#安装-MySQL" class="headerlink" title="安装 MySQL"></a>安装 MySQL</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"></div></pre></td></tr></table></figure>
-<p>尝试连接 MySQL，验证是否安装成功。</p>
+<p>登录成功后，设置 root 账户密码。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">sudo passwd</div></pre></td></tr></table></figure>
+<p>你需要先输入 ubuntu 账户密码，之后设置 root 账户密码。</p>
+<h3 id="安装-MySQL"><a href="#安装-MySQL" class="headerlink" title="安装 MySQL"></a>安装 MySQL</h3><p>安装时，若提示 <code>Do you want to continue? [Y/n]</code> 输入 Y 即可。在 MySQL 快安装完毕时，会跳出设置 root 密码的界面。该 root 为数据库的用户，而非服务器账户。注意区分和记忆密码。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">sudo apt-get install mysql-server</div><div class="line">apt-get isntall mysql-client</div><div class="line">sudo apt-get install libmysqlclient-dev</div></pre></td></tr></table></figure>
+<p>安装完成后，尝试连接 MySQL，使用 root 用户验证是否安装成功。</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">mysql -u root –p</div></pre></td></tr></table></figure>
-<h3 id="配置-MySQL-远程访问"><a href="#配置-MySQL-远程访问" class="headerlink" title="配置 MySQL 远程访问"></a>配置 MySQL 远程访问</h3><h3 id="新建用户并授权"><a href="#新建用户并授权" class="headerlink" title="新建用户并授权"></a>新建用户并授权</h3><figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"># 创建 kingcos 用户，设置密码为 123456</div><div class="line">CREATE USER kingcos IDENTIFIED BY '123456';</div><div class="line"></div><div class="line"># 授权</div><div class="line">GRANT ALL PRIVILEGES ON *.* TO 'kingcos'@'%'</div><div class="line">IDENTIFIED BY '123456'</div><div class="line">WITH GRANT OPTION;</div><div class="line"></div><div class="line"># 更新权限</div><div class="line">FLUSH PRIVILEGES;</div></pre></td></tr></table></figure>
+<h3 id="配置-MySQL-远程访问"><a href="#配置-MySQL-远程访问" class="headerlink" title="配置 MySQL 远程访问"></a>配置 MySQL 远程访问</h3><p>查看 3306 端口状态，在 MySQL 安装成功，但没有配置远程访问时，会显示 <code>127.0.0.1:3306</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">netstat -an|grep 3306</div></pre></td></tr></table></figure>
+<p>为保证安全，首先停止 MySQL。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">service mysql stop</div></pre></td></tr></table></figure>
+<p>切换为 root 账户。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">su root</div></pre></td></tr></table></figure>
+<p>使用 vim 打开 my.cnf。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">vim /etc/mysql/my.cnf</div></pre></td></tr></table></figure>
+<p>将 <code>bind-address = 127.0.0.1</code> 注释。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># bind-address = 127.0.0.1</div></pre></td></tr></table></figure>
+<p>保存并退出后，启动 MySQL。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">service mysql start</div></pre></td></tr></table></figure>
+<p>查看 3306 端口状态，现在应当显示 <code>0.0.0.0:3306</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">netstat -an|grep 3306</div></pre></td></tr></table></figure>
+<h3 id="新建用户并授权"><a href="#新建用户并授权" class="headerlink" title="新建用户并授权"></a>新建用户并授权</h3><figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"># 创建 kingcos 用户，设置密码为 123456</div><div class="line">CREATE USER kingcos IDENTIFIED BY '123456';</div><div class="line"></div><div class="line"># 授权</div><div class="line">GRANT ALL PRIVILEGES ON *.* TO 'kingcos'@'%'</div><div class="line">IDENTIFIED BY '123456'</div><div class="line">WITH GRANT OPTION;</div><div class="line"></div><div class="line"># 更新权限</div><div class="line">FLUSH PRIVILEGES;</div></pre></td></tr></table></figure>
 <h3 id="尝试远程访问"><a href="#尝试远程访问" class="headerlink" title="尝试远程访问"></a>尝试远程访问</h3><p>这里以 JetBrain 的 DataGrip 2016.2 为例。</p>
-<p>如图，即链接成功。</p>
-<p><img src="" alt="DataGrip 2016.2"></p>
+<p>如图，即连接成功。</p>
+<p><img src="https://o7y30w6c6.qnssl.com/blog/ubuntu_mysql_2.png" alt="DataGrip 2016.2"></p>
 
       
     </div>
@@ -605,7 +626,7 @@
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#步骤"><span class="nav-number">2.</span> <span class="nav-text">步骤</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#配置服务器安全组"><span class="nav-number">2.1.</span> <span class="nav-text">配置服务器安全组</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#修改服务器-root-账户密码"><span class="nav-number">2.2.</span> <span class="nav-text">修改服务器 root 账户密码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#安装-MySQL"><span class="nav-number">2.3.</span> <span class="nav-text">安装 MySQL</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#配置-MySQL-远程访问"><span class="nav-number">2.4.</span> <span class="nav-text">配置 MySQL 远程访问</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#新建用户并授权"><span class="nav-number">2.5.</span> <span class="nav-text">新建用户并授权</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#尝试远程访问"><span class="nav-number">2.6.</span> <span class="nav-text">尝试远程访问</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#步骤"><span class="nav-number">2.</span> <span class="nav-text">步骤</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#配置服务器安全组"><span class="nav-number">2.1.</span> <span class="nav-text">配置服务器安全组</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#设置服务器-root-账户密码"><span class="nav-number">2.2.</span> <span class="nav-text">设置服务器 root 账户密码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#安装-MySQL"><span class="nav-number">2.3.</span> <span class="nav-text">安装 MySQL</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#配置-MySQL-远程访问"><span class="nav-number">2.4.</span> <span class="nav-text">配置 MySQL 远程访问</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#新建用户并授权"><span class="nav-number">2.5.</span> <span class="nav-text">新建用户并授权</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#尝试远程访问"><span class="nav-number">2.6.</span> <span class="nav-text">尝试远程访问</span></a></li></ol></li></ol></div>
             
           </div>
         </section>
