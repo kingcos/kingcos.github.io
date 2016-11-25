@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://maimieng.com/"/>
-  <updated>2016-11-24T17:14:00.000Z</updated>
+  <updated>2016-11-25T13:29:02.000Z</updated>
   <id>https://maimieng.com/</id>
   
   <author>
@@ -14,6 +14,78 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Swift 中的 struct &amp; class &amp; enum</title>
+    <link href="https://maimieng.com/2016/37/"/>
+    <id>https://maimieng.com/2016/37/</id>
+    <published>2016-11-24T16:00:00.000Z</published>
+    <updated>2016-11-25T13:29:02.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>知己知彼，百战不殆<br></blockquote><br><a id="more"></a></p>
+<ul>
+<li>Info:<ul>
+<li>macOS 10.12.2 Beta</li>
+<li>Xcode 8.2 Beta</li>
+<li>Swift 3.0</li>
+</ul>
+</li>
+</ul>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>最近在看《大话设计模式》一书，深感设计模式的重要性，于是决定做个 Swift 3.0 版的设计模式实现。我会将代码与文章同步更新，代码放在 <a href="https://github.com/kingcos/Swift-3-Design-Patterns" target="_blank" rel="external">kingcos/Swift-3-Design-Patterns</a>，文章将近日同步更新于简书和博客，并会投稿掘金，期待与大家的交流。</p>
+<p>由于 Swift 是一门比较新的语言，且更新迅速，也实属本人能力有限。所以在这一系列文章的完成过程中可能会存在各种各样的问题。我会尽力把遇到的问题，查阅资料，写出 Demo，进行总结。设计模式重在思想，而 Swift 也异常灵活，因此有些答案需要在实际的项目需求中确定，而非有唯一的答案。<strong>如果您有不同见解，或是文章有所纰漏，还请您多多指教，谢谢！</strong></p>
+<h2 id="struct-amp-class-amp-enum"><a href="#struct-amp-class-amp-enum" class="headerlink" title="struct &amp; class &amp; enum"></a>struct &amp; class &amp; enum</h2><p>struct，即结构体，class，即类，enum，即枚举。在 C 语言中，有结构体和枚举，因为其是面向过程的语言，没有类和对象的概念。而在 Java 中，只有类，而没有结构体。因为 Java 是一门完全面向对象的语言，类已经可以足以包容结构体的功能，在 JDK 1.5 后，Java 也拥有了枚举。</p>
+<p>而 Swift 也是一门面向对象的语言，却保留了结构体，甚至可以在结构体里定义方法。我在用 Swift 3.0 实现设计模式时，struct， class，以及 enum 有时甚至可以直接替换，而不用修改任何其他代码即可运行。所以这次来研究一下 struct， class，以及 enum 各是什么，它们之间有什么区别，以及什么时候该采用。</p>
+<p>由于 struct， class，以及 enum 之间的异同比较多，本文采取先分别介绍各个类型，再进行比较异同。</p>
+<h3 id="struct"><a href="#struct" class="headerlink" title="struct"></a>struct</h3><p><code>struct</code> 是 Swift 中定义结构体的关键字。在 Swift 中，结构体内可以定义变量，函数。</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">CoordinateStruct</span> </span>&#123;</div><div class="line">    <span class="keyword">var</span> x = <span class="number">0.0</span></div><div class="line">    <span class="keyword">var</span> y: <span class="type">Double</span></div><div class="line">    </div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">getCoordinateTuple</span><span class="params">()</span></span> -&gt; (<span class="type">Double</span>, <span class="type">Double</span>) &#123;</div><div class="line">        <span class="keyword">return</span> (x, y)</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h4 id="构造方法"><a href="#构造方法" class="headerlink" title="构造方法"></a>构造方法</h4><p><strong>Swift 为 struct 添加了默认的成员逐一构造的方法。</strong></p>
+<p>当 struct 有成员变量（常量）仅声明类型，无初始值，那么 Swift 会为该结构体提供<strong>一个</strong>成员逐一构造的方法。在实例化该结构体类型的变量时，必须使用该构造方法。</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">CoordinateStructDemoA</span> </span>&#123;</div><div class="line">    <span class="keyword">let</span> x: <span class="type">Double</span></div><div class="line">    <span class="keyword">var</span> y: <span class="type">Double</span></div><div class="line">    </div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">getCoordinateTuple</span><span class="params">()</span></span> -&gt; (<span class="type">Double</span>, <span class="type">Double</span>) &#123;</div><div class="line">        <span class="keyword">return</span> (x, y)</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// var coordA = CoordinateStructDemoA() // WRONG</span></div><div class="line"><span class="keyword">var</span> coordA = <span class="type">CoordinateStructDemoA</span>(x: <span class="number">10</span>, y: <span class="number">10</span>)</div><div class="line"><span class="built_in">print</span>(coordA.getCoordinateTuple())</div><div class="line"></div><div class="line"><span class="comment">// (10.0, 10.0)</span></div></pre></td></tr></table></figure>
+<p>当<strong>所有</strong>成员变量声明时均带有初始值时，那么 Swift 也会为该结构体提供一个<strong>带有默认值</strong>的<strong>变量</strong>成员逐一构造的方法。在实例化该结构体类型的变量时，可以任选其一。</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">CoordinateStructDemoB</span> </span>&#123;</div><div class="line">    <span class="keyword">let</span> x = <span class="number">0.0</span></div><div class="line">    <span class="keyword">var</span> y = <span class="number">0.0</span></div><div class="line">    </div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">getCoordinateTuple</span><span class="params">()</span></span> -&gt; (<span class="type">Double</span>, <span class="type">Double</span>) &#123;</div><div class="line">        <span class="keyword">return</span> (x, y)</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">var</span> coordBOne = <span class="type">CoordinateStructDemoB</span>()</div><div class="line"><span class="built_in">print</span>(coordBOne.getCoordinateTuple())</div><div class="line"></div><div class="line"><span class="keyword">var</span> coordBTwo = <span class="type">CoordinateStructDemoB</span>(y: <span class="number">5</span>)</div><div class="line"><span class="built_in">print</span>(coordBTwo.getCoordinateTuple())</div><div class="line"></div><div class="line"><span class="comment">// (0.0, 0.0)</span></div><div class="line"><span class="comment">// (0.0, 5.0)</span></div></pre></td></tr></table></figure>
+<p>虽然 Swift 可以自动为我们生成构造方法，但我们也可以在结构体内部定义构造方法，需要在构造之后所有的成员均有初始值。当我们自己定义构造方法时，Swift 将不再为我们生成。</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">CoordinateStructDemoC</span> </span>&#123;</div><div class="line">    <span class="keyword">var</span> x = <span class="number">0.0</span></div><div class="line">    <span class="keyword">var</span> y = <span class="number">0.0</span></div><div class="line">    </div><div class="line">    <span class="keyword">init</span>(<span class="number">_</span> tuple: (<span class="type">Double</span>, <span class="type">Double</span>)) &#123;</div><div class="line">        x = tuple.<span class="number">0</span></div><div class="line">        y = tuple.<span class="number">1</span></div><div class="line">    &#125;</div><div class="line">    </div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">getCoordinateTuple</span><span class="params">()</span></span> -&gt; (<span class="type">Double</span>, <span class="type">Double</span>) &#123;</div><div class="line">        <span class="keyword">return</span> (x, y)</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// var coorC = CoordinateStructDemoC()</span></div><div class="line"><span class="comment">// var coorC = CoordinateStructDemoC(x: 20, y: 20)</span></div><div class="line"></div><div class="line"><span class="keyword">var</span> coorC = <span class="type">CoordinateStructDemoC</span>((<span class="number">20</span>, <span class="number">20</span>))</div><div class="line"><span class="built_in">print</span>(coorC.getCoordinateTuple())</div></pre></td></tr></table></figure>
+<h4 id="拷贝类型"><a href="#拷贝类型" class="headerlink" title="拷贝类型"></a>拷贝类型</h4><h3 id="内部存储"><a href="#内部存储" class="headerlink" title="内部存储"></a>内部存储</h3><h4 id="struct-1"><a href="#struct-1" class="headerlink" title="struct"></a>struct</h4><h4 id="class"><a href="#class" class="headerlink" title="class"></a>class</h4><h4 id="enum"><a href="#enum" class="headerlink" title="enum"></a>enum</h4><h3 id="init-方法"><a href="#init-方法" class="headerlink" title="init 方法"></a>init 方法</h3><h4 id="struct-2"><a href="#struct-2" class="headerlink" title="struct"></a>struct</h4><h4 id="class-1"><a href="#class-1" class="headerlink" title="class"></a>class</h4><h4 id="enum-1"><a href="#enum-1" class="headerlink" title="enum"></a>enum</h4><h3 id="值类型-amp-引用类型"><a href="#值类型-amp-引用类型" class="headerlink" title="值类型 &amp; 引用类型"></a>值类型 &amp; 引用类型</h3><h4 id="struct-3"><a href="#struct-3" class="headerlink" title="struct"></a>struct</h4><h4 id="class-2"><a href="#class-2" class="headerlink" title="class"></a>class</h4><h4 id="enum-2"><a href="#enum-2" class="headerlink" title="enum"></a>enum</h4><h3 id="相同点"><a href="#相同点" class="headerlink" title="相同点"></a>相同点</h3><h3 id="不同点"><a href="#不同点" class="headerlink" title="不同点"></a>不同点</h3><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><table>
+<thead>
+<tr>
+<th></th>
+<th>struct</th>
+<th>class</th>
+<th>enum</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>类型</td>
+<td><strong>值</strong>类型</td>
+<td><strong>引用</strong>类型</td>
+<td><strong>值</strong>类型</td>
+</tr>
+<tr>
+<td>构造方法</td>
+<td>提供默认的构造方法</td>
+<td>java.util.Date</td>
+<td>-</td>
+</tr>
+<tr>
+<td>-</td>
+<td>java.sql.Timestamp</td>
+<td>java.sql.Date</td>
+</tr>
+</tbody>
+</table>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;知己知彼，百战不殆&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="Swift" scheme="https://maimieng.com/tags/Swift/"/>
+    
+  </entry>
   
   <entry>
     <title>Swift 中的值类型与引用类型</title>
@@ -1201,104 +1273,6 @@
     
     
       <category term="PC" scheme="https://maimieng.com/tags/PC/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Sketch 中的版本控制</title>
-    <link href="https://maimieng.com/2016/17/"/>
-    <id>https://maimieng.com/2016/17/</id>
-    <published>2016-09-01T16:00:00.000Z</published>
-    <updated>2016-10-02T12:18:05.000Z</updated>
-    
-    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>Sketch 是一款矢量图设计软件，<br>简单搭配 git-sketch-plugin 插件，<br>即可实现对其版本控制。<br></blockquote><br><a id="more"></a></p>
-<ul>
-<li>Info:<ul>
-<li>Sketch 39.1</li>
-<li><a href="https://github.com/mathieudutour/git-sketch-plugin" target="_blank" rel="external">git-sketch-plugin 0.7</a></li>
-<li><a href="https://gitlab.com/u/kingcos" target="_blank" rel="external">GitLab</a></li>
-<li>SourceTree</li>
-</ul>
-</li>
-</ul>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>前几日在 V 站看到有人提出关于 Sketch 版本控制的问题。才发现 Sketch 已有插件支持更加方便的版本控制。Google 了下，可能是设计师对 Git 了解较少，也可能是版本控制对于非文本的支持并不能体现其优越性，所以可能很多专业的设计师并不会采用 Git。但作为程序员对于 Git 等版本控制系统应当是有所了解，而且通过插件可以更简单的查看不同版本的区别。因此，这次就来尝试下如何进行 Sketch 中的版本控制。</p>
-<p>PS: 该插件的作者更新的速度可能较快，仅仅在本文修改的几天，就更新了两次，但基本使用应该不会有太大变化。</p>
-<h2 id="Demo"><a href="#Demo" class="headerlink" title="Demo"></a>Demo</h2><h3 id="安装-git-sketch-plugin-插件"><a href="#安装-git-sketch-plugin-插件" class="headerlink" title="安装 git-sketch-plugin 插件"></a>安装 git-sketch-plugin 插件</h3><p><em>可参考 <a href="https://github.com/mathieudutour/git-sketch-plugin" target="_blank" rel="external">https://github.com/mathieudutour/git-sketch-plugin</a> README 中的 Installation 部分。</em></p>
-<p>1.下载插件。最新发行版本地址：<a href="https://github.com/mathieudutour/git-sketch-plugin/releases" target="_blank" rel="external">https://github.com/mathieudutour/git-sketch-plugin/releases</a><br>2.解压后双击 Git.sketchplugin 即可自动安装至 Sketch 中。<br>3.如图弹窗，即安装好插件。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_1.png" alt="如图即安装好插件"></p>
-<p>之后可以按个人喜好对该插件设置。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_2.png" alt="插件的 Preference"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_3.png" alt="Preference"></p>
-<p>设置保存成功将会在屏幕下方出现如图标识。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_4.png" alt="插件保存设置成功"></p>
-<h3 id="配置-Git-仓库"><a href="#配置-Git-仓库" class="headerlink" title="配置 Git 仓库"></a>配置 Git 仓库</h3><p>这里使用的是 GitLab 来进行托管，也可以选择 GitHub 或是国内的 Coding.net 等。这里由于以后打算模仿一些好的设计，所以建立了一个 Group，之后可以在这个组内新建 Project，方便管理。</p>
-<p>Group 常用于多人协作，方便管理每个人的权限，这里对其建立过程，不再叙述，可自行尝试。这里简要叙述如何在 GitLab 上建立 Project。</p>
-<p>点击 <strong>New Project</strong></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_5.png" alt="点击 New Project"></p>
-<p>输入项目名称，描述（可选），以及可见等级。</p>
-<p>可见等级即该项目的可见程度。Private 为私有项目，如果他人想访问则必须被授权；Internal 为内部项目，在 Group 内的成员即可访问；Public 为公有项目，所有人可以访问。</p>
-<p>这里我选择 Public，方便交流共享。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_6.png" alt="填写相应信息"></p>
-<p>点击 <strong>Create Project</strong> 看到如图，即创建成功。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_7.png" alt="创建 Project 成功"></p>
-<p>创建 Project 后，通常需要配置 README.md, LICENSE, .gitignore 文件。由于 Sketch 非文本格式，所以不需要 .gitignore 文件。README.md 文件是描述项目的文件，当他人打开项目主页，下方会将其内容自动渲染（markdown 格式）。LICENSE 是版权声明，我通常选择较为宽松的 MIT LICENSE，若是商业项目，请咨询后添加。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_8.png" alt="添加了 README.md 和 LICENSE"></p>
-<h3 id="配置-SSH"><a href="#配置-SSH" class="headerlink" title="配置 SSH"></a>配置 SSH</h3><p>本地想要将变更推送到远程的 Git 服务器，可以通过 HTTPS 或 SSH 进行连接。HTTPS 需要每次验证用户名及密码，（插件貌似不支持，测试时失败，待确定）。SSH 需要将本地密钥填入到 GitLab 中，这里不详述如何生成密钥，建议参考 GitLab 相应页面的有关介绍。</p>
-<p>填入 SSH Key。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_9.png" alt="SSH Key 填写页面"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_10.png" alt="添加成功 SSH Key"></p>
-<p>成功添加之后，我们可以在 Terminal 验证，输入 <code>ssh -T git@gitlab.com</code>。第一次时，有个警告，需要输入 <code>yes</code>，如果成功即可显示你的用户名，如果不成功，可能是 Git 中的用户名和 GitLab 不一致。可以通过以下命令全局设置，注意用户名和邮箱替换成自己的，并与所用的 GitLab 用户名以及邮箱一致。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">git config --global user.name &quot;&lt;username&gt;&quot;  </div><div class="line">git config --global user.email &lt;email&gt;</div></pre></td></tr></table></figure>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_11.png" alt="SSH 连接测试成功"></p>
-<h3 id="本地配置"><a href="#本地配置" class="headerlink" title="本地配置"></a>本地配置</h3><p>在 Projetc 中切换为 SSH，复制 SSH URL，这将作为本地计算机连接远程 Git 仓库的 URL。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_12.png" alt="复制 SSH URL"></p>
-<p>之后，我们需要克隆仓库，熟悉 Terminal 的同学可以直接 <code>git clone &lt;git-remote-repository-url&gt; &lt;local-directory&gt;</code> 克隆到本地。也可以通过 SourceTree 来管理。</p>
-<p>打开 SourceTree，点击 <strong>+ 新仓库</strong>，点击从 <strong>URL 克隆</strong>。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_13.png" alt="SourceTree + 新仓库-从 URL 克隆"></p>
-<p>将刚才拷贝的 URL 粘贴到<strong>源 URL</strong>，后续两条会自动填充，也可按照个人喜好修改。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_14.png" alt="填入源 URL"></p>
-<p>填入后点击<strong>克隆</strong>，稍等片刻即可成功克隆到本地。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_15.png" alt="成功克隆仓库到本地"></p>
-<p>在 Finder 中可以看到刚才添加的 README.md 以及 LICENSE 文件也存在，.git 的隐藏文件夹即表明当前文件夹已受 Git 版本控制。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_16.png" alt="Finder 中的仓库"></p>
-<p>以后即可在该目录新建 Sketch 文件，或者将已存在的 Sketch 拷贝至此目录即可。我们这里新建 Sketch 文件以演示。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_17.png" alt="在克隆仓库的目录处新建 Sketch 文件"></p>
-<p>之后，我们需要保存文件，Cmd + s。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_18.png" alt="保存文件"></p>
-<h3 id="git-add"><a href="#git-add" class="headerlink" title="git-add"></a>git-add</h3><p>如果有文件想要被 Git 所管理，我们需要将其添加到 Git 中。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_19.png" alt="Add file to git"></p>
-<p>如果出现如下错误，可以参考本文下方的资料解决。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_20.png" alt="shell_session_update: command not found"></p>
-<p>如图即添加成功。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_21.png" alt="添加到 Git 成功"></p>
-<h3 id="git-commit"><a href="#git-commit" class="headerlink" title="git-commit"></a>git-commit</h3><p>当我们的文件受 Git 控制，我们就可以开始做设计了。我这里是模仿 Wunderlist 的 icon。当制作完成，我们可以 commit 一下，提交更改。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_22.png" alt="Commit"></p>
-<p>输入更改的简介，并勾选自动生成示意图。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_23.png" alt="Commit 界面"></p>
-<p>成功后，屏幕下方会有提示（消失太快，没截到图）。如果 Commit 成功，这时就可以打开 SourceTree 看到新的 Commit。</p>
-<h3 id="git-push"><a href="#git-push" class="headerlink" title="git-push"></a>git-push</h3><p>当我们需要将本地的更改推送到远程服务器（例如 GitLab），那么就需要 Push。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_24.png" alt="Push"></p>
-<p>Push 操作是需要连网的，需要一定的时间。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_25.png" alt="Push 成功"></p>
-<p>成功之后我们就可以在 GitLab 上查看到新的更改。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_26.png" alt="Push 后的 GitLab"></p>
-<p>而我们没有手动导出的示意图便自动生成，如果在进行一个版本更迭的设计时，那么我们就能更清晰的知道多种设计的不同。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/gitforsketch_27.png" alt="自动生成的示意图"></p>
-<h2 id="后话…"><a href="#后话…" class="headerlink" title="后话…"></a>后话…</h2><p>Git 和 SVN 都是很好的版本控制系统，在群里也看到有设计师使用 CornerStone（SVN 客户端）来进行版本管理。</p>
-<p>不管用什么工具，设计本身才是重要的，希望能坚持下来，Design by heart…</p>
-<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p><a href="http://superuser.com/questions/1044130/why-am-i-having-how-can-i-fix-this-error-shell-session-update-command-not-f" target="_blank" rel="external">Why am I having / how can I fix this error: “shell_session_update: command not found”</a></p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;Sketch 是一款矢量图设计软件，&lt;br&gt;简单搭配 git-sketch-plugin 插件，&lt;br&gt;即可实现对其版本控制。&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
-    
-    </summary>
-    
-    
-      <category term="Sketch" scheme="https://maimieng.com/tags/Sketch/"/>
-    
-      <category term="Git/GitHub" scheme="https://maimieng.com/tags/Git-GitHub/"/>
     
   </entry>
   
