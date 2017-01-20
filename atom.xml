@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://maimieng.com/"/>
-  <updated>2017-01-15T16:26:38.000Z</updated>
+  <updated>2017-01-20T02:24:21.000Z</updated>
   <id>https://maimieng.com/</id>
   
   <author>
@@ -14,6 +14,85 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Swift 中的 UIAppearance</title>
+    <link href="https://maimieng.com/2017/5/"/>
+    <id>https://maimieng.com/2017/5/</id>
+    <published>2017-01-18T16:00:00.000Z</published>
+    <updated>2017-01-20T02:24:21.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>UIAppearance in Swift<br></blockquote><br><a id="more"></a></p>
+<ul>
+<li>Info:<ul>
+<li>Swift 3.0</li>
+<li>Xcode 8.2.1</li>
+</ul>
+</li>
+</ul>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>UIAppearance，即用户界面外观，是 iOS 中 UIKit 的一个协议。外观对于用户体验是至关重要的一点，NSHipster 的 Mattt Thompson 在 UIAppearance 一文中说：<strong>Users will pay a premium for good-looking software.</strong>（用户乐意为高颜值的软件额外付费）。</p>
+<p>使用 UIAppearance 协议可以得到一个类的外观代理（proxy）。我们可以调用类的外观代理来更简单地自定义一个实例的外观。不过由于官方文档仍是 Objective-C 的例子，这里就总结一下 Swift 中的使用。这里为了方便演示，我创建了一个 Demo，您可以在 <a href="">kingcos/UIAppearance-Demo</a> 下载，并在 Xcode 中运行。</p>
+<p>该 Demo 为纯代码，不涉及 Storyboard 和 XIB。</p>
+<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_01.png" alt="原始界面"></p>
+<p>其中自定义了两个 TabBar 控制器，MM 和 VV TabBar 控制器的初始外观（后续主要针对 TabBarItem 的修改）如下所示。</p>
+<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_02.png" alt="MMTabBarController"></p>
+<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_03.png" alt="VVTabBarController"></p>
+<h2 id="全局修改外观"><a href="#全局修改外观" class="headerlink" title="全局修改外观"></a>全局修改外观</h2><p>全局修改即修改该类型的<strong>所有</strong>实例的外观。</p>
+<p>这里的 Demo 以 <code>UITabBarItem</code> 为例，如果我们需要修改整个应用中所有的 <code>UITabBarItem</code>  外观，即全局修改，那么我们直接使用以下方法即可获取该类的外观代理，进而进行修改。注意调用该方法的为<strong>类</strong>，而非实例。</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function"><span class="keyword">func</span> <span class="title">appearance</span><span class="params">()</span></span> -&gt; <span class="type">Self</span></div></pre></td></tr></table></figure>
+<p>将修改外观（此处以字体大小为例）的操作放在一个方法中：</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">setGlobalAppearance</span><span class="params">()</span></span> &#123;</div><div class="line">    <span class="keyword">var</span> attrsNormal = [<span class="type">String</span> : <span class="type">Any</span>]()</div><div class="line">    attrsNormal[<span class="type">NSFontAttributeName</span>] = <span class="type">UIFont</span>.systemFont(ofSize: <span class="number">30</span>)</div><div class="line">    </div><div class="line">    <span class="type">UITabBarItem</span>.appearance().setTitleTextAttributes(attrsNormal, <span class="keyword">for</span>: <span class="type">UIControlState</span>.normal)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在 <code>viewDidLoad</code> 方法中调用该方法并运行，我们即可看到两种 TabBar 控制器的 TabBarItem 的字体均受到了影响。</p>
+<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_04.png" alt="MMTabBarController"></p>
+<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_05.png" alt="VVTabBarController"></p>
+<h2 id="部分修改外观"><a href="#部分修改外观" class="headerlink" title="部分修改外观"></a>部分修改外观</h2><p>部分修改即修改该类型的<strong>某些</strong>实例的外观。</p>
+<p>在 Demo 中，我们可以使用以下方法，传入 UIAppearance 容器类型，即可修改该容器内部的相应类型实例的外观。需要注意的是，这里的参数为数组，即传入多个不同类型也是允许的。同样注意调用该方法的为<strong>类</strong>，而非实例。</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@available</span>(iOS <span class="number">9.0</span>, *)</div><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function"><span class="keyword">func</span> <span class="title">appearance</span><span class="params">(whenContainedInInstancesOf containerTypes: [UIAppearanceContainer.<span class="keyword">Type</span>])</span></span> -&gt; <span class="type">Self</span></div></pre></td></tr></table></figure>
+<p>将修改外观（此处以字体大小为例）的操作放在一个方法中：</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">setLocalAppearance</span><span class="params">()</span></span> &#123;</div><div class="line">    <span class="keyword">var</span> attrsNormal = [<span class="type">String</span> : <span class="type">Any</span>]()</div><div class="line">    attrsNormal[<span class="type">NSFontAttributeName</span>] = <span class="type">UIFont</span>.systemFont(ofSize: <span class="number">30</span>)</div><div class="line">    </div><div class="line">    <span class="type">UITabBarItem</span>.appearance(whenContainedInInstancesOf: [<span class="type">MMTabBarController</span>.<span class="keyword">self</span>]).setTitleTextAttributes(attrsNormal, <span class="keyword">for</span>: <span class="type">UIControlState</span>.normal)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在 <code>viewDidLoad</code> 方法中调用该方法并运行，我们即可看到只有作为参数的 MMTabBarController 的 TabBarItem 的字体受到了影响。</p>
+<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_06.png" alt="MMTabBarController"></p>
+<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_07.png" alt="VVTabBarController"></p>
+<h2 id="自定义-UIView-子类的实现"><a href="#自定义-UIView-子类的实现" class="headerlink" title="自定义 UIView 子类的实现"></a>自定义 UIView 子类的实现</h2><p>通过以上的 Demo，我们可以看出，通过 UIAppearance 可以很便捷且统一的管理界面外观。系统中遵守 UIAppearance 的方法和属性可以在 <a href="https://gist.github.com/mattt/5135521" target="_blank" rel="external">mattt/uiappearance-selector.md</a> 查到，那我们如何使自定义的 UIView 类也能用 UIAppearance 管理呢？</p>
+<p>这里以自定义按钮为例，为了方便演示，直接使用了 Demo 中跳转的两个按钮。新建一个 MMButton 的类，继承 UIButton。UIView 本身已经实现了 UIAppearance 和 UIAppearanceContainer 协议，所以我们只需要添加需要 UIAppearance 修改的属性即可。</p>
+<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_08.png" alt="UIView 已实现了 UIAppearance 和 UIAppearanceContainer 协议"></p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">MMButton</span>: <span class="title">UIButton</span> </span>&#123;</div><div class="line">    <span class="keyword">dynamic</span> <span class="keyword">var</span> btnBorderWidth: <span class="type">CGFloat</span> &#123;</div><div class="line">        <span class="keyword">get</span> &#123;</div><div class="line">            <span class="keyword">return</span> layer.borderWidth</div><div class="line">        &#125;</div><div class="line">        </div><div class="line">        <span class="keyword">set</span> &#123;</div><div class="line">            layer.borderWidth = newValue</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这里是以按钮的边框宽度为例，该属性为<strong>计算属性</strong>。同时需要在定义前加上 <code>dynamic</code>，以赋予该处 Swift 代码的<strong>运行时（runtime）</strong>特性。</p>
+<p>这样便可以使用 <code>appearance()</code> 来全局修改 MMButton 的该属性：</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="type">MMButton</span>.appearance().btnBorderWidth = <span class="type">CGFloat</span>(<span class="number">10.0</span>)</div></pre></td></tr></table></figure>
+<p>效果即如图所示：</p>
+<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_09.png" alt="自定义 MMButton"></p>
+<p>需要注意的是，可以支持修改的属性只能为 <code>id</code>，<code>NSInteger</code>，<code>NSUInteger</code>，<code>CGFloat</code>，<code>CGPoint</code>，<code>CGSize</code>，<code>CGRect</code>，<code>UIEdgeInsets</code> 或 <code>UIOffset</code>（官方提供的均为 Objective-C 类型）。</p>
+<blockquote>
+<p>极端特殊的情况下，你也可以参考文末的 UIAppearance proxy for custom objects，其中 LombaX 提供了继承自 NSObject 的普通类的 appearance 实现。由于 UIAppearance 多用于 UIView 的子类，所以本文不再探究，但给出参考。</p>
+</blockquote>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>使用 UIAppearance 协议可以很方便的自定义外观。当然，UIAppearance 并不是外观修改的唯一选择。在 Mattt Thompson 的 UIAppearance 一文中也提到了几个替代 UIAppearance 的第三方库，通过把样式和内容分开（很像 CSS 和 HTML 的关系）来定义外观，更加清晰。在为 App 开发主题抑或是夜间模式时，也可以选择轻量级颜色框架 <a href="https://github.com/ViccAlexander/Chameleon" target="_blank" rel="external">ViccAlexander/Chameleon</a>，其已经在 GitHub 上拿到了超过 7000+ Stars。</p>
+<p>UIAppearance 中还有两个方法本文没有涉及：</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">static</span> <span class="function"><span class="keyword">func</span> <span class="title">appearance</span><span class="params">(<span class="keyword">for</span>: UITraitCollection, whenContainedInInstancesOf: [UIAppearanceContainer.<span class="keyword">Type</span>])</span></span></div><div class="line"><span class="keyword">static</span> <span class="function"><span class="keyword">func</span> <span class="title">appearance</span><span class="params">(whenContainedInInstancesOf: [UIAppearanceContainer.<span class="keyword">Type</span>])</span></span></div></pre></td></tr></table></figure>
+<p>这两个方法是关于 Trait Collection，和多屏适配相关。目前这块的相关中文资料不是太多，我会找时间进行搜索、总结，届时再与大家分享。</p>
+<p>另外本文略有涉及 Swift 和 Objective-C 的兼容，<code>dynamic</code> 关键字便可以保证和 Objective-C 里动态调用时相同的<strong>运行时（runtime）</strong>特性。为大家所熟知的还有 <code>@objc</code>，关于这两者（<code>dynamic</code> &amp; <code>@objc</code>）的区别，您可以参考文末中喵神的 @OBJC 和 DYNAMIC。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><a href="https://developer.apple.com/reference/uikit/uiappearance" target="_blank" rel="external">UIAppearance - Apple Inc.</a></li>
+<li><a href="https://developer.apple.com/reference/uikit/uiappearancecontainer" target="_blank" rel="external">UIAppearanceContainer - Apple Inc.</a></li>
+<li><a href="http://nshipster.com/uiappearance/" target="_blank" rel="external">UIAppearance - NSHipster</a></li>
+<li><a href="https://gist.github.com/mattt/5135521" target="_blank" rel="external">mattt/uiappearance-selector.md</a></li>
+<li><a href="http://stackoverflow.com/questions/15732885/uiappearance-proxy-for-custom-objects" target="_blank" rel="external">UIAppearance proxy for custom objects - StackOverflow</a></li>
+<li><a href="http://swifter.tips/objc-dynamic/" target="_blank" rel="external">@OBJC 和 DYNAMIC</a></li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;UIAppearance in Swift&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="Swift" scheme="https://maimieng.com/tags/Swift/"/>
+    
+      <category term="iOS" scheme="https://maimieng.com/tags/iOS/"/>
+    
+  </entry>
   
   <entry>
     <title>「周记」逃避</title>
@@ -952,34 +1031,6 @@
   </entry>
   
   <entry>
-    <title>生日记</title>
-    <link href="https://maimieng.com/2016/26/"/>
-    <id>https://maimieng.com/2016/26/</id>
-    <published>2016-10-19T16:00:00.000Z</published>
-    <updated>2016-10-31T11:35:51.000Z</updated>
-    
-    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>生命不息，向死而生。<br>内容有些凌乱，暂不修改<br></blockquote><br><a id="more"></a><br>在 QQ 空间里朋友送的礼物提醒下，似乎快要过生日了。虽然在今天之前也知道自己快要过生日了，但是到了这一天也似乎没什么分别。可能是最近有些忙碌，可能其实生日也算不了什么吧。也好久没有什么理由写点什么了，这里总是冷冰冰的技术文也不太好，所以还是写点什么，记录下吧。</p>
-<p>很遗憾，大学似乎在知乎大神口中是绚丽多彩的，在小时代中也是很精彩的。而我这几年的重心只放在了学习上，虽说可能比不上 985／211 的学霸们，但也算是没有太大的愧疚吧。</p>
-<p>来到大学已两年有余，大一刚进来的时候，一心想要进入卓越班，也想拿到国家奖学金。毕竟这所大学不怎么样，没有什么能够证明自己。结果，卓越班迟迟未开始，拿着专业第一的成绩才发现国家奖学金仅仅属于大三，结果连国家励志也没有拿到。说实话，那时候心里很不服，但我只是想，不就再努力一年嘛，有什么大不了的。</p>
-<p>大一的暑假似乎是完全浪费的，由于在家里我的惰性很强，可能是习惯竞争的环境。虽然我不玩游戏，但也没有去学习，只是在暑假的最后一段时间，学了学 Java 基础，很欣慰，当时的笔记得到了浙大翁凯老师的微博推荐。</p>
-<p>大一就那样过去了，迎来了大二。大二，进入了卓越班，考过了四级，六级。虽然这样看来算是有点成绩，而且大二的杂事少多了，我也退出了社团，但现在看来，大二这一年所学习的有些杂乱，虽然对于计算机的热情仍在，但缺少方向。由于大四就可以出去实习，最近也看了一些招聘帖，所以也是感觉时间紧迫，要学有所长，而不是蜻蜓点水。</p>
-<p>从大一到现在，我的学习环境几乎都是在宿舍，虽然在大二时有去过汇森学习，也去过图书馆，但最久的还是宿舍。虽然有时候觉得在宿舍效率低，但是似乎我已经习惯了这个嘈杂的环境。至少我认为，虽然我身在宿舍，但我所做的事是学习，</p>
-<p>今年最好的生日礼物，算是获得了国家奖学金吧。金钱固然重要，但这张奖状算是对我这两年的一个肯定吧。毕竟没有多少人知道我所做的，没有多少人肯定我所做的，没有正面的反馈，想要单单靠热情来驱动，的确是挺难的。老罗曾经说过，具体原话是否如此不太记得:“通过干干净净地赚钱来证明，在中国是可以做到干干净净地赚钱”。我不清楚也不关心老罗是否干净的赚钱。我只是觉得，通过自己的努力，在没有出身也可以尽力做到最好。</p>
-<p>今天呢，Apple 宣布 2016 年 10 月 27 日召开发布会，360 云盘宣布即将关闭。每天，都有不同的事情发生，最近在听一档关于日本的播客，很有深度，引人思考。人的一生不过几十年，多去尝试，多去思考，虽然荆棘遍地，人心叵测，但我仍愿意相信美好。生命不息，向死而生。</p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;生命不息，向死而生。&lt;br&gt;内容有些凌乱，暂不修改&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
-    
-    </summary>
-    
-    
-      <category term="Essay" scheme="https://maimieng.com/tags/Essay/"/>
-    
-  </entry>
-  
-  <entry>
     <title>浅谈 Swift 3 中的访问控制</title>
     <link href="https://maimieng.com/2016/25/"/>
     <id>https://maimieng.com/2016/25/</id>
@@ -1106,52 +1157,30 @@
   </entry>
   
   <entry>
-    <title>Intellij IDEA 配置 Code Style</title>
-    <link href="https://maimieng.com/2016/23/"/>
-    <id>https://maimieng.com/2016/23/</id>
-    <published>2016-10-02T16:00:00.000Z</published>
-    <updated>2016-10-03T02:23:05.000Z</updated>
+    <title>生日记</title>
+    <link href="https://maimieng.com/2016/26/"/>
+    <id>https://maimieng.com/2016/26/</id>
+    <published>2016-10-19T16:00:00.000Z</published>
+    <updated>2016-10-31T11:35:51.000Z</updated>
     
-    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>IDE 已经如此完备了，<br>为什么还是懒得用？<br></blockquote><br><a id="more"></a></p>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>昨天自说自话，闲扯了界面设计和代码规范。设计确实需要一些经验，也不一定能取悦所有人。而代码规范却是程序员所起码应当做到的，多人协作中，杂乱的代码就好像批阅潦草的作文，可读性极差。</p>
-<p>然而这是个懒人驱动的世界，IDE 其实已经为你准备好了各种工具，等着你去使用。但是由于这些软件基本都是国外开发，汉化不全，新手往往望着密密麻麻的按钮不知所措。</p>
-<p>但没办法，英文是程序员所不得不克服的一个「障碍」，障碍我打了引号，因为语言并能算是障碍。语言是共同不同种族的桥梁，然而却阻碍了很多人的前进。</p>
-<p>这次，就简单介绍下 Intellij IDEA 如何配置 Code Style 文件，之后便可以通过快捷键规整代码。当然，Code Style 能力有限，更高级的开发者也许早已烂熟于胸。</p>
-<p>这里以 Google 的 Java Code Style 为例。</p>
-<h2 id="intellij-java-google-style-xml"><a href="#intellij-java-google-style-xml" class="headerlink" title="intellij-java-google-style.xml"></a>intellij-java-google-style.xml</h2><p>Google 在 GitHub 上有一个专门放置编码规范的仓库，地址在：<br><a href="https://github.com/google/styleguide" target="_blank" rel="external">https://github.com/google/styleguide</a>。</p>
-<p>可以随时在该网站获得最新的代码规范（但大部分规范几乎很少改动）。</p>
-<p>找到其中文件名为 <strong>intellij-java-google-style.xml</strong> 的文件，点击打开。或者直接点击<br><a href="https://github.com/google/styleguide/blob/gh-pages/intellij-java-google-style.xml" target="_blank" rel="external">https://github.com/google/styleguide/blob/gh-pages/intellij-java-google-style.xml</a>。</p>
-<p>这里需要将其中的内容保存到本地，当然也可以选择下载整个仓库，只提取所需要的文件。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/intellij_idea_code_style_1.png" alt="复制的内容"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/intellij_idea_code_style_2.png" alt="保存为 xml 文件"></p>
-<h2 id="导入-Code-Style"><a href="#导入-Code-Style" class="headerlink" title="导入 Code Style"></a>导入 Code Style</h2><p>切换到 Intellij IDEA，这里我用的是 Android Studio，同理。Android Studio-Preferences…</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/intellij_idea_code_style_3.png" alt="Preference"></p>
-<p>侧栏 Editor-Java，点击 Manage。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/intellij_idea_code_style_4.png" alt="Editor-Java-Manage"></p>
-<p>打开后的界面如下图，点击 Import，之后点击 OK。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/intellij_idea_code_style_5.png" alt="Import"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/intellij_idea_code_style_6.png" alt="OK"></p>
-<p>选中刚刚保存的 xml 文件，点击 OK，之后再次点击 OK。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/intellij_idea_code_style_7.png" alt="选择 Code Style 文件"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/intellij_idea_code_style_8.png" alt="再次点击 OK"></p>
-<p>如下图，即导入成功。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/intellij_idea_code_style_9.png" alt="导入成功"></p>
-<p>回到 Preferences 界面，也可看到当前 Code Style 切换到 Google Style 了。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/intellij_idea_code_style_10.png" alt="Preferences"></p>
-<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><p>之后的使用 IDE 会保证格式的符合，为了确保文件格式的符合，也可以手动格式化代码。</p>
-<p>选择菜单栏-Code-Reformat Code，也可以使用相应的快捷键。</p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/intellij_idea_code_style_11.png" alt="Reformat Code"></p>
-<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p><a href="https://www.jetbrains.com/help/idea/2016.2/configuring-code-style.html" target="_blank" rel="external">Configuring Code Style by JetBrains</a><br><a href="https://google.github.io/styleguide/javaguide.html" target="_blank" rel="external">Google Java Style Guide</a></p>
+    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>生命不息，向死而生。<br>内容有些凌乱，暂不修改<br></blockquote><br><a id="more"></a><br>在 QQ 空间里朋友送的礼物提醒下，似乎快要过生日了。虽然在今天之前也知道自己快要过生日了，但是到了这一天也似乎没什么分别。可能是最近有些忙碌，可能其实生日也算不了什么吧。也好久没有什么理由写点什么了，这里总是冷冰冰的技术文也不太好，所以还是写点什么，记录下吧。</p>
+<p>很遗憾，大学似乎在知乎大神口中是绚丽多彩的，在小时代中也是很精彩的。而我这几年的重心只放在了学习上，虽说可能比不上 985／211 的学霸们，但也算是没有太大的愧疚吧。</p>
+<p>来到大学已两年有余，大一刚进来的时候，一心想要进入卓越班，也想拿到国家奖学金。毕竟这所大学不怎么样，没有什么能够证明自己。结果，卓越班迟迟未开始，拿着专业第一的成绩才发现国家奖学金仅仅属于大三，结果连国家励志也没有拿到。说实话，那时候心里很不服，但我只是想，不就再努力一年嘛，有什么大不了的。</p>
+<p>大一的暑假似乎是完全浪费的，由于在家里我的惰性很强，可能是习惯竞争的环境。虽然我不玩游戏，但也没有去学习，只是在暑假的最后一段时间，学了学 Java 基础，很欣慰，当时的笔记得到了浙大翁凯老师的微博推荐。</p>
+<p>大一就那样过去了，迎来了大二。大二，进入了卓越班，考过了四级，六级。虽然这样看来算是有点成绩，而且大二的杂事少多了，我也退出了社团，但现在看来，大二这一年所学习的有些杂乱，虽然对于计算机的热情仍在，但缺少方向。由于大四就可以出去实习，最近也看了一些招聘帖，所以也是感觉时间紧迫，要学有所长，而不是蜻蜓点水。</p>
+<p>从大一到现在，我的学习环境几乎都是在宿舍，虽然在大二时有去过汇森学习，也去过图书馆，但最久的还是宿舍。虽然有时候觉得在宿舍效率低，但是似乎我已经习惯了这个嘈杂的环境。至少我认为，虽然我身在宿舍，但我所做的事是学习，</p>
+<p>今年最好的生日礼物，算是获得了国家奖学金吧。金钱固然重要，但这张奖状算是对我这两年的一个肯定吧。毕竟没有多少人知道我所做的，没有多少人肯定我所做的，没有正面的反馈，想要单单靠热情来驱动，的确是挺难的。老罗曾经说过，具体原话是否如此不太记得:“通过干干净净地赚钱来证明，在中国是可以做到干干净净地赚钱”。我不清楚也不关心老罗是否干净的赚钱。我只是觉得，通过自己的努力，在没有出身也可以尽力做到最好。</p>
+<p>今天呢，Apple 宣布 2016 年 10 月 27 日召开发布会，360 云盘宣布即将关闭。每天，都有不同的事情发生，最近在听一档关于日本的播客，很有深度，引人思考。人的一生不过几十年，多去尝试，多去思考，虽然荆棘遍地，人心叵测，但我仍愿意相信美好。生命不息，向死而生。</p>
 ]]></content>
     
     <summary type="html">
     
-      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;IDE 已经如此完备了，&lt;br&gt;为什么还是懒得用？&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
+      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;生命不息，向死而生。&lt;br&gt;内容有些凌乱，暂不修改&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
     
     </summary>
     
     
-      <category term="Java" scheme="https://maimieng.com/tags/Java/"/>
+      <category term="Essay" scheme="https://maimieng.com/tags/Essay/"/>
     
   </entry>
   
