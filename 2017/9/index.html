@@ -91,10 +91,12 @@
 <meta property="og:url" content="https://maimieng.com/2017/9/index.html">
 <meta property="og:site_name" content="V2M">
 <meta property="og:description" content="Selectors in Swift">
-<meta property="og:updated_time" content="2017-01-28T07:47:08.000Z">
+<meta property="og:image" content="https://maimieng.com/1">
+<meta property="og:updated_time" content="2017-01-31T07:18:20.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Swift 中的 Selector">
 <meta name="twitter:description" content="Selectors in Swift">
+<meta name="twitter:image" content="https://maimieng.com/1">
 
 
 
@@ -337,12 +339,40 @@
 <ul>
 <li>Info:<ul>
 <li>Swift 3.0</li>
-<li>Xcode 8.3 beta 8W109m</li>
-<li>macOS 10.12.4 beta 16E144f</li>
+<li>Xcode 8.2.1</li>
+<li>macOS 10.12.4 beta (16E144f)</li>
 </ul>
 </li>
 </ul>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>今天是大年初四（捂脸：提笔的时候是初一），总算过农历新年了，总算可以歇一歇了。越来越感慨时间过得飞快，计划总是赶不上变化。寒假倒计时 20 天，却有很多事都还没有完成。。</p>
+<p>常用纯代码来开发的同学都应该比较熟悉这个方法：</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">addTarget</span><span class="params">(<span class="number">_</span> target: Any?, action: Selector, <span class="keyword">for</span> controlEvents: UIControlEvents)</span></span></div></pre></td></tr></table></figure>
+<p>Selector 源自 Objective-C，例如 SEL 类型，以及 <code>@selector()</code> 方法选择器。Swift 中也兼容了这个概念，不过随着 Swift 的迭代，Selector 的一些写法也出现了很大的变化。比较遗憾的是，官方文档对于 Selector 没有介绍。</p>
+<p><img src="1" alt="Selector in Xcode Documentation &amp; API Reference"></p>
+<p>因此只能自己总结一下 Swift 3.0 中的 Selector，便有利于自己理解，也便于以后的参考。</p>
+<h2 id="Selector-类型"><a href="#Selector-类型" class="headerlink" title="Selector 类型"></a>Selector 类型</h2><p>Swift 中的 Selector 类型其实就是 Objective-C 中的 SEL 类型。在 Swift 中，Selector 的本质是结构体。常用的构造 Selector 类型变量的方法有以下几种：</p>
+<ol>
+<li><code>public init(_ str: String)</code></li>
+</ol>
+<p>类似 Objective-C 中的 <code>NSSelectorFromString</code>，Swift 中的 Selector 也可以使用字符串来构造：</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@IBOutlet</span> <span class="keyword">weak</span> <span class="keyword">var</span> cyanButton: <span class="type">UIButton</span>!</div><div class="line"></div><div class="line"><span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">viewDidLoad</span><span class="params">()</span></span> &#123;</div><div class="line">    <span class="keyword">super</span>.viewDidLoad()</div><div class="line"></div><div class="line">    cyanButton.addTarget(<span class="keyword">self</span>,</div><div class="line">                         action: <span class="type">Selector</span>(<span class="string">"cyanButtonClick"</span>),</div><div class="line">                         <span class="keyword">for</span>: .touchUpInside)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">cyanButtonClick</span><span class="params">()</span></span> &#123;</div><div class="line">    <span class="built_in">print</span>(#function)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<ol>
+<li><code>#selector()</code></li>
+</ol>
+<p>通过字符串构造 Selector 变量是一种方法，但是当在上例中 Xcode 会提示这样的警告：「Use ‘#selector’ instead of explicitly constructing a ‘Selector’」。即使用 <code>#selector()</code> 代替字符串明确构造 Selector。</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@IBOutlet</span> <span class="keyword">weak</span> <span class="keyword">var</span> cyanButton: <span class="type">UIButton</span>!</div><div class="line"></div><div class="line"><span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">viewDidLoad</span><span class="params">()</span></span> &#123;</div><div class="line">    <span class="keyword">super</span>.viewDidLoad()</div><div class="line"></div><div class="line">    <span class="comment">// 三种写法均可</span></div><div class="line">    cyanButton.addTarget(<span class="keyword">self</span>,</div><div class="line">                         action: #selector(cyanButtonClick),</div><div class="line">                         <span class="keyword">for</span>: .touchUpInside)</div><div class="line"></div><div class="line">    <span class="comment">// cyanButton.addTarget(self,</span></div><div class="line">                         action: #selector(<span class="keyword">self</span>.cyanButtonClick),</div><div class="line">                         <span class="keyword">for</span>: .touchUpInside)</div><div class="line"></div><div class="line">    <span class="comment">// cyanButton.addTarget(self,</span></div><div class="line">                         action: #selector(<span class="type">ViewController</span>.cyanButtonClick),</div><div class="line">                         <span class="keyword">for</span>: .touchUpInside)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">cyanButtonClick</span><span class="params">()</span></span> &#123;</div><div class="line">    <span class="built_in">print</span>(#function)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><code>#selector()</code> 的好处是不再需要使用字符串来构造。因为当使用字符串构造时，若传入的字符串没有对应的方法名，那么程序在执行时就会直接崩溃：「unrecognized selector sent to instance」。</p>
+<h2 id="Syntax-Sugar"><a href="#Syntax-Sugar" class="headerlink" title="Syntax Sugar"></a>Syntax Sugar</h2><p>配合 Swift 的很多 feature，Selector 也有很多好的语法糖：</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><a href="https://developer.apple.com/library/content/documentation/Swift/Conceptual/BuildingCocoaApps/InteractingWithObjective-CAPIs.html#//apple_ref/doc/uid/TP40014216-CH4-XID_26" target="_blank" rel="external">Using Swift with Cocoa and Objective-C (Swift 3.0.1)</a></li>
+<li><a href="https://github.com/apple/swift-evolution/blob/master/proposals/0022-objc-selectors.md" target="_blank" rel="external">SE-0022</a></li>
+<li><a href="http://swifter.tips/selector/" target="_blank" rel="external">SELECTOR</a></li>
+<li><a href="https://medium.com/swift-programming/swift-selector-syntax-sugar-81c8a8b10df3#.pkwxpy65w" target="_blank" rel="external">Swift: Selector Syntax Sugar</a></li>
+<li><a href="http://swift.gg/2016/06/02/swift-selector-syntax-sugar/" target="_blank" rel="external">Swift：Selector 语法糖</a></li>
+<li><a href="http://swiftandpainless.com/selector-and-the-responder-chain/" target="_blank" rel="external">#selector() and the responder chain</a></li>
+<li><a href="http://swift.gg/2016/04/20/selector-and-the-responder-chain/" target="_blank" rel="external">#selector() 和响应链</a></li>
+</ul>
+
       
     </div>
 
@@ -403,6 +433,10 @@
           </div>
 
           <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/10/" rel="prev" title="代码规范">
+                代码规范 <i class="fa fa-chevron-right"></i>
+              </a>
             
           </div>
         </div>
@@ -474,7 +508,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">68</span>
+              <span class="site-state-item-count">69</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -594,7 +628,7 @@
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考资料"><span class="nav-number">2.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Selector-类型"><span class="nav-number">2.</span> <span class="nav-text">Selector 类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Syntax-Sugar"><span class="nav-number">3.</span> <span class="nav-text">Syntax Sugar</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考资料"><span class="nav-number">4.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
             
           </div>
         </section>
