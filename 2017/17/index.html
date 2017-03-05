@@ -91,7 +91,7 @@
 <meta property="og:url" content="https://maimieng.com/2017/17/index.html">
 <meta property="og:site_name" content="V2M">
 <meta property="og:description" content="2016 atSwift - Programming with Structs by Chris Eidhof">
-<meta property="og:updated_time" content="2017-03-04T16:40:08.000Z">
+<meta property="og:updated_time" content="2017-03-05T07:49:49.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="atSwift 2016 笔记（一）Programming with Structs">
 <meta name="twitter:description" content="2016 atSwift - Programming with Structs by Chris Eidhof">
@@ -293,8 +293,8 @@
               <i class="fa fa-calendar-o"></i>
             </span>
             <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2017-03-05T00:00:00+08:00" content="2017-03-05">
-              2017-03-05
+            <time itemprop="dateCreated" datetime="2017-03-04T00:00:00+08:00" content="2017-03-04">
+              2017-03-04
             </time>
           </span>
 
@@ -343,6 +343,24 @@
 </li>
 </ul>
 <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>atSwift 2016 是 2016 年国内举行的一场 Swift 开发者大会。虽然已经过去一年多，但其中还是有很多值得学习的地方。所以这次的笔记就针对其对外公开的视频及资料，学习一下前沿开发者的思路思维。当然，由于当时 Swift 的大版本为 2，因此本文会针对其中的代码进行更新为 3.0。</p>
+<blockquote>
+<p>由于 Chris 的演讲没有 Keynote，而是现场 Live Code。且主要围绕 Struts 解读，所以其中涉及到其他方面的知识并不深入。</p>
+</blockquote>
+<h2 id="Protocol-amp-Extension"><a href="#Protocol-amp-Extension" class="headerlink" title="Protocol &amp; Extension"></a>Protocol &amp; Extension</h2><ul>
+<li>当对一个类过于依赖时，可以使用协议和扩展减小这种依赖。</li>
+<li>例如，在 Chris Demo 的最初状态中，代码中充斥着 UserDefaults，而我们只需要其中的两个方法。即可使用以下协议和扩展的组合来减小这种依赖。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">Storage</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">object</span><span class="params">(forKey defaultName: String)</span></span> -&gt; <span class="type">Any</span>?</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">set</span><span class="params">(<span class="number">_</span> value: Any?, forKey defaultName: String)</span></span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 因为 UserDefaults 拥有这两个方法的具体实现，所以我们自己就不需要去实现。</span></div><div class="line"><span class="class"><span class="keyword">extension</span> <span class="title">UserDefaults</span>: <span class="title">Storage</span> </span>&#123;&#125;</div></pre></td></tr></table></figure>
+<h2 id="Structs"><a href="#Structs" class="headerlink" title="Structs"></a>Structs</h2><ul>
+<li>虽然，struct 是值类型，但 Swift 中的 struct 的效率由于其底层优化（仅在需要时复制，仅更改需要修改的属性），和 class 的性能几乎一样。</li>
+<li>结构体更加安全，是 Swift 更加推荐的类型。</li>
+<li>修改嵌套结构体内的结构体，意味着修改整个结构体，可使用 <code>didSet</code> 观察。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Name</span> </span>&#123;</div><div class="line">    <span class="keyword">var</span> firstName: <span class="type">String</span></div><div class="line">    <span class="keyword">var</span> lastName: <span class="type">String</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Person</span> </span>&#123;</div><div class="line">    <span class="keyword">var</span> name: <span class="type">Name</span></div><div class="line">    <span class="keyword">var</span> age: <span class="type">Int</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">var</span> kingcosName = <span class="type">Name</span>(firstName: <span class="string">"King"</span>, lastName: <span class="string">"Cos"</span>) &#123;</div><div class="line">    <span class="keyword">didSet</span> &#123;</div><div class="line">        <span class="built_in">print</span>(<span class="string">"Name Changed!"</span>)</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">var</span> kingcos = <span class="type">Person</span>(name: kingcosName, age: <span class="number">22</span>) &#123;</div><div class="line">    <span class="keyword">didSet</span> &#123;</div><div class="line">        <span class="built_in">print</span>(<span class="string">"Person Changed!"</span>)</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line">kingcos.name.lastName = <span class="string">"Cosmos"</span></div><div class="line"></div><div class="line"><span class="comment">// Person Changed!</span></div></pre></td></tr></table></figure>
+<h2 id="didSet"><a href="#didSet" class="headerlink" title="didSet"></a>didSet</h2><ul>
+<li>利用属性观察器，可以方便的在其中加入必要的方法。当数据改动则直接调用该方法。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">var</span> player: <span class="type">Player</span> &#123;</div><div class="line">    <span class="keyword">didSet</span> &#123;</div><div class="line">        <span class="comment">// 赋值后自动保存</span></div><div class="line">        save()</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
 <h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
 <li><a href="http://atswift.io" target="_blank" rel="external">atSwift</a></li>
 <li><a href="http://www.eidhof.nl" target="_blank" rel="external">Chris Eidhof</a></li>
@@ -408,6 +426,10 @@
           </div>
 
           <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/18/" rel="prev" title="atSwift 2016 笔记（二）越过 OC 与 Swift 间的鸿沟">
+                atSwift 2016 笔记（二）越过 OC 与 Swift 间的鸿沟 <i class="fa fa-chevron-right"></i>
+              </a>
             
           </div>
         </div>
@@ -479,7 +501,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">76</span>
+              <span class="site-state-item-count">77</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -599,7 +621,7 @@
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">2.</span> <span class="nav-text">参考</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Protocol-amp-Extension"><span class="nav-number">2.</span> <span class="nav-text">Protocol & Extension</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Structs"><span class="nav-number">3.</span> <span class="nav-text">Structs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#didSet"><span class="nav-number">4.</span> <span class="nav-text">didSet</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">5.</span> <span class="nav-text">参考</span></a></li></ol></div>
             
           </div>
         </section>
