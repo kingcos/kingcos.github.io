@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://maimieng.com/"/>
-  <updated>2017-03-05T08:10:18.000Z</updated>
+  <updated>2017-03-07T01:04:38.000Z</updated>
   <id>https://maimieng.com/</id>
   
   <author>
@@ -14,6 +14,150 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>CS193p 查漏补缺（四）Lecture 06</title>
+    <link href="https://maimieng.com/2017/20/"/>
+    <id>https://maimieng.com/2017/20/</id>
+    <published>2017-03-05T16:00:00.000Z</published>
+    <updated>2017-03-07T01:04:38.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>Developing iOS 10 Apps with Swift - CS193p<br></blockquote><br><a id="more"></a></p>
+<ul>
+<li>Info:<ul>
+<li>Swift 3.0</li>
+<li>Xcode 8.2.1</li>
+<li>macOS 10.12.4 beta (16E175b)</li>
+</ul>
+</li>
+</ul>
+<h2 id="Preface"><a href="#Preface" class="headerlink" title="Preface"></a>Preface</h2><p>CS193p 是斯坦福大学的一门公开课，今年 iOS 10 &amp; Swift 3.0 的版本如约而至，还是 Paul 老爷爷带课。之前虽然也有听过他的课，但没有坚持下来，也没有做相应的笔记。为了方便交流分享，我在 GitHub 建立了一个 Repo：<a href="https://github.com/kingcos/CS193P_2017" target="_blank" rel="external">https://github.com/kingcos/CS193P_2017</a>，会将课上的代码 Commit，也会分享笔记、心得。</p>
+<p>由于之前学过 Swift，也相信学习这门课的同学应当有一些 Swift 基础，所以定为查漏补缺，目标只将难点、重点、常用点总结。</p>
+<p><strong>本文对应的 Demo 可以在：<a href="https://github.com/kingcos/CS193P_2017/tree/master/Lecture06" target="_blank" rel="external">https://github.com/kingcos/CS193P_2017/tree/master/Lecture06</a> 查看、下载。</strong></p>
+<h2 id="Life-Cycle"><a href="#Life-Cycle" class="headerlink" title="Life Cycle"></a>Life Cycle</h2><blockquote>
+<p>对象的生命周期一直是我们所需要关心的，老师在这一节也详细的讲述了 ViewController 的生命周期。为了搞清楚生命周期，特将该部分单独行文：<a href="http://www.jianshu.com/p/9d3d95e1ef5a" target="_blank" rel="external">探究 UIViewController 生命周期</a>。同时也更新了之前所写的<a href="http://www.jianshu.com/p/bfea8efee664" target="_blank" rel="external">探究 UIView 生命周期（原题为：初探 iOS 中自定义 UIView 的初始化过程）</a>。</p>
+</blockquote>
+<h2 id="Memory-Management"><a href="#Memory-Management" class="headerlink" title="Memory Management"></a>Memory Management</h2><blockquote>
+<p>内存管理也是 iOS 中不可回避的问题，但由于我个人能力有限，这里只记录了老师所讲的点，未来可能会再进行总结。</p>
+</blockquote>
+<ul>
+<li>ARC: Automatic Reference Count 自动引用计数（!= Garbage Collection 垃圾回收）</li>
+<li>引用类型（例如类）存储在堆（Heap）中。</li>
+</ul>
+<h3 id="strong"><a href="#strong" class="headerlink" title="strong"></a>strong</h3><ul>
+<li>「强」引用：<ul>
+<li>默认的引用指针，可省略</li>
+<li>只要有强引用指针指向，对象将一直保存在堆中。</li>
+</ul>
+</li>
+</ul>
+<h3 id="weak"><a href="#weak" class="headerlink" title="weak"></a>weak</h3><ul>
+<li>「弱」引用：<ul>
+<li>当对象没有被使用时，即被销毁（nil）。</li>
+<li>弱引用用于指向引用类型的可选类型指针。</li>
+<li>弱引用指针将不会把对象保存在堆中。</li>
+</ul>
+</li>
+<li>例子：<ul>
+<li>outlets（其被视图层次强力持有，所以可为 weak）。</li>
+</ul>
+</li>
+</ul>
+<h3 id="unowned"><a href="#unowned" class="headerlink" title="unowned"></a>unowned</h3><ul>
+<li>「不」持有：<ul>
+<li>需确保指针指向的对象没有被销毁（离开堆），否则程序会崩溃。</li>
+<li>常只用于打破循环引用。</li>
+</ul>
+</li>
+</ul>
+<h3 id="Closures"><a href="#Closures" class="headerlink" title="Closures"></a>Closures</h3><blockquote>
+<p>此处代码已更新至 <a href="https://github.com/kingcos/CS193P_2017/tree/master/Calculator" target="_blank" rel="external">Calculator</a>。</p>
+</blockquote>
+<ul>
+<li>闭包是引用类型，同样存储在堆区。</li>
+<li>闭包可以放在数组，字典等，是 Swift 的一等（first-class）类型。</li>
+<li>当作为参数的闭包，执行的时机超出其自身时，需声明为逃逸闭包，即在闭包参数前加 <code>@escaping</code>：</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">mutating</span> <span class="function"><span class="keyword">func</span> <span class="title">addUnaryOperation</span><span class="params">(named symbol: String, <span class="number">_</span> operation: @escaping <span class="params">(Double)</span></span></span> -&gt; <span class="type">Double</span>) &#123;</div><div class="line">    operations[symbol] = <span class="type">Operation</span>.unaryOperation(operation)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<ul>
+<li>逃逸尾随闭包的使用：</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 常规写法</span></div><div class="line">brain.addUnaryOperation(named: <span class="string">"✅"</span>) &#123; (value) -&gt; <span class="type">Double</span> <span class="keyword">in</span></div><div class="line">    <span class="keyword">return</span> sqrt(value)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 简写</span></div><div class="line">brain.addUnaryOperation(named: <span class="string">"✅"</span>) &#123;</div><div class="line">    <span class="keyword">return</span> sqrt($<span class="number">0</span>)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<ul>
+<li>只要闭包仍保留在堆中，那么其捕获的引用也仍在堆中。</li>
+<li>闭包中的循环引用：</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 此时模型和控制器在闭包中相互引用，构成循环引用</span></div><div class="line">brain.addUnaryOperation(named: <span class="string">"✅"</span>) &#123;</div><div class="line">    <span class="keyword">self</span>.display.textColor = <span class="type">UIColor</span>.green</div><div class="line">    <span class="keyword">return</span> sqrt($<span class="number">0</span>)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<ul>
+<li>解决闭包中的循环引用的方法：</li>
+</ul>
+<ol>
+<li>weak</li>
+</ol>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">brain.addUnaryOperation(named: <span class="string">"✅"</span>) &#123; [<span class="keyword">weak</span> <span class="keyword">self</span>] <span class="keyword">in</span></div><div class="line">    <span class="comment">// self 为 Optional</span></div><div class="line">    <span class="keyword">self</span>?.display.textColor = <span class="type">UIColor</span>.green</div><div class="line">    <span class="keyword">return</span> sqrt($<span class="number">0</span>)</div><div class="line">&#125;</div><div class="line"></div><div class="line">brain.addUnaryOperation(named: <span class="string">"✅"</span>) &#123; [<span class="keyword">weak</span> weakSelf = <span class="keyword">self</span>] <span class="keyword">in</span></div><div class="line">    weakSelf?.display.textColor = <span class="type">UIColor</span>.green</div><div class="line">    <span class="keyword">return</span> sqrt($<span class="number">0</span>)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<ol>
+<li>unowned</li>
+</ol>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">brain.addUnaryOperation(named: <span class="string">"✅"</span>) &#123; [me = <span class="keyword">self</span>] <span class="keyword">in</span></div><div class="line">    me.display.textColor = <span class="type">UIColor</span>.green</div><div class="line">    <span class="keyword">return</span> sqrt($<span class="number">0</span>)</div><div class="line">&#125;</div><div class="line"></div><div class="line">brain.addUnaryOperation(named: <span class="string">"✅"</span>) &#123; [<span class="keyword">unowned</span> me = <span class="keyword">self</span>] <span class="keyword">in</span></div><div class="line">    me.display.textColor = <span class="type">UIColor</span>.green</div><div class="line">    <span class="keyword">return</span> sqrt($<span class="number">0</span>)</div><div class="line">&#125;</div><div class="line"></div><div class="line">brain.addUnaryOperation(named: <span class="string">"✅"</span>) &#123; [<span class="keyword">unowned</span> <span class="keyword">self</span> = <span class="keyword">self</span>] <span class="keyword">in</span></div><div class="line">    <span class="keyword">self</span>.display.textColor = <span class="type">UIColor</span>.green</div><div class="line">    <span class="keyword">return</span> sqrt($<span class="number">0</span>)</div><div class="line">&#125;</div><div class="line"></div><div class="line">brain.addUnaryOperation(named: <span class="string">"✅"</span>) &#123; [<span class="keyword">unowned</span> <span class="keyword">self</span>] <span class="keyword">in</span></div><div class="line">    <span class="keyword">self</span>.display.textColor = <span class="type">UIColor</span>.green</div><div class="line">    <span class="keyword">return</span> sqrt($<span class="number">0</span>)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><ul>
+<li><a href="https://github.com/kingcos/CS193P_2017" target="_blank" rel="external">CS193P_2017</a></li>
+<li><a href="http://www.jianshu.com/p/bfea8efee664" target="_blank" rel="external">探究 UIView 生命周期</a></li>
+<li><a href="http://www.jianshu.com/p/9d3d95e1ef5a" target="_blank" rel="external">探究 UIViewController 生命周期</a></li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;Developing iOS 10 Apps with Swift - CS193p&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="Swift" scheme="https://maimieng.com/tags/Swift/"/>
+    
+      <category term="iOS" scheme="https://maimieng.com/tags/iOS/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>atSwift 2016 笔记（二）越过 OC 与 Swift 间的鸿沟</title>
+    <link href="https://maimieng.com/2017/18/"/>
+    <id>https://maimieng.com/2017/18/</id>
+    <published>2017-03-04T16:00:00.000Z</published>
+    <updated>2017-03-05T08:40:43.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>2016 atSwift - 越过 OC 与 Swift 间的鸿沟 by 傅若愚<br></blockquote><br><a id="more"></a></p>
+<ul>
+<li>Info:<ul>
+<li>Swift 3.0</li>
+<li>Xcode 8.2.1</li>
+<li>macOS 10.12.4 beta (16E175b)</li>
+</ul>
+</li>
+</ul>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>atSwift 2016 是 2016 年国内举行的一场 Swift 开发者大会。虽然已经过去一年多，但其中还是有很多值得学习的地方。所以这次的笔记就针对其对外公开的视频及资料，学习一下前沿开发者的思路思维。当然，由于当时 Swift 的大版本为 2，因此本文会针对其中的代码进行更新为 3.0。</p>
+<blockquote>
+<p>由于该节中提到了 WWDC15-414，关于其内容请参考 <a href="">WWDC 2015.414 - Building Better Apps with Value Types in Swift 笔记</a>。</p>
+</blockquote>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
+<li><a href="">WWDC 2015.414 - Building Better Apps with Value Types in Swift 笔记</a></li>
+<li><a href="http://atswift.io" target="_blank" rel="external">atSwift</a></li>
+<li><a href="https://github.com/lingoer" target="_blank" rel="external">傅若愚</a></li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;2016 atSwift - 越过 OC 与 Swift 间的鸿沟 by 傅若愚&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="Swift" scheme="https://maimieng.com/tags/Swift/"/>
+    
+      <category term="iOS" scheme="https://maimieng.com/tags/iOS/"/>
+    
+  </entry>
   
   <entry>
     <title>atSwift 2016 笔记（三）Swift Style</title>
@@ -73,46 +217,6 @@
     <summary type="html">
     
       &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;2016 atSwift - Swift Style by Greg Heo&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
-    
-    </summary>
-    
-    
-      <category term="Swift" scheme="https://maimieng.com/tags/Swift/"/>
-    
-      <category term="iOS" scheme="https://maimieng.com/tags/iOS/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>atSwift 2016 笔记（二）越过 OC 与 Swift 间的鸿沟</title>
-    <link href="https://maimieng.com/2017/18/"/>
-    <id>https://maimieng.com/2017/18/</id>
-    <published>2017-03-04T16:00:00.000Z</published>
-    <updated>2017-03-05T08:40:43.000Z</updated>
-    
-    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>2016 atSwift - 越过 OC 与 Swift 间的鸿沟 by 傅若愚<br></blockquote><br><a id="more"></a></p>
-<ul>
-<li>Info:<ul>
-<li>Swift 3.0</li>
-<li>Xcode 8.2.1</li>
-<li>macOS 10.12.4 beta (16E175b)</li>
-</ul>
-</li>
-</ul>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>atSwift 2016 是 2016 年国内举行的一场 Swift 开发者大会。虽然已经过去一年多，但其中还是有很多值得学习的地方。所以这次的笔记就针对其对外公开的视频及资料，学习一下前沿开发者的思路思维。当然，由于当时 Swift 的大版本为 2，因此本文会针对其中的代码进行更新为 3.0。</p>
-<blockquote>
-<p>由于该节中提到了 WWDC15-414，关于其内容请参考 <a href="">WWDC 2015.414 - Building Better Apps with Value Types in Swift 笔记</a>。</p>
-</blockquote>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
-<li><a href="">WWDC 2015.414 - Building Better Apps with Value Types in Swift 笔记</a></li>
-<li><a href="http://atswift.io" target="_blank" rel="external">atSwift</a></li>
-<li><a href="https://github.com/lingoer" target="_blank" rel="external">傅若愚</a></li>
-</ul>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;2016 atSwift - 越过 OC 与 Swift 间的鸿沟 by 傅若愚&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
     
     </summary>
     
@@ -1422,60 +1526,6 @@
     
     
       <category term="Plan" scheme="https://maimieng.com/tags/Plan/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>研读 CSAPP 之一： A Tour of Computer Systems</title>
-    <link href="https://maimieng.com/2016/38/"/>
-    <id>https://maimieng.com/2016/38/</id>
-    <published>2016-12-23T16:00:00.000Z</published>
-    <updated>2016-12-26T00:59:09.000Z</updated>
-    
-    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>第一章：计算机系统之旅<br></blockquote><br><a id="more"></a></p>
-<ul>
-<li>Info:<ul>
-<li>macOS 10.12.3 Beta</li>
-<li>CS: APP 3e Eng</li>
-</ul>
-</li>
-</ul>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>在学习越深入时，就越发觉得基础不牢靠。有幸找到一本神书，CS:APP 第三版的英文原版。由于几乎已经习惯阅读英文，虽可能速度较慢，但可以免受翻译者思维的干扰。书很好，但还是希望沉下心，好好阅读，做好笔记，融会贯通。</p>
-<p><strong>需要注意的是：该研读系列为个人总结，不免有一些错误，希望您能提出意见或建议，我都会细心研究，做出改正。谢谢！</strong></p>
-<h2 id="导图"><a href="#导图" class="headerlink" title="导图"></a>导图</h2><p><img src="https://o7y30w6c6.qnssl.com/blog/csapp_1_1.1.png" alt="1.1"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/csapp_1_1.2.png" alt="1.2"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/csapp_1_1.3.png" alt="1.3"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/csapp_1_1.4.png" alt="1.4"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/csapp_1_1.5.png" alt="1.5"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/csapp_1_1.6.png" alt="1.6"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/csapp_1_1.7.png" alt="1.7"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/csapp_1_1.8.png" alt="1.8"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/csapp_1_1.9.png" alt="1.9"></p>
-<p><img src="https://o7y30w6c6.qnssl.com/blog/csapp_1_1.10.png" alt="1.10"></p>
-<h2 id="练习题解"><a href="#练习题解" class="headerlink" title="练习题解"></a>练习题解</h2><blockquote>
-<p>虽然书中有练习的答案，但我仍尝试自己解决，并将问题和解法发布在此与大家交流。</p>
-</blockquote>
-<h3 id="Practice-Problem-1-1"><a href="#Practice-Problem-1-1" class="headerlink" title="Practice Problem 1.1"></a>Practice Problem 1.1</h3><blockquote>
-<p>假设你是一位卡车司机，被雇佣运输一车土豆从 BI 地到 MM 地，两地距离 2500km。由于限速，你预估自己能以 100km/hr 的速度行驶，所以全程需要 25 小时。</p>
-</blockquote>
-<h4 id="A"><a href="#A" class="headerlink" title="A"></a>A</h4><blockquote>
-<p>你听新闻说，MM 地刚刚取消限速，相当于全程中的 1500km，你的卡车能以 150km/hr 的速度行驶。那么全程的加速比是多少？</p>
-</blockquote>
-<h4 id="B"><a href="#B" class="headerlink" title="B"></a>B</h4><blockquote>
-<p>你可以为你的卡车购买一个新的涡轮增压器。经销商处有不同的型号，但是速度越快，价格也就越贵。如果想在全程拥有 1.67* 的加速比，那么你需要以多快的速度行驶？</p>
-</blockquote>
-<h3 id="Practice-Problem-1-2"><a href="#Practice-Problem-1-2" class="headerlink" title="Practice Problem 1.2"></a>Practice Problem 1.2</h3>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;第一章：计算机系统之旅&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
-    
-    </summary>
-    
-    
-      <category term="CSAPP" scheme="https://maimieng.com/tags/CSAPP/"/>
-    
-      <category term="Reading" scheme="https://maimieng.com/tags/Reading/"/>
     
   </entry>
   
