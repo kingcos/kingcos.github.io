@@ -115,44 +115,137 @@
     <link href="https://maimieng.com/2017/21/"/>
     <id>https://maimieng.com/2017/21/</id>
     <published>2017-03-06T16:00:00.000Z</published>
-    <updated>2017-03-08T06:10:51.000Z</updated>
+    <updated>2017-03-08T15:43:44.000Z</updated>
     
     <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>Lifecycle of UIViewController in iOS<br></blockquote><br><a id="more"></a></p>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>对象的生命周期一直是开发者所需要关心的，教授 CS193p 的老师 Paul 也详细的讲述了 UIViewController 的生命周期。为了记述这一过程，故作此文。由于 Xcode 提供了纯代码和 Storyboard（XIB 同理）两种布局 UI 的方式，因此初始化部分略有不同。</p>
+<ul>
+<li>Info:<ul>
+<li>Swift 3.0</li>
+<li>Xcode 8.2.1</li>
+<li>macOS 10.12.4 beta (16E175b)</li>
+</ul>
+</li>
+</ul>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>对象的生命周期一直是开发者所需要关心的，教授 CS193p 的老师 Paul 也详细的讲述了 UIViewController 的生命周期。为了记述这一过程，故作此文。由于 Xcode 提供了纯代码和 Storyboard（Xib 同理）两种布局 UI 的方式，因此初始化部分略有不同。</p>
 <p>为了方便观察，我创建了一个 BaseViewController，继承自原本的 UIViewController，重写其中的生命周期方法，并让后续新的控制器继承自该控制器，以便观察。</p>
 <p>本文对应的 Demo 可以在 <a href="https://github.com/kingcos/UIViewController-UIView-LifecycleDemo" target="_blank" rel="external">https://github.com/kingcos/UIViewController-UIView-LifecycleDemo</a> 查看、下载。</p>
-<h2 id="Storyboard"><a href="#Storyboard" class="headerlink" title="Storyboard"></a>Storyboard</h2><blockquote>
-<p><strong>OUTPUT:</strong><br>init(coder:)<br>awakeAfter(using:)<br>awakeFromNib()<br>awakeAfter(using:)<br>awakeAfter(using:)</p>
+<h2 id="Initialization"><a href="#Initialization" class="headerlink" title="Initialization"></a>Initialization</h2><h3 id="Storyboard"><a href="#Storyboard" class="headerlink" title="Storyboard"></a>Storyboard</h3><blockquote>
+<p><strong>OUTPUT:</strong><br>init(coder:)<br>awakeFromNib()</p>
 </blockquote>
-<h3 id="init-coder"><a href="#init-coder" class="headerlink" title="init(coder:)"></a>init(coder:)</h3><ul>
+<h4 id="init-coder"><a href="#init-coder" class="headerlink" title="init(coder:)"></a>init(coder:)</h4><ul>
 <li>当使用 Storyboard 时，控制器的构造器为 <code>init(coder:)</code>。</li>
 <li>该构造器为必需构造器，如果重写其他构造器，则必须重写该构造器。</li>
 <li>该构造器为可失败构造器，即有可能构造失败，返回 nil。</li>
 <li>该方法来源自 NSCoding 协议，而 UIViewController 遵从这一协议。</li>
-<li>该方法被调用意味着控制器有可能在未来要显示。</li>
+<li>该方法被调用意味着控制器有可能（并非一定）在未来会显示。</li>
 <li>在控制器生命周期中，该方法只会被调用一次。</li>
 </ul>
-<h3 id="awakeAfter-using"><a href="#awakeAfter-using" class="headerlink" title="awakeAfter(using:)"></a>awakeAfter(using:)</h3><blockquote>
-<p>If you have an advanced need that requires substituting a different object after decoding, you can do so in awakeAfter(using:).</p>
-</blockquote>
-<ul>
-<li>当使用 Storyboard 时，该方法会在控制器初始化后调用，并在 <code>awakeFromNib()</code> 调用再被调用 2 次。</li>
-<li>Xcode 中对 <code>init(coder:)</code> 的 Quick Help 中提到了该方法：即在编码后需要替换不同对象时，可以在 <code>awakeAfter(using:)</code> 进行。</li>
-<li>由于本人之前没有具体重写、使用过该方法，但查到的资料显示这个方法常用于 XIB 的动态桥接，感兴趣的同学可以参考文末的相关链接。</li>
-</ul>
-<h3 id="awakeFromNib"><a href="#awakeFromNib" class="headerlink" title="awakeFromNib()"></a>awakeFromNib()</h3><ul>
+<h4 id="awakeFromNib"><a href="#awakeFromNib" class="headerlink" title="awakeFromNib()"></a>awakeFromNib()</h4><ul>
 <li>当使用 Storyboard 时，该方法会被调用。</li>
 <li>当调用该方法时，将保证所有的 outlet 和 action 连接已经完成。</li>
 <li>该方法内部必须调用父类该方法，虽然默认实现为空，但 UIKit 中许多类的该方法为非空。</li>
 <li>由于控制器中对象的初始化顺序不能确定，所以构造器中不应该向其他对象发送消息，而应当在 <code>awakeFromNib()</code> 中安全地发送。</li>
 <li>通常使用 <code>awakeFromNib()</code> 可以进行在设计时无法完成的必要额外设置。</li>
 </ul>
-<h2 id="Code"><a href="#Code" class="headerlink" title="Code"></a>Code</h2><h3 id="init-nibName-bundle"><a href="#init-nibName-bundle" class="headerlink" title="init(nibName:bundle:)"></a>init(nibName:bundle:)</h3><h3 id="loadView"><a href="#loadView" class="headerlink" title="loadView()"></a>loadView()</h3><p>-</p>
-<p>&gt;<br>loadView() - Subviews Count: 3<br>viewDidLoad() - Subviews Count: 3<br>viewWillAppear - Subviews Count: 3<br>viewWillLayoutSubviews() - (375.0, 667.0)<br>viewDidLayoutSubviews() - (375.0, 667.0)<br>viewDidAppear - Subviews Count: 3</p>
+<h3 id="Code"><a href="#Code" class="headerlink" title="Code"></a>Code</h3><blockquote>
+<p><strong>OUTPUT:</strong><br>init(nibName:bundle:) - NibName: nil, Bundle: nil</p>
+</blockquote>
+<h4 id="init-nibName-bundle"><a href="#init-nibName-bundle" class="headerlink" title="init(nibName:bundle:)"></a>init(nibName:bundle:)</h4><ul>
+<li>当使用纯代码创建控制器，控制器的构造器为 <code>init(nibName:bundle:)</code>。</li>
+<li>虽然使用代码创建时调用了该构造器，但传入的参数均为 nil。</li>
+</ul>
+<hr>
+<blockquote>
+<p><strong>OUTPUT:</strong><br>loadView()<br>viewDidLoad()<br>viewWillAppear<br>viewWillLayoutSubviews() - Optional((162.0, 308.0, 50.0, 50.0))<br>viewDidLayoutSubviews() - Optional((67.0, 269.0, 241.0, 129.0))<br>viewDidAppear<br>viewWillDisappear<br>viewDidDisappear<br>deinit</p>
+</blockquote>
+<h2 id="loadView"><a href="#loadView" class="headerlink" title="loadView()"></a>loadView()</h2><ul>
+<li><code>loadView()</code> 即加载控制器管理的 view。</li>
+<li>不能直接手动调用该方法；当 view 被请求却为 nil 时，该方法加载并创建 view。</li>
+<li>若控制器有关联的 Nib 文件，该方法会从 Nib 文件中加载 view；如果没有，则创建空白 UIView 对象。</li>
+<li>如果使用 Interface Builder 创建 view，则务必不要重写该方法。</li>
+<li>可以使用该方法手动创建视图，且需要将根视图分配为 view；自定义实现不应该再调用父类的该方法。</li>
+<li>执行其他初始化操作，建议放在 <code>viewDidLoad()</code> 中。</li>
+</ul>
+<h2 id="viewDidLoad"><a href="#viewDidLoad" class="headerlink" title="viewDidLoad()"></a>viewDidLoad()</h2><ul>
+<li>view 被加载到内存后调用 <code>viewDidLoad()</code>。</li>
+<li>重写该方法需要首先调用父类该方法。</li>
+<li>该方法中可以额外初始化控件，例如添加子控件，添加约束。</li>
+<li>该方法被调用意味着控制器有可能（并非一定）在未来会显示。</li>
+<li>在控制器生命周期中，该方法只会被调用一次。</li>
+</ul>
+<h2 id="viewWillAppear"><a href="#viewWillAppear" class="headerlink" title="viewWillAppear(_:)"></a>viewWillAppear(_:)</h2><ul>
+<li>该方法在控制器 view 即将添加到视图层次时以及展示 view 时所有动画配置前被调用。</li>
+<li>重写该方法需要首先调用父类该方法。</li>
+<li>该方法中可以进行操作即将显示的 view，例如改变状态栏的取向，类型。</li>
+<li>该方法被调用意味着控制器将一定会显示。</li>
+<li>在控制器生命周期中，该方法可能会被多次调用。</li>
+</ul>
+<blockquote>
+<p>注意：<br>如果控制器 A 被展示在另一个控制器 B 的 popover 中，那么控制器 B 不会调用该方法，直到控制器 A 清除。</p>
+</blockquote>
+<h2 id="viewWillLayoutSubviews"><a href="#viewWillLayoutSubviews" class="headerlink" title="viewWillLayoutSubviews()"></a>viewWillLayoutSubviews()</h2><ul>
+<li>该方法在通知控制器将要布局 view 的子控件时调用。</li>
+<li>每当视图的 bounds 改变，view 将调整其子控件位置。</li>
+<li>该方法可重写以在 view 布局子控件前做出改变。</li>
+<li>该方法的默认实现为空。</li>
+<li>该方法调用时，AutoLayout 未起作用。</li>
+<li>在控制器生命周期中，该方法可能会被多次调用。</li>
+</ul>
+<h2 id="viewDidLayoutSubviews"><a href="#viewDidLayoutSubviews" class="headerlink" title="viewDidLayoutSubviews()"></a>viewDidLayoutSubviews()</h2><ul>
+<li>该方法在通知控制器已经布局 view 的子控件时调用。</li>
+<li>该方法可重写以在 view 布局子控件后做出改变。</li>
+<li>该方法的默认实现为空。</li>
+<li>该方法调用时，AutoLayout 已经完成。</li>
+<li>在控制器生命周期中，该方法可能会被多次调用。</li>
+</ul>
+<h2 id="viewDidAppear"><a href="#viewDidAppear" class="headerlink" title="viewDidAppear(_:)"></a>viewDidAppear(_:)</h2><ul>
+<li>该方法在控制器 view 已经添加到视图层次时被调用。</li>
+<li>重写该方法需要首先调用父类该方法。</li>
+<li>该方法可重写以进行有关正在展示的视图操作。</li>
+<li>在控制器生命周期中，该方法可能会被多次调用。</li>
+</ul>
+<h2 id="viewWillDisappear"><a href="#viewWillDisappear" class="headerlink" title="viewWillDisappear(_:)"></a>viewWillDisappear(_:)</h2><ul>
+<li>该方法在控制器 view 将要从视图层次移除时被调用。</li>
+<li>类似 <code>viewWillAppear(_:)</code>。</li>
+<li>该方法可重写以提交变更，取消视图第一响应者状态。</li>
+</ul>
+<h2 id="viewDidDisappear"><a href="#viewDidDisappear" class="headerlink" title="viewDidDisappear(_:)"></a>viewDidDisappear(_:)</h2><ul>
+<li>该方法在控制器 view 已经从视图层次移除时被调用。</li>
+<li>类似 <code>viewDidAppear(_:)</code>。</li>
+<li>该方法可重写以清除或隐藏控件。</li>
+</ul>
+<h2 id="didReceiveMemoryWarning"><a href="#didReceiveMemoryWarning" class="headerlink" title="didReceiveMemoryWarning()"></a>didReceiveMemoryWarning()</h2><ul>
+<li>当内存预警时，该方法被调用。</li>
+<li>不能直接手动调用该方法。</li>
+<li>该方法可重写以释放资源、内存。</li>
+</ul>
+<h2 id="deinit"><a href="#deinit" class="headerlink" title="deinit"></a>deinit</h2><ul>
+<li>控制器销毁时（离开堆），调用该方法。</li>
+</ul>
+<h2 id="Note"><a href="#Note" class="headerlink" title="Note"></a>Note</h2><h3 id="Rotation"><a href="#Rotation" class="headerlink" title="Rotation"></a>Rotation</h3><blockquote>
+<p><strong>OUTPUT:</strong><br>willTransition(to:with:)<br>viewWillLayoutSubviews() - Optional((67.5, 269.5, 240.0, 128.0))<br>viewDidLayoutSubviews() - Optional((213.5, 123.5, 240.0, 128.0))<br>viewWillLayoutSubviews() - Optional((213.5, 123.5, 240.0, 128.0))<br>viewDidLayoutSubviews() - Optional((213.5, 123.5, 240.0, 128.0))<br>viewWillLayoutSubviews() - Optional((213.5, 123.5, 240.0, 128.0))<br>viewDidLayoutSubviews() - Optional((213.5, 123.5, 240.0, 128.0))</p>
+</blockquote>
+<ul>
+<li>当 view 转变，会调用 <code>willTransition(to:with:)</code> 方法。</li>
+<li>当屏幕旋转，view 的 bounds 改变，其内部的子控件也需要按照约束调整为新的位置，因此也调用了 <code>viewWillLayoutSubviews()</code> 和 <code>viewDidLayoutSubviews()</code>。</li>
+</ul>
+<h3 id="Present-amp-Dismiss"><a href="#Present-amp-Dismiss" class="headerlink" title="Present &amp; Dismiss"></a>Present &amp; Dismiss</h3><blockquote>
+<p><strong>OUTPUT:</strong><br>viewWillDisappear<br>viewDidDisappear<br>viewDidDisappear<br>viewWillAppear<br>viewDidAppear</p>
+</blockquote>
+<ul>
+<li>当在一个控制器内 Present 新的控制器，原先的控制器并不会销毁，但会消失，因此调用了 <code>viewWillDisappear</code> 和 <code>viewDidDisappear</code> 方法。</li>
+<li>如果新的控制器 Dismiss，即清除自己，原先的控制器会再一次出现，因此调用了其中的 <code>viewWillAppear</code> 和 <code>viewDidAppear</code> 方法。</li>
+</ul>
+<h3 id="死循环"><a href="#死循环" class="headerlink" title="死循环"></a>死循环</h3><figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">LoopViewController</span>: <span class="title">UIViewController</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">loadView</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(#function)</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">viewDidLoad</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(#function)</div><div class="line">        <span class="keyword">let</span> <span class="number">_</span> = view</div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p><strong>OUTPUT:</strong><br>loadView()<br>viewDidLoad()<br>loadView()<br>viewDidLoad()<br>loadView()<br>viewDidLoad()<br>loadView()<br>viewDidLoad()<br>loadView()</p>
+</blockquote>
+<ul>
+<li>若 <code>loadView()</code> 没有加载 view，<code>viewDidLoad()</code> 会一直调用 <code>loadView()</code> 加载 view，因此构成了死循环，程序即卡死。</li>
+</ul>
 <h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><ul>
 <li><a href="https://github.com/kingcos/CS193P_2017" target="_blank" rel="external">CS193P_2017</a></li>
 <li><a href="http://amztion.com/2016/12/03/uiviewcontroller-lifecycle/" target="_blank" rel="external">UIViewController 相关生命周期总结</a></li>
-<li><a href="http://blog.sunnyxx.com/2014/07/01/ios_ib_bridge/" target="_blank" rel="external">xib 的动态桥接</a></li>
 </ul>
 ]]></content>
     
