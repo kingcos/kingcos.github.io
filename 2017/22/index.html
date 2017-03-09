@@ -67,7 +67,7 @@
 <link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="Swift,iOS2," />
+  <meta name="keywords" content="Swift,iOS," />
 
 
 
@@ -85,16 +85,16 @@
 
 
 
-<meta name="description" content="Lifecycle of UIView in iOS">
+<meta name="description" content="Developing iOS 10 Apps with Swift - CS193p">
 <meta property="og:type" content="article">
-<meta property="og:title" content="探究 UIView 生命周期">
+<meta property="og:title" content="CS193p 查漏补缺（五）Lecture 07">
 <meta property="og:url" content="https://maimieng.com/2017/22/index.html">
 <meta property="og:site_name" content="V2M">
-<meta property="og:description" content="Lifecycle of UIView in iOS">
-<meta property="og:updated_time" content="2017-03-07T11:51:10.000Z">
+<meta property="og:description" content="Developing iOS 10 Apps with Swift - CS193p">
+<meta property="og:updated_time" content="2017-03-09T01:57:27.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="探究 UIView 生命周期">
-<meta name="twitter:description" content="Lifecycle of UIView in iOS">
+<meta name="twitter:title" content="CS193p 查漏补缺（五）Lecture 07">
+<meta name="twitter:description" content="Developing iOS 10 Apps with Swift - CS193p">
 
 
 
@@ -118,7 +118,7 @@
   <link rel="canonical" href="https://maimieng.com/2017/22/"/>
 
 
-  <title> 探究 UIView 生命周期 | V2M </title>
+  <title> CS193p 查漏补缺（五）Lecture 07 | V2M </title>
 </head>
 
 <body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
@@ -281,7 +281,7 @@
             
             
               
-                探究 UIView 生命周期
+                CS193p 查漏补缺（五）Lecture 07
               
             
           </h1>
@@ -333,7 +333,76 @@
       
 
       
-        <p><blockquote class="blockquote-center"><br>Lifecycle of UIView in iOS<br></blockquote><br><a id="more"></a></p>
+        <p><blockquote class="blockquote-center"><br>Developing iOS 10 Apps with Swift - CS193p<br></blockquote><br><a id="more"></a></p>
+<ul>
+<li>Info:<ul>
+<li>Swift 3.0</li>
+<li>Xcode 8.2.1</li>
+<li>macOS 10.12.4 beta (16E175b)</li>
+</ul>
+</li>
+</ul>
+<h2 id="Preface"><a href="#Preface" class="headerlink" title="Preface"></a>Preface</h2><p>CS193p 是斯坦福大学的一门公开课，今年 iOS 10 &amp; Swift 3.0 的版本如约而至，还是 Paul 老爷爷带课。之前虽然也有听过他的课，但没有坚持下来，也没有做相应的笔记。为了方便交流分享，我在 GitHub 建立了一个 Repo：<a href="https://github.com/kingcos/CS193P_2017" target="_blank" rel="external">https://github.com/kingcos/CS193P_2017</a>，会将课上的代码 Commit，也会分享笔记、心得。</p>
+<p>由于之前学过 Swift，也相信学习这门课的同学应当有一些 Swift 基础，所以定为查漏补缺，目标只将难点、重点、常用点总结。</p>
+<h2 id="Error"><a href="#Error" class="headerlink" title="Error"></a>Error</h2><ul>
+<li>异常（Exception）不等于错误（Error）。</li>
+</ul>
+<h3 id="throws"><a href="#throws" class="headerlink" title="throws"></a>throws</h3><ul>
+<li>当一个方法有可能导致错误时，可以使用 throws 标志其可能抛出错误。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">enum</span> <span class="title">SaveError</span>: <span class="title">Error</span> </span>&#123;</div><div class="line">    <span class="keyword">case</span> sizeTooBig</div><div class="line">    <span class="keyword">case</span> notFound</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">save</span><span class="params">()</span></span> <span class="keyword">throws</span> -&gt; <span class="type">String</span> &#123;</div><div class="line">    <span class="comment">// do sth...</span></div><div class="line">    <span class="keyword">throw</span> <span class="type">SaveError</span>.notFound</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="try"><a href="#try" class="headerlink" title="try"></a>try</h3><ul>
+<li>当调用一个 throws 的方法时，可以使用 do-catch 来捕获错误。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">throwErr</span><span class="params">()</span></span> <span class="keyword">throws</span> &#123;</div><div class="line">    <span class="keyword">do</span> &#123;</div><div class="line">        <span class="keyword">try</span> save()</div><div class="line">    &#125; <span class="keyword">catch</span> <span class="keyword">let</span> error &#123;</div><div class="line">        <span class="keyword">throw</span> error</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h4 id="try-1"><a href="#try-1" class="headerlink" title="try?"></a>try?</h4><ul>
+<li>当抛出错误时，返回 nil。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// x: String?</span></div><div class="line"><span class="keyword">let</span> x = <span class="keyword">try</span>? save()</div></pre></td></tr></table></figure>
+<h4 id="try-2"><a href="#try-2" class="headerlink" title="try!"></a>try!</h4><ul>
+<li>当抛出错误时，程序崩溃。</li>
+<li>只在确定不会出现错误时使用。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">let</span> y = <span class="keyword">try</span>! save()</div></pre></td></tr></table></figure>
+<h2 id="Extension"><a href="#Extension" class="headerlink" title="Extension"></a>Extension</h2><ul>
+<li>Extension，即扩展，类似于 Obj-C 的分类（Category）。</li>
+<li>利用扩展，可以为类，结构体，枚举中添加方法和属性。</li>
+<li>扩展中不能包含其本身已有的方法或属性。</li>
+<li>只能扩展计算属性，不能扩展存储属性。</li>
+<li>不可滥用扩展。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">extension</span> <span class="title">UIViewController</span> </span>&#123;</div><div class="line">    <span class="keyword">var</span> contentViewController: <span class="type">UIViewController</span>! &#123;</div><div class="line">        <span class="comment">// Extension 中的 self 指的是扩展的 UIViewController</span></div><div class="line">        <span class="keyword">if</span> <span class="keyword">let</span> navcon = <span class="keyword">self</span> <span class="keyword">as</span>? <span class="type">UINavigationController</span> &#123;</div><div class="line">            <span class="keyword">return</span> navcon.visibleViewController</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">return</span> <span class="keyword">self</span></div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="Protocols"><a href="#Protocols" class="headerlink" title="Protocols"></a>Protocols</h2><ul>
+<li>Protocol，即协议，类似其他语言的接口（interface），是一系列方法和属性的声明集合。</li>
+<li>协议中不支持存储属性。</li>
+<li>一个协议可以继承自多个协议。</li>
+<li>一个协议实现者也可以继承自多个协议。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">InheritedProtocolA</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">aMethod</span><span class="params">()</span></span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">InheritedProtocolB</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">bMethod</span><span class="params">()</span></span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">SomeProtocol</span>: <span class="title">InheritedProtocolA</span>, <span class="title">InheritedProtocolB</span> </span>&#123;</div><div class="line">    <span class="comment">// 协议中的属性只能是计算属性，且必须指定只读或可读可写</span></div><div class="line">    <span class="keyword">var</span> someProperty: <span class="type">Int</span> &#123; <span class="keyword">get</span> <span class="keyword">set</span> &#125;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">someMethod</span><span class="params">(arg1: Double, arg2: String)</span></span> -&gt; <span class="type">String</span></div><div class="line">    <span class="comment">// 希望方法修改自身，可以加上 mutating 关键字</span></div><div class="line">    <span class="keyword">mutating</span> <span class="function"><span class="keyword">func</span> <span class="title">changeIt</span><span class="params">()</span></span></div><div class="line">    <span class="keyword">init</span>(arg: <span class="type">Int</span>)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// class: 将规定只能由类实现该协议</span></div><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">AProtocol</span>: <span class="title">class</span> </span>&#123;</div><div class="line">    <span class="keyword">init</span>(arg: <span class="type">Int</span>)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 协议中的初始化方法必须加上 required 关键字，否则其子类可能不会实现该方法</span></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">ClassDemo</span>: <span class="title">AProtocol</span> </span>&#123;</div><div class="line">    <span class="keyword">var</span> propA: <span class="type">Int</span></div><div class="line"></div><div class="line">    <span class="keyword">required</span> <span class="keyword">internal</span> <span class="keyword">init</span>(arg: <span class="type">Int</span>) &#123;</div><div class="line">        propA = arg</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">BProtocol</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">printf</span><span class="params">()</span></span></div><div class="line">    <span class="keyword">init</span>(arg: <span class="type">Int</span>)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 扩展也可实现协议，常被用来作为协议的默认实现</span></div><div class="line"><span class="class"><span class="keyword">extension</span> <span class="title">ClassDemo</span>: <span class="title">BProtocol</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">printf</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(#function)</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="Swift-amp-Obj-C-Protocol"><a href="#Swift-amp-Obj-C-Protocol" class="headerlink" title="Swift &amp; Obj-C Protocol"></a>Swift &amp; Obj-C Protocol</h3><ul>
+<li>Swift 中的协议实现者必须实现协议中所有方法和属性。</li>
+<li>Obj-C 中的协议可以选择实现者是否必须实现。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">SwiftProtocol</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">thisMustBeImplemented</span><span class="params">()</span></span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="meta">@objc</span> <span class="class"><span class="keyword">protocol</span> <span class="title">ObjCProtocol</span> </span>&#123;</div><div class="line">    <span class="meta">@objc</span> <span class="keyword">optional</span> <span class="function"><span class="keyword">func</span> <span class="title">thisMaybeNotImplemented</span><span class="params">()</span></span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="A-protocol-as-a-type"><a href="#A-protocol-as-a-type" class="headerlink" title="A protocol as a type"></a>A protocol as a type</h3><ul>
+<li>一个协议是 Swift 中的一个类型。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">Moveable</span> </span>&#123;</div><div class="line">    <span class="keyword">mutating</span> <span class="function"><span class="keyword">func</span> <span class="title">move</span><span class="params">(to point: CGPoint)</span></span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Car</span>: <span class="title">Moveable</span> </span>&#123;</div><div class="line">    <span class="keyword">internal</span> <span class="function"><span class="keyword">func</span> <span class="title">move</span><span class="params">(to point: CGPoint)</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(<span class="string">"move to<span class="subst">\(point)</span>"</span>)</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">changeOil</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(#function)</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Shape</span>: <span class="title">Moveable</span> </span>&#123;</div><div class="line">    <span class="keyword">mutating</span> <span class="keyword">internal</span> <span class="function"><span class="keyword">func</span> <span class="title">move</span><span class="params">(to point: CGPoint)</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(<span class="string">"move to<span class="subst">\(point)</span>"</span>)</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">draw</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(#function)</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">let</span> prius: <span class="type">Car</span> = <span class="type">Car</span>()</div><div class="line"><span class="keyword">let</span> square: <span class="type">Shape</span> = <span class="type">Shape</span>()</div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">let</span> thingsToMove: [<span class="type">Moveable</span>] = [prius, square]</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">slide</span><span class="params">(<span class="number">_</span> slider: Moveable)</span></span> &#123;</div><div class="line">    <span class="keyword">var</span> slider = slider</div><div class="line">    <span class="keyword">let</span> point = <span class="type">CGPoint</span>.zero</div><div class="line">    slider.move(to: point)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">for</span> thing <span class="keyword">in</span> thingsToMove &#123;</div><div class="line">    slide(thing)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="Protocol-with-generics"><a href="#Protocol-with-generics" class="headerlink" title="Protocol with generics"></a>Protocol with generics</h3><ul>
+<li>协议可以用来限制范型。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// Comparable 协议约束了 Range 中的范型必须实现该协议</span></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Range</span>&lt;<span class="title">Bound</span>: <span class="title">Comparable</span>&gt; </span>&#123;</div><div class="line">    <span class="keyword">let</span> lowerBound: <span class="type">Bound</span></div><div class="line">    <span class="keyword">let</span> upperBound: <span class="type">Bound</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="Delegation"><a href="#Delegation" class="headerlink" title="Delegation"></a>Delegation</h2><blockquote>
+<p>通过 <a href="https://github.com/kingcos/CS193P_2017/tree/master/Cassini" target="_blank" rel="external">Cassini</a> 可以很清楚的了解代理的基本使用。</p>
+</blockquote>
+<ul>
+<li>视图声明代理协议；</li>
+<li>视图拥有 weak delegate 属性；</li>
+<li>视图利用 delegate 属性进行其自己不能掌控的事情；</li>
+<li>控制器声明实现该协议；</li>
+<li>控制器设置 self 为视图的 delegate 属性；</li>
+<li>控制器实现协议中的方法和属性。</li>
+</ul>
 <h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><ul>
 <li><a href="https://github.com/kingcos/CS193P_2017" target="_blank" rel="external">CS193P_2017</a></li>
 </ul>
@@ -382,7 +451,7 @@
           
             <a href="/tags/Swift/" rel="tag">#Swift</a>
           
-            <a href="/tags/iOS2/" rel="tag">#iOS2</a>
+            <a href="/tags/iOS/" rel="tag">#iOS</a>
           
         </div>
       
@@ -391,17 +460,13 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2017/20/" rel="next" title="CS193p 查漏补缺（四）Lecture 06">
-                <i class="fa fa-chevron-left"></i> CS193p 查漏补缺（四）Lecture 06
+              <a href="/2017/21/" rel="next" title="探究 UIViewController 生命周期">
+                <i class="fa fa-chevron-left"></i> 探究 UIViewController 生命周期
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2017/21/" rel="prev" title="探究 UIViewController 生命周期">
-                探究 UIViewController 生命周期 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -428,7 +493,7 @@
   <div class="comments" id="comments">
     
       <div class="ds-thread" data-thread-key="2017/22/"
-           data-title="探究 UIView 生命周期" data-url="https://maimieng.com/2017/22/">
+           data-title="CS193p 查漏补缺（五）Lecture 07" data-url="https://maimieng.com/2017/22/">
       </div>
     
   </div>
@@ -473,7 +538,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">82</span>
+              <span class="site-state-item-count">81</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -593,7 +658,7 @@
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Reference"><span class="nav-number">1.</span> <span class="nav-text">Reference</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Preface"><span class="nav-number">1.</span> <span class="nav-text">Preface</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Error"><span class="nav-number">2.</span> <span class="nav-text">Error</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#throws"><span class="nav-number">2.1.</span> <span class="nav-text">throws</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#try"><span class="nav-number">2.2.</span> <span class="nav-text">try</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#try-1"><span class="nav-number">2.2.1.</span> <span class="nav-text">try?</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#try-2"><span class="nav-number">2.2.2.</span> <span class="nav-text">try!</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Extension"><span class="nav-number">3.</span> <span class="nav-text">Extension</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Protocols"><span class="nav-number">4.</span> <span class="nav-text">Protocols</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Swift-amp-Obj-C-Protocol"><span class="nav-number">4.1.</span> <span class="nav-text">Swift & Obj-C Protocol</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#A-protocol-as-a-type"><span class="nav-number">4.2.</span> <span class="nav-text">A protocol as a type</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Protocol-with-generics"><span class="nav-number">4.3.</span> <span class="nav-text">Protocol with generics</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Delegation"><span class="nav-number">5.</span> <span class="nav-text">Delegation</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Reference"><span class="nav-number">6.</span> <span class="nav-text">Reference</span></a></li></ol></div>
             
           </div>
         </section>
