@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://maimieng.com/"/>
-  <updated>2017-03-17T01:47:18.000Z</updated>
+  <updated>2017-03-26T16:44:40.000Z</updated>
   <id>https://maimieng.com/</id>
   
   <author>
@@ -14,6 +14,200 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>从 0 开始使用 Docker 快速搭建 Hadoop 集群环境</title>
+    <link href="https://maimieng.com/2017/24/"/>
+    <id>https://maimieng.com/2017/24/</id>
+    <published>2017-03-24T16:00:00.000Z</published>
+    <updated>2017-03-26T16:44:40.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>Hadoop with Docker<br></blockquote><br><a id="more"></a></p>
+<ul>
+<li>Info:<ul>
+<li>Hadoop 2.7.2</li>
+<li>Docker CE</li>
+<li>Intellij IDEA 2016.3</li>
+</ul>
+</li>
+</ul>
+<h2 id="Preface"><a href="#Preface" class="headerlink" title="Preface"></a>Preface</h2><p>自从学习 iOS/Swift 以来，就没有太多时间分配给 Java 专业课，毕竟我不是个三心二用还能样样学好的人。不过作为大三的专业课，分布式计算技术还是有去上课的，毕竟不能最后挂科吧 :]</p>
+<p>曾有人说，「开发一个项目，至少有 50% 时间在配置环境」。确实，在折腾了三周的课时之后，我才按照老师给的详细步骤配置好 Hadoop 的环境。尽管如此，由于种种原因，班里仍有很多同学还没有配置好 Hadoop 的环境，导致课程一直停滞。在偶然中，我想到了 Docker，Docker 这个词我至少在半年前已经听说（当然，恕我孤陋寡闻，Docker 早在 13 年即发行），但一直没有去了解和使用。时至今日，我对 Docker 的了解也十分少，简单的来说，Docker 是一种容器（Container）管理工具，通过 Docker 我们可以配置可移植的环境，方便发布。Docker 基于 Linux，但也提供了 macOS 和 Windows 桌面版，方便在我们的本地机器测试、使用。</p>
+<p>虽然本文是一个小白向的文章，但下载和安装的过程也不会在本文涉及。一是官方网站必然提供了相应的教程，纯粹的翻译毫无意义；二是下载和安装可能随着后续更新发生略微的区别，而本文只着眼于配置 Hadoop 集群环境的搭建。由于个人对 Hadoop 和 Docker 的了解甚少，如有错误，希望指出，我会学习、改正。</p>
+<h2 id="Linux"><a href="#Linux" class="headerlink" title="Linux"></a>Linux</h2><ul>
+<li>Info:<ul>
+<li>Ubuntu 16.10 x64</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p>Docker 本身就是基于 Linux 的，所以首先以我的一台服务器做实验。虽然最后跑 wordcount 已经由于内存不足而崩掉，但是之前的过程还是可以参考的。</p>
+</blockquote>
+<h4 id="连接服务器"><a href="#连接服务器" class="headerlink" title="连接服务器"></a>连接服务器</h4><ul>
+<li>使用 ssh 命令连接远程服务器。</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ssh root@[Your IP Address]</div></pre></td></tr></table></figure>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-9a17a3a5045dd378.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="ssh root@127.0.0.1"></p>
+<h4 id="更新软件列表"><a href="#更新软件列表" class="headerlink" title="更新软件列表"></a>更新软件列表</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">apt-get update</div></pre></td></tr></table></figure>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-164fc0156e6ba6cc.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="apt-get update"></p>
+<ul>
+<li>更新完成。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-a726fb8f05e458c5.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="更新完成"></p>
+<h4 id="安装-Docker"><a href="#安装-Docker" class="headerlink" title="安装 Docker"></a>安装 Docker</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">sudo apt-get install docker.io</div></pre></td></tr></table></figure>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-717cf48bf8265d01.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="sudo apt-get install docker.io"></p>
+<ul>
+<li>当遇到输入是否继续时，输入「Y／y」继续。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-f876fbbf7aa35a19.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="Y"></p>
+<ul>
+<li>安装完成。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-ebdf531be287e1d1.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="安装完成"></p>
+<ul>
+<li>输入「docker」测试是否安装成功。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-550161d755ec8a4d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="docker"></p>
+<h4 id="拉取镜像"><a href="#拉取镜像" class="headerlink" title="拉取镜像"></a>拉取镜像</h4><ul>
+<li>镜像，是 Docker 的核心，可以通过从远程拉取镜像即可配置好我们所需要的环境，我们这次需要的是 Hadoop 集群的镜像。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-47f2cc98763a8439.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="kiwenlau/hadoop-cluster-docker"></p>
+<ul>
+<li>在本文中，我们将使用 <a href="http://kiwenlau.com" target="_blank" rel="external">kiwenlau</a> 的 Hadoop 集群镜像以及其配置。由于我的服务器本身即在国外，因此拉取镜像的速度较快，国内由于众所周知的原因，可以替换为相应的国内源，以加快拉取速度。</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">sudo docker pull kiwenlau/hadoop:1.0</div></pre></td></tr></table></figure>
+<ul>
+<li>拉取镜像完成。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-dae57098ef3befc3.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="sudo docker pull kiwenlau/hadoop:1.0"></p>
+<h4 id="克隆仓库"><a href="#克隆仓库" class="headerlink" title="克隆仓库"></a>克隆仓库</h4><ul>
+<li>克隆仓库到当前文件夹（可以自行创建并切换到相应文件夹）。</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">git clone https://github.com/kiwenlau/hadoop-cluster-docker</div></pre></td></tr></table></figure>
+<ul>
+<li>克隆仓库完成。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-d18f8e934f04a3e7.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="克隆仓库完成"></p>
+<h4 id="桥接网络"><a href="#桥接网络" class="headerlink" title="桥接网络"></a>桥接网络</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">sudo docker network create --driver=bridge hadoop</div></pre></td></tr></table></figure>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-d72cf923626a8666.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="sudo docker network create --driver=bridge hadoop"></p>
+<h4 id="运行容器"><a href="#运行容器" class="headerlink" title="运行容器"></a>运行容器</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">cd hadoop-cluster-docker</div><div class="line">./start-container.sh</div></pre></td></tr></table></figure>
+<ul>
+<li>默认是 1 个主节点，2 个从节点，当然也可以根据性能调整为 N 节点，详见文末参考链接。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-7bca5fb8112dca84.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="./start-container.sh"></p>
+<h4 id="启动-Hadoop"><a href="#启动-Hadoop" class="headerlink" title="启动 Hadoop"></a>启动 Hadoop</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">./start-hadoop.sh</div></pre></td></tr></table></figure>
+<ul>
+<li>在上一步，我们已经运行容器，即可直接运行 Hadoop。启动时长与机器性能有关，也是难为了我这一台 512 MB 内存的服务器。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-78c451efa17fb8c8.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="./start-hadoop.sh"></p>
+<h4 id="测试-Word-Count"><a href="#测试-Word-Count" class="headerlink" title="测试 Word Count"></a>测试 Word Count</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">./run-wordcount.sh</div></pre></td></tr></table></figure>
+<ul>
+<li>Word Count 是一个测试 Hadoop 的 Shell 脚本，即计算文本中的单词个数。不过由于我的服务器内存不够分配无法完成，所以后续以本机进行测试。</li>
+</ul>
+<h4 id="网页管理"><a href="#网页管理" class="headerlink" title="网页管理"></a>网页管理</h4><ul>
+<li>我们可以通过网页远程管理 Hadoop：<ul>
+<li>Name Node: [Your IP Address]:50070/</li>
+<li>Resource Manager: [Your IP Address]:8088/</li>
+</ul>
+</li>
+</ul>
+<h2 id="macOS"><a href="#macOS" class="headerlink" title="macOS"></a>macOS</h2><ul>
+<li>Info:<ul>
+<li>macOS 10.12.4 beta (16E191a)</li>
+</ul>
+</li>
+</ul>
+<h4 id="下载-amp-安装"><a href="#下载-amp-安装" class="headerlink" title="下载 &amp; 安装"></a>下载 &amp; 安装</h4><ul>
+<li>打开 Docker 官方网站：<a href="https://www.docker.com" target="_blank" rel="external">https://www.docker.com</a>，选择社区版，并下载、安装。Windows 系统用户可以选择 Windows 版本。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-7962d26774502e9b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="Docker CE"></p>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-3343bc9ea796fa66.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="macOS or Windows"></p>
+<h4 id="运行-Docker"><a href="#运行-Docker" class="headerlink" title="运行 Docker"></a>运行 Docker</h4><ul>
+<li>打开 Docker。为了简单，我没有改动配置，如需更改，可以在 Preferences 中修改。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-8a7b4ba265511b59.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="Docker is running"></p>
+<ul>
+<li>我们可以在终端（Terminal）输入「docker」，测试是否安装成功。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-acf65b32246a0345.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="docker"></p>
+<h4 id="拉取镜像-amp-克隆仓库-amp-桥接网络-amp-运行容器-amp-启动-Hadoop"><a href="#拉取镜像-amp-克隆仓库-amp-桥接网络-amp-运行容器-amp-启动-Hadoop" class="headerlink" title="拉取镜像 &amp; 克隆仓库 &amp; 桥接网络 &amp; 运行容器 &amp; 启动 Hadoop"></a>拉取镜像 &amp; 克隆仓库 &amp; 桥接网络 &amp; 运行容器 &amp; 启动 Hadoop</h4><ul>
+<li>同 Linux。</li>
+</ul>
+<h4 id="测试-Word-Count-1"><a href="#测试-Word-Count-1" class="headerlink" title="测试 Word Count"></a>测试 Word Count</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">./run-wordcount.sh</div></pre></td></tr></table></figure>
+<ul>
+<li>同 Linux，但这次我们可以运算出结果了。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-36ec89da1de48e73.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="./run-wordcount.sh"></p>
+<h2 id="Windows"><a href="#Windows" class="headerlink" title="Windows"></a>Windows</h2><blockquote>
+<p>其实最开始就没有打算放出 Windows 版，倒不是因为觉得 Windows 不好，而是目前手头没有 Windows 的电脑，借用同学的电脑也不是很方便。如果需要安装 Docker，需要 CPU 支持虚拟化，且安装了 64 位 Windows 10 Pro/企业版（需要开启 Hyper-V）。其他版本的 Windows 可以安装 Docker Toolbox。</p>
+</blockquote>
+<ul>
+<li>暂无。</li>
+</ul>
+<h2 id="Intellij-IDEA"><a href="#Intellij-IDEA" class="headerlink" title="Intellij IDEA"></a>Intellij IDEA</h2><blockquote>
+<p>我们的 Hadoop 集群已经在容器里安装完成，而且已经可以运行。相比自己一个个建立虚拟机，这样的确十分方便、快捷。为了便于开发调试，接下来就需要在 Intellij IDEA 下配置开发环境，包管理工具选择 Gradle。Maven 配合 Eclipse 的配置网上已经有很多了，需要的同学可以自行搜索。</p>
+</blockquote>
+<h3 id="Docker-开启-9000-端口映射"><a href="#Docker-开启-9000-端口映射" class="headerlink" title="Docker 开启 9000 端口映射"></a>Docker 开启 9000 端口映射</h3><ul>
+<li>由于我们使用的是 <a href="http://kiwenlau.com" target="_blank" rel="external">kiwenlau</a> 的镜像和开源脚本，虽然加快了配置过程，但是也屏蔽了很多细节。比如在其脚本中只默认开启了 50070 和 8088 的端口映射，我们可以通过 <code>docker ps</code>（注意是在本机，而不是在容器运行该命令）列出所有容器，查看容器映射的端口。</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">cd hadoop-cluster-docker</div><div class="line">vim start-container.sh</div></pre></td></tr></table></figure>
+<ul>
+<li>切换到脚本文件夹，使用 Vim 编辑 start-container.sh。在图中光标处添加以下内容，保存并退出。</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">-p 9000:9000 \</div></pre></td></tr></table></figure>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-4bfa51e4ec70a9a1.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="映射 9000 端口"></p>
+<ul>
+<li>重启容器，并查看容器状态，如图即为映射成功。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-ff3cecfe3e395442.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="映射端口成功"></p>
+<h3 id="开启-Web-HDFS-管理"><a href="#开启-Web-HDFS-管理" class="headerlink" title="开启 Web HDFS 管理*"></a>开启 Web HDFS 管理*</h3><blockquote>
+<p>该步非必须。为了方便在网页端管理，因此开启 Web 端，默认关闭。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">which hadoop</div><div class="line">cd /usr/local/hadoop/etc/hadoop/</div><div class="line">ls</div><div class="line"></div><div class="line">vi core-site.xml</div></pre></td></tr></table></figure>
+<ul>
+<li>找到 Hadoop 配置文件路径，使用 Vi 编辑，若 Vi 的插入模式（Insert Mode）中，上下左右变成了 ABCD，那么可以使用以下命令即可：<code>cp /etc/vim/vimrc ~/.vimrc</code> 修复。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-2e568fb47649879c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="Hadoop 配置文件"></p>
+<ul>
+<li>添加以下内容。</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.webhdfs.enabled<span class="tag">&lt;/<span class="name">name</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">value</span>&gt;</span>true<span class="tag">&lt;/<span class="name">value</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></div></pre></td></tr></table></figure>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-aaa2e2a64c926e7a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="添加以上内容"></p>
+<h3 id="启动-Hadoop-1"><a href="#启动-Hadoop-1" class="headerlink" title="启动 Hadoop"></a>启动 Hadoop</h3><ul>
+<li>同 Linux。</li>
+</ul>
+<h3 id="构建依赖"><a href="#构建依赖" class="headerlink" title="构建依赖"></a>构建依赖</h3><ul>
+<li>使用 Intellij IDEA 新建一个 Gradle 项目，在 Build.gradle 中加入以下依赖（对应容器 Hadoop 版本）。</li>
+</ul>
+<figure class="highlight groovy"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">compile <span class="string">group:</span> <span class="string">'org.apache.hadoop'</span>, <span class="string">name:</span> <span class="string">'hadoop-common'</span>, <span class="string">version:</span> <span class="string">'2.7.2'</span></div><div class="line">compile <span class="string">group:</span> <span class="string">'org.apache.hadoop'</span>, <span class="string">name:</span> <span class="string">'hadoop-hdfs'</span>, <span class="string">version:</span> <span class="string">'2.7.2'</span></div></pre></td></tr></table></figure>
+<h3 id="Demo"><a href="#Demo" class="headerlink" title="Demo"></a>Demo</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> org.apache.commons.io.IOUtils;</div><div class="line"><span class="keyword">import</span> org.apache.hadoop.conf.Configuration;</div><div class="line"><span class="keyword">import</span> org.apache.hadoop.fs.*;</div><div class="line"><span class="keyword">import</span> org.junit.Before;</div><div class="line"><span class="keyword">import</span> org.junit.Test;</div><div class="line"></div><div class="line"><span class="keyword">import</span> java.io.FileInputStream;</div><div class="line"><span class="keyword">import</span> java.io.IOException;</div><div class="line"><span class="keyword">import</span> java.net.URI;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * Created by kingcos on 25/03/2017.</div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HDFSOperations</span> </span>&#123;</div><div class="line"></div><div class="line">    FileSystem fileSystem;</div><div class="line"></div><div class="line">    <span class="meta">@Before</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">configure</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">        Configuration configuration = <span class="keyword">new</span> Configuration();</div><div class="line">        configuration.set(<span class="string">"fs.defaultFS"</span>, <span class="string">"hdfs://192.168.1.120:9000"</span>);</div><div class="line">        fileSystem = FileSystem.get(URI.create(<span class="string">"hdfs://192.168.1.120:9000"</span>), configuration, <span class="string">"root"</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Test</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">listFiles</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</div><div class="line">        Path path = <span class="keyword">new</span> Path(<span class="string">"/"</span>);</div><div class="line">        RemoteIterator&lt;LocatedFileStatus&gt; iterator = fileSystem.listFiles(path, <span class="keyword">true</span>);</div><div class="line"></div><div class="line">        <span class="keyword">while</span> (iterator.hasNext()) &#123;</div><div class="line">            LocatedFileStatus status = iterator.next();</div><div class="line">            System.out.println(status.getPath().getName());</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Test</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">rm</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</div><div class="line">        Path path = <span class="keyword">new</span> Path(<span class="string">"/"</span>);</div><div class="line">        fileSystem.delete(path, <span class="keyword">true</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Test</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">mkdir</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</div><div class="line">        Path path = <span class="keyword">new</span> Path(<span class="string">"/demo"</span>);</div><div class="line">        fileSystem.mkdirs(path);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<ul>
+<li>之后便可以通过 IDEA 直接写代码来测试，这里简单写了几个方法。</li>
+</ul>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ul>
+<li>在写这篇文章之前，其实我对 Docker 的概念很不了解。但是通过 Learn by do it. 大致知道了其中的概念和原理。我们完全可以构建自己的容器 Dockerfile，来部署生产和开发环境，其强大的可移植性大大缩短配置的过程。</li>
+<li>由于个人对 Hadoop 和 Docker 的了解甚少，如有错误，希望指出，我会学习、改正。</li>
+<li>如果有时间，我会再折腾一下其他的玩法 :]</li>
+</ul>
+<h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><ul>
+<li><a href="http://kiwenlau.com/2016/06/12/160612-hadoop-cluster-docker-update/" target="_blank" rel="external">基于 Docker 搭建 Hadoop 集群之升级版</a></li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;Hadoop with Docker&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="Java" scheme="https://maimieng.com/tags/Java/"/>
+    
+      <category term="Hadoop" scheme="https://maimieng.com/tags/Hadoop/"/>
+    
+      <category term="Docker" scheme="https://maimieng.com/tags/Docker/"/>
+    
+  </entry>
   
   <entry>
     <title>CS193p 查漏补缺（六）Lecture 08</title>
@@ -54,6 +248,101 @@
 <h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><ul>
 <li><a href="https://github.com/kingcos/CS193P_2017" target="_blank" rel="external">CS193P_2017</a></li>
 <li><a href="http://www.jianshu.com/p/b00056fac0a8" target="_blank" rel="external">小窥 iOS 中的 Target-Action 设计模式</a></li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;Developing iOS 10 Apps with Swift - CS193p&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="Swift" scheme="https://maimieng.com/tags/Swift/"/>
+    
+      <category term="iOS" scheme="https://maimieng.com/tags/iOS/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>CS193p 查漏补缺（五）Lecture 07</title>
+    <link href="https://maimieng.com/2017/22/"/>
+    <id>https://maimieng.com/2017/22/</id>
+    <published>2017-03-06T16:00:00.000Z</published>
+    <updated>2017-03-09T01:57:27.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>Developing iOS 10 Apps with Swift - CS193p<br></blockquote><br><a id="more"></a></p>
+<ul>
+<li>Info:<ul>
+<li>Swift 3.0</li>
+<li>Xcode 8.2.1</li>
+<li>macOS 10.12.4 beta (16E175b)</li>
+</ul>
+</li>
+</ul>
+<h2 id="Preface"><a href="#Preface" class="headerlink" title="Preface"></a>Preface</h2><p>CS193p 是斯坦福大学的一门公开课，今年 iOS 10 &amp; Swift 3.0 的版本如约而至，还是 Paul 老爷爷带课。之前虽然也有听过他的课，但没有坚持下来，也没有做相应的笔记。为了方便交流分享，我在 GitHub 建立了一个 Repo：<a href="https://github.com/kingcos/CS193P_2017" target="_blank" rel="external">https://github.com/kingcos/CS193P_2017</a>，会将课上的代码 Commit，也会分享笔记、心得。</p>
+<p>由于之前学过 Swift，也相信学习这门课的同学应当有一些 Swift 基础，所以定为查漏补缺，目标只将难点、重点、常用点总结。</p>
+<h2 id="Error"><a href="#Error" class="headerlink" title="Error"></a>Error</h2><ul>
+<li>异常（Exception）不等于错误（Error）。</li>
+</ul>
+<h3 id="throws"><a href="#throws" class="headerlink" title="throws"></a>throws</h3><ul>
+<li>当一个方法有可能导致错误时，可以使用 throws 标志其可能抛出错误。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">enum</span> <span class="title">SaveError</span>: <span class="title">Error</span> </span>&#123;</div><div class="line">    <span class="keyword">case</span> sizeTooBig</div><div class="line">    <span class="keyword">case</span> notFound</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">save</span><span class="params">()</span></span> <span class="keyword">throws</span> -&gt; <span class="type">String</span> &#123;</div><div class="line">    <span class="comment">// do sth...</span></div><div class="line">    <span class="keyword">throw</span> <span class="type">SaveError</span>.notFound</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="try"><a href="#try" class="headerlink" title="try"></a>try</h3><ul>
+<li>当调用一个 throws 的方法时，可以使用 do-catch 来捕获错误。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">throwErr</span><span class="params">()</span></span> <span class="keyword">throws</span> &#123;</div><div class="line">    <span class="keyword">do</span> &#123;</div><div class="line">        <span class="keyword">try</span> save()</div><div class="line">    &#125; <span class="keyword">catch</span> <span class="keyword">let</span> error &#123;</div><div class="line">        <span class="keyword">throw</span> error</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h4 id="try-1"><a href="#try-1" class="headerlink" title="try?"></a>try?</h4><ul>
+<li>当抛出错误时，返回 nil。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// x: String?</span></div><div class="line"><span class="keyword">let</span> x = <span class="keyword">try</span>? save()</div></pre></td></tr></table></figure>
+<h4 id="try-2"><a href="#try-2" class="headerlink" title="try!"></a>try!</h4><ul>
+<li>当抛出错误时，程序崩溃。</li>
+<li>只在确定不会出现错误时使用。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">let</span> y = <span class="keyword">try</span>! save()</div></pre></td></tr></table></figure>
+<h2 id="Extension"><a href="#Extension" class="headerlink" title="Extension"></a>Extension</h2><ul>
+<li>Extension，即扩展，类似于 Obj-C 的分类（Category）。</li>
+<li>利用扩展，可以为类，结构体，枚举中添加方法和属性。</li>
+<li>扩展中不能包含其本身已有的方法或属性。</li>
+<li>只能扩展计算属性，不能扩展存储属性。</li>
+<li>不可滥用扩展。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">extension</span> <span class="title">UIViewController</span> </span>&#123;</div><div class="line">    <span class="keyword">var</span> contentViewController: <span class="type">UIViewController</span>! &#123;</div><div class="line">        <span class="comment">// Extension 中的 self 指的是扩展的 UIViewController</span></div><div class="line">        <span class="keyword">if</span> <span class="keyword">let</span> navcon = <span class="keyword">self</span> <span class="keyword">as</span>? <span class="type">UINavigationController</span> &#123;</div><div class="line">            <span class="keyword">return</span> navcon.visibleViewController</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">return</span> <span class="keyword">self</span></div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="Protocols"><a href="#Protocols" class="headerlink" title="Protocols"></a>Protocols</h2><ul>
+<li>Protocol，即协议，类似其他语言的接口（interface），是一系列方法和属性的声明集合。</li>
+<li>协议中不支持存储属性。</li>
+<li>一个协议可以继承自多个协议。</li>
+<li>一个协议实现者也可以继承自多个协议。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">InheritedProtocolA</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">aMethod</span><span class="params">()</span></span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">InheritedProtocolB</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">bMethod</span><span class="params">()</span></span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">SomeProtocol</span>: <span class="title">InheritedProtocolA</span>, <span class="title">InheritedProtocolB</span> </span>&#123;</div><div class="line">    <span class="comment">// 协议中的属性只能是计算属性，且必须指定只读或可读可写</span></div><div class="line">    <span class="keyword">var</span> someProperty: <span class="type">Int</span> &#123; <span class="keyword">get</span> <span class="keyword">set</span> &#125;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">someMethod</span><span class="params">(arg1: Double, arg2: String)</span></span> -&gt; <span class="type">String</span></div><div class="line">    <span class="comment">// 希望方法修改自身，可以加上 mutating 关键字</span></div><div class="line">    <span class="keyword">mutating</span> <span class="function"><span class="keyword">func</span> <span class="title">changeIt</span><span class="params">()</span></span></div><div class="line">    <span class="keyword">init</span>(arg: <span class="type">Int</span>)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// class: 将规定只能由类实现该协议</span></div><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">AProtocol</span>: <span class="title">class</span> </span>&#123;</div><div class="line">    <span class="keyword">init</span>(arg: <span class="type">Int</span>)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 协议中的初始化方法必须加上 required 关键字，否则其子类可能不会实现该方法</span></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">ClassDemo</span>: <span class="title">AProtocol</span> </span>&#123;</div><div class="line">    <span class="keyword">var</span> propA: <span class="type">Int</span></div><div class="line"></div><div class="line">    <span class="keyword">required</span> <span class="keyword">internal</span> <span class="keyword">init</span>(arg: <span class="type">Int</span>) &#123;</div><div class="line">        propA = arg</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">BProtocol</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">printf</span><span class="params">()</span></span></div><div class="line">    <span class="keyword">init</span>(arg: <span class="type">Int</span>)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 扩展也可实现协议，常被用来作为协议的默认实现</span></div><div class="line"><span class="class"><span class="keyword">extension</span> <span class="title">ClassDemo</span>: <span class="title">BProtocol</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">printf</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(#function)</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="Swift-amp-Obj-C-Protocol"><a href="#Swift-amp-Obj-C-Protocol" class="headerlink" title="Swift &amp; Obj-C Protocol"></a>Swift &amp; Obj-C Protocol</h3><ul>
+<li>Swift 中的协议实现者必须实现协议中所有方法和属性。</li>
+<li>Obj-C 中的协议可以选择实现者是否必须实现。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">SwiftProtocol</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">thisMustBeImplemented</span><span class="params">()</span></span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="meta">@objc</span> <span class="class"><span class="keyword">protocol</span> <span class="title">ObjCProtocol</span> </span>&#123;</div><div class="line">    <span class="meta">@objc</span> <span class="keyword">optional</span> <span class="function"><span class="keyword">func</span> <span class="title">thisMaybeNotImplemented</span><span class="params">()</span></span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="A-protocol-as-a-type"><a href="#A-protocol-as-a-type" class="headerlink" title="A protocol as a type"></a>A protocol as a type</h3><ul>
+<li>一个协议是 Swift 中的一个类型。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">Moveable</span> </span>&#123;</div><div class="line">    <span class="keyword">mutating</span> <span class="function"><span class="keyword">func</span> <span class="title">move</span><span class="params">(to point: CGPoint)</span></span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Car</span>: <span class="title">Moveable</span> </span>&#123;</div><div class="line">    <span class="keyword">internal</span> <span class="function"><span class="keyword">func</span> <span class="title">move</span><span class="params">(to point: CGPoint)</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(<span class="string">"move to<span class="subst">\(point)</span>"</span>)</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">changeOil</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(#function)</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Shape</span>: <span class="title">Moveable</span> </span>&#123;</div><div class="line">    <span class="keyword">mutating</span> <span class="keyword">internal</span> <span class="function"><span class="keyword">func</span> <span class="title">move</span><span class="params">(to point: CGPoint)</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(<span class="string">"move to<span class="subst">\(point)</span>"</span>)</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">draw</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(#function)</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">let</span> prius: <span class="type">Car</span> = <span class="type">Car</span>()</div><div class="line"><span class="keyword">let</span> square: <span class="type">Shape</span> = <span class="type">Shape</span>()</div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">let</span> thingsToMove: [<span class="type">Moveable</span>] = [prius, square]</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">slide</span><span class="params">(<span class="number">_</span> slider: Moveable)</span></span> &#123;</div><div class="line">    <span class="keyword">var</span> slider = slider</div><div class="line">    <span class="keyword">let</span> point = <span class="type">CGPoint</span>.zero</div><div class="line">    slider.move(to: point)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">for</span> thing <span class="keyword">in</span> thingsToMove &#123;</div><div class="line">    slide(thing)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="Protocol-with-generics"><a href="#Protocol-with-generics" class="headerlink" title="Protocol with generics"></a>Protocol with generics</h3><ul>
+<li>协议可以用来限制范型。</li>
+</ul>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// Comparable 协议约束了 Range 中的范型必须实现该协议</span></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Range</span>&lt;<span class="title">Bound</span>: <span class="title">Comparable</span>&gt; </span>&#123;</div><div class="line">    <span class="keyword">let</span> lowerBound: <span class="type">Bound</span></div><div class="line">    <span class="keyword">let</span> upperBound: <span class="type">Bound</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="Delegation"><a href="#Delegation" class="headerlink" title="Delegation"></a>Delegation</h2><blockquote>
+<p>通过 <a href="https://github.com/kingcos/CS193P_2017/tree/master/Cassini" target="_blank" rel="external">Cassini</a> 可以很清楚的了解代理的基本使用。</p>
+</blockquote>
+<ul>
+<li>视图声明代理协议；</li>
+<li>视图拥有 weak delegate 属性；</li>
+<li>视图利用 delegate 属性进行其自己不能掌控的事情；</li>
+<li>控制器声明实现该协议；</li>
+<li>控制器设置 self 为视图的 delegate 属性；</li>
+<li>控制器实现协议中的方法和属性。</li>
+</ul>
+<h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><ul>
+<li><a href="https://github.com/kingcos/CS193P_2017" target="_blank" rel="external">CS193P_2017</a></li>
 </ul>
 ]]></content>
     
@@ -213,101 +502,6 @@
     <summary type="html">
     
       &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;Lifecycle of UIViewController in iOS&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
-    
-    </summary>
-    
-    
-      <category term="Swift" scheme="https://maimieng.com/tags/Swift/"/>
-    
-      <category term="iOS" scheme="https://maimieng.com/tags/iOS/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>CS193p 查漏补缺（五）Lecture 07</title>
-    <link href="https://maimieng.com/2017/22/"/>
-    <id>https://maimieng.com/2017/22/</id>
-    <published>2017-03-06T16:00:00.000Z</published>
-    <updated>2017-03-09T01:57:27.000Z</updated>
-    
-    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>Developing iOS 10 Apps with Swift - CS193p<br></blockquote><br><a id="more"></a></p>
-<ul>
-<li>Info:<ul>
-<li>Swift 3.0</li>
-<li>Xcode 8.2.1</li>
-<li>macOS 10.12.4 beta (16E175b)</li>
-</ul>
-</li>
-</ul>
-<h2 id="Preface"><a href="#Preface" class="headerlink" title="Preface"></a>Preface</h2><p>CS193p 是斯坦福大学的一门公开课，今年 iOS 10 &amp; Swift 3.0 的版本如约而至，还是 Paul 老爷爷带课。之前虽然也有听过他的课，但没有坚持下来，也没有做相应的笔记。为了方便交流分享，我在 GitHub 建立了一个 Repo：<a href="https://github.com/kingcos/CS193P_2017" target="_blank" rel="external">https://github.com/kingcos/CS193P_2017</a>，会将课上的代码 Commit，也会分享笔记、心得。</p>
-<p>由于之前学过 Swift，也相信学习这门课的同学应当有一些 Swift 基础，所以定为查漏补缺，目标只将难点、重点、常用点总结。</p>
-<h2 id="Error"><a href="#Error" class="headerlink" title="Error"></a>Error</h2><ul>
-<li>异常（Exception）不等于错误（Error）。</li>
-</ul>
-<h3 id="throws"><a href="#throws" class="headerlink" title="throws"></a>throws</h3><ul>
-<li>当一个方法有可能导致错误时，可以使用 throws 标志其可能抛出错误。</li>
-</ul>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">enum</span> <span class="title">SaveError</span>: <span class="title">Error</span> </span>&#123;</div><div class="line">    <span class="keyword">case</span> sizeTooBig</div><div class="line">    <span class="keyword">case</span> notFound</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">save</span><span class="params">()</span></span> <span class="keyword">throws</span> -&gt; <span class="type">String</span> &#123;</div><div class="line">    <span class="comment">// do sth...</span></div><div class="line">    <span class="keyword">throw</span> <span class="type">SaveError</span>.notFound</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h3 id="try"><a href="#try" class="headerlink" title="try"></a>try</h3><ul>
-<li>当调用一个 throws 的方法时，可以使用 do-catch 来捕获错误。</li>
-</ul>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">throwErr</span><span class="params">()</span></span> <span class="keyword">throws</span> &#123;</div><div class="line">    <span class="keyword">do</span> &#123;</div><div class="line">        <span class="keyword">try</span> save()</div><div class="line">    &#125; <span class="keyword">catch</span> <span class="keyword">let</span> error &#123;</div><div class="line">        <span class="keyword">throw</span> error</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h4 id="try-1"><a href="#try-1" class="headerlink" title="try?"></a>try?</h4><ul>
-<li>当抛出错误时，返回 nil。</li>
-</ul>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// x: String?</span></div><div class="line"><span class="keyword">let</span> x = <span class="keyword">try</span>? save()</div></pre></td></tr></table></figure>
-<h4 id="try-2"><a href="#try-2" class="headerlink" title="try!"></a>try!</h4><ul>
-<li>当抛出错误时，程序崩溃。</li>
-<li>只在确定不会出现错误时使用。</li>
-</ul>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">let</span> y = <span class="keyword">try</span>! save()</div></pre></td></tr></table></figure>
-<h2 id="Extension"><a href="#Extension" class="headerlink" title="Extension"></a>Extension</h2><ul>
-<li>Extension，即扩展，类似于 Obj-C 的分类（Category）。</li>
-<li>利用扩展，可以为类，结构体，枚举中添加方法和属性。</li>
-<li>扩展中不能包含其本身已有的方法或属性。</li>
-<li>只能扩展计算属性，不能扩展存储属性。</li>
-<li>不可滥用扩展。</li>
-</ul>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">extension</span> <span class="title">UIViewController</span> </span>&#123;</div><div class="line">    <span class="keyword">var</span> contentViewController: <span class="type">UIViewController</span>! &#123;</div><div class="line">        <span class="comment">// Extension 中的 self 指的是扩展的 UIViewController</span></div><div class="line">        <span class="keyword">if</span> <span class="keyword">let</span> navcon = <span class="keyword">self</span> <span class="keyword">as</span>? <span class="type">UINavigationController</span> &#123;</div><div class="line">            <span class="keyword">return</span> navcon.visibleViewController</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">return</span> <span class="keyword">self</span></div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h2 id="Protocols"><a href="#Protocols" class="headerlink" title="Protocols"></a>Protocols</h2><ul>
-<li>Protocol，即协议，类似其他语言的接口（interface），是一系列方法和属性的声明集合。</li>
-<li>协议中不支持存储属性。</li>
-<li>一个协议可以继承自多个协议。</li>
-<li>一个协议实现者也可以继承自多个协议。</li>
-</ul>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">InheritedProtocolA</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">aMethod</span><span class="params">()</span></span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">InheritedProtocolB</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">bMethod</span><span class="params">()</span></span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">SomeProtocol</span>: <span class="title">InheritedProtocolA</span>, <span class="title">InheritedProtocolB</span> </span>&#123;</div><div class="line">    <span class="comment">// 协议中的属性只能是计算属性，且必须指定只读或可读可写</span></div><div class="line">    <span class="keyword">var</span> someProperty: <span class="type">Int</span> &#123; <span class="keyword">get</span> <span class="keyword">set</span> &#125;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">someMethod</span><span class="params">(arg1: Double, arg2: String)</span></span> -&gt; <span class="type">String</span></div><div class="line">    <span class="comment">// 希望方法修改自身，可以加上 mutating 关键字</span></div><div class="line">    <span class="keyword">mutating</span> <span class="function"><span class="keyword">func</span> <span class="title">changeIt</span><span class="params">()</span></span></div><div class="line">    <span class="keyword">init</span>(arg: <span class="type">Int</span>)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// class: 将规定只能由类实现该协议</span></div><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">AProtocol</span>: <span class="title">class</span> </span>&#123;</div><div class="line">    <span class="keyword">init</span>(arg: <span class="type">Int</span>)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 协议中的初始化方法必须加上 required 关键字，否则其子类可能不会实现该方法</span></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">ClassDemo</span>: <span class="title">AProtocol</span> </span>&#123;</div><div class="line">    <span class="keyword">var</span> propA: <span class="type">Int</span></div><div class="line"></div><div class="line">    <span class="keyword">required</span> <span class="keyword">internal</span> <span class="keyword">init</span>(arg: <span class="type">Int</span>) &#123;</div><div class="line">        propA = arg</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">BProtocol</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">printf</span><span class="params">()</span></span></div><div class="line">    <span class="keyword">init</span>(arg: <span class="type">Int</span>)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 扩展也可实现协议，常被用来作为协议的默认实现</span></div><div class="line"><span class="class"><span class="keyword">extension</span> <span class="title">ClassDemo</span>: <span class="title">BProtocol</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">printf</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(#function)</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h3 id="Swift-amp-Obj-C-Protocol"><a href="#Swift-amp-Obj-C-Protocol" class="headerlink" title="Swift &amp; Obj-C Protocol"></a>Swift &amp; Obj-C Protocol</h3><ul>
-<li>Swift 中的协议实现者必须实现协议中所有方法和属性。</li>
-<li>Obj-C 中的协议可以选择实现者是否必须实现。</li>
-</ul>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">SwiftProtocol</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">thisMustBeImplemented</span><span class="params">()</span></span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="meta">@objc</span> <span class="class"><span class="keyword">protocol</span> <span class="title">ObjCProtocol</span> </span>&#123;</div><div class="line">    <span class="meta">@objc</span> <span class="keyword">optional</span> <span class="function"><span class="keyword">func</span> <span class="title">thisMaybeNotImplemented</span><span class="params">()</span></span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h3 id="A-protocol-as-a-type"><a href="#A-protocol-as-a-type" class="headerlink" title="A protocol as a type"></a>A protocol as a type</h3><ul>
-<li>一个协议是 Swift 中的一个类型。</li>
-</ul>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">protocol</span> <span class="title">Moveable</span> </span>&#123;</div><div class="line">    <span class="keyword">mutating</span> <span class="function"><span class="keyword">func</span> <span class="title">move</span><span class="params">(to point: CGPoint)</span></span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Car</span>: <span class="title">Moveable</span> </span>&#123;</div><div class="line">    <span class="keyword">internal</span> <span class="function"><span class="keyword">func</span> <span class="title">move</span><span class="params">(to point: CGPoint)</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(<span class="string">"move to<span class="subst">\(point)</span>"</span>)</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">changeOil</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(#function)</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Shape</span>: <span class="title">Moveable</span> </span>&#123;</div><div class="line">    <span class="keyword">mutating</span> <span class="keyword">internal</span> <span class="function"><span class="keyword">func</span> <span class="title">move</span><span class="params">(to point: CGPoint)</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(<span class="string">"move to<span class="subst">\(point)</span>"</span>)</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">draw</span><span class="params">()</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(#function)</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">let</span> prius: <span class="type">Car</span> = <span class="type">Car</span>()</div><div class="line"><span class="keyword">let</span> square: <span class="type">Shape</span> = <span class="type">Shape</span>()</div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">let</span> thingsToMove: [<span class="type">Moveable</span>] = [prius, square]</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">slide</span><span class="params">(<span class="number">_</span> slider: Moveable)</span></span> &#123;</div><div class="line">    <span class="keyword">var</span> slider = slider</div><div class="line">    <span class="keyword">let</span> point = <span class="type">CGPoint</span>.zero</div><div class="line">    slider.move(to: point)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">for</span> thing <span class="keyword">in</span> thingsToMove &#123;</div><div class="line">    slide(thing)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h3 id="Protocol-with-generics"><a href="#Protocol-with-generics" class="headerlink" title="Protocol with generics"></a>Protocol with generics</h3><ul>
-<li>协议可以用来限制范型。</li>
-</ul>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// Comparable 协议约束了 Range 中的范型必须实现该协议</span></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Range</span>&lt;<span class="title">Bound</span>: <span class="title">Comparable</span>&gt; </span>&#123;</div><div class="line">    <span class="keyword">let</span> lowerBound: <span class="type">Bound</span></div><div class="line">    <span class="keyword">let</span> upperBound: <span class="type">Bound</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h2 id="Delegation"><a href="#Delegation" class="headerlink" title="Delegation"></a>Delegation</h2><blockquote>
-<p>通过 <a href="https://github.com/kingcos/CS193P_2017/tree/master/Cassini" target="_blank" rel="external">Cassini</a> 可以很清楚的了解代理的基本使用。</p>
-</blockquote>
-<ul>
-<li>视图声明代理协议；</li>
-<li>视图拥有 weak delegate 属性；</li>
-<li>视图利用 delegate 属性进行其自己不能掌控的事情；</li>
-<li>控制器声明实现该协议；</li>
-<li>控制器设置 self 为视图的 delegate 属性；</li>
-<li>控制器实现协议中的方法和属性。</li>
-</ul>
-<h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><ul>
-<li><a href="https://github.com/kingcos/CS193P_2017" target="_blank" rel="external">CS193P_2017</a></li>
-</ul>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;Developing iOS 10 Apps with Swift - CS193p&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
     
     </summary>
     
@@ -1641,32 +1835,6 @@
       <category term="Swift" scheme="https://maimieng.com/tags/Swift/"/>
     
       <category term="iOS" scheme="https://maimieng.com/tags/iOS/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>「周记」逃避</title>
-    <link href="https://maimieng.com/2017/4/"/>
-    <id>https://maimieng.com/2017/4/</id>
-    <published>2017-01-14T16:00:00.000Z</published>
-    <updated>2017-01-15T16:26:38.000Z</updated>
-    
-    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>爱，是折磨人的东西。<br></blockquote><br><a id="more"></a><br>很遗憾，科二挂在了最后直角转弯。所以只能等开学再来考了。</p>
-<p>在每个假期回家前，我基本上都会找一部短剧来追，以缓解路上四个多小时无聊时间。这次看的是日剧《逃避虽可耻但有用》。其实在放假前有和舍友断断续续看过一些片段，题材比较新颖，加上男主也是程序猿，所以就下载了放在路上看。整个剧 11 集，算的是一部比较短小的剧。看后也是感慨很多，也能感受到日本社会的秩序，总之是一部很暖心的爱情剧。</p>
-<p>这一周总算是回到家了，在家免不了会惰性很大。不过这也算是大学最后一个假期了，今年的暑假就要出去找实习了。所以我计划寒假能够有时间来巩固基础，并对目前手头的项目进行一个分析，方便开学后的开发。</p>
-<blockquote>
-<p>我看透了很多，多么希望遇到一个开明的人。听我诉说，然后，跟我一起离开这里。</p>
-</blockquote>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;爱，是折磨人的东西。&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
-    
-    </summary>
-    
-    
-      <category term="Weekly Journal" scheme="https://maimieng.com/tags/Weekly-Journal/"/>
     
   </entry>
   
