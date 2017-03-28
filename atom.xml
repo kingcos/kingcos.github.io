@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://maimieng.com/"/>
-  <updated>2017-03-26T16:44:40.000Z</updated>
+  <updated>2017-03-27T17:26:47.000Z</updated>
   <id>https://maimieng.com/</id>
   
   <author>
@@ -14,6 +14,100 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>浅谈 iOS 应用启动过程</title>
+    <link href="https://maimieng.com/2017/25/"/>
+    <id>https://maimieng.com/2017/25/</id>
+    <published>2017-03-26T16:00:00.000Z</published>
+    <updated>2017-03-27T17:26:47.000Z</updated>
+    
+    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>Create an iOS single view application manually in Swift.<br></blockquote><br><a id="more"></a></p>
+<ul>
+<li>Info:<ul>
+<li>Swift 3.0</li>
+<li>Xcode 8.2.1</li>
+<li>macOS 10.12.4 beta (16E191a)</li>
+</ul>
+</li>
+</ul>
+<h2 id="Preface"><a href="#Preface" class="headerlink" title="Preface"></a>Preface</h2><p>首先要感谢<a href="http://weibo.com/u/1926303682" target="_blank" rel="external">没故事的卓同学</a>大大送的泊学会员，在泊学学了几节课，了解了很多不同角度的 iOS 开发知识。这篇文章就启发自其 iOS 101 中的<a href="https://boxueio.com/series/ios-101/ebook/89" target="_blank" rel="external">一个纯手工的 Single View Application</a> 一文。但本文将更加深入的叙述了启动过程，且实现均为 Swift 3.0。</p>
+<p><strong>本文对应的 Demo 可以在：<a href="https://github.com/kingcos/SingleViewAppManually-Demo" target="_blank" rel="external">https://github.com/kingcos/SingleViewAppManually-Demo</a> 查看、下载。</strong></p>
+<h2 id="Manually-or-Storyboard"><a href="#Manually-or-Storyboard" class="headerlink" title="Manually or Storyboard"></a>Manually or Storyboard</h2><p>main.m in Objective-C Single View Application</p>
+<figure class="highlight objc"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#import <span class="meta-string">&lt;UIKit/UIKit.h&gt;</span></span></div><div class="line"><span class="meta">#import <span class="meta-string">"AppDelegate.h"</span></span></div><div class="line"></div><div class="line"><span class="keyword">int</span> main(<span class="keyword">int</span> argc, <span class="keyword">char</span> * argv[]) &#123;</div><div class="line">    <span class="keyword">@autoreleasepool</span> &#123;</div><div class="line">        <span class="keyword">return</span> <span class="built_in">UIApplicationMain</span>(argc, argv, <span class="literal">nil</span>, <span class="built_in">NSStringFromClass</span>([AppDelegate <span class="keyword">class</span>]));</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<ul>
+<li>自从 Storyboard 诞生以来，关于纯代码、Xib、以及 Storyboard 的选择就在 iOS 开发圈中炸开了锅。这里不会探讨各种姿势的优劣，只是可能很多和我一样的初学者，从一开始就被 Storyboard 先入为主。加上方便灵活的拖控件，自然而然就可能没有机会去思考一个 iOS 应用是如何启动起来的。加上 Swift 的诞生，使得整个项目的初始结构得到了更大的简化（少了 main.m 以及很多 .h 头文件）。</li>
+<li>为了便于研究 iOS 应用的启动过程，我们删除 Xcode 自动创建的 Main.storyboard，并把 Main Interface 清空。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/227002-b5a0e657839dd113.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="Main Interface"></p>
+<h2 id="AppDelegate-swift"><a href="#AppDelegate-swift" class="headerlink" title="AppDelegate.swift"></a>AppDelegate.swift</h2><ul>
+<li>AppDelegate.swift 中是 AppDelegate 类。</li>
+<li>AppDelegate 将会创建 App 内容绘制的窗口，并提供应用内响应状态改变（state transitions）的地方。</li>
+<li>AppDelegate 将会创建 App 的入口和 Run Loop（运行循环），并将输入事件发送到 App（由 <code>@UIApplicationMain</code> 完成）。</li>
+</ul>
+<blockquote>
+<p>Run Loop:<br>An event processing loop that you use to schedule work and coordinate the receipt of incoming events in your app. (From Start Developing iOS Apps (Swift))<br>Run Loop 是一个事件处理循环，可以用来在应用中安排任务并定位收到的即将到来的事件。</p>
+</blockquote>
+<p>AppDelegate.swift</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">AppDelegate</span>: <span class="title">UIResponder</span>, <span class="title">UIApplicationDelegate</span> </span>&#123;</div><div class="line">    <span class="keyword">var</span> window: <span class="type">UIWindow</span>?</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">func</span> <span class="title">application</span><span class="params">(<span class="number">_</span> application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?)</span></span> -&gt; <span class="type">Bool</span> &#123;</div><div class="line"></div><div class="line">        window = <span class="type">UIWindow</span>()</div><div class="line">        window?.backgroundColor = <span class="type">UIColor</span>.red</div><div class="line">        window?.rootViewController = <span class="type">UIViewController</span>()</div><div class="line">        window?.makeKeyAndVisible()</div><div class="line"></div><div class="line">        <span class="keyword">return</span> <span class="literal">true</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<ul>
+<li>因为我们删除了 Main.storyboard，我们需要以上代码初始化 UIWindow（根 UIView），并使得其可见，关于 UIWindow 可以参考文末的链接。</li>
+<li>AppDelegate 中的方法将应用程序对象和代理联系起来，当应用在不同状态会自动调用相应的代理方法，我们可以自定义相应的实现，抑或留空或删除即使用默认的实现。</li>
+<li><code>application(_:​did​Finish​Launching​With​Options:​)</code>：该方法在应用启动进程几乎完成且将要运行之际调用，因此在其中初始化 window，设置根控制器，并使得其可见。</li>
+</ul>
+<h2 id="UIApplicationMain"><a href="#UIApplicationMain" class="headerlink" title="@UIApplicationMain"></a>@UIApplicationMain</h2><p>main.swift</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> UIKit</div><div class="line"></div><div class="line"><span class="type">UIApplicationMain</span>(</div><div class="line">    <span class="type">CommandLine</span>.argc,</div><div class="line">    <span class="type">UnsafeMutableRawPointer</span>(<span class="type">CommandLine</span>.unsafeArgv)</div><div class="line">        .bindMemory(</div><div class="line">            to: <span class="type">UnsafeMutablePointer</span>&lt;<span class="type">Int8</span>&gt;.<span class="keyword">self</span>,</div><div class="line">            capacity: <span class="type">Int</span>(<span class="type">CommandLine</span>.argc)),</div><div class="line">    <span class="literal">nil</span>,</div><div class="line">    <span class="type">NSStringFromClass</span>(<span class="type">AppDelegate</span>.<span class="keyword">self</span>)</div><div class="line">)</div></pre></td></tr></table></figure>
+<ul>
+<li>在 AppDelegate.swift 文件中 AppDelegate 类声明之上的一行便是 @UIApplicationMain。</li>
+<li>我们可以尝试将该行注释，链接器将直接报错「entry point (_main) undefined.」，即入口 main 未定义，因此可以得知 @UIApplicationMain 标签将会根据其下方的 AppDelegate 创建一个 UIApplicationMain 入口并启动程序。</li>
+<li>手动实现 @UIApplicationMain：<ul>
+<li>如果不使用 @UIApplicationMain 标签，需要自己建立一个 main.swift 文件，但我们不需要自己创建方法，Xcode 可以直接将该文件中的代码当作 main() 函数。</li>
+<li>在 main.swift 中，我们添加以上的代码。</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p>Code written at global scope is used as the entry point for the program, so you don’t need a main() function. (From The Swift Programming Language (Swift 3.0.1))<br>全局范围书写的代码将被当作程序入口，所以不需要 main() 函数。</p>
+</blockquote>
+<h2 id="UIApplication​Main"><a href="#UIApplication​Main" class="headerlink" title="UIApplication​Main()"></a>UIApplication​Main()</h2><ul>
+<li>在 main.swift 中，调用了 <code>int UIApplicationMain(int argc, char * _Nonnull argv[], NSString *principalClassName, NSString *delegateClassName);</code> 方法。</li>
+<li>该方法在创建了应用程序对象、应用程序代理、以及设置了事件循环。</li>
+<li>UIApplication​Main() 的前两个参数是命令行参数。</li>
+<li>principalClassName: 该参数为 UIApplication 类名或其子类名的字符串，nil 是默认为 UIApplication。</li>
+<li>delegateClassName: 该参数为要初始化的应用程序代理（AppDelegate）类，也可指定为 nil 但需要从应用程序的主 nib 文件加载代理对象。</li>
+<li>虽然该函数有返回值，但从不返回。</li>
+</ul>
+<h2 id="UIApplication"><a href="#UIApplication" class="headerlink" title="UIApplication"></a>UIApplication</h2><p>MyApp.swift</p>
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyApp</span>: <span class="title">UIApplication</span> </span>&#123;</div><div class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">func</span> <span class="title">sendEvent</span><span class="params">(<span class="number">_</span> event: UIEvent)</span></span> &#123;</div><div class="line">        <span class="built_in">print</span>(<span class="string">"\(#function) - Event: \(event)"</span>)</div><div class="line"></div><div class="line">        <span class="keyword">super</span>.sendEvent(event)</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<ul>
+<li>由上文得知，main.swift 中 UIApplication​Main()的第三个参数可以为 UIApplication 类名或其子类名的字符串。</li>
+<li>新建一个 MyApp.swift 在其中定义一个 UIApplication 子类，我们便可以在这里做一些针对应用全局的事情，比如重写 <code>sendEvent(:)</code> 方法便可以监听到整个应用发送事件。</li>
+</ul>
+<h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><ul>
+<li><a href="https://boxueio.com/series/ios-101/ebook/89" target="_blank" rel="external">一个纯手工的 Single View Application</a></li>
+<li><a href="https://developer.apple.com/library/content/referencelibrary/GettingStarted/DevelopiOSAppsSwift/" target="_blank" rel="external">Start Developing iOS Apps (Swift)
+</a></li>
+<li><a href="http://swifter.tips/uiapplicationmain/" target="_blank" rel="external">@UIAPPLICATIONMAIN</a></li>
+<li><a href="https://forums.developer.apple.com/thread/46405" target="_blank" rel="external">How to call UIApplicationMain in main.swift in Swift 3</a></li>
+<li><a href="http://www.jianshu.com/p/b850e8d99316" target="_blank" rel="external">CS193p 查漏补缺（二）Lecture 04 - UIWindow</a></li>
+</ul>
+<blockquote>
+<p>也欢迎您关注我的微博<a href="http://weibo.com/375975847" target="_blank" rel="external">@萌面大道V</a> &amp; <a href="http://www.jianshu.com/u/b88081164fe8" target="_blank" rel="external">简书</a></p>
+</blockquote>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;Create an iOS single view application manually in Swift.&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
+    
+    </summary>
+    
+    
+      <category term="Swift" scheme="https://maimieng.com/tags/Swift/"/>
+    
+      <category term="iOS" scheme="https://maimieng.com/tags/iOS/"/>
+    
+  </entry>
   
   <entry>
     <title>从 0 开始使用 Docker 快速搭建 Hadoop 集群环境</title>
@@ -1749,85 +1843,6 @@
     <summary type="html">
     
       &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;bounds &amp;amp; frame&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
-    
-    </summary>
-    
-    
-      <category term="Swift" scheme="https://maimieng.com/tags/Swift/"/>
-    
-      <category term="iOS" scheme="https://maimieng.com/tags/iOS/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Swift 中的 UIAppearance</title>
-    <link href="https://maimieng.com/2017/5/"/>
-    <id>https://maimieng.com/2017/5/</id>
-    <published>2017-01-18T16:00:00.000Z</published>
-    <updated>2017-01-20T02:31:58.000Z</updated>
-    
-    <content type="html"><![CDATA[<p><blockquote class="blockquote-center"><br>UIAppearance in Swift<br></blockquote><br><a id="more"></a></p>
-<ul>
-<li>Info:<ul>
-<li>Swift 3.0</li>
-<li>Xcode 8.2.1</li>
-</ul>
-</li>
-</ul>
-<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>UIAppearance，即用户界面外观，是 iOS 中 UIKit 的一个协议。外观对于用户体验是至关重要的一点，NSHipster 的 Mattt Thompson 在 UIAppearance 一文中说：<strong>Users will pay a premium for good-looking software.</strong>（用户乐意为高颜值的软件额外付费）。</p>
-<p>使用 UIAppearance 协议可以得到一个类的外观代理（proxy）。我们可以调用类的外观代理来更简单地自定义一个实例的外观。不过由于官方文档仍是 Objective-C 的例子，这里就总结一下 Swift 中的使用。这里为了方便演示，我创建了一个 Demo，您可以在 <a href="https://github.com/kingcos/UIAppearance-Demo" target="_blank" rel="external">kingcos/UIAppearance-Demo</a> 下载，并在 Xcode 中运行。</p>
-<p>该 Demo 为纯代码，不涉及 Storyboard 和 XIB。</p>
-<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_01.png" alt="原始界面"></p>
-<p>其中自定义了两个 TabBar 控制器，MM 和 VV TabBar 控制器的初始外观（后续主要针对 TabBarItem 的修改）如下所示。</p>
-<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_02.png" alt="MMTabBarController"></p>
-<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_03.png" alt="VVTabBarController"></p>
-<h2 id="全局修改外观"><a href="#全局修改外观" class="headerlink" title="全局修改外观"></a>全局修改外观</h2><p>全局修改即修改该类型的<strong>所有</strong>实例的外观。</p>
-<p>这里的 Demo 以 <code>UITabBarItem</code> 为例，如果我们需要修改整个应用中所有的 <code>UITabBarItem</code>  外观，即全局修改，那么我们直接使用以下方法即可获取该类的外观代理，进而进行修改。注意调用该方法的为<strong>类</strong>，而非实例。</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function"><span class="keyword">func</span> <span class="title">appearance</span><span class="params">()</span></span> -&gt; <span class="type">Self</span></div></pre></td></tr></table></figure>
-<p>将修改外观（此处以字体大小为例）的操作放在一个方法中：</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">setGlobalAppearance</span><span class="params">()</span></span> &#123;</div><div class="line">    <span class="keyword">var</span> attrsNormal = [<span class="type">String</span> : <span class="type">Any</span>]()</div><div class="line">    attrsNormal[<span class="type">NSFontAttributeName</span>] = <span class="type">UIFont</span>.systemFont(ofSize: <span class="number">30</span>)</div><div class="line">    </div><div class="line">    <span class="type">UITabBarItem</span>.appearance().setTitleTextAttributes(attrsNormal, <span class="keyword">for</span>: <span class="type">UIControlState</span>.normal)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>在 <code>viewDidLoad</code> 方法中调用该方法并运行，我们即可看到两种 TabBar 控制器的 TabBarItem 的字体均受到了影响。</p>
-<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_04.png" alt="MMTabBarController"></p>
-<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_05.png" alt="VVTabBarController"></p>
-<h2 id="部分修改外观"><a href="#部分修改外观" class="headerlink" title="部分修改外观"></a>部分修改外观</h2><p>部分修改即修改该类型的<strong>某些</strong>实例的外观。</p>
-<p>在 Demo 中，我们可以使用以下方法，传入 UIAppearance 容器类型，即可修改该容器内部的相应类型实例的外观。需要注意的是，这里的参数为数组，即传入多个不同类型也是允许的。同样注意调用该方法的为<strong>类</strong>，而非实例。</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@available</span>(iOS <span class="number">9.0</span>, *)</div><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function"><span class="keyword">func</span> <span class="title">appearance</span><span class="params">(whenContainedInInstancesOf containerTypes: [UIAppearanceContainer.<span class="keyword">Type</span>])</span></span> -&gt; <span class="type">Self</span></div></pre></td></tr></table></figure>
-<p>将修改外观（此处以字体大小为例）的操作放在一个方法中：</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">setLocalAppearance</span><span class="params">()</span></span> &#123;</div><div class="line">    <span class="keyword">var</span> attrsNormal = [<span class="type">String</span> : <span class="type">Any</span>]()</div><div class="line">    attrsNormal[<span class="type">NSFontAttributeName</span>] = <span class="type">UIFont</span>.systemFont(ofSize: <span class="number">30</span>)</div><div class="line">    </div><div class="line">    <span class="type">UITabBarItem</span>.appearance(whenContainedInInstancesOf: [<span class="type">MMTabBarController</span>.<span class="keyword">self</span>]).setTitleTextAttributes(attrsNormal, <span class="keyword">for</span>: <span class="type">UIControlState</span>.normal)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>在 <code>viewDidLoad</code> 方法中调用该方法并运行，我们即可看到只有作为参数的 MMTabBarController 的 TabBarItem 的字体受到了影响。</p>
-<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_06.png" alt="MMTabBarController"></p>
-<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_07.png" alt="VVTabBarController"></p>
-<h2 id="自定义-UIView-子类的实现"><a href="#自定义-UIView-子类的实现" class="headerlink" title="自定义 UIView 子类的实现"></a>自定义 UIView 子类的实现</h2><p>通过以上的 Demo，我们可以看出，通过 UIAppearance 可以很便捷且统一的管理界面外观。系统中遵守 UIAppearance 的方法和属性可以在 <a href="https://gist.github.com/mattt/5135521" target="_blank" rel="external">mattt/uiappearance-selector.md</a> 查到，那我们如何使自定义的 UIView 类也能用 UIAppearance 管理呢？</p>
-<p>这里以自定义按钮为例，为了方便演示，直接使用了 Demo 中跳转的两个按钮。新建一个 MMButton 的类，继承 UIButton。UIView 本身已经实现了 UIAppearance 和 UIAppearanceContainer 协议，所以我们只需要添加需要 UIAppearance 修改的属性即可。</p>
-<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_08.png" alt="UIView 已实现了 UIAppearance 和 UIAppearanceContainer 协议"></p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">MMButton</span>: <span class="title">UIButton</span> </span>&#123;</div><div class="line">    <span class="keyword">dynamic</span> <span class="keyword">var</span> btnBorderWidth: <span class="type">CGFloat</span> &#123;</div><div class="line">        <span class="keyword">get</span> &#123;</div><div class="line">            <span class="keyword">return</span> layer.borderWidth</div><div class="line">        &#125;</div><div class="line">        </div><div class="line">        <span class="keyword">set</span> &#123;</div><div class="line">            layer.borderWidth = newValue</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>这里是以按钮的边框宽度为例，该属性为<strong>计算属性</strong>。同时需要在定义前加上 <code>dynamic</code>，以赋予该处 Swift 代码的<strong>运行时（runtime）</strong>特性。</p>
-<p>这样便可以使用 <code>appearance()</code> 来全局修改 MMButton 的该属性：</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="type">MMButton</span>.appearance().btnBorderWidth = <span class="type">CGFloat</span>(<span class="number">10.0</span>)</div></pre></td></tr></table></figure>
-<p>效果即如图所示：</p>
-<p><img src="http://7xkam0.com1.z0.glb.clouddn.com/blog/uiappearance_09.png" alt="自定义 MMButton"></p>
-<p>需要注意的是，可以支持修改的属性只能为 <code>id</code>，<code>NSInteger</code>，<code>NSUInteger</code>，<code>CGFloat</code>，<code>CGPoint</code>，<code>CGSize</code>，<code>CGRect</code>，<code>UIEdgeInsets</code> 或 <code>UIOffset</code>（官方提供的均为 Objective-C 类型）。</p>
-<blockquote>
-<p>极端特殊的情况下，你也可以参考文末的 UIAppearance proxy for custom objects，其中 LombaX 提供了继承自 NSObject 的普通类的 appearance 实现。由于 UIAppearance 多用于 UIView 的子类，所以本文不再探究，但给出参考。</p>
-</blockquote>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>使用 UIAppearance 协议可以很方便的自定义外观。当然，UIAppearance 并不是外观修改的唯一选择。在 Mattt Thompson 的 UIAppearance 一文中也提到了几个替代 UIAppearance 的第三方库，通过把样式和内容分开（很像 CSS 和 HTML 的关系）来定义外观，更加清晰。在为 App 开发主题抑或是夜间模式时，也可以选择轻量级颜色框架 <a href="https://github.com/ViccAlexander/Chameleon" target="_blank" rel="external">ViccAlexander/Chameleon</a>，其已经在 GitHub 上拿到了超过 7000+ Stars。</p>
-<p>UIAppearance 中还有两个方法本文没有涉及：</p>
-<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">static</span> <span class="function"><span class="keyword">func</span> <span class="title">appearance</span><span class="params">(<span class="keyword">for</span>: UITraitCollection, whenContainedInInstancesOf: [UIAppearanceContainer.<span class="keyword">Type</span>])</span></span></div><div class="line"><span class="keyword">static</span> <span class="function"><span class="keyword">func</span> <span class="title">appearance</span><span class="params">(whenContainedInInstancesOf: [UIAppearanceContainer.<span class="keyword">Type</span>])</span></span></div></pre></td></tr></table></figure>
-<p>这两个方法是关于 Trait Collection，和多屏适配相关。目前这块的相关中文资料不是太多，我会找时间进行搜索、总结，届时再与大家分享。</p>
-<p>另外本文略有涉及 Swift 和 Objective-C 的兼容，<code>dynamic</code> 关键字便可以保证和 Objective-C 里动态调用时相同的<strong>运行时（runtime）</strong>特性。为大家所熟知的还有 <code>@objc</code>，关于这两者（<code>dynamic</code> &amp; <code>@objc</code>）的区别，您可以参考文末中喵神的 @OBJC 和 DYNAMIC。</p>
-<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
-<li><a href="https://developer.apple.com/reference/uikit/uiappearance" target="_blank" rel="external">UIAppearance - Apple Inc.</a></li>
-<li><a href="https://developer.apple.com/reference/uikit/uiappearancecontainer" target="_blank" rel="external">UIAppearanceContainer - Apple Inc.</a></li>
-<li><a href="http://nshipster.com/uiappearance/" target="_blank" rel="external">UIAppearance - NSHipster</a></li>
-<li><a href="https://gist.github.com/mattt/5135521" target="_blank" rel="external">mattt/uiappearance-selector.md</a></li>
-<li><a href="http://stackoverflow.com/questions/15732885/uiappearance-proxy-for-custom-objects" target="_blank" rel="external">UIAppearance proxy for custom objects - StackOverflow</a></li>
-<li><a href="http://swifter.tips/objc-dynamic/" target="_blank" rel="external">@OBJC 和 DYNAMIC</a></li>
-</ul>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;blockquote class=&quot;blockquote-center&quot;&gt;&lt;br&gt;UIAppearance in Swift&lt;br&gt;&lt;/blockquote&gt;&lt;br&gt;
     
     </summary>
     
