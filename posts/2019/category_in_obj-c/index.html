@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   
-    <title>Focus - iOS 中的 Category :: iBlog</title>
+    <title>iOS 中的 Category :: iBlog</title>
   
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Source Code Demo     2019-04-13 首次提交 objc4-750、xnu-4903.221.2 Category_in_Obj-C    Preface 在 Obj-C 中，我们经常会使用 Category（中文常译作分类，但为表述清晰，下文仍将使用 Category）来对一个类进行扩展，使得类可以具备更多的功能；也会对一个类进行拆分，使得其结构更加清晰条理。本文将由浅入深，谈谈 iOS 中 Category 的结构、实现原理、以及与 Class Extension 的区别等。对于 &#43; load 等专题性更强的内容，将单独放置在独立篇章中讲述，请各位参考文末的「Reference」。
+<meta name="description" content="Date Notes Source Code Demo     2019-04-13 首次提交 objc4-750、xnu-4903.221.2 Category in Obj-C    Preface 在 Obj-C 中，我们经常会使用 Category（中文常译作分类，但为表述清晰，下文仍将使用 Category）来对一个类进行扩展，使得类可以具备更多的功能；也会对一个类进行拆分，使得其结构更加清晰条理。本文将由浅入深，谈谈 iOS 中 Category 的结构、实现原理、以及与 Class Extension 的区别等。对于 &#43; load 等专题性更强的内容，将单独放置在独立篇章中讲述，请各位参考文末的「Reference」。
 category_t // Person&#43;Life.h /** LifeProtocol */ @protocol LifeProtocol &amp;lt;NSObject&amp;gt; - (void)eat; @end /** Person&#43;Life */ @interface Person (Life) &amp;lt;LifeProtocol&amp;gt; @property (nonatomic, copy) NSString *name; // Instance method - (void)run; // Class method &#43; (void)foo; // Protocol method - (void)eat; @end  以 Person 类为例，创建一个 Life 的 Category，并在其中遵守协议、声明属性、定义并实现对象方法和类方法。为了便于分析，我们使用 xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc Person&#43;Life."/>
 <meta name="keywords" content=""/>
 <meta name="robots" content="noodp"/>
@@ -29,8 +29,8 @@ category_t // Person&#43;Life.h /** LifeProtocol */ @protocol LifeProtocol &amp;
 
 
 <meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="Focus - iOS 中的 Category :: iBlog — " />
-<meta name="twitter:description" content="Date Notes Source Code Demo     2019-04-13 首次提交 objc4-750、xnu-4903.221.2 Category_in_Obj-C    Preface 在 Obj-C 中，我们经常会使用 Category（中文常译作分类，但为表述清晰，下文仍将使用 Category）来对一个类进行扩展，使得类可以具备更多的功能；也会对一个类进行拆分，使得其结构更加清晰条理。本文将由浅入深，谈谈 iOS 中 Category 的结构、实现原理、以及与 Class Extension 的区别等。对于 &#43; load 等专题性更强的内容，将单独放置在独立篇章中讲述，请各位参考文末的「Reference」。
+<meta name="twitter:title" content="iOS 中的 Category :: iBlog — " />
+<meta name="twitter:description" content="Date Notes Source Code Demo     2019-04-13 首次提交 objc4-750、xnu-4903.221.2 Category in Obj-C    Preface 在 Obj-C 中，我们经常会使用 Category（中文常译作分类，但为表述清晰，下文仍将使用 Category）来对一个类进行扩展，使得类可以具备更多的功能；也会对一个类进行拆分，使得其结构更加清晰条理。本文将由浅入深，谈谈 iOS 中 Category 的结构、实现原理、以及与 Class Extension 的区别等。对于 &#43; load 等专题性更强的内容，将单独放置在独立篇章中讲述，请各位参考文末的「Reference」。
 category_t // Person&#43;Life.h /** LifeProtocol */ @protocol LifeProtocol &amp;lt;NSObject&amp;gt; - (void)eat; @end /** Person&#43;Life */ @interface Person (Life) &amp;lt;LifeProtocol&amp;gt; @property (nonatomic, copy) NSString *name; // Instance method - (void)run; // Class method &#43; (void)foo; // Protocol method - (void)eat; @end  以 Person 类为例，创建一个 Life 的 Category，并在其中遵守协议、声明属性、定义并实现对象方法和类方法。为了便于分析，我们使用 xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc Person&#43;Life." />
 <meta name="twitter:site" content="/" />
 <meta name="twitter:creator" content="" />
@@ -39,11 +39,11 @@ category_t // Person&#43;Life.h /** LifeProtocol */ @protocol LifeProtocol &amp;
 
 <meta property="og:locale" content="en" />
 <meta property="og:type" content="article" />
-<meta property="og:title" content="Focus - iOS 中的 Category :: iBlog — ">
-<meta property="og:description" content="Date Notes Source Code Demo     2019-04-13 首次提交 objc4-750、xnu-4903.221.2 Category_in_Obj-C    Preface 在 Obj-C 中，我们经常会使用 Category（中文常译作分类，但为表述清晰，下文仍将使用 Category）来对一个类进行扩展，使得类可以具备更多的功能；也会对一个类进行拆分，使得其结构更加清晰条理。本文将由浅入深，谈谈 iOS 中 Category 的结构、实现原理、以及与 Class Extension 的区别等。对于 &#43; load 等专题性更强的内容，将单独放置在独立篇章中讲述，请各位参考文末的「Reference」。
+<meta property="og:title" content="iOS 中的 Category :: iBlog — ">
+<meta property="og:description" content="Date Notes Source Code Demo     2019-04-13 首次提交 objc4-750、xnu-4903.221.2 Category in Obj-C    Preface 在 Obj-C 中，我们经常会使用 Category（中文常译作分类，但为表述清晰，下文仍将使用 Category）来对一个类进行扩展，使得类可以具备更多的功能；也会对一个类进行拆分，使得其结构更加清晰条理。本文将由浅入深，谈谈 iOS 中 Category 的结构、实现原理、以及与 Class Extension 的区别等。对于 &#43; load 等专题性更强的内容，将单独放置在独立篇章中讲述，请各位参考文末的「Reference」。
 category_t // Person&#43;Life.h /** LifeProtocol */ @protocol LifeProtocol &amp;lt;NSObject&amp;gt; - (void)eat; @end /** Person&#43;Life */ @interface Person (Life) &amp;lt;LifeProtocol&amp;gt; @property (nonatomic, copy) NSString *name; // Instance method - (void)run; // Class method &#43; (void)foo; // Protocol method - (void)eat; @end  以 Person 类为例，创建一个 Life 的 Category，并在其中遵守协议、声明属性、定义并实现对象方法和类方法。为了便于分析，我们使用 xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc Person&#43;Life." />
 <meta property="og:url" content="/posts/2019/category_in_obj-c/" />
-<meta property="og:site_name" content="Focus - iOS 中的 Category" />
+<meta property="og:site_name" content="iOS 中的 Category" />
 <meta property="og:image" content="">
 <meta property="og:image:width" content="2048">
 <meta property="og:image:height" content="1024">
@@ -116,7 +116,7 @@ category_t // Person&#43;Life.h /** LifeProtocol */ @protocol LifeProtocol &amp;
     
 <div class="post">
   <h1 class="post-title">
-    <a href="/posts/2019/category_in_obj-c/">Focus - iOS 中的 Category</a></h1>
+    <a href="/posts/2019/category_in_obj-c/">iOS 中的 Category</a></h1>
   <div class="post-meta">
     <span class="post-date">
       2019-04-13
@@ -156,7 +156,7 @@ category_t // Person&#43;Life.h /** LifeProtocol */ @protocol LifeProtocol &amp;
 <td align="center">2019-04-13</td>
 <td align="center">首次提交</td>
 <td align="center"><a href="https://opensource.apple.com/tarballs/objc4/">objc4-750</a>、<a href="https://opensource.apple.com/tarballs/xnu/">xnu-4903.221.2</a></td>
-<td align="center"><a href="Category_in_Obj-C/">Category_in_Obj-C</a></td>
+<td align="center"><a href="Category_in_Obj-C/">Category in Obj-C</a></td>
 </tr>
 </tbody>
 </table>
@@ -1523,8 +1523,8 @@ NSLog(@&quot;After: f[0]: %d, f[1]: %d, f[2]: %d, f[3]: %d, f[4]: %d&quot;, f[0]
       
       
       <span class="button next">
-        <a href="/posts/2019/link_map_file_in_xcode/">
-          <span class="button__text">Focus - Xcode 中的 Link Map 文件</span>
+        <a href="/posts/2019/type_introspection_and_reflection/">
+          <span class="button__text">Obj-C &amp; Swift 的类型内省与反射</span>
           <span class="button__icon">→</span>
         </a>
       </span>
