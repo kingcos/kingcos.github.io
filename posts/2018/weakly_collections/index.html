@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>在 Swift 中对集合类型元素的弱引用 :: iBlog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="Date Notes Swift Xcode     2018-03-15 更新部分表述，并将题目扩展至集合类型 4.0 9.2   2018-03-08 首次提交 4.0 9.2    Preface 为了方便下述 Demo，这里定义一个 Pencil 类，并会使用 func CFGetRetainCount(_ cf: CoreFoundation.CFTypeRef!) -&amp;gt; CFIndex 方法，即传入一个 CFTypeRef 类型的对象即可获取其引用计数。什么是 CFTypeRef？查阅官方文档即可得知 typealias CFTypeRef = AnyObject，所以 CFTypeRef 其实就是 AnyObject。而 AnyObject 又是所有类隐含遵守的协议。
+class Pencil { var type: String var price: Double init(_ type: String, _ price: Double) { self.type = type self.price = price } } CFGetRetainCount(Pencil(&amp;quot;2B&amp;quot;, 1."/>
+<meta name="keywords" content=""/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2018/weakly_collections/" />
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+  <link rel="stylesheet" href="/assets/green.css">
+
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+
+<link rel="shortcut icon" href="/favicon.ico">
+
+
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="在 Swift 中对集合类型元素的弱引用 :: iBlog — " />
+<meta name="twitter:description" content="Date Notes Swift Xcode     2018-03-15 更新部分表述，并将题目扩展至集合类型 4.0 9.2   2018-03-08 首次提交 4.0 9.2    Preface 为了方便下述 Demo，这里定义一个 Pencil 类，并会使用 func CFGetRetainCount(_ cf: CoreFoundation.CFTypeRef!) -&amp;gt; CFIndex 方法，即传入一个 CFTypeRef 类型的对象即可获取其引用计数。什么是 CFTypeRef？查阅官方文档即可得知 typealias CFTypeRef = AnyObject，所以 CFTypeRef 其实就是 AnyObject。而 AnyObject 又是所有类隐含遵守的协议。
+class Pencil { var type: String var price: Double init(_ type: String, _ price: Double) { self.type = type self.price = price } } CFGetRetainCount(Pencil(&amp;quot;2B&amp;quot;, 1." />
+<meta name="twitter:site" content="/" />
+<meta name="twitter:creator" content="" />
+<meta name="twitter:image" content="">
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="在 Swift 中对集合类型元素的弱引用 :: iBlog — ">
+<meta property="og:description" content="Date Notes Swift Xcode     2018-03-15 更新部分表述，并将题目扩展至集合类型 4.0 9.2   2018-03-08 首次提交 4.0 9.2    Preface 为了方便下述 Demo，这里定义一个 Pencil 类，并会使用 func CFGetRetainCount(_ cf: CoreFoundation.CFTypeRef!) -&amp;gt; CFIndex 方法，即传入一个 CFTypeRef 类型的对象即可获取其引用计数。什么是 CFTypeRef？查阅官方文档即可得知 typealias CFTypeRef = AnyObject，所以 CFTypeRef 其实就是 AnyObject。而 AnyObject 又是所有类隐含遵守的协议。
+class Pencil { var type: String var price: Double init(_ type: String, _ price: Double) { self.type = type self.price = price } } CFGetRetainCount(Pencil(&amp;quot;2B&amp;quot;, 1." />
+<meta property="og:url" content="/posts/2018/weakly_collections/" />
+<meta property="og:site_name" content="在 Swift 中对集合类型元素的弱引用" />
+<meta property="og:image" content="">
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+<meta property="article:published_time" content="2018-03-08 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="">
+
+
+<div class="container center">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    iBlog
+  </div>
+</a>
+
+    </div>
+    <div class="menu-trigger">menu</div>
+  </div>
+  
+  
+    
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  
+
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="/posts/2018/weakly_collections/">在 Swift 中对集合类型元素的弱引用</a></h1>
+  <div class="post-meta">
+    <span class="post-date">
+      2018-03-08
+    </span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="/tags/practice/">Practice</a>&nbsp;
+    
+    #<a href="/tags/ios/">iOS</a>&nbsp;
+    
+    #<a href="/tags/swift/">Swift</a>&nbsp;
+    
+  </span>
+  
+
+  
+
+  <div class="post-content">
+    
+
+<table>
+<thead>
+<tr>
+<th align="center">Date</th>
+<th align="center">Notes</th>
+<th align="center">Swift</th>
+<th align="center">Xcode</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center">2018-03-15</td>
+<td align="center">更新部分表述，并将题目扩展至集合类型</td>
+<td align="center">4.0</td>
+<td align="center">9.2</td>
+</tr>
+
+<tr>
+<td align="center">2018-03-08</td>
+<td align="center">首次提交</td>
+<td align="center">4.0</td>
+<td align="center">9.2</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="preface">Preface</h2>
+
+<p>为了方便下述 Demo，这里定义一个 Pencil 类，并会使用 <code>func CFGetRetainCount(_ cf: CoreFoundation.CFTypeRef!) -&gt; CFIndex</code> 方法，即传入一个 <code>CFTypeRef</code> 类型的对象即可获取其引用计数。什么是 <code>CFTypeRef</code>？查阅<a href="https://developer.apple.com/documentation/corefoundation/cftyperef">官方文档</a>即可得知 <code>typealias CFTypeRef = AnyObject</code>，所以 <code>CFTypeRef</code> 其实就是 <code>AnyObject</code>。而 <code>AnyObject</code> 又是所有类隐含遵守的协议。</p>
+
+<pre><code class="language-Swift">class Pencil {
+    var type: String
+    var price: Double
+    
+    init(_ type: String, _ price: Double) {
+        self.type = type
+        self.price = price
+    }
+}
+
+CFGetRetainCount(Pencil(&quot;2B&quot;, 1.0) as CFTypeRef)
+// 1
+
+let pencil2B = Pencil(&quot;2B&quot;, 1.0)
+let pencilHB = Pencil(&quot;HB&quot;, 2.0)
+
+CFGetRetainCount(pencil2B as CFTypeRef)
+CFGetRetainCount(pencilHB as CFTypeRef)
+// 2 2
+</code></pre>
+
+<h2 id="what">What</h2>
+
+<p>在 Swift 中，当创建一个数组时，数组本身对于添加进去的对象元素默认是强引用（Strong），会使得其引用计数自增。</p>
+
+<pre><code>let pencilBox = [pencil2B, pencilHB]
+
+CFGetRetainCount(pencil2B as CFTypeRef)
+CFGetRetainCount(pencilHB as CFTypeRef)
+// 3 3
+</code></pre>
+
+<p>那么今天的问题即是，如何使得数组本身对数组元素进行弱引用？</p>
+
+<h2 id="how">How</h2>
+
+<h3 id="weakbox">WeakBox</h3>
+
+<pre><code class="language-Swift">final class WeakBox&lt;A: AnyObject&gt; {
+    weak var unbox: A?
+    init(_ value: A) {
+        unbox = value
+    }
+}
+
+struct WeakArray&lt;Element: AnyObject&gt; {
+    private var items: [WeakBox&lt;Element&gt;] = []
+    
+    init(_ elements: [Element]) {
+        items = elements.map { WeakBox($0) }
+    }
+}
+
+extension WeakArray: Collection {
+    var startIndex: Int { return items.startIndex }
+    var endIndex: Int { return items.endIndex }
+    
+    subscript(_ index: Int) -&gt; Element? {
+        return items[index].unbox
+    }
+    
+    func index(after idx: Int) -&gt; Int {
+        return items.index(after: idx)
+    }
+}
+</code></pre>
+
+<p>定义好一个可以将所有类型的对象转化为弱引用的类，再通过构建好的新类型，将每个强引用元素转换为弱引用元素。利用 Extension，还可以遵守协议，扩展一些集合方法。</p>
+
+<pre><code class="language-Swift">let weakPencilBox1 = WeakArray([pencil2B, pencilHB])
+
+CFGetRetainCount(pencil2B as CFTypeRef)
+CFGetRetainCount(pencilHB as CFTypeRef)
+// 3 3
+
+let firstElement = weakPencilBox1.filter { $0 != nil }.first
+firstElement!!.type
+// 2B
+
+CFGetRetainCount(pencil2B as CFTypeRef)
+CFGetRetainCount(pencilHB as CFTypeRef)
+// 4 3 Note: 这里的 4 是因为 firstElement 持有（Retain）了 pencil2B，导致其引用计数增 1
+</code></pre>
+
+<h3 id="nspointerarray">NSPointerArray</h3>
+
+<pre><code class="language-Swift">let weakPencilBox2 = NSPointerArray.weakObjects()
+
+let pencil2BPoiter = Unmanaged.passUnretained(pencil2B).toOpaque()
+let pencilHBPoiter = Unmanaged.passUnretained(pencilHB).toOpaque()
+
+CFGetRetainCount(pencil2B as CFTypeRef)
+CFGetRetainCount(pencilHB as CFTypeRef)
+// 4 3
+
+weakPencilBox2.addPointer(pencil2BPoiter)
+weakPencilBox2.addPointer(pencilHBPoiter)
+
+CFGetRetainCount(pencil2B as CFTypeRef)
+CFGetRetainCount(pencilHB as CFTypeRef)
+// 4 3
+</code></pre>
+
+<blockquote>
+<p>A collection similar to an array, but with a broader range of available memory semantics.</p>
+
+<p>— <a href="https://developer.apple.com/documentation/foundation/nspointerarray"><em>Apple Documentation</em></a></p>
+</blockquote>
+
+<p>即 <code>NSPointerArray</code> 比普通的 <code>NSArray</code> 多了一层内存语义。可以更方便的控制其中元素的引用关系，但少了 Swift 中着重强调的类型安全，所以更推荐第一种做法。</p>
+
+<h3 id="extension">Extension</h3>
+
+<p>其实不只是数组，集合类型的数据结构对其中的元素默认均是强引用。所以为了更加方便地自定义内存管理方式，Objective-C/Swift 中均有普通类型的对应。但在目前的 Swift 中，<code>NSHashTable</code> 和 <code>NSMapTable</code> 均需要指定类型，更加的类型安全（在网上的过时资料中可以看出，之前的 Swift 也没有规定需指定类型），而在 Objective-C 中只要满足 <code>id</code> 类型即可。</p>
+
+<ul>
+<li><code>NSHashTable</code>:</li>
+</ul>
+
+<pre><code class="language-Swift">// NSHashTable - NSSet
+let weakPencilSet = NSHashTable&lt;Pencil&gt;(options: .weakMemory)
+
+weakPencilSet.add(pencil2B)
+weakPencilSet.add(pencilHB)
+</code></pre>
+
+<ul>
+<li><code>NSMapTable</code>:</li>
+</ul>
+
+<pre><code class="language-Swift">// NSMapTable - NSDictionary
+class Eraser {
+    var type: String
+    
+    init(_ type: String) {
+        self.type = type
+    }
+}
+
+let weakPencilDict = NSMapTable&lt;Eraser, Pencil&gt;(keyOptions: .strongMemory, valueOptions: .weakMemory)
+let paintingEraser = Eraser(&quot;Painting&quot;)
+
+weakPencilDict.setObject(pencil2B, forKey: paintingEraser)
+</code></pre>
+
+<ul>
+<li>Objective-C:</li>
+</ul>
+
+<pre><code class="language-ObjC">NSHashTable *set = [NSHashTable hashTableWithOptions:NSPointerFunctionsWeakMemory];
+[set addObject:@&quot;Test&quot;];
+[set addObject:@12];
+</code></pre>
+
+<h2 id="reference">Reference</h2>
+
+<ul>
+<li><a href="https://www.objc.io/blog/2017/12/28/weak-arrays/">Weakly Arrays - objc.io</a></li>
+<li><a href="https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/AutomaticReferenceCounting.html">Automatic Reference Counting - The Swift Programming Language (Swift 4.1)</a></li>
+<li><a href="https://www.google.com.sg/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=1&amp;cad=rja&amp;uact=8&amp;ved=0ahUKEwi3lrPE4dnZAhWBLo8KHcimAwwQFggqMAA&amp;url=https%3A%2F%2Fstackoverflow.com%2Fquestions%2F24127587%2Fhow-do-i-declare-an-array-of-weak-references-in-swift&amp;usg=AOvVaw0XHV471sUykyviiUH7TX2o">How do I declare an array of weak references in Swift? - StackOverflow</a></li>
+<li><a href="https://marcosantadev.com/swift-arrays-holding-elements-weak-references/">Swift Arrays Holding Elements With Weak References - Macro Santa</a></li>
+<li><a href="http://www.saitjr.com/ios/nspointerarray-nsmaptable-nshashtable.html">Cocoa 集合类型：NSPointerArray，NSMapTable，NSHashTable</a></li>
+</ul>
+
+  </div>
+  
+  <div class="pagination">
+    <div class="pagination__title">
+      <span
+        class="pagination__title-h">Read other posts</span>
+      <hr />
+    </div>
+    <div class="pagination__buttons">
+      
+      <span class="button previous">
+        <a href="/posts/2018/ci_practice_in_ios-1/">
+          <span class="button__icon">←</span>
+          <span class="button__text">iOS 项目持续集成实践（一）</span>
+        </a>
+      </span>
+      
+      
+      <span class="button next">
+        <a href="/posts/2018/swift_autoclosure/">
+          <span class="button__text">Swift 中的 @autoclosure</span>
+          <span class="button__icon">→</span>
+        </a>
+      </span>
+      
+    </div>
+  </div>
+  
+
+  
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo="kingcos/kingcos.github.io"
+            issue-term="pathname"
+            label="comments"
+            theme="github-dark"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2019 · <a href="http://github.com/kingcos">kingcos</a></span>
+      </div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>iOS 项目持续集成实践（一） :: iBlog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="Preface 一个软件工程项目从编写、到测试、再最终交付到用户通常有很多重复且固定的步骤。虽然作为开发者，我们的核心任务是编写代码，而这些其他的步骤却也不能忽视，持续集成（Continuous Integration）则可以帮助开发者完成这些琐碎的事务，提升团队的开发效率与质量。
+本文将主要介绍持续集成是什么，以及其中的好处。当然，您可能也注意到了标题后面「（一）」，没错，持续集成并非一篇文章可以概括，笔者希望尽可能将目前团队中使用到的和持续集成相关的内容进行总结，目的是为了让大家一起思考如何让持续集成更好地服务我们开发。当然，限于笔者能力，文中不免出现遗漏，也望读者能够批评和指出。
+What 持续集成，译自 Continuous Integration，简称 CI（在下文中，将统一使用该英文简称）。在 Wikipedia 中，也有针对 CI 特别详细且专业的介绍。简而言之，当开发者通过版本控制系统（例如 Git）提交了代码，CI 系统将为其自动执行构建、分析、测试等服务，当前面的服务一致通过，其也能直接将产品部署到生产环境，而后进入下一个循环。其中每一步都将自动触发、执行，结果也将会自动反馈回开发者。正如下图所示，CI 的重点在于 C——持续。
+Why &amp;amp; Why not 那么为什么需要 CI 呢？相比于传统的先开发，再测试，后上线的模式有哪些好处呢？在团队使用 CI 这段时间中，得出了以下主要两个好处：
+ 及时发现错误。CI 并不能消除错误，但 CI 将发现错误的时机尽可能地提前，所以也更加节省时间来改正错误。当开发者提交代码至代码仓库时，其对于代码的熟悉程度是最高的。如果这个时候尽可能的纠正一些错误或不当，开发者将能很快注意到并将错误改正，避免了由于时间或者团队中其他人对于代码的修改所导致的问题，提升了开发效率。 自动化。市面上的 CI 平台都给了开发者比较高的自由度，能够执行脚本或命令。因此很多自动化的操作都可以制定好，来自动化地执行，节省开发者的时间。  如果这两个显而易见的好处还不足以说服，可以参考文末 Reference 中 EKATERINA NOVOSELTSEVA 的文章。那么 CI 会不会也存在什么难处呢？
+ 跨技术栈。CI 并不特定于前端或者后端，CI 通常根据不同的平台而有很多不同，包括配置的方法、使用的语言、自由度等等。CI 又和 Docker 的发展有一定的关系，因此跨技术栈可能让一些团队望而却步。不过好的是，DevOps（Development &amp;amp; Operations）也在国内渐渐兴起，越来越被重视。 跨平台。这里所指的平台是指代码托管平台、CI 平台、以及部署平台。在公司开始时，可能并不能轻易考虑到后续的发展，因此在原有平台加入 CI 可能需要跨平台的协作。对于一些「黑盒」的平台，有时便难以很好的集成。不过，现在 Git 的两大平台 GitHub 和 GitLab 都很重视且支持 CI 平台，也便于开发者使用。  如果后面两个问题并没有阻挠你，那么就开始尝试 CI 吧～
+How CI 并不依赖于某种特定的技术栈，其属于一种编程范式。但是，具体谈及如何实践，这就需要结合不同的工具和业务，进行定制。"/>
+<meta name="keywords" content=""/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2018/ci_practice_in_ios-1/" />
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+  <link rel="stylesheet" href="/assets/green.css">
+
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+
+<link rel="shortcut icon" href="/favicon.ico">
+
+
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="iOS 项目持续集成实践（一） :: iBlog — " />
+<meta name="twitter:description" content="Preface 一个软件工程项目从编写、到测试、再最终交付到用户通常有很多重复且固定的步骤。虽然作为开发者，我们的核心任务是编写代码，而这些其他的步骤却也不能忽视，持续集成（Continuous Integration）则可以帮助开发者完成这些琐碎的事务，提升团队的开发效率与质量。
+本文将主要介绍持续集成是什么，以及其中的好处。当然，您可能也注意到了标题后面「（一）」，没错，持续集成并非一篇文章可以概括，笔者希望尽可能将目前团队中使用到的和持续集成相关的内容进行总结，目的是为了让大家一起思考如何让持续集成更好地服务我们开发。当然，限于笔者能力，文中不免出现遗漏，也望读者能够批评和指出。
+What 持续集成，译自 Continuous Integration，简称 CI（在下文中，将统一使用该英文简称）。在 Wikipedia 中，也有针对 CI 特别详细且专业的介绍。简而言之，当开发者通过版本控制系统（例如 Git）提交了代码，CI 系统将为其自动执行构建、分析、测试等服务，当前面的服务一致通过，其也能直接将产品部署到生产环境，而后进入下一个循环。其中每一步都将自动触发、执行，结果也将会自动反馈回开发者。正如下图所示，CI 的重点在于 C——持续。
+Why &amp;amp; Why not 那么为什么需要 CI 呢？相比于传统的先开发，再测试，后上线的模式有哪些好处呢？在团队使用 CI 这段时间中，得出了以下主要两个好处：
+ 及时发现错误。CI 并不能消除错误，但 CI 将发现错误的时机尽可能地提前，所以也更加节省时间来改正错误。当开发者提交代码至代码仓库时，其对于代码的熟悉程度是最高的。如果这个时候尽可能的纠正一些错误或不当，开发者将能很快注意到并将错误改正，避免了由于时间或者团队中其他人对于代码的修改所导致的问题，提升了开发效率。 自动化。市面上的 CI 平台都给了开发者比较高的自由度，能够执行脚本或命令。因此很多自动化的操作都可以制定好，来自动化地执行，节省开发者的时间。  如果这两个显而易见的好处还不足以说服，可以参考文末 Reference 中 EKATERINA NOVOSELTSEVA 的文章。那么 CI 会不会也存在什么难处呢？
+ 跨技术栈。CI 并不特定于前端或者后端，CI 通常根据不同的平台而有很多不同，包括配置的方法、使用的语言、自由度等等。CI 又和 Docker 的发展有一定的关系，因此跨技术栈可能让一些团队望而却步。不过好的是，DevOps（Development &amp;amp; Operations）也在国内渐渐兴起，越来越被重视。 跨平台。这里所指的平台是指代码托管平台、CI 平台、以及部署平台。在公司开始时，可能并不能轻易考虑到后续的发展，因此在原有平台加入 CI 可能需要跨平台的协作。对于一些「黑盒」的平台，有时便难以很好的集成。不过，现在 Git 的两大平台 GitHub 和 GitLab 都很重视且支持 CI 平台，也便于开发者使用。  如果后面两个问题并没有阻挠你，那么就开始尝试 CI 吧～
+How CI 并不依赖于某种特定的技术栈，其属于一种编程范式。但是，具体谈及如何实践，这就需要结合不同的工具和业务，进行定制。" />
+<meta name="twitter:site" content="/" />
+<meta name="twitter:creator" content="" />
+<meta name="twitter:image" content="">
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="iOS 项目持续集成实践（一） :: iBlog — ">
+<meta property="og:description" content="Preface 一个软件工程项目从编写、到测试、再最终交付到用户通常有很多重复且固定的步骤。虽然作为开发者，我们的核心任务是编写代码，而这些其他的步骤却也不能忽视，持续集成（Continuous Integration）则可以帮助开发者完成这些琐碎的事务，提升团队的开发效率与质量。
+本文将主要介绍持续集成是什么，以及其中的好处。当然，您可能也注意到了标题后面「（一）」，没错，持续集成并非一篇文章可以概括，笔者希望尽可能将目前团队中使用到的和持续集成相关的内容进行总结，目的是为了让大家一起思考如何让持续集成更好地服务我们开发。当然，限于笔者能力，文中不免出现遗漏，也望读者能够批评和指出。
+What 持续集成，译自 Continuous Integration，简称 CI（在下文中，将统一使用该英文简称）。在 Wikipedia 中，也有针对 CI 特别详细且专业的介绍。简而言之，当开发者通过版本控制系统（例如 Git）提交了代码，CI 系统将为其自动执行构建、分析、测试等服务，当前面的服务一致通过，其也能直接将产品部署到生产环境，而后进入下一个循环。其中每一步都将自动触发、执行，结果也将会自动反馈回开发者。正如下图所示，CI 的重点在于 C——持续。
+Why &amp;amp; Why not 那么为什么需要 CI 呢？相比于传统的先开发，再测试，后上线的模式有哪些好处呢？在团队使用 CI 这段时间中，得出了以下主要两个好处：
+ 及时发现错误。CI 并不能消除错误，但 CI 将发现错误的时机尽可能地提前，所以也更加节省时间来改正错误。当开发者提交代码至代码仓库时，其对于代码的熟悉程度是最高的。如果这个时候尽可能的纠正一些错误或不当，开发者将能很快注意到并将错误改正，避免了由于时间或者团队中其他人对于代码的修改所导致的问题，提升了开发效率。 自动化。市面上的 CI 平台都给了开发者比较高的自由度，能够执行脚本或命令。因此很多自动化的操作都可以制定好，来自动化地执行，节省开发者的时间。  如果这两个显而易见的好处还不足以说服，可以参考文末 Reference 中 EKATERINA NOVOSELTSEVA 的文章。那么 CI 会不会也存在什么难处呢？
+ 跨技术栈。CI 并不特定于前端或者后端，CI 通常根据不同的平台而有很多不同，包括配置的方法、使用的语言、自由度等等。CI 又和 Docker 的发展有一定的关系，因此跨技术栈可能让一些团队望而却步。不过好的是，DevOps（Development &amp;amp; Operations）也在国内渐渐兴起，越来越被重视。 跨平台。这里所指的平台是指代码托管平台、CI 平台、以及部署平台。在公司开始时，可能并不能轻易考虑到后续的发展，因此在原有平台加入 CI 可能需要跨平台的协作。对于一些「黑盒」的平台，有时便难以很好的集成。不过，现在 Git 的两大平台 GitHub 和 GitLab 都很重视且支持 CI 平台，也便于开发者使用。  如果后面两个问题并没有阻挠你，那么就开始尝试 CI 吧～
+How CI 并不依赖于某种特定的技术栈，其属于一种编程范式。但是，具体谈及如何实践，这就需要结合不同的工具和业务，进行定制。" />
+<meta property="og:url" content="/posts/2018/ci_practice_in_ios-1/" />
+<meta property="og:site_name" content="iOS 项目持续集成实践（一）" />
+<meta property="og:image" content="">
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+<meta property="article:published_time" content="2018-07-07 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="">
+
+
+<div class="container center">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    iBlog
+  </div>
+</a>
+
+    </div>
+    <div class="menu-trigger">menu</div>
+  </div>
+  
+  
+    
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  
+
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="/posts/2018/ci_practice_in_ios-1/">iOS 项目持续集成实践（一）</a></h1>
+  <div class="post-meta">
+    <span class="post-date">
+      2018-07-07
+    </span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="/tags/practice/">Practice</a>&nbsp;
+    
+    #<a href="/tags/ios/">iOS</a>&nbsp;
+    
+    #<a href="/tags/devops/">DevOps</a>&nbsp;
+    
+  </span>
+  
+
+  
+
+  <div class="post-content">
+    
+
+<p><img src="/img/2018/CI_Practice_in_iOS-1/0.png" alt="CI in Practice" /></p>
+
+<h2 id="preface">Preface</h2>
+
+<p>一个软件工程项目从编写、到测试、再最终交付到用户通常有很多重复且固定的步骤。虽然作为开发者，我们的核心任务是编写代码，而这些其他的步骤却也不能忽视，持续集成（Continuous Integration）则可以帮助开发者完成这些琐碎的事务，提升团队的开发效率与质量。</p>
+
+<p>本文将主要介绍持续集成是什么，以及其中的好处。当然，您可能也注意到了标题后面「（一）」，没错，持续集成并非一篇文章可以概括，笔者希望尽可能将目前团队中使用到的和持续集成相关的内容进行总结，目的是为了让大家一起思考如何让持续集成更好地服务我们开发。当然，限于笔者能力，文中不免出现遗漏，也望读者能够批评和指出。</p>
+
+<h2 id="what">What</h2>
+
+<p>持续集成，译自 Continuous Integration，简称 CI（在下文中，将统一使用该英文简称）。在 Wikipedia 中，也有针对 CI 特别详细且专业的介绍。简而言之，当开发者通过版本控制系统（例如 Git）提交了代码，CI 系统将为其自动执行构建、分析、测试等服务，当前面的服务一致通过，其也能直接将产品部署到生产环境，而后进入下一个循环。其中每一步都将自动触发、执行，结果也将会自动反馈回开发者。正如下图所示，CI 的重点在于 C——持续。</p>
+
+<p><img src="/img/2018/CI_Practice_in_iOS-1/1.png" alt="CI" /></p>
+
+<h2 id="why-why-not">Why &amp; Why not</h2>
+
+<p>那么为什么需要 CI 呢？相比于传统的先开发，再测试，后上线的模式有哪些好处呢？在团队使用 CI 这段时间中，得出了以下主要两个好处：</p>
+
+<ol>
+<li>及时发现错误。CI 并不能消除错误，但 CI 将发现错误的时机尽可能地提前，所以也更加节省时间来改正错误。当开发者提交代码至代码仓库时，其对于代码的熟悉程度是最高的。如果这个时候尽可能的纠正一些错误或不当，开发者将能很快注意到并将错误改正，避免了由于时间或者团队中其他人对于代码的修改所导致的问题，提升了开发效率。</li>
+<li>自动化。市面上的 CI 平台都给了开发者比较高的自由度，能够执行脚本或命令。因此很多自动化的操作都可以制定好，来自动化地执行，节省开发者的时间。</li>
+</ol>
+
+<p>如果这两个显而易见的好处还不足以说服，可以参考文末 Reference 中 EKATERINA NOVOSELTSEVA 的文章。那么 CI 会不会也存在什么难处呢？</p>
+
+<ol>
+<li>跨技术栈。CI 并不特定于前端或者后端，CI 通常根据不同的平台而有很多不同，包括配置的方法、使用的语言、自由度等等。CI 又和 Docker 的发展有一定的关系，因此跨技术栈可能让一些团队望而却步。不过好的是，DevOps（Development &amp; Operations）也在国内渐渐兴起，越来越被重视。</li>
+<li>跨平台。这里所指的平台是指代码托管平台、CI 平台、以及部署平台。在公司开始时，可能并不能轻易考虑到后续的发展，因此在原有平台加入 CI 可能需要跨平台的协作。对于一些「黑盒」的平台，有时便难以很好的集成。不过，现在 Git 的两大平台 GitHub 和 GitLab 都很重视且支持 CI 平台，也便于开发者使用。</li>
+</ol>
+
+<p>如果后面两个问题并没有阻挠你，那么就开始尝试 CI 吧～</p>
+
+<h2 id="how">How</h2>
+
+<p>CI 并不依赖于某种特定的技术栈，其属于一种编程范式。但是，具体谈及如何实践，这就需要结合不同的工具和业务，进行定制。</p>
+
+<h3 id="jenkins">Jenkins</h3>
+
+<p><img src="/img/2018/CI_Practice_in_iOS-1/2.png" alt="Jenkins" /></p>
+
+<p>Jenkins 是一款使用 Java 开发且开源的持续集成工具，很多 iOS 团队内部都会使用 Jenkins &amp; Fastlane 来自动化打包。因为 Jenkins 是开源的，可以方便地部署在自己的服务器中，而且也有很多插件来辅助不同的技术栈和功能需求。Swift 官方也使用了 Jenkins 作为自己的 CI。</p>
+
+<p><img src="/img/2018/CI_Practice_in_iOS-1/3.png" alt="ci.swift.org" /></p>
+
+<h3 id="github-with-travis-ci">GitHub with Travis CI</h3>
+
+<p><img src="/img/2018/CI_Practice_in_iOS-1/4.png" alt="Travis CI" /></p>
+
+<p>GitHub，人尽皆知，是全球最大的代码托管平台，但 GitHub 本身并没有集成 CI。但有很多 CI 平台为 GitHub 定制 CI 环境，其中使用较多的便是 Travis CI。在 GitHub 仓库中看到有 <code>.travis.yml</code> 文件便意味着该仓库集成了 Travis CI。对于开源的项目，可以选择它就不用开发者再单独配置服务器来运作 CI，当然速度可能会慢些。之前在写个人的一个命令行工具时，便尝试使用了 Travis CI，而且可以非常容易的将 CI 状态和代码覆盖率的 Budge 标示在项目文档中。</p>
+
+<p><img src="/img/2018/CI_Practice_in_iOS-1/5.png" alt="kingcos/WWDCHelper" /></p>
+
+<h3 id="gitlab-with-ci">GitLab with CI</h3>
+
+<p><img src="/img/2018/CI_Practice_in_iOS-1/6.png" alt="GitLab" /></p>
+
+<p>相比于上述的几个平台，GitLab 真正把代码托管和 CI 结合了起来，并在最新 Release 版中加入了 Auto DevOps，似乎是更加先进的 CI。团队内部目前使用的便是 GitLab EE，后续就将以 GitLab 为主，讲讲其中配合 GitLab Runner 来规范化开发流程。</p>
+
+<h2 id="reference">Reference</h2>
+
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/Continuous_integration">Continuous integration - Wikipedia</a></li>
+<li><a href="https://apiumtech.com/blog/top-benefits-of-continuous-integration-2/">Top benefits of continuous integration - EKATERINA NOVOSELTSEVA</a></li>
+<li><a href="https://jenkins.io">Jenkins</a></li>
+<li><a href="https://travis-ci.org">Travis CI</a></li>
+<li><a href="https://gitlab.com">GitLab</a></li>
+</ul>
+
+  </div>
+  
+  <div class="pagination">
+    <div class="pagination__title">
+      <span
+        class="pagination__title-h">Read other posts</span>
+      <hr />
+    </div>
+    <div class="pagination__buttons">
+      
+      <span class="button previous">
+        <a href="/posts/2018/dyld_shared_cache/">
+          <span class="button__icon">←</span>
+          <span class="button__text">谈谈 iOS 中的 dyld_shared_cache</span>
+        </a>
+      </span>
+      
+      
+      <span class="button next">
+        <a href="/posts/2018/weakly_collections/">
+          <span class="button__text">在 Swift 中对集合类型元素的弱引用</span>
+          <span class="button__icon">→</span>
+        </a>
+      </span>
+      
+    </div>
+  </div>
+  
+
+  
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo="kingcos/kingcos.github.io"
+            issue-term="pathname"
+            label="comments"
+            theme="github-dark"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2019 · <a href="http://github.com/kingcos">kingcos</a></span>
+      </div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>Obj-C 中的对象 :: iBlog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="Date Notes Source Code     2019-03-18 首次提交 objc4-750    对象的分类 Obj-C 中的对象，主要有三种，实例对象（Instance Object）、类对象（Class Object）、以及元类对象（Meta-class Object）。类对象和元类对象的类型均为 Class，即 typedef struct objc_class *Class;，所以它们的结构其实是一致的，只是存放的内容不同。
+定义一个继承自 NSObject 的 Computer 类，方便后续的 Demo。
+// EDdeviceProtocol 协议 @protocol EDdeviceProtocol - (void)powerOn; @end // Computer 类，继承自 NSObject，遵守 EDdeviceProtocol @interface Computer : NSObject &amp;lt;EDdeviceProtocol&amp;gt; { // 成员变量 @public int _memorySize; int _diskSize; } // 属性 @property (copy) NSString *model; // 实例方法 - (void)print:(NSString *)content; // 类方法 &#43; (NSString *)arch; @end @implementation Computer - (void)print:(NSString *)content { NSLog(@&amp;quot;Print Content: %@&amp;quot;, content); } // 协议方法 - (void)powerOn { NSLog(@&amp;quot;Start."/>
+<meta name="keywords" content=""/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2019/objects_in_obj-c/" />
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+  <link rel="stylesheet" href="/assets/green.css">
+
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+
+<link rel="shortcut icon" href="/favicon.ico">
+
+
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Obj-C 中的对象 :: iBlog — " />
+<meta name="twitter:description" content="Date Notes Source Code     2019-03-18 首次提交 objc4-750    对象的分类 Obj-C 中的对象，主要有三种，实例对象（Instance Object）、类对象（Class Object）、以及元类对象（Meta-class Object）。类对象和元类对象的类型均为 Class，即 typedef struct objc_class *Class;，所以它们的结构其实是一致的，只是存放的内容不同。
+定义一个继承自 NSObject 的 Computer 类，方便后续的 Demo。
+// EDdeviceProtocol 协议 @protocol EDdeviceProtocol - (void)powerOn; @end // Computer 类，继承自 NSObject，遵守 EDdeviceProtocol @interface Computer : NSObject &amp;lt;EDdeviceProtocol&amp;gt; { // 成员变量 @public int _memorySize; int _diskSize; } // 属性 @property (copy) NSString *model; // 实例方法 - (void)print:(NSString *)content; // 类方法 &#43; (NSString *)arch; @end @implementation Computer - (void)print:(NSString *)content { NSLog(@&amp;quot;Print Content: %@&amp;quot;, content); } // 协议方法 - (void)powerOn { NSLog(@&amp;quot;Start." />
+<meta name="twitter:site" content="/" />
+<meta name="twitter:creator" content="" />
+<meta name="twitter:image" content="">
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Obj-C 中的对象 :: iBlog — ">
+<meta property="og:description" content="Date Notes Source Code     2019-03-18 首次提交 objc4-750    对象的分类 Obj-C 中的对象，主要有三种，实例对象（Instance Object）、类对象（Class Object）、以及元类对象（Meta-class Object）。类对象和元类对象的类型均为 Class，即 typedef struct objc_class *Class;，所以它们的结构其实是一致的，只是存放的内容不同。
+定义一个继承自 NSObject 的 Computer 类，方便后续的 Demo。
+// EDdeviceProtocol 协议 @protocol EDdeviceProtocol - (void)powerOn; @end // Computer 类，继承自 NSObject，遵守 EDdeviceProtocol @interface Computer : NSObject &amp;lt;EDdeviceProtocol&amp;gt; { // 成员变量 @public int _memorySize; int _diskSize; } // 属性 @property (copy) NSString *model; // 实例方法 - (void)print:(NSString *)content; // 类方法 &#43; (NSString *)arch; @end @implementation Computer - (void)print:(NSString *)content { NSLog(@&amp;quot;Print Content: %@&amp;quot;, content); } // 协议方法 - (void)powerOn { NSLog(@&amp;quot;Start." />
+<meta property="og:url" content="/posts/2019/objects_in_obj-c/" />
+<meta property="og:site_name" content="Obj-C 中的对象" />
+<meta property="og:image" content="">
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+<meta property="article:published_time" content="2019-03-18 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="">
+
+
+<div class="container center">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    iBlog
+  </div>
+</a>
+
+    </div>
+    <div class="menu-trigger">menu</div>
+  </div>
+  
+  
+    
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  
+
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="/posts/2019/objects_in_obj-c/">Obj-C 中的对象</a></h1>
+  <div class="post-meta">
+    <span class="post-date">
+      2019-03-18
+    </span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="/tags/focus/">Focus</a>&nbsp;
+    
+    #<a href="/tags/ios/">iOS</a>&nbsp;
+    
+    #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
+    
+  </span>
+  
+
+  
+
+  <div class="post-content">
+    
+
+<table>
+<thead>
+<tr>
+<th align="center">Date</th>
+<th align="center">Notes</th>
+<th align="center">Source Code</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center">2019-03-18</td>
+<td align="center">首次提交</td>
+<td align="center"><a href="https://opensource.apple.com/tarballs/objc4/">objc4-750</a></td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="对象的分类">对象的分类</h2>
+
+<p>Obj-C 中的对象，主要有三种，实例对象（Instance Object）、类对象（Class Object）、以及元类对象（Meta-class Object）。类对象和元类对象的类型均为 <code>Class</code>，即 <code>typedef struct objc_class *Class;</code>，所以它们的结构其实是一致的，只是存放的内容不同。</p>
+
+<p><img src="/img/2019/Objects_in_Obj-C/1.png" alt="" /></p>
+
+<p>定义一个继承自 <code>NSObject</code> 的 <code>Computer</code> 类，方便后续的 Demo。</p>
+
+<pre><code class="language-objectivec">// EDdeviceProtocol 协议
+@protocol EDdeviceProtocol
+- (void)powerOn;
+@end
+
+// Computer 类，继承自 NSObject，遵守 EDdeviceProtocol
+@interface Computer : NSObject &lt;EDdeviceProtocol&gt; {
+// 成员变量
+@public
+    int _memorySize;
+    int _diskSize;
+}
+
+// 属性
+@property (copy) NSString *model;
+
+// 实例方法
+- (void)print:(NSString *)content;
+
+// 类方法
++ (NSString *)arch;
+@end
+
+@implementation Computer
+- (void)print:(NSString *)content {
+    NSLog(@&quot;Print Content: %@&quot;, content);
+}
+
+// 协议方法
+- (void)powerOn {
+    NSLog(@&quot;Start...&quot;);
+}
+
++ (NSString *)arch {
+    return @&quot;Von Neumann architecture&quot;;
+}
+@end
+</code></pre>
+
+<h2 id="实例对象">实例对象</h2>
+
+<pre><code class="language-objectivec">// cpt 为指向 Computer 类型实例对象的指针
+Computer *cpt = [[Computer alloc] init];
+cpt-&gt;_memorySize = 16;
+cpt-&gt;_diskSize = 512;
+cpt.model = @&quot;MacBook Pro 13'&quot;;
+// Direct access to Objective-C's isa is deprecated in favor of object_getClass()
+// cpt-&gt;isa;
+</code></pre>
+
+<p>我们可以手动创建一个 <code>Computer</code> 类型的实例对象，<code>cpt</code> 指向的实例对象中存放了继承自 <code>NSObject</code> 基类的 <code>isa</code> 指针成员变量，但是当我们尝试直接读取时会无法编译通过，因为该 API 已经被标记为过时了，编译器提醒可以使用 <code>object_getClass()</code> 取而代之；另外，它还存放了其它成员变量以及属性的具体值。</p>
+
+<pre><code class="language-objectivec">// NSObject.h
+@interface NSObject &lt;NSObject&gt; {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored &quot;-Wobjc-interface-ivars&quot;
+    Class isa  OBJC_ISA_AVAILABILITY;
+#pragma clang diagnostic pop
+}
+</code></pre>
+
+<h2 id="类对象">类对象</h2>
+
+<p>与实例对象不同，类对象和元类对象并不需要我们手动创建。类对象中存放了 <code>isa</code> 指针、<code>superclass</code> 指针、以及为所有该类实例对象公用的信息。它并不存放成员变量以及属性的具体值，但存放了诸如名称、类型等信息；它还存放了该类的对象方法、遵守的协议信息等，因为这些公共信息对于一个类只保存一份即可。</p>
+
+<pre><code class="language-objectivec">// 获取类对象的方法：
+Class cptClass1 = [cpt class];
+Class cptClass2 = [Computer class];
+Class cptClass3 = object_getClass(cpt);
+
+// LLDB:
+// (lldb) p/x cptClass1
+// (Class) $0 = 0x00000001000013d0 Computer
+// (lldb) p/x cptClass2
+// (Class) $1 = 0x00000001000013d0 Computer
+// (lldb) p/x cptClass3
+// (Class) $1 = 0x00000001000013d0 Computer
+</code></pre>
+
+<p>类对象可以通过实例对象通过 <code>[obj class]</code>、<code>[Computer class]</code> 或 Runtime API <code>object_getClass</code> 获取。类对象的类型都是 <code>Class</code>，但在 Xcode 中并没有直接暴露该类型。</p>
+
+<pre><code class="language-objectivec">// Object.mm
+typedef struct objc_class *Class;
+
+// objc-runtime-new.h
+struct objc_class : objc_object {
+    // Class ISA;
+    // ➡️ 父类指针
+    Class superclass;
+    cache_t cache;             // formerly cache pointer and vtable
+    class_data_bits_t bits;    // class_rw_t * plus custom rr/alloc flags
+
+    class_rw_t *data() { 
+        return bits.data();
+    }
+
+    // ...
+};
+
+// objc-private.h
+struct objc_object {
+private:
+    // ➡️ isa 指针
+    isa_t isa;
+    
+// ...
+}
+
+// objc-runtime-new.h
+struct class_rw_t {
+    // Be warned that Symbolication knows the layout of this structure.
+    uint32_t flags;
+    uint32_t version;
+
+    const class_ro_t *ro;
+
+    // ➡️ 方法、属性、协议信息
+    method_array_t methods;
+    property_array_t properties;
+    protocol_array_t protocols;
+
+    // ...
+};
+
+// objc-runtime-new.h
+struct class_ro_t {
+    uint32_t flags;
+    uint32_t instanceStart;
+    // ➡️ 实例大小
+    uint32_t instanceSize;
+#ifdef __LP64__
+    uint32_t reserved;
+#endif
+
+    const uint8_t * ivarLayout;
+    
+    // ➡️ 类名
+    const char * name;
+    method_list_t * baseMethodList;
+    protocol_list_t * baseProtocols;
+    // ➡️ 成员变量
+    const ivar_list_t * ivars;
+
+    const uint8_t * weakIvarLayout;
+    property_list_t *baseProperties;
+
+    method_list_t *baseMethods() const {
+        return baseMethodList;
+    }
+};
+</code></pre>
+
+<p>但在 objc4 源码中，我们可以找到 <code>Class</code> 的定义，它是一个指向 <code>objc_class</code> 结构体的指针。<code>objc_class</code> 继承的父类 <code>objc_object</code> 只有一个成员变量，即 <code>isa</code>。<code>objc_class</code> 自身还拥有 <code>superclass</code>、<code>bits</code> 等成员变量，<code>bits</code> 中的 <code>data()</code> 存放了指向 <code>class_rw_t</code> 的指针，即一些可读可写的数据（表）；<code>class_rw_t</code>，里面又包含了 <code>methods</code> 方法列表、<code>properties</code> 属性列表、<code>protocols</code> 列表、以及一个指向 <code>class_ro_t</code> 类型的指针（该指针为 <code>const</code> 不可变更指向地址），存放只读的数据（表）；<code>class_ro_t</code> 结构体里存放了 <code>instanceSize</code> 实例大小、<code>ivars</code> 成员变量等数据。</p>
+
+<p>Obj-C 中，将类对象作为了一个透明类型，让我们无需关心其内部实现细节，但因为代码已经开源，所以我们尝试下将 <code>Computer</code> 类对象的结构展示出来。</p>
+
+<pre><code class="language-objectivec">#ifndef objc_header_h
+#define objc_header_h
+
+typedef struct v_objc_class *VClass;
+
+union isa_t {
+    VClass cls;
+    uintptr_t bits;
+};
+
+template &lt;typename Element&gt;
+struct entsize_list_tt {
+    uint32_t entsizeAndFlags;
+    uint32_t count;
+    Element first;
+};
+
+struct ivar_t {
+#if __x86_64__
+    // *offset was originally 64-bit on some x86_64 platforms.
+    // We read and write only 32 bits of it.
+    // Some metadata provides all 64 bits. This is harmless for unsigned
+    // little-endian values.
+    // Some code uses all 64 bits. class_addIvar() over-allocates the
+    // offset for their benefit.
+#endif
+    int32_t *offset;
+    const char *name;
+    const char *type;
+    // alignment is sometimes -1; use alignment() instead
+    uint32_t alignment_raw;
+    uint32_t size;
+};
+
+struct ivar_list_t : entsize_list_tt&lt;ivar_t&gt; {
+};
+
+struct method_t {
+    SEL name;
+    const char *types;
+    IMP imp;
+};
+
+struct method_list_t : entsize_list_tt&lt;method_t&gt; {
+};
+
+struct protocol_list_t {
+    // count is 64-bit by accident.
+    uintptr_t count;
+};
+
+struct property_t {
+    const char *name;
+    const char *attributes;
+};
+
+struct property_list_t : entsize_list_tt&lt;property_t&gt; {
+};
+
+struct class_ro_t {
+    uint32_t flags;
+    uint32_t instanceStart;
+    uint32_t instanceSize;
+#ifdef __LP64__
+    uint32_t reserved;
+#endif
+    
+    const uint8_t * ivarLayout;
+    
+    const char * name;
+    method_list_t * baseMethodList;
+    protocol_list_t * baseProtocols;
+    const ivar_list_t * ivars;
+    
+    const uint8_t * weakIvarLayout;
+    property_list_t *baseProperties;
+};
+
+struct class_rw_t {
+    // Be warned that Symbolication knows the layout of this structure.
+    uint32_t flags;
+    uint32_t version;
+
+    const class_ro_t *ro;
+
+    method_list_t *methods;
+    property_list_t *properties;
+    protocol_list_t *protocols;
+};
+
+#define FAST_DATA_MASK          0x00007ffffffffff8UL
+struct class_data_bits_t {
+    // Values are the FAST_ flags above.
+    uintptr_t bits;
+public:
+    class_rw_t* data() {
+        return (class_rw_t *)(bits &amp; FAST_DATA_MASK);
+    }
+};
+
+typedef uintptr_t cache_key_t;
+struct bucket_t {
+    IMP _imp;
+    cache_key_t _key;
+};
+
+typedef uint32_t mask_t;  // x86_64 &amp; arm64 asm are less efficient with 16-bits
+struct cache_t {
+    struct bucket_t *_buckets;
+    mask_t _mask;
+    mask_t _occupied;
+};
+
+struct v_objc_object {
+    union isa_t isa;
+};
+
+struct v_objc_class : v_objc_object {
+    // Class ISA;
+    VClass superclass;
+    cache_t cache;             // formerly cache pointer and vtable
+    class_data_bits_t bits;    // class_rw_t * plus custom rr/alloc flags
+    
+    class_rw_t *data() {
+        return bits.data();
+    }
+};
+
+#endif /* objc_header_h */
+</code></pre>
+
+<p>将以上内容放进一个头文件中，即可使用我们定义好结构的指针指向类对象的内存空间。需要注意的是，以上代码含有 C++ 语法，所以引入该头文件的 <code>.m</code> 文件需要改名为 <code>.mm</code>，即 Objective-C++ 文件类型。</p>
+
+<pre><code class="language-objectivec">VClass cptVClass = (__bridge VClass)[Computer class];
+class_rw_t *rwt = cptVClass-&gt;data();
+
+// LLDB:
+// 对象方法
+// Printing description of rwt-&gt;methods-&gt;first:
+// (method_t) first = {
+//     name = &quot;coresCount&quot;
+//     types = 0x0000000100000f94 &quot;i16@0:8&quot;
+//     imp = 0x0000000100000d80 (DemoOC`::-[Computer coresCount]() at main.mm:36)
+// }
+// 属性
+// Printing description of rwt-&gt;properties-&gt;first:
+// (property_t) first = (name = &quot;coresCount&quot;, attributes = &quot;Ti,N,V_coresCount&quot;)
+// 协议
+// Printing description of rwt-&gt;protocols-&gt;count:
+// (uintptr_t) count = 1
+// 成员变量
+// (lldb) p rwt-&gt;ro-&gt;ivars-&gt;first
+// (const ivar_t) $3 = {
+//   offset = 0x00000001000012c0
+//   name = 0x0000000100000f5c &quot;_memorySize&quot;
+//   type = 0x0000000100000fa7 &quot;i&quot;
+//   alignment_raw = 2
+//   size = 4
+// }
+</code></pre>
+
+<h2 id="元类对象">元类对象</h2>
+
+<p>元类对象和类对象一样，都是 <code>Class</code> 类型。但元类对象只可以通过 Runtime 的 <code>object_getClass</code> API 传入类对象，获取到元类对象。需要注意的是 <code>[[Computer class] class]</code> 或 <code>[[cpt class] class]</code> 都只能返回类对象。</p>
+
+<p>对于 <code>object_getClass</code>，如果参数是实例对象，返回类对象；如果参数是类对象，返回元类对象；如果参数是元类对象，返回 NSObject（基类）的元类对象。<code>class_isMetaClass</code> 可以用来检查 <code>Class</code> 是否为元类对象。</p>
+
+<pre><code class="language-objectivec">VClass cptMetaVClass = (__bridge VClass)object_getClass([Computer class]);
+class_rw_t *rwt = cptMetaVClass-&gt;data();
+
+// LLDB:
+// Printing description of rwt-&gt;methods-&gt;first:
+// (method_t) first = {
+//     name = &quot;arch&quot;
+//     types = 0x0000000100000f86 &quot;@16@0:8&quot;
+//     imp = 0x0000000100000d40 (DemoOC`::+[Computer arch]() at main.mm:52)
+// }
+</code></pre>
+
+<p>元类对象中除了存储 <code>isa</code> 和 <code>superclass</code> 指针，还存储了类方法。其存放位置和类对象存放实例方法的存放位置（方法列表）一致。</p>
+
+<h2 id="isa">isa</h2>
+
+<p><img src="/img/2019/Objects_in_Obj-C/2.png" alt="" /></p>
+
+<p><code>isa</code> 是所有类型的对象中都存在的一个成员，其定义在基类 <code>NSObject</code> 内部。实例对象中的 <code>isa</code> 指向类对象，类对象中的 <code>isa</code> 指向元类对象，元类对象中的 <code>isa</code> 指向根元类对象（包括根元类对象也指向自己）。</p>
+
+<h3 id="isa-mask">ISA_MASK</h3>
+
+<pre><code class="language-objectivec">// isa.h
+# if __arm64__
+#   define ISA_MASK        0x0000000ffffffff8ULL
+# elif __x86_64__
+#   define ISA_MASK        0x00007ffffffffff8ULL
+# end
+
+// objc-object.h
+inline Class 
+objc_object::ISA() 
+{
+    assert(!isTaggedPointer()); 
+#if SUPPORT_INDEXED_ISA
+    if (isa.nonpointer) {
+        uintptr_t slot = isa.indexcls;
+        return classForIndex((unsigned)slot);
+    }
+    return (Class)isa.bits;
+#else
+    return (Class)(isa.bits &amp; ISA_MASK);
+#endif
+}
+</code></pre>
+
+<p>64 位系统之后，<code>isa</code> 需要与 <code>ISA_MASK</code> 按位与（<code>&amp;</code>）运算后才能得到真实的地址：</p>
+
+<pre><code class="language-objectivec">// 实例对象
+Computer *cpt = [[Computer alloc] init];    
+// 类对象
+VClass cptClass = (__bridge VClass)object_getClass(cpt);
+// 元类对象
+VClass cptMetaClass = (__bridge VClass)object_getClass([Computer class]);
+
+// LLDB:
+// (lldb) p/x cpt-&gt;isa
+// (Class) $0 = 0x001d800100001289 Computer
+// (lldb) p/x cptClass
+// (VClass) $1 = 0x0000000100001288
+// (lldb) p/x 0x001d800100001289 &amp; 0x00007ffffffffff8ULL
+// (unsigned long long) $2 = 0x0000000100001288
+// 
+// (lldb) p/x cptClass-&gt;isa
+// (void *) $3 = 0x001d800100001261
+// (lldb) p/x cptMetaClass
+// (VClass) $4 = 0x0000000100001260
+// (lldb) p/x 0x001d800100001261 &amp; 0x00007ffffffffff8ULL
+// (unsigned long long) $5 = 0x0000000100001260
+// 
+// (lldb) p/x cptMetaClass-&gt;isa
+// (void *) $6 = 0x001dffffaa5660f1
+// (lldb) p/x (__bridge VClass)object_getClass(cptMetaClass)
+// (VClass) $7 = 0x00007fffaa5660f0
+// (lldb) p/x 0x001dffffaa5660f1 &amp; 0x00007ffffffffff8ULL
+// (unsigned long long) $8 = 0x00007fffaa5660f0
+</code></pre>
+
+<h2 id="superclass">superclass</h2>
+
+<p><img src="/img/2019/Objects_in_Obj-C/3.png" alt="" /></p>
+
+<p><code>superclass</code> 是仅存在于类对象和元类对象的一个成员。类对象中的 <code>superclass</code> 指向当前类的父类，元类对象中的 <code>superclass</code> 指向该元类对象的父类。基类 <code>NSObject</code> 的 <code>superclass</code> 指向 <code>nil</code>，根元类对象的 <code>superclass</code> 指向基类 <code>NSObject</code> 的类对象。</p>
+
+<h2 id="isa-superclass">isa &amp; superclass</h2>
+
+<ul>
+<li><code>isa</code> 将实例对象与类对象、元类对象连接起来；<code>superclass</code> 将子类、父类、基类连接起来</li>
+<li>当向一个实例发送实例方法的消息时（也可称调用实例方法，但因为 Obj-C 是消息结构的语言，方法调用并不严谨），该实例对象会通过 <code>isa</code> 找到其类对象，因为实例方法存储在类对象中；如果该类的类对象中并没有存储该实例方法，其类对象将使用 <code>superclass</code> 找到其父类的类对象，并在其中查找实例方法；直到在 <code>NSObject</code> 基类的类对象也无法找到时，<code>superclass</code> 将指向 <code>nil</code> 停止查找，抛出异常：<code>unrecognized selector sent to instance</code>（当然，我们这里为了仅讨论对消息传递忽略了消息转发）。</li>
+</ul>
+
+<pre><code class="language-objectivec">@interface Computer : NSObject
+- (void)run;
+@end
+
+@implementation Computer
+@end
+
+@interface Mac : Computer
+@end
+
+@implementation Mac
+// - (void)run {
+//     NSLog(@&quot;RUN&quot;);
+// }
+@end
+
+// '-[Mac run]: unrecognized selector sent to instance 0x10330f6c0'
+[[[Mac alloc] init] run];
+</code></pre>
+
+<ul>
+<li>当向一个类（的类对象）发送类方法的消息时，不会经过实例对象；类对象会通过其 <code>isa</code> 指针找到其元类对象，因为类方法存储在元类对象中；如果该类的元类对象中并没有存储该类方法，其元类对象将使用 <code>superclass</code> 找到其父类的元类对象，并在其中查找类方法；直到查找到 <code>NSObject</code> 基类的元类对象还没有类方法时，<code>NSObject</code> 元类对象的 <code>superclass</code> 将指回 <code>NSObject</code> 类对象中，在其存储的实例方法列表中查找，若还是没有找到，<code>NSObject</code> 类对象的 <code>superclass</code> 将指向 <code>nil</code> 停止查找，抛出异常：<code>unrecognized selector sent to instance</code>。</li>
+</ul>
+
+<pre><code class="language-objectivec">@interface NSObject (Extension)
+@end
+
+@implementation NSObject (Extension)
+- (void)run {
+    NSLog(@&quot;RUN&quot;);
+}
+@end
+
+@interface Computer : NSObject
++ (void)run;
+@end
+
+@implementation Computer
+@end
+
+@interface Mac : Computer
+@end
+
+@implementation Mac
+@end
+
+// OUTPUT:
+// RUN
+</code></pre>
+
+<ul>
+<li>通过上一点，其实我们可以知道在 Obj-C 中，方法是通过消息传递的，而传递的其实就是方法名。Obj-C 的方法名中并不包含是否为实例方法或类方法的标示，甚至没有参数和返回值的标示，这也是严谨意义上 Obj-C 不支持重载（Overload）的原因（但支持参数个数不同的重载）。</li>
+</ul>
+
+<h2 id="reference">Reference</h2>
+
+<ul>
+<li><a href="https://github.com/kingcos/Perspective/issues/73">Tips - Obj-C 中的重载与重写</a></li>
+</ul>
+
+  </div>
+  
+  <div class="pagination">
+    <div class="pagination__title">
+      <span
+        class="pagination__title-h">Read other posts</span>
+      <hr />
+    </div>
+    <div class="pagination__buttons">
+      
+      <span class="button previous">
+        <a href="/posts/2019/override_and_overload_in_obj-c/">
+          <span class="button__icon">←</span>
+          <span class="button__text">Obj-C 中的重载与重写</span>
+        </a>
+      </span>
+      
+      
+      <span class="button next">
+        <a href="/posts/2019/kvo_in_ios/">
+          <span class="button__text">iOS 中的 KVO</span>
+          <span class="button__icon">→</span>
+        </a>
+      </span>
+      
+    </div>
+  </div>
+  
+
+  
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo="kingcos/kingcos.github.io"
+            issue-term="pathname"
+            label="comments"
+            theme="github-dark"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2019 · <a href="http://github.com/kingcos">kingcos</a></span>
+      </div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

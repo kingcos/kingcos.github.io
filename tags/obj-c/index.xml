@@ -45,6 +45,16 @@ Introspection should not be confused with reflection, which goes a step further 
     </item>
     
     <item>
+      <title>iOS 中的 KVC</title>
+      <link>/posts/2019/kvc_in_ios/</link>
+      <pubDate>Mon, 25 Mar 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2019/kvc_in_ios/</guid>
+      <description>Date Notes     2019-03-25 首次提交    Preface KVC，即 Key-Value Coding，译作键值编码（下文简称 KVC）。当对象兼容 KVC 时，可以通过统一的 API 访问对象中某个键对应的属性值。Cocoa 中的许多功能都依赖 KVC，比如，KVO、Cocoa 绑定机制、Core Data、以及 AppleScript 等。本文将主要探讨 KVC 及其本质相关，关于其它的内容可参考文末的「Reference」。
+Basics How #import &amp;lt;Foundation/Foundation.h&amp;gt; @interface Speaker : NSObject @property (nonatomic) int volume; @end @implementation Speaker @end @interface Computer : NSObject @property (nonatomic) NSString *name; @property (nonatomic) NSArray *speakers; @end @implementation Computer @end int main(int argc, const char * argv[]) { @autoreleasepool { Computer *cpt = [[Computer alloc] init]; // ➡️ 通过 setter 设置 [cpt setName:@&amp;quot;My Mac 1&amp;quot;]; // ➡️ 通过 getter 读取 NSLog(@&amp;quot;name from getter - %@&amp;quot;, [cpt name]); // ➡️ 通过 setValue:forKey: 设置 [cpt setValue:@&amp;quot;My Mac 2&amp;quot; forKey:@&amp;quot;name&amp;quot;]; // ➡️ 通过 valueForKey: 读取 NSLog(@&amp;quot;name from KVC - %@&amp;quot;, [cpt valueForKey:@&amp;quot;name&amp;quot;]); Speaker *s1 = [[Speaker alloc] init]; s1.</description>
+    </item>
+    
+    <item>
       <title>Obj-C 中的重载与重写</title>
       <link>/posts/2019/override_and_overload_in_obj-c/</link>
       <pubDate>Wed, 20 Mar 2019 00:00:00 +0000</pubDate>
@@ -52,6 +62,58 @@ Introspection should not be confused with reflection, which goes a step further 
       <guid>/posts/2019/override_and_overload_in_obj-c/</guid>
       <description>Platform     macOS 10.14.2    Preface 重载（Overload）和重写（Override）是面向对象语言中十分基本的两个概念，本文将谈谈 Obj-C 中的重载与重写。
 重载  In some programming languages, function overloading or method overloading is the ability to create multiple functions of the same name with different implementations. Calls to an overloaded function will run a specific implementation of that function appropriate to the context of the call, allowing one function call to perform different tasks depending on context.</description>
+    </item>
+    
+    <item>
+      <title>Obj-C 中的对象</title>
+      <link>/posts/2019/objects_in_obj-c/</link>
+      <pubDate>Mon, 18 Mar 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2019/objects_in_obj-c/</guid>
+      <description>Date Notes Source Code     2019-03-18 首次提交 objc4-750    对象的分类 Obj-C 中的对象，主要有三种，实例对象（Instance Object）、类对象（Class Object）、以及元类对象（Meta-class Object）。类对象和元类对象的类型均为 Class，即 typedef struct objc_class *Class;，所以它们的结构其实是一致的，只是存放的内容不同。
+定义一个继承自 NSObject 的 Computer 类，方便后续的 Demo。
+// EDdeviceProtocol 协议 @protocol EDdeviceProtocol - (void)powerOn; @end // Computer 类，继承自 NSObject，遵守 EDdeviceProtocol @interface Computer : NSObject &amp;lt;EDdeviceProtocol&amp;gt; { // 成员变量 @public int _memorySize; int _diskSize; } // 属性 @property (copy) NSString *model; // 实例方法 - (void)print:(NSString *)content; // 类方法 + (NSString *)arch; @end @implementation Computer - (void)print:(NSString *)content { NSLog(@&amp;quot;Print Content: %@&amp;quot;, content); } // 协议方法 - (void)powerOn { NSLog(@&amp;quot;Start.</description>
+    </item>
+    
+    <item>
+      <title>iOS 中的 KVO</title>
+      <link>/posts/2019/kvo_in_ios/</link>
+      <pubDate>Wed, 13 Mar 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2019/kvo_in_ios/</guid>
+      <description>Date Notes     2019-03-13 首次提交    Preface KVO 即 Key-Value Observing，译作键值监听（下文简称 KVO），通常用于监听对象的某个特定属性值的变化。本文将由浅入深，谈谈 iOS 中的 KVO。
+How #import &amp;quot;ViewController.h&amp;quot; @interface Computer : NSObject @property (nonatomic, assign) int buttonClickTimes; @end @implementation Computer @end @interface ViewController () @property (nonatomic, strong) Computer *cpt; @end @implementation ViewController - (Computer *)cpt { if (!_cpt) { _cpt = [[Computer alloc] init]; // ➡️ 为 cpt 属性的键路径 buttonClickTimes 增加监听者 self（该控制器） // options 决定监听者将同时接收到新值和旧值 // context 决定附带的上下文信息「ViewController-buttonClickTimes」。 [_cpt addObserver:self forKeyPath:@&amp;quot;buttonClickTimes&amp;quot; options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld context:@&amp;quot;ViewController-buttonClickTimes&amp;quot;]; } return _cpt; } - (void)dealloc { // ➡️ 在监听者销毁前将其移除 [self.</description>
+    </item>
+    
+    <item>
+      <title>iOS 中的 NSObject</title>
+      <link>/posts/2019/nsobject_in_ios/</link>
+      <pubDate>Wed, 13 Mar 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2019/nsobject_in_ios/</guid>
+      <description>Date Notes Source Code     2019-03-13 首次提交 objc4-750、libmalloc-166.220.1、glibc-2.29    NSObject 实例对象的大小 // NSObject Obj-C -&amp;gt; C NSObject_IMPL struct NSObject_IMPL { Class isa; }; // 指向 objc_class 结构体的指针 typedef struct objc_class *Class;  将 Obj-C 源码通过 clang -rewrite-objc 翻译为 C++（其实大部分为 C），可以发现 Obj-C 中的 NSObject 类其实就是 C 中的 NSObject_IMPL 结构体，其中只有一个成员变量，即 isa。isa 的类型是 Class，本质是一个指向 objc_class 结构体的指针。在 64 位系统中，指针占用 8 个字节（Byte），即 NSObject 的实例对象大小应该为 8 个字节。我们也可以尝试用 C 语言中的 sizeof() 运算符来证明这一点：</description>
+    </item>
+    
+    <item>
+      <title>iOS 多线程技术实践之 pthreads</title>
+      <link>/posts/2019/multithread_techs_in_ios-1/</link>
+      <pubDate>Fri, 08 Mar 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2019/multithread_techs_in_ios-1/</guid>
+      <description>Date Notes Swift Xcode     2019-03-08 首次提交 4.2 10.1     在 iOS 中的多线程（Multithreading）技术通常有以下几种实现方式：pthreads、NSThread、GCD、NSOperation。首先，我们来一起看一看 pthreads。
+ Preface  POSIX Threads, usually referred to as pthreads, is an execution model that exists independently from a language, as well as a parallel execution model. It allows a program to control multiple different flows of work that overlap in time. Each flow of work is referred to as a thread, and creation and control over these flows is achieved by making calls to the POSIX Threads API.</description>
+    </item>
+    
+    <item>
+      <title>浅谈 iOS 应用启动过程</title>
+      <link>/posts/2017/ios_app_start_up/</link>
+      <pubDate>Tue, 28 Mar 2017 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2017/ios_app_start_up/</guid>
+      <description>Date Notes Swift Xcode     2017-05-26 CS193p UIApplication 3.1 8.3.2   2017-03-28 首次提交 3.0 8.2.1    Preface 首先要感谢没故事的卓同学大大送的泊学会员，在泊学学了几节课，了解了很多不同角度的 iOS 开发知识。这篇文章就启发自其 iOS 101 中的一个纯手工的 Single View Application 一文。但本文将更加深入的叙述了启动过程，且实现均为 Swift 3.0。
+本文对应的 Demo 可以在：https://github.com/kingcos/SingleViewAppManually-Demo 查看、下载。
+Manually or Storyboard main.m in Objective-C Single View Application
+#import &amp;lt;UIKit/UIKit.h&amp;gt; #import &amp;quot;AppDelegate.h&amp;quot; int main(int argc, char * argv[]) { @autoreleasepool { return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class])); } }   自从 Storyboard 诞生以来，关于纯代码、Xib、以及 Storyboard 的选择就在 iOS 开发圈中炸开了锅。这里不会探讨各种姿势的优劣，只是可能很多和我一样的初学者，从一开始就被 Storyboard 先入为主。加上方便灵活的拖控件，自然而然就可能没有机会去思考一个 iOS 应用是如何启动起来的。加上 Swift 的诞生，使得整个项目的初始结构得到了更大的简化（少了 main.</description>
     </item>
     
   </channel>

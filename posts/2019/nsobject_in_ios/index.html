@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>iOS 中的 NSObject :: iBlog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="Date Notes Source Code     2019-03-13 首次提交 objc4-750、libmalloc-166.220.1、glibc-2.29    NSObject 实例对象的大小 // NSObject Obj-C -&amp;gt; C NSObject_IMPL struct NSObject_IMPL { Class isa; }; // 指向 objc_class 结构体的指针 typedef struct objc_class *Class;  将 Obj-C 源码通过 clang -rewrite-objc 翻译为 C&#43;&#43;（其实大部分为 C），可以发现 Obj-C 中的 NSObject 类其实就是 C 中的 NSObject_IMPL 结构体，其中只有一个成员变量，即 isa。isa 的类型是 Class，本质是一个指向 objc_class 结构体的指针。在 64 位系统中，指针占用 8 个字节（Byte），即 NSObject 的实例对象大小应该为 8 个字节。我们也可以尝试用 C 语言中的 sizeof() 运算符来证明这一点："/>
+<meta name="keywords" content=""/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2019/nsobject_in_ios/" />
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+  <link rel="stylesheet" href="/assets/green.css">
+
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+
+<link rel="shortcut icon" href="/favicon.ico">
+
+
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="iOS 中的 NSObject :: iBlog — " />
+<meta name="twitter:description" content="Date Notes Source Code     2019-03-13 首次提交 objc4-750、libmalloc-166.220.1、glibc-2.29    NSObject 实例对象的大小 // NSObject Obj-C -&amp;gt; C NSObject_IMPL struct NSObject_IMPL { Class isa; }; // 指向 objc_class 结构体的指针 typedef struct objc_class *Class;  将 Obj-C 源码通过 clang -rewrite-objc 翻译为 C&#43;&#43;（其实大部分为 C），可以发现 Obj-C 中的 NSObject 类其实就是 C 中的 NSObject_IMPL 结构体，其中只有一个成员变量，即 isa。isa 的类型是 Class，本质是一个指向 objc_class 结构体的指针。在 64 位系统中，指针占用 8 个字节（Byte），即 NSObject 的实例对象大小应该为 8 个字节。我们也可以尝试用 C 语言中的 sizeof() 运算符来证明这一点：" />
+<meta name="twitter:site" content="/" />
+<meta name="twitter:creator" content="" />
+<meta name="twitter:image" content="">
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="iOS 中的 NSObject :: iBlog — ">
+<meta property="og:description" content="Date Notes Source Code     2019-03-13 首次提交 objc4-750、libmalloc-166.220.1、glibc-2.29    NSObject 实例对象的大小 // NSObject Obj-C -&amp;gt; C NSObject_IMPL struct NSObject_IMPL { Class isa; }; // 指向 objc_class 结构体的指针 typedef struct objc_class *Class;  将 Obj-C 源码通过 clang -rewrite-objc 翻译为 C&#43;&#43;（其实大部分为 C），可以发现 Obj-C 中的 NSObject 类其实就是 C 中的 NSObject_IMPL 结构体，其中只有一个成员变量，即 isa。isa 的类型是 Class，本质是一个指向 objc_class 结构体的指针。在 64 位系统中，指针占用 8 个字节（Byte），即 NSObject 的实例对象大小应该为 8 个字节。我们也可以尝试用 C 语言中的 sizeof() 运算符来证明这一点：" />
+<meta property="og:url" content="/posts/2019/nsobject_in_ios/" />
+<meta property="og:site_name" content="iOS 中的 NSObject" />
+<meta property="og:image" content="">
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+<meta property="article:published_time" content="2019-03-13 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="">
+
+
+<div class="container center">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    iBlog
+  </div>
+</a>
+
+    </div>
+    <div class="menu-trigger">menu</div>
+  </div>
+  
+  
+    
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  
+
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="/posts/2019/nsobject_in_ios/">iOS 中的 NSObject</a></h1>
+  <div class="post-meta">
+    <span class="post-date">
+      2019-03-13
+    </span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="/tags/focus/">Focus</a>&nbsp;
+    
+    #<a href="/tags/ios/">iOS</a>&nbsp;
+    
+    #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
+    
+  </span>
+  
+
+  
+
+  <div class="post-content">
+    
+
+<table>
+<thead>
+<tr>
+<th align="center">Date</th>
+<th align="center">Notes</th>
+<th align="center">Source Code</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center">2019-03-13</td>
+<td align="center">首次提交</td>
+<td align="center"><a href="https://opensource.apple.com/tarballs/objc4/">objc4-750</a>、<a href="https://opensource.apple.com/tarballs/libmalloc/">libmalloc-166.220.1</a>、<a href="http://ftp.gnu.org/gnu/glibc/">glibc-2.29</a></td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="nsobject-实例对象的大小">NSObject 实例对象的大小</h2>
+
+<pre><code class="language-cpp">// NSObject Obj-C -&gt; C NSObject_IMPL
+struct NSObject_IMPL {
+	Class isa;
+};
+
+// 指向 objc_class 结构体的指针
+typedef struct objc_class *Class;
+</code></pre>
+
+<p>将 Obj-C 源码通过 <code>clang -rewrite-objc</code> 翻译为 C++（其实大部分为 C），可以发现 Obj-C 中的 <code>NSObject</code> 类其实就是 C 中的 <code>NSObject_IMPL</code> 结构体，其中只有一个成员变量，即 <code>isa</code>。<code>isa</code> 的类型是 <code>Class</code>，本质是一个指向 <code>objc_class</code> 结构体的指针。在 64 位系统中，指针占用 8 个字节（Byte），即 <code>NSObject</code> 的实例对象大小应该为 8 个字节。我们也可以尝试用 C 语言中的 <code>sizeof()</code> 运算符来证明这一点：</p>
+
+<pre><code class="language-objectivec">NSObject *obj = [[NSObject alloc] init];
+NSLog(@&quot;%zd&quot;, sizeof(NSObject *));
+// 8
+</code></pre>
+
+<p>但系统分配给 <code>NSObject</code> 实例对象的内存空间真的是 8 个字节吗？在 <code>NSObject</code> 对象初始化后，打个断点，运行程序。得到 <code>obj</code> 的内存地址，放在 Xcode - Debug - Debug Workflow - View Memory - Address 中进行查看。1 个字节为 8 位（Bit），为了便于观察，通常会使用十六进制代表二进制，即使用 1 个十六进制表示 4 个二进制，则 2 个十六进制即代表 1 个字节。观察图中上方红框处，除了 <code>obj</code> 对象实际使用的 8 个字节，其后面还有 8 个空（<code>00</code>）字节。这 8 个字节是否也是系统分配给 <code>obj</code> 的呢？</p>
+
+<p><img src="/img/2019/NSObject_in_iOS/1.png" alt="" /></p>
+
+<h2 id="alloc">alloc</h2>
+
+<p>在 <code>[[NSObject alloc] init]</code> 中，<code>alloc</code> 是为了向系统申请内存空间。</p>
+
+<pre><code class="language-objectivec">// NSObject.mm
++ (id)alloc {
+    // ➡️ 调用 _objc_rootAlloc
+    return _objc_rootAlloc(self);
+}
+
+// Base class implementation of +alloc. cls is not nil.
+// Calls [cls allocWithZone:nil].
+id
+_objc_rootAlloc(Class cls)
+{
+    // ➡️ 调用 callAlloc
+    return callAlloc(cls, false/*checkNil*/, true/*allocWithZone*/);
+}
+
+// Call [cls alloc] or [cls allocWithZone:nil], with appropriate 
+// shortcutting optimizations.
+static ALWAYS_INLINE id
+callAlloc(Class cls, bool checkNil, bool allocWithZone=false)
+{
+    if (slowpath(checkNil &amp;&amp; !cls)) return nil;
+
+#if __OBJC2__
+    if (fastpath(!cls-&gt;ISA()-&gt;hasCustomAWZ())) {
+        // No alloc/allocWithZone implementation. Go straight to the allocator.
+        // fixme store hasCustomAWZ in the non-meta class and 
+        // add it to canAllocFast's summary
+        if (fastpath(cls-&gt;canAllocFast())) {
+            // No ctors, raw isa, etc. Go straight to the metal.
+            bool dtor = cls-&gt;hasCxxDtor();
+            id obj = (id)calloc(1, cls-&gt;bits.fastInstanceSize());
+            if (slowpath(!obj)) return callBadAllocHandler(cls);
+            obj-&gt;initInstanceIsa(cls, dtor);
+            return obj;
+        }
+        else {
+            // Has ctor or raw isa or something. Use the slower path.
+            // ➡️ 调用 class_createInstance，extraBytes == 0
+            id obj = class_createInstance(cls, 0);
+            if (slowpath(!obj)) return callBadAllocHandler(cls);
+            return obj;
+        }
+    }
+#endif
+
+    // No shortcuts available.
+    if (allocWithZone) return [cls allocWithZone:nil];
+    return [cls alloc];
+}
+
+// objc-runtime-new.mm
+id 
+class_createInstance(Class cls, size_t extraBytes)
+{
+    // ➡️ 调用 _class_createInstanceFromZone，extraBytes == 0
+    return _class_createInstanceFromZone(cls, extraBytes, nil);
+}
+
+// objc-runtime-new.mm
+/***********************************************************************
+* class_createInstance
+* fixme
+* Locking: none
+**********************************************************************/
+
+static __attribute__((always_inline)) 
+id
+_class_createInstanceFromZone(Class cls, size_t extraBytes, void *zone, 
+                              bool cxxConstruct = true, 
+                              size_t *outAllocatedSize = nil)
+{
+    if (!cls) return nil;
+
+    assert(cls-&gt;isRealized());
+
+    // Read class's info bits all at once for performance
+    bool hasCxxCtor = cls-&gt;hasCxxCtor();
+    bool hasCxxDtor = cls-&gt;hasCxxDtor();
+    bool fast = cls-&gt;canAllocNonpointer();
+
+    // ➡️ 调用 instanceSize，extraBytes == 0
+    size_t size = cls-&gt;instanceSize(extraBytes);
+    if (outAllocatedSize) *outAllocatedSize = size;
+
+    id obj;
+    if (!zone  &amp;&amp;  fast) {
+        obj = (id)calloc(1, size);
+        if (!obj) return nil;
+        obj-&gt;initInstanceIsa(cls, hasCxxDtor);
+    } 
+    else {
+        if (zone) {
+            obj = (id)malloc_zone_calloc ((malloc_zone_t *)zone, 1, size);
+        } else {
+            obj = (id)calloc(1, size);
+        }
+        if (!obj) return nil;
+
+        // Use raw pointer isa on the assumption that they might be 
+        // doing something weird with the zone or RR.
+        obj-&gt;initIsa(cls);
+    }
+
+    if (cxxConstruct &amp;&amp; hasCxxCtor) {
+        obj = _objc_constructOrFree(obj, cls);
+    }
+
+    return obj;
+}
+
+// objc-runtime-new.h
+size_t instanceSize(size_t extraBytes) {
+    // ➡️ 调用 alignedInstanceSize
+    size_t size = alignedInstanceSize() + extraBytes;
+    // CF requires all objects be at least 16 bytes.
+    // ⚠️ CF 要求所有对象至少 16 字节
+    if (size &lt; 16) size = 16;
+    return size;
+}
+
+// Class's ivar size rounded up to a pointer-size boundary.
+uint32_t alignedInstanceSize() {
+    // ➡️ 调用 unalignedInstanceSize，再调用 word_align
+    return word_align(unalignedInstanceSize());
+}
+
+// objc-runtime-new.h
+// May be unaligned depending on class's ivars.
+uint32_t unalignedInstanceSize() {
+    assert(isRealized());
+    // ➡️ 调用 data
+    return data()-&gt;ro-&gt;instanceSize;
+}
+
+// objc-runtime-new.h
+// ➡️ 返回类中的读写数据
+class_rw_t *data() { 
+    return bits.data();
+}
+
+// objc-runtime-new.h
+class_rw_t* data() {
+    // ➡️ bits 按位与 FAST_DATA_MASK
+    return (class_rw_t *)(bits &amp; FAST_DATA_MASK);
+}
+
+// objc-runtime-new.h
+// data pointer
+#define FAST_DATA_MASK          0x00007ffffffffff8UL
+
+// ➡️ 类中的只读数据
+const class_ro_t *ro;
+
+struct class_ro_t {
+    uint32_t flags;
+    uint32_t instanceStart;
+    // ➡️ 实例大小
+    uint32_t instanceSize;
+#ifdef __LP64__
+    uint32_t reserved;
+#endif
+
+    const uint8_t * ivarLayout;
+    
+    const char * name;
+    method_list_t * baseMethodList;
+    protocol_list_t * baseProtocols;
+    const ivar_list_t * ivars;
+
+    const uint8_t * weakIvarLayout;
+    property_list_t *baseProperties;
+
+    method_list_t *baseMethods() const {
+        return baseMethodList;
+    }
+};
+
+// objc-os.h
+// ➡️ word_align 有两个实现，unalignedInstanceSize 返回 uint32_t
+// 所以这里的 word_align 为参数是 uint32_t 类型的一个
+static inline uint32_t word_align(uint32_t x) {
+    return (x + WORD_MASK) &amp; ~WORD_MASK;
+}
+
+// __LP64__ 代表在 64 位时的情况
+#ifdef __LP64__
+#   define WORD_SHIFT 3UL
+    // ➡️ WORD_MASK
+#   define WORD_MASK 7UL
+#   define WORD_BITS 64
+#else
+#   define WORD_SHIFT 2UL
+#   define WORD_MASK 3UL
+#   define WORD_BITS 32
+#endif
+</code></pre>
+
+<p>在 <code>word_align</code> 字长对齐的方法中，<code>WORD_MASK</code> 在 64 位下为无符号长整型（Unsigned Long）的 <code>7</code>，即二进制下为 <code>0b0111</code>，<code>~WORD_MASK</code> 即 <code>-0b1000</code>。将参数即实例大小加上 <code>WORD_MASK</code> 并对 <code>~WORD_MASK</code> 做按位与操作。保证了对齐后的大小均为 8 的倍数。而在 <code>instanceSize</code> 的后续步骤中，也注释表明了「CF 要求所有对象至少 16 字节」。所以到这里，我们可以认为 <code>NSObject</code> 的对象实际分配的空间为 16 字节。</p>
+
+<h2 id="class-getinstancesize">class_getInstanceSize</h2>
+
+<p><code>class_getInstanceSize</code> 是 Runtime 中的一个方法，可以获取传入实例类型的大小。</p>
+
+<pre><code class="language-ojbc">#import &lt;malloc/malloc.h&gt;
+
+NSLog(@&quot;%zd&quot;, class_getInstanceSize([NSObject class]));
+// 8
+</code></pre>
+
+<p>为什么它的答案也是 8 呢？当我们看到其中的实现就一目了然了，<code>class_getInstanceSize</code> 本质也是调用了 <code>alignedInstanceSize</code> 方法，所以和上面的答案一致。</p>
+
+<pre><code class="language-objectivec">// runtime.h
+/** 
+ * Returns the size of instances of a class.
+ * 
+ * @param cls A class object.
+ * 
+ * @return The size in bytes of instances of the class \e cls, or \c 0 if \e cls is \c Nil.
+ */
+OBJC_EXPORT size_t
+class_getInstanceSize(Class _Nullable cls) 
+    OBJC_AVAILABLE(10.5, 2.0, 9.0, 1.0, 2.0);
+
+// objc-class.mm
+size_t class_getInstanceSize(Class cls)
+{
+    if (!cls) return 0;
+    // ➡️ 调用 alignedInstanceSize
+    return cls-&gt;alignedInstanceSize();
+}
+</code></pre>
+
+<h2 id="malloc-size">malloc_size</h2>
+
+<p>那有什么办法可以获取对象真正分配的内存空间呢？答案是 <code>malloc_size</code>。</p>
+
+<pre><code class="language-objectivec">#import &lt;malloc/malloc.h&gt;
+
+NSLog(@&quot;%zd&quot;, malloc_size((__bridge void *)[[NSObject alloc] init]));
+// 16
+</code></pre>
+
+<p>因为 <code>malloc_size</code> 返回的是指针指向的内存地址大小，而 <code>class_getInstanceSize</code> 返回的则是类的实例的大小。</p>
+
+<pre><code class="language-objectivec">// malloc.h
+extern size_t malloc_size(const void *ptr);
+    /* Returns size of given ptr */
+</code></pre>
+
+<h2 id="自定义类">自定义类</h2>
+
+<p>定义一个 <code>Computer</code> Obj-C 类，继承自 <code>NSObject</code>，拥有两个成员变量。</p>
+
+<pre><code class="language-objectivec">@interface Computer : NSObject {
+    @public
+    int _memorySize;
+    int _diskSize;
+}
+@end
+
+@implementation Computer
+@end
+</code></pre>
+
+<p>使用 clang 将其翻译为 C/C++ 代码，Obj-C 的类就变成了 C 语言中的结构体：</p>
+
+<pre><code class="language-cpp">struct NSObject_IMPL {
+    Class isa;
+};
+
+struct Computer_IMPL {
+    struct NSObject_IMPL NSObject_IVARS;
+    int _memorySize;
+    int _diskSize;
+};
+</code></pre>
+
+<p>简单实践一下：</p>
+
+<pre><code class="language-objectivec">Computer *cpt = [[Computer alloc] init];
+cpt-&gt;_memorySize = 16;
+cpt-&gt;_diskSize = 512;
+
+// 将 cpt 指向 Computer Obj-C 类的指针转换为指向 Computer_IMPL 结构体的指针
+struct Computer_IMPL *cptStruct = (__bridge struct Computer_IMPL *)(cpt);
+NSLog(@&quot;cptStruct-&gt;_memorySize: %d, cptStruct-&gt;_diskSize: %d&quot;, cptStruct-&gt;_memorySize, cptStruct-&gt;_diskSize);
+// cptStruct-&gt;_memorySize: 16, cptStruct-&gt;_diskSize: 512
+</code></pre>
+
+<h2 id="自定义类的实例对象大小">自定义类的实例对象大小</h2>
+
+<pre><code class="language-objectivec">@interface Computer : NSObject {
+    @public
+    int _memorySize;
+    int _diskSize;
+}
+@end
+
+@implementation Computer
+@end
+
+// ---
+@interface Mac : Computer {
+    @public
+    bool _hasScreen;
+}
+@end
+
+@implementation Mac
+@end
+
+// ---
+@interface MacPro : Mac {
+    @public
+    double _cpuPerformance;
+}
+@end
+
+@implementation MacPro
+@end
+</code></pre>
+
+<p>定义以上几个类，<code>Computer</code> 继承自 <code>NSObject</code>，<code>Mac</code> 继承自 <code>Computer</code>，<code>MacPro</code> 继承自 <code>Mac</code>，尝试输出它们的实例以及实际分配的大小。</p>
+
+<pre><code class="language-objectivec">NSObject *myObj = [[NSObject alloc] init];
+NSObject *myCpt = [[Computer alloc] init];
+NSObject *myMac = [[Mac      alloc] init];
+NSObject *myPro = [[MacPro   alloc] init];
+    
+NSLog(@&quot;NSObject - Instance Size - %zd&quot;, class_getInstanceSize([NSObject class]));
+NSLog(@&quot;NSObject - Malloc Size   - %zd&quot;, malloc_size((__bridge const void *)(myObj)));
+
+NSLog(@&quot;Computer - Instance Size - %zd&quot;, class_getInstanceSize([Computer class]));
+NSLog(@&quot;Computer - Malloc Size   - %zd&quot;, malloc_size((__bridge const void *)(myCpt)));
+
+NSLog(@&quot;Mac      - Instance Size - %zd&quot;, class_getInstanceSize([Mac class]));
+NSLog(@&quot;Mac      - Malloc Size   - %zd&quot;, malloc_size((__bridge const void *)(myMac)));
+
+NSLog(@&quot;MacPro   - Instance Size - %zd&quot;, class_getInstanceSize([MacPro class]));
+NSLog(@&quot;MacPro   - Malloc Size   - %zd&quot;, malloc_size((__bridge const void *)(myPro)));
+
+NSLog(@&quot;bool   size - %zd&quot;, sizeof(bool));
+NSLog(@&quot;int    size - %zd&quot;, sizeof(int));
+NSLog(@&quot;double size - %zd&quot;, sizeof(double));
+
+// NSObject - Instance Size - 8
+// NSObject - Malloc Size   - 16
+// Computer - Instance Size - 16
+// Computer - Malloc Size   - 16
+// Mac      - Instance Size - 24
+// Mac      - Malloc Size   - 32
+// MacPro   - Instance Size - 32
+// MacPro   - Malloc Size   - 32
+// bool   size - 1
+// int    size - 4
+// double size - 8
+// Program ended with exit code: 0
+</code></pre>
+
+<p>比较让人困惑的是 <code>myMac</code> 的实例大小与实际分配大小。<code>Mac</code> 除了自己的一个成员变量，还有两个继承自父类 <code>Computer</code> 的成员变量，以及一个继承自基类 <code>NSObject</code> 的 <code>isa</code>。在 64 位操作系统上，共计占用 8+4+4+1=17 字节，经过字长对齐后即 24 字节，与 <code>class_getInstanceSize</code> 返回的结果一致。但为什么最终 <code>malloc_size</code> 却是 32 字节呢？</p>
+
+<p>因为在分配内存时，除了字长对齐，还存在另外的内存对齐。其将按照 16 的倍数进行对齐：</p>
+
+<pre><code>// nano_zone_common.h
+#define NANO_MAX_SIZE			256 /* Buckets sized {16, 32, 48, ..., 256} */
+</code></pre>
+
+<h2 id="calloc">calloc</h2>
+
+<p>在 GNU 中的 glibc，也有类似 <code>NANO_MAX_SIZE</code> 的实现 <code>MALLOC_ALIGNMENT</code>，都是为了进行内存对齐。</p>
+
+<pre><code class="language-c">// sysdeps/generic/malloc-alignment.h
+/* MALLOC_ALIGNMENT is the minimum alignment for malloc'ed chunks.  It
+   must be a power of two at least 2 * SIZE_SZ, even on machines for
+   which smaller alignments would suffice. It may be defined as larger
+   than this though. Note however that code and data structures are
+   optimized for the case of 8-byte alignment.  */
+// long double 占用 16 字节，SIZE_SZ 即 sizeof(size_t)，在 Xcode 中为 8
+// 即 #define MALLOC_ALIGNMENT 16
+#define MALLOC_ALIGNMENT (2 * SIZE_SZ &lt; __alignof__ (long double) \
+			  ? __alignof__ (long double) : 2 * SIZE_SZ)
+
+// malloc/malloc-internal.h
+/* The corresponding word size.  */
+#define SIZE_SZ (sizeof (INTERNAL_SIZE_T))
+
+#ifndef INTERNAL_SIZE_T
+# define INTERNAL_SIZE_T size_t
+#endif
+
+// sysdeps/i386/malloc-alignment.h
+#define MALLOC_ALIGNMENT 16
+</code></pre>
+
+<h2 id="reference">Reference</h2>
+
+<ul>
+<li><a href="https://github.com/kingcos/Perspective/issues/72">将 Obj-C 代码翻译为 C++ 代码</a></li>
+<li><a href="https://stackoverflow.com/questions/6721037/where-is-lp64-defined-for-default-builds-of-c-applications-on-osx-10-6">Where is <code>__LP64__</code> defined for default builds of C++ applications on OSX 10.6? - StackOverflow</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Sizeof">sizeof - Wikipedia</a></li>
+</ul>
+
+  </div>
+  
+  <div class="pagination">
+    <div class="pagination__title">
+      <span
+        class="pagination__title-h">Read other posts</span>
+      <hr />
+    </div>
+    <div class="pagination__buttons">
+      
+      <span class="button previous">
+        <a href="/posts/2019/kvo_in_ios/">
+          <span class="button__icon">←</span>
+          <span class="button__text">iOS 中的 KVO</span>
+        </a>
+      </span>
+      
+      
+      <span class="button next">
+        <a href="/posts/2019/multithread_techs_in_ios-1/">
+          <span class="button__text">iOS 多线程技术实践之 pthreads</span>
+          <span class="button__icon">→</span>
+        </a>
+      </span>
+      
+    </div>
+  </div>
+  
+
+  
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo="kingcos/kingcos.github.io"
+            issue-term="pathname"
+            label="comments"
+            theme="github-dark"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2019 · <a href="http://github.com/kingcos">kingcos</a></span>
+      </div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>
