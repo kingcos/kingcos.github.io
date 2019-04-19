@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>iOS 中的 &#43;load 方法 :: iBlog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="Date Notes Source Code     2019-04-17 首次提交 objc4-750    Preface 在 Obj-C 中，我们经常会使用 &#43;load 方法来做一些早于所有类被使用时机的操作。比如方法交换（Method Swizzle）、注册路由（Router）等。那么 &#43;load 到底是在什么时机调用的呢？&#43;load 滥用的后果又是什么呢？
+What // NSObject.h @interface NSObject &amp;lt;NSObject&amp;gt; { &#43; (void)load; }  Obj-C 中的 &#43;load 方法指的是 NSObject 中的 &#43; (void)load 类方法。官方文档的 &#43;load 如下：
+ Invoked whenever a class or category is added to the Objective-C runtime; implement this method to perform class-specific behavior upon loading."/>
+<meta name="keywords" content=""/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2019/&#43;load_in_ios/" />
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+  <link rel="stylesheet" href="/assets/green.css">
+
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+
+<link rel="shortcut icon" href="/img/favicon/favicon.ico">
+
+
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="iOS 中的 &#43;load 方法 :: iBlog — " />
+<meta name="twitter:description" content="Date Notes Source Code     2019-04-17 首次提交 objc4-750    Preface 在 Obj-C 中，我们经常会使用 &#43;load 方法来做一些早于所有类被使用时机的操作。比如方法交换（Method Swizzle）、注册路由（Router）等。那么 &#43;load 到底是在什么时机调用的呢？&#43;load 滥用的后果又是什么呢？
+What // NSObject.h @interface NSObject &amp;lt;NSObject&amp;gt; { &#43; (void)load; }  Obj-C 中的 &#43;load 方法指的是 NSObject 中的 &#43; (void)load 类方法。官方文档的 &#43;load 如下：
+ Invoked whenever a class or category is added to the Objective-C runtime; implement this method to perform class-specific behavior upon loading." />
+<meta name="twitter:site" content="/" />
+<meta name="twitter:creator" content="" />
+<meta name="twitter:image" content="">
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="iOS 中的 &#43;load 方法 :: iBlog — ">
+<meta property="og:description" content="Date Notes Source Code     2019-04-17 首次提交 objc4-750    Preface 在 Obj-C 中，我们经常会使用 &#43;load 方法来做一些早于所有类被使用时机的操作。比如方法交换（Method Swizzle）、注册路由（Router）等。那么 &#43;load 到底是在什么时机调用的呢？&#43;load 滥用的后果又是什么呢？
+What // NSObject.h @interface NSObject &amp;lt;NSObject&amp;gt; { &#43; (void)load; }  Obj-C 中的 &#43;load 方法指的是 NSObject 中的 &#43; (void)load 类方法。官方文档的 &#43;load 如下：
+ Invoked whenever a class or category is added to the Objective-C runtime; implement this method to perform class-specific behavior upon loading." />
+<meta property="og:url" content="/posts/2019/&#43;load_in_ios/" />
+<meta property="og:site_name" content="iOS 中的 &#43;load 方法" />
+<meta property="og:image" content="">
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+<meta property="article:published_time" content="2019-04-17 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="">
+
+
+<div class="container center">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    iBlog
+  </div>
+</a>
+
+    </div>
+    <div class="menu-trigger">menu</div>
+  </div>
+  
+  
+    
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  
+
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="/posts/2019/&#43;load_in_ios/">iOS 中的 +load 方法</a></h1>
+  <div class="post-meta">
+    <span class="post-date">
+      2019-04-17
+    </span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="/tags/focus/">Focus</a>&nbsp;
+    
+    #<a href="/tags/ios/">iOS</a>&nbsp;
+    
+    #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
+    
+  </span>
+  
+
+  
+
+  <div class="post-content">
+    
+
+<table>
+<thead>
+<tr>
+<th align="center">Date</th>
+<th align="center">Notes</th>
+<th align="center">Source Code</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center">2019-04-17</td>
+<td align="center">首次提交</td>
+<td align="center"><a href="https://opensource.apple.com/tarballs/objc4/">objc4-750</a></td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="preface">Preface</h2>
+
+<p>在 Obj-C 中，我们经常会使用 +load 方法来做一些早于所有类被使用时机的操作。比如方法交换（Method Swizzle）、注册路由（Router）等。那么 +load 到底是在什么时机调用的呢？+load 滥用的后果又是什么呢？</p>
+
+<h2 id="what">What</h2>
+
+<pre><code class="language-objectivec">// NSObject.h
+@interface NSObject &lt;NSObject&gt; {
++ (void)load;
+}
+</code></pre>
+
+<p>Obj-C 中的 +load 方法指的是 NSObject 中的 <code>+ (void)load</code> 类方法。官方文档的 +load 如下：</p>
+
+<blockquote>
+<p>Invoked whenever a class or category is added to the Objective-C runtime; implement this method to perform class-specific behavior upon loading.</p>
+
+<p>The <code>load</code> message is sent to classes and categories that are both dynamically loaded and statically linked, but only if the newly loaded class or category implements a method that can respond.</p>
+
+<p>The order of initialization is as follows:</p>
+
+<ol>
+<li>All initializers in any framework you link to.</li>
+<li>All <code>+load</code> methods in your image.</li>
+<li>All C++ static initializers and C/C++ <code>__attribute__(constructor)</code> functions in your image.</li>
+<li>All initializers in frameworks that link to you.</li>
+</ol>
+
+<p>In addition:</p>
+
+<ul>
+<li>A class’s <code>+load</code> method is called after all of its superclasses’ <code>+load</code> methods.</li>
+<li>A category <code>+load</code> method is called after the class’s own <code>+load</code> method.</li>
+</ul>
+
+<p>In a custom implementation of <code>load</code> you can therefore safely message other unrelated classes from the same image, but any <code>load</code> methods implemented by those classes may not have run yet.</p>
+
+<blockquote>
+<p><strong>Important</strong></p>
+
+<p>Custom implementations of the <code>load</code> method for Swift classes bridged to Objective-C are not called automatically.</p>
+</blockquote>
+
+<p>—— Documentation, Apple Developer</p>
+
+<p>译：</p>
+
+<p>当类或分类被添加到 Obj-C 运行时的时候被调用；可以实现该方法用来在加载时刻执行特定类的操作。</p>
+
+<p>动态加载和静态链接都能将 <code>load</code> 消息发送到类和分类，但前提是新加载类或分类实现了要响应的方法。</p>
+
+<p>初始化的顺序如下：</p>
+
+<ol>
+<li>链接的所有框架（Framework）中全部的构造器。</li>
+<li>镜像（Image）中所有的 <code>+load</code> 方法。</li>
+<li>镜像中所有的 C++ 静态构造器，以及 C/C++ 的 <code>__attribute__(constructor)</code> 函数。</li>
+<li>框架中链接的所有构造器。</li>
+</ol>
+
+<p>另外：</p>
+
+<ul>
+<li>类的 <code>+load</code> 方法在其所有父类的 <code>+load</code> 方法调用之后调用。</li>
+<li>分类的 <code>+load</code> 方法在其主类的 <code>+load</code> 方法调用之后调用。</li>
+</ul>
+
+<p>在 <code>load</code> 的自定义实现中，可以安全地从同一镜像中发送其他不相关的类，但这些类中实现的 <code>load</code> 方法可能还没有运行。</p>
+
+<blockquote>
+<p><strong>重点</strong></p>
+
+<p>Swift 类中桥接到 Obj-C的 <code>load</code> 方法自定义实现将不会自动调用。</p>
+</blockquote>
+
+<p>—— 文档，苹果开发者</p>
+</blockquote>
+
+<h2 id="how">How</h2>
+
+<p>根据官方文档的描述，我们可以尝试定义一个继承自 <code>NSObject</code> 的 <code>Person</code> 类，并对其添加两个分类 <code>Life</code> 和 <code>Work</code>；再定义一个 <code>Student</code> 类继承自 <code>Person</code>，并对其添加 <code>School</code> 分类。在以上所有类和分类中，实现 +load。</p>
+
+<pre><code class="language-objectivec">// Person.m
+#import &quot;Person.h&quot;
+
+@implementation Person
++ (void)load {
+    NSLog(@&quot;Person %s&quot;, __func__);
+}
+@end
+
+// Person+Life.m
+#import &quot;Person+Life.h&quot;
+
+@implementation Person (Life)
++ (void)load {
+    NSLog(@&quot;Person+Life %s&quot;, __func__);
+}
+@end
+
+// Person+Work.m
+#import &quot;Person+Work.h&quot;
+
+@implementation Person (Work)
++ (void)load {
+    NSLog(@&quot;Person+Work %s&quot;, __func__);
+}
+@end
+
+// Student.m
+#import &quot;Student.h&quot;
+
+@implementation Student
++ (void)load {
+    NSLog(@&quot;Student %s&quot;, __func__);
+}
+@end
+
+// Student+School.m
+#import &quot;Student+School.h&quot;
+
+@implementation Student (School)
++ (void)load {
+    NSLog(@&quot;Student+School %s&quot;, __func__);
+}
+@end
+
+// Person +[Person load]
+// Student +[Student load]
+// Person+Life +[Person(Life) load]
+// Student+School +[Student(School) load]
+// Person+Work +[Person(Work) load]
+// Hello, World!
+</code></pre>
+
+<p>不需要更改 main.m，尝试运行程序，结果正如官方所述，即<strong>+load 方法在 <code>main</code> 函数之前被调用；且调用顺序总是在父类中先被调用，再在子类中被调用；对于主类和分类来说，总是先在主类和主类的子类中被调用，再在分类中被调用</strong>。</p>
+
+<h2 id="why">Why</h2>
+
+<p>为了证明上述结论，我们可以在 objc4 的源码中，从 Obj-C 运行时初始化的入口着手，即 <code>_objc_init</code>：</p>
+
+<pre><code class="language-objectivec">// objc-os.mm
+/***********************************************************************
+* _objc_init
+* Bootstrap initialization. Registers our image notifier with dyld.
+* 引导初始化。使用 dyld 注册镜像通知器。
+* Called by libSystem BEFORE library initialization time
+* 在库初始化时间之前由 libSystem 调用
+**********************************************************************/
+
+void _objc_init(void)
+{
+    static bool initialized = false;
+    if (initialized) return;
+    initialized = true;
+    
+    // fixme defer initialization until an objc-using image is found?
+    environ_init();
+    tls_init();
+    static_init();
+    lock_init();
+    exception_init();
+
+    // ➡️ dyld 注册通知；map_images：映射镜像，load_images：加载镜像，unmap_image：反映射镜像
+    _dyld_objc_notify_register(&amp;map_images, load_images, unmap_image);
+}
+
+// objc-runtime-new.mm
+/***********************************************************************
+* load_images
+* Process +load in the given images which are being mapped in by dyld.
+* 由 dyld 处理给定将要映射的镜像中的 +load。
+*
+* Locking: write-locks runtimeLock and loadMethodLock
+* 锁：写锁 runtimeLock 和 loadMethodLock
+**********************************************************************/
+extern bool hasLoadMethods(const headerType *mhdr);
+extern void prepare_load_methods(const headerType *mhdr);
+
+void
+load_images(const char *path __unused, const struct mach_header *mh)
+{
+    // Return without taking locks if there are no +load methods here.
+    // ➡️ 如果没有 +load 方法则返回
+    if (!hasLoadMethods((const headerType *)mh)) return;
+
+    // 递归锁
+    recursive_mutex_locker_t lock(loadMethodLock);
+
+    // Discover load methods
+    // 发现 load 方法
+    {
+        // 互斥锁
+        mutex_locker_t lock2(runtimeLock);
+        // ➡️ 准备加载 load 方法
+        prepare_load_methods((const headerType *)mh);
+    }
+
+    // Call +load methods (without runtimeLock - re-entrant)
+    // ➡️ 调用 +load 方法（不带 runtimeLock - 可重入的（线程安全的））
+    call_load_methods();
+}
+
+// objc-runtime-new.mm
+// Quick scan for +load methods that doesn't take a lock.
+// 不需要加锁地快速搜索 +load 方法
+bool hasLoadMethods(const headerType *mhdr)
+{
+    size_t count;
+    // 非懒加载类列表（取 mach-o 中 __objc_nlclslist 节）
+    // GETSECT(_getObjc2NonlazyClassList,    classref_t,      &quot;__objc_nlclslist&quot;);
+    if (_getObjc2NonlazyClassList(mhdr, &amp;count)  &amp;&amp;  count &gt; 0) return true;
+    // 非懒加载分类列表（取 mach-o 中 __objc_nlcatlist 节）
+    // GETSECT(_getObjc2NonlazyCategoryList, category_t *,    &quot;__objc_nlcatlist&quot;);
+    if (_getObjc2NonlazyCategoryList(mhdr, &amp;count)  &amp;&amp;  count &gt; 0) return true;
+    return false;
+}
+
+// objc-runtime-new.mm
+void prepare_load_methods(const headerType *mhdr)
+{
+    size_t count, i;
+    
+    // 断言 runtimeLock 已锁
+    runtimeLock.assertLocked();
+
+    // 1. 非懒加载类列表
+    classref_t *classlist = 
+        _getObjc2NonlazyClassList(mhdr, &amp;count);
+    // 遍历所有类
+    for (i = 0; i &lt; count; i++) {
+        // ➡️ 计划 +load 方法调用
+        schedule_class_load(remapClass(classlist[i]));
+    }
+
+    // 2. 非懒加载分类列表
+    category_t **categorylist = _getObjc2NonlazyCategoryList(mhdr, &amp;count);
+    // 遍历所有分类
+    for (i = 0; i &lt; count; i++) {
+        category_t *cat = categorylist[i];
+        // 重映射分类的主类
+        Class cls = remapClass(cat-&gt;cls);
+        if (!cls) continue;  // category for ignored weak-linked class 忽略弱链接主类的分类
+        // 实化类（为 cls 执行一次性初始化）
+        realizeClass(cls);
+        // 断言类的 isa（元类）已实化
+        assert(cls-&gt;ISA()-&gt;isRealized());
+        // ➡️ 添加分类到可加载列表
+        add_category_to_loadable_list(cat);
+    }
+}
+
+// objc-runtime-new.mm
+static Class remapClass(classref_t cls)
+{
+    ➡️ 重映射类
+    return remapClass((Class)cls);
+}
+
+// objc-runtime-new.mm
+/***********************************************************************
+* remapClass
+* Returns the live class pointer for cls, which may be pointing to 
+* a class struct that has been reallocated.
+* 为参数 cls 返回可能指向已经重新分配类结构到活类指针。
+* Returns nil if cls is ignored because of weak linking.
+* 如果类是弱链接，将返回 nil。
+* Locking: runtimeLock must be read- or write-locked by the caller
+* 锁：runtimeLock 必须由调用者读取或写入锁定。
+**********************************************************************/
+static Class remapClass(Class cls)
+{
+    // 断言 runtimeLock 已锁
+    runtimeLock.assertLocked();
+
+    Class c2;
+
+    if (!cls) return nil;
+
+    NXMapTable *map = remappedClasses(NO);
+    // 从 map 中取 cls 对应的值
+    // void *NXMapMember(NXMapTable *table, const void *key, void **value)
+    if (!map  ||  NXMapMember(map, cls, (void**)&amp;c2) == NX_MAPNOTAKEY) {
+        return cls;
+    } else {
+        return c2;
+    }
+}
+
+// objc-runtime-new.mm
+/***********************************************************************
+* prepare_load_methods
+* Schedule +load for classes in this image, any un-+load-ed 
+* superclasses in other images, and any categories in this image.
+* 为当前镜像中的类、其它镜像中所有未 +load 的父类、以及该镜像中的所有的分类计划调用 +load。
+**********************************************************************/
+// Recursively schedule +load for cls and any un-+load-ed superclasses.
+// 为 cls 以及所有未 +load 的父类递归计划调用 +load。
+// cls must already be connected.
+// cls 必须已被连接。
+static void schedule_class_load(Class cls)
+{
+    if (!cls) return;
+    // 断言类是实化的
+    assert(cls-&gt;isRealized());  // _read_images should realize
+
+    // 判断类的 +load 是否被调用
+    if (cls-&gt;data()-&gt;flags &amp; RW_LOADED) return;
+
+    // Ensure superclass-first ordering
+    // 确保父类优先（递归）
+    schedule_class_load(cls-&gt;superclass);
+
+    // ➡️ 添加类到可加载列表
+    add_class_to_loadable_list(cls);
+    // 设置本类 +load 已调用过
+    cls-&gt;setInfo(RW_LOADED); 
+}
+
+// objc-loadmethod.mm
+/***********************************************************************
+* add_class_to_loadable_list
+* Class cls has just become connected. Schedule it for +load if
+* it implements a +load method.
+* cls 刚刚被连接。如果其实现了 +load 方法就将计划调用。
+**********************************************************************/
+void add_class_to_loadable_list(Class cls)
+{
+    IMP method;
+
+    // 断言 loadMethodLock 已锁
+    loadMethodLock.assertLocked();
+
+    // ➡️ 获取类 load 方法
+    method = cls-&gt;getLoadMethod();
+    if (!method) return;  // Don't bother if cls has no +load method 没有 +load 就返回
+    
+    // Xcode 中 OBJC_PRINT_LOAD_METHODS 环境变量值为 YES 时，将可在控制台打印该信息
+    // OPTION(PrintLoading, OBJC_PRINT_LOAD_METHODS, &quot;log calls to class and category +load methods&quot;)
+    if (PrintLoading) {
+        _objc_inform(&quot;LOAD: class '%s' scheduled for +load&quot;, 
+                     cls-&gt;nameForLogging());
+    }
+    
+    if (loadable_classes_used == loadable_classes_allocated) {
+        loadable_classes_allocated = loadable_classes_allocated*2 + 16;
+        loadable_classes = (struct loadable_class *)
+            realloc(loadable_classes,
+                              loadable_classes_allocated *
+                              sizeof(struct loadable_class));
+    }
+    
+    // 添加到 loadable_classes
+    loadable_classes[loadable_classes_used].cls = cls;
+    loadable_classes[loadable_classes_used].method = method;
+    loadable_classes_used++;
+}
+
+// objc-runtime-new.mm
+/***********************************************************************
+* objc_class::getLoadMethod
+* fixme
+* Called only from add_class_to_loadable_list.
+* 只在 add_class_to_loadable_list 中调用。
+* Locking: runtimeLock must be read- or write-locked by the caller.
+* 锁：runtimeLock 必须由调用者读取或写入锁定。
+**********************************************************************/
+IMP 
+objc_class::getLoadMethod()
+{
+    runtimeLock.assertLocked();
+
+    const method_list_t *mlist;
+
+    // 断言
+    assert(isRealized());
+    assert(ISA()-&gt;isRealized());
+    assert(!isMetaClass());
+    assert(ISA()-&gt;isMetaClass());
+
+    // 从只读列表中读取 baseMethods
+    mlist = ISA()-&gt;data()-&gt;ro-&gt;baseMethods();
+    if (mlist) {
+        for (const auto&amp; meth : *mlist) {
+            // 获取 selector 名称
+            const char *name = sel_cname(meth.name);
+            if (0 == strcmp(name, &quot;load&quot;)) {
+                // 若为 load 方法，则返回 IMP
+                return meth.imp;
+            }
+        }
+    }
+
+    return nil;
+}
+</code></pre>
+
+<h2 id="reference">Reference</h2>
+
+<ul>
+<li><a href="https://developer.apple.com/documentation/objectivec/nsobject/1418815-load?language=objc">load - Apple Developer</a></li>
+<li><a href="http://localhost:1313/posts/2019/category_in_ios/">iOS 中的 Category - kingcos</a></li>
+</ul>
+
+  </div>
+  
+  <div class="pagination">
+    <div class="pagination__title">
+      <span
+        class="pagination__title-h">Read other posts</span>
+      <hr />
+    </div>
+    <div class="pagination__buttons">
+      
+      <span class="button previous">
+        <a href="/posts/2019/ci_practice_in_ios-3/">
+          <span class="button__icon">←</span>
+          <span class="button__text">iOS 项目持续集成实践（三）</span>
+        </a>
+      </span>
+      
+      
+      <span class="button next">
+        <a href="/posts/2019/category_in_ios/">
+          <span class="button__text">iOS 中的 Category</span>
+          <span class="button__icon">→</span>
+        </a>
+      </span>
+      
+    </div>
+  </div>
+  
+
+  
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo="kingcos/kingcos.github.io"
+            issue-term="pathname"
+            label="comments"
+            theme="github-dark"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2019 · <a href="http://github.com/kingcos">kingcos</a></span>
+      </div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>
