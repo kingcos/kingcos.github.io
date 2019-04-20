@@ -7,9 +7,12 @@
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <meta name="description" content="Preface 自从「iOS 项目持续集成实践（一）」发布之后，发生了很多事情，原本计划持续更新的系列文章也因此没有更新。这次我将重拾该系列，本篇的围绕核心为「使用 GitLab Runner 搭建 CI」。
-What 由于我们目前使用的 Git 托管平台是公司内部的 GitLab EE，所以为了更加容易集成且统一化，选择了 GitLab CI。为了能将 CI 的状态更加好的兼容 GitLab，我们选择了 GitLab Runner 作为容器执行一些代码检查、图片压缩的任务。
-How 环境搭建 为了使用 GitLab Runner，我们需要先配置一下环境。因为我们是针对 iOS 项目的 CI，必须使用 macOS 系统的机器，因此我们选择的 CI 机器是一台 Mac Pro，并重装了目前最新版本的 macOS。
-   Mac Pro Info     Version Late 2013   Processor 3.5 GHz 6-Core Intel Xeon E5   Memory 16 GB 1866 MHz DDR3   Storage 256 GB Flash Storage   System macOS 10."/>
+What 在开始之前，我们首先要明确使用 CI 要解决哪些具体问题，这次我们先来关注代码到主仓库的过程。
+在工程师开发完新 Feature 或者修复好 Bug 时，需要将代码提交到相应的仓库的某个分支，大多数团队会在代码合并（Merge）之前，强制 Code Review（代码审查）并给出 Approve（确认）或者 Comment（评论）。然而在一个团队中，每天都可能会有数十个合并请求，这样的 Code Review 很难强制约束到每个审查代码的人都能够「人眼编译」、并保证代码是合理的实践。
+那么我们将希望 CI 能够替工程师完成一些固定化的检查和操作，比如单元测试、资源压缩，并在这些检查和操作都成功的前提下，再进行关注业务的 Code Review 将会高效很多。当然，CI 并不能替代 Code Review，但利用 CI 可以减轻 Code Review 的工作量，并显著提升代码和工程质量。
+我们目前使用的代码托管平台是公司内部搭建的 GitLab EE，因此为了更加便捷地集成，我们选择了 GitLab Runner 作为 CI 脚本执行者，下面我们将一步步搭建、配置。
+How 环境搭建 由于 Xcode 目前只能运行在 macOS 上，所以我们选择的 CI 机器是一台 Mac Pro，并重装了目前最新版本的 macOS，从零开始。关于这台 Mac Pro 的信息，可以参考下表：
+   Mac Pro Info     Version Late 2013   Processor 3."/>
 <meta name="keywords" content=""/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2019/ci_practice_in_ios-2/" />
@@ -33,9 +36,12 @@ How 环境搭建 为了使用 GitLab Runner，我们需要先配置一下环境�
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="iOS 项目持续集成实践（二） :: iBlog — " />
 <meta name="twitter:description" content="Preface 自从「iOS 项目持续集成实践（一）」发布之后，发生了很多事情，原本计划持续更新的系列文章也因此没有更新。这次我将重拾该系列，本篇的围绕核心为「使用 GitLab Runner 搭建 CI」。
-What 由于我们目前使用的 Git 托管平台是公司内部的 GitLab EE，所以为了更加容易集成且统一化，选择了 GitLab CI。为了能将 CI 的状态更加好的兼容 GitLab，我们选择了 GitLab Runner 作为容器执行一些代码检查、图片压缩的任务。
-How 环境搭建 为了使用 GitLab Runner，我们需要先配置一下环境。因为我们是针对 iOS 项目的 CI，必须使用 macOS 系统的机器，因此我们选择的 CI 机器是一台 Mac Pro，并重装了目前最新版本的 macOS。
-   Mac Pro Info     Version Late 2013   Processor 3.5 GHz 6-Core Intel Xeon E5   Memory 16 GB 1866 MHz DDR3   Storage 256 GB Flash Storage   System macOS 10." />
+What 在开始之前，我们首先要明确使用 CI 要解决哪些具体问题，这次我们先来关注代码到主仓库的过程。
+在工程师开发完新 Feature 或者修复好 Bug 时，需要将代码提交到相应的仓库的某个分支，大多数团队会在代码合并（Merge）之前，强制 Code Review（代码审查）并给出 Approve（确认）或者 Comment（评论）。然而在一个团队中，每天都可能会有数十个合并请求，这样的 Code Review 很难强制约束到每个审查代码的人都能够「人眼编译」、并保证代码是合理的实践。
+那么我们将希望 CI 能够替工程师完成一些固定化的检查和操作，比如单元测试、资源压缩，并在这些检查和操作都成功的前提下，再进行关注业务的 Code Review 将会高效很多。当然，CI 并不能替代 Code Review，但利用 CI 可以减轻 Code Review 的工作量，并显著提升代码和工程质量。
+我们目前使用的代码托管平台是公司内部搭建的 GitLab EE，因此为了更加便捷地集成，我们选择了 GitLab Runner 作为 CI 脚本执行者，下面我们将一步步搭建、配置。
+How 环境搭建 由于 Xcode 目前只能运行在 macOS 上，所以我们选择的 CI 机器是一台 Mac Pro，并重装了目前最新版本的 macOS，从零开始。关于这台 Mac Pro 的信息，可以参考下表：
+   Mac Pro Info     Version Late 2013   Processor 3." />
 <meta name="twitter:site" content="/" />
 <meta name="twitter:creator" content="" />
 <meta name="twitter:image" content="">
@@ -45,9 +51,12 @@ How 环境搭建 为了使用 GitLab Runner，我们需要先配置一下环境�
 <meta property="og:type" content="article" />
 <meta property="og:title" content="iOS 项目持续集成实践（二） :: iBlog — ">
 <meta property="og:description" content="Preface 自从「iOS 项目持续集成实践（一）」发布之后，发生了很多事情，原本计划持续更新的系列文章也因此没有更新。这次我将重拾该系列，本篇的围绕核心为「使用 GitLab Runner 搭建 CI」。
-What 由于我们目前使用的 Git 托管平台是公司内部的 GitLab EE，所以为了更加容易集成且统一化，选择了 GitLab CI。为了能将 CI 的状态更加好的兼容 GitLab，我们选择了 GitLab Runner 作为容器执行一些代码检查、图片压缩的任务。
-How 环境搭建 为了使用 GitLab Runner，我们需要先配置一下环境。因为我们是针对 iOS 项目的 CI，必须使用 macOS 系统的机器，因此我们选择的 CI 机器是一台 Mac Pro，并重装了目前最新版本的 macOS。
-   Mac Pro Info     Version Late 2013   Processor 3.5 GHz 6-Core Intel Xeon E5   Memory 16 GB 1866 MHz DDR3   Storage 256 GB Flash Storage   System macOS 10." />
+What 在开始之前，我们首先要明确使用 CI 要解决哪些具体问题，这次我们先来关注代码到主仓库的过程。
+在工程师开发完新 Feature 或者修复好 Bug 时，需要将代码提交到相应的仓库的某个分支，大多数团队会在代码合并（Merge）之前，强制 Code Review（代码审查）并给出 Approve（确认）或者 Comment（评论）。然而在一个团队中，每天都可能会有数十个合并请求，这样的 Code Review 很难强制约束到每个审查代码的人都能够「人眼编译」、并保证代码是合理的实践。
+那么我们将希望 CI 能够替工程师完成一些固定化的检查和操作，比如单元测试、资源压缩，并在这些检查和操作都成功的前提下，再进行关注业务的 Code Review 将会高效很多。当然，CI 并不能替代 Code Review，但利用 CI 可以减轻 Code Review 的工作量，并显著提升代码和工程质量。
+我们目前使用的代码托管平台是公司内部搭建的 GitLab EE，因此为了更加便捷地集成，我们选择了 GitLab Runner 作为 CI 脚本执行者，下面我们将一步步搭建、配置。
+How 环境搭建 由于 Xcode 目前只能运行在 macOS 上，所以我们选择的 CI 机器是一台 Mac Pro，并重装了目前最新版本的 macOS，从零开始。关于这台 Mac Pro 的信息，可以参考下表：
+   Mac Pro Info     Version Late 2013   Processor 3." />
 <meta property="og:url" content="/posts/2019/ci_practice_in_ios-2/" />
 <meta property="og:site_name" content="iOS 项目持续集成实践（二）" />
 <meta property="og:image" content="">
@@ -171,13 +180,19 @@ if (!doNotTrack) {
 
 <h2 id="what">What</h2>
 
-<p>由于我们目前使用的 Git 托管平台是公司内部的 GitLab EE，所以为了更加容易集成且统一化，选择了 GitLab CI。为了能将 CI 的状态更加好的兼容 GitLab，我们选择了 GitLab Runner 作为容器执行一些代码检查、图片压缩的任务。</p>
+<p>在开始之前，我们首先要明确使用 CI 要解决哪些具体问题，这次我们先来关注代码到主仓库的过程。</p>
+
+<p>在工程师开发完新 Feature 或者修复好 Bug 时，需要将代码提交到相应的仓库的某个分支，大多数团队会在代码合并（Merge）之前，强制 Code Review（代码审查）并给出 Approve（确认）或者 Comment（评论）。然而在一个团队中，每天都可能会有数十个合并请求，这样的 Code Review 很难强制约束到每个审查代码的人都能够「人眼编译」、并保证代码是合理的实践。</p>
+
+<p>那么我们将希望 CI 能够替工程师完成一些固定化的检查和操作，比如单元测试、资源压缩，并在这些检查和操作都成功的前提下，再进行关注业务的 Code Review 将会高效很多。当然，CI 并不能替代 Code Review，但利用 CI 可以减轻 Code Review 的工作量，并显著提升代码和工程质量。</p>
+
+<p>我们目前使用的代码托管平台是公司内部搭建的 GitLab EE，因此为了更加便捷地集成，我们选择了 GitLab Runner 作为 CI 脚本执行者，下面我们将一步步搭建、配置。</p>
 
 <h2 id="how">How</h2>
 
 <h3 id="环境搭建">环境搭建</h3>
 
-<p>为了使用 GitLab Runner，我们需要先配置一下环境。因为我们是针对 iOS 项目的 CI，必须使用 macOS 系统的机器，因此我们选择的 CI 机器是一台 Mac Pro，并重装了目前最新版本的 macOS。</p>
+<p>由于 Xcode 目前只能运行在 macOS 上，所以我们选择的 CI 机器是一台 Mac Pro，并重装了目前最新版本的 macOS，从零开始。关于这台 Mac Pro 的信息，可以参考下表：</p>
 
 <table>
 <thead>
@@ -215,26 +230,34 @@ if (!doNotTrack) {
 </tbody>
 </table>
 
-<h4 id="iterm-optional">iTerm (Optional)</h4>
+<h4 id="iterm-fish-optional">iTerm + fish (Optional)</h4>
+
+<blockquote>
+<p>⚠️</p>
+
+<p>该步骤并不会影响后续设置，仅为可选项。</p>
+</blockquote>
 
 <p><img src="/img/2019/CI_Practice_in_iOS-2/1.png" alt="" /></p>
 
-<p>为了后续的开发便捷，我安装了习惯使用的 iTerm 替代系统终端，以及 fish shell 替换系统自带的 bash shell。关于 fish shell 的相关配置，可以参考我的「EZConfigs」。</p>
+<p>安装 iTerm 替代系统自带的 Terminal；以及 fish shell 替代系统自带的 bash shell，fish shell 是我最近开始替代 zsh 的新选择，关于其配置可以参考 <a href="https://github.com/kingcos/EZconfigs/tree/master/Mac/shell#fish">EZConfigs - shell - fish</a>。</p>
 
 <h4 id="安装-xcode">安装 Xcode</h4>
 
-<p>为了各种开发相关插件能够正常安装，需要安装 Xcode Command Line Tools。Xcode 本身就自带了该工具，因此直接安装 Xcode 即可。我们这里安装的仍然是 Xcode 10.1，这是因为项目中的 Swift 版本仍使用的是 4.2 还未升级到 5.0。为了兼容 Xcode 后续版本，我们可以将 Xcode 的名称改为 Xcode-10.1，这样即可和其他 Xcode 版本共存。</p>
+<p>由于我们目前的 iOS 项目是 Swift + Obj-C 混编，虽然 Swift 5.0 已经 Release，但目前还没有来得及更新，因此我们这里安装的仍然是 Xcode 10.1。为了同时兼容 Xcode 后续版本，我们可以将 Xcode 的名称改为「Xcode-10.1」，这样即可和其他 Xcode 版本共存，并使用 <code>xcode-select</code> 进行切换。</p>
 
 <p><img src="/img/2019/CI_Practice_in_iOS-2/2.png" alt="" /></p>
 
-<p>安装成功后，在 Terminal 执行 <code>xcode-select -p</code> 尝试打印安装的 Xcode 路径。如果未正确输出，可以使用 <code>sudo xcode-select -s /Applications/Xcode-10.1.app</code> 更改。</p>
+<p>⚠️：Xcode 第一次安装成功后，需要手动打开，它将自动安装 Command Line Tools。待安装完毕后，在 iTerm/Terminal 执行 <code>xcode-select -p</code> 尝试打印当前的 Xcode Command Line Tools 路径。如果未正确输出，可以使用 <code>sudo xcode-select -s /Applications/Xcode-10.1.app</code> 手动更改为我们安装的路径。</p>
 
 <h4 id="homebrew">Homebrew</h4>
 
-<p>Homebrew 是 macOS 上必备的软件包管理工具。为了统一管理各种软件，我都会尽量使用 Homebrew 来安装各种软件和包。在 iTerm 中执行以下命令来安装：</p>
+<p>Homebrew 是 macOS 上必备的软件包管理工具。为了统一管理各种软件，我都会尽量使用 Homebrew。在 iTerm/Terminal 中执行以下命令来安装：</p>
 
 <pre><code>/usr/bin/ruby -e &quot;$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)&quot;
 </code></pre>
+
+<p>⚠️：安装期间可能需要输入系统密码。</p>
 
 <h4 id="安装-gitlab-runner">安装 GitLab Runner</h4>
 
@@ -256,15 +279,17 @@ if (!doNotTrack) {
 <pre><code>sudo gitlab-runner register
 </code></pre>
 
-<p>依次输入操作系统账户密码；GitLab URL 和 GitLab CI Token，这两个内容可以打开 GitLab 项目，左侧「Settings」-「CI/CD」-「Runners settings」-「Expand」-「Specific Runners」下方找到（可参考下图）；描述信息，方便在 Runner 页面查看；Tag，多个标签使用 <code>,</code> 分隔，标签可以在后续指定某一确定的 Runner，因此我这里截取了 Mac Pro 序列号的后四位作为区分；执行器（Executor），代表了运行脚本的执行者，由于 iOS 项目比较特殊，无法使用 Docker 等 Linux 容器，所以这里选择 Shell，后续我们将使用 Shell 命令（<code>xcodebuild</code>）来执行 Xcode。</p>
+<p>依次输入操作系统账户密码；GitLab URL 和 GitLab CI Token，这两个内容可以在 GitLab 网页中找到，打开 GitLab 项目，左侧「Settings」-「CI/CD」-「Runners settings」-「Expand」-「Specific Runners」下方找到（可参考下图）；描述信息，方便在 Runner 页面查看；Tag，即标签，多个标签使用 <code>,</code> 分隔，标签可以在后续指定某个或某些确定的 Runner，因此我这里截取了 Mac Pro 序列号的后四位作为唯一标志；执行器（Executor），代表了运行脚本的执行者，由于 iOS 项目比较特殊，无法使用 Docker 等 Linux 系统的容器，所以这里选择 shell，后续我们将使用 shell 命令（<code>xcodebuild</code>）来执行 Xcode。</p>
 
 <p><img src="/img/2019/CI_Practice_in_iOS-2/4.png" alt="" /></p>
 
-<p>当我们完成注册后，就可以在 GitLab 上查看到我们刚刚配置的 Runner：</p>
+<p>当我们完成注册后，就可以在 GitLab 网页中查看到我们刚刚配置的 Runner：</p>
 
 <p><img src="/img/2019/CI_Practice_in_iOS-2/6.png" alt="" /></p>
 
-<p>有时我们可以注意到右侧（箭头）的「Shared Runners」，如果他们并非是符合我们项目的环境，那么需要将该选项关闭，否则可能在分配 Runner 时导致莫名其妙的错误。</p>
+<p>我们可以注意到右侧（箭头）的「Shared Runners」，即共享 Runner。但由于 iOS 项目特殊，必须依赖 macOS，所以这些 Runner 基本上都无法满足我们的需要，可以将该选项关闭，否则在不指定 Tag 时可能会随机分配到错误环境的 Runner，从而引发错误。</p>
+
+<h3 id="开发模式">开发模式</h3>
 
 <h2 id="reference">Reference</h2>
 
