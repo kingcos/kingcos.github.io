@@ -358,16 +358,327 @@ int main(int argc, const char * argv[]) {
 
 <p>在上述 Demo 中，我们发现了输出的结果与 +load 的差异，但与分类的相似性。因此我们可以很大概率肯定 iOS 中的 +initialize 方法是消息发送，而非类似 +load 通过方法指针（IMP）直接调用。那么如何验证我们的猜想呢？</p>
 
-<pre><code class="language-objectivec">
+<pre><code class="language-objectivec">// objc-class.mm
+/***********************************************************************
+* class_getClassMethod.  Return the class method for the specified
+* class and selector.
+* 为指定的类和方法选择器返回相应的类方法。
+**********************************************************************/
+Method class_getClassMethod(Class cls, SEL sel)
+{
+    if (!cls  ||  !sel) return nil;
+
+    // ➡️ 返回元类的方法（因为类对象和元类对象的结构一致）
+    return class_getInstanceMethod(cls-&gt;getMeta(), sel);
+}
+
+// objc-runtime-new.mm
+/***********************************************************************
+* class_getInstanceMethod.  Return the instance method for the
+* specified class and selector.
+* 为指定的类和方法选择器返回相应的对象方法。
+**********************************************************************/
+Method class_getInstanceMethod(Class cls, SEL sel)
+{
+    if (!cls  ||  !sel) return nil;
+
+    // This deliberately avoids +initialize because it historically did so.
+    // 历史原因，这里故意避免 +initialize。
+
+    // This implementation is a bit weird because it's the only place that 
+    // wants a Method instead of an IMP.
+    // 这里的实现有点奇怪，因为这是唯一需要 Method 而非 IMP 的地方。
+
+#warning fixme build and search caches
+        
+    // Search method lists, try method resolver, etc.
+    // 搜索方法列表，尝试方法解析器等。
+    // ➡️ 查找 IMP 或 Nil
+    lookUpImpOrNil(cls, sel, nil, 
+                   NO/*initialize*/, NO/*cache*/, YES/*resolver*/);
+
+#warning fixme build and search caches
+
+    return _class_getMethod(cls, sel);
+}
+
+// objc-runtime-new.mm
+/***********************************************************************
+* lookUpImpOrNil.
+* Like lookUpImpOrForward, but returns nil instead of _objc_msgForward_impcache
+* 类似 lookUpImpOrForward，但返回 nil 替代 _objc_msgForward_impcache
+**********************************************************************/
+IMP lookUpImpOrNil(Class cls, SEL sel, id inst, 
+                   bool initialize, bool cache, bool resolver)
+{
+    // 查找 IMP 或向前
+    IMP imp = lookUpImpOrForward(cls, sel, inst, initialize, cache, resolver);
+    // ➡️ 当 IMP 为 _objc_msgForward_impcache 时，返回 nil
+    if (imp == _objc_msgForward_impcache) return nil;
+    else return imp;
+}
+
+// objc-runtime-new.mm
+/***********************************************************************
+* lookUpImpOrForward.
+* The standard IMP lookup. 
+* 标准 IMP 查找。
+* initialize==NO tries to avoid +initialize (but sometimes fails)
+* cache==NO skips optimistic unlocked lookup (but uses cache elsewhere)
+* Most callers should use initialize==YES and cache==YES.
+* inst is an instance of cls or a subclass thereof, or nil if none is known. 
+*   If cls is an un-initialized metaclass then a non-nil inst is faster.
+* May return _objc_msgForward_impcache. IMPs destined for external use 
+*   must be converted to _objc_msgForward or _objc_msgForward_stret.
+*   If you don't want forwarding at all, use lookUpImpOrNil() instead.
+**********************************************************************/
+IMP lookUpImpOrForward(Class cls, SEL sel, id inst, 
+                       bool initialize, bool cache, bool resolver)
+{
+    IMP imp = nil;
+    bool triedResolver = NO;
+
+    runtimeLock.assertUnlocked();
+
+    // Optimistic cache lookup
+    if (cache) {
+        imp = cache_getImp(cls, sel);
+        if (imp) return imp;
+    }
+
+    // runtimeLock is held during isRealized and isInitialized checking
+    // to prevent races against concurrent realization.
+
+    // runtimeLock is held during method search to make
+    // method-lookup + cache-fill atomic with respect to method addition.
+    // Otherwise, a category could be added but ignored indefinitely because
+    // the cache was re-filled with the old value after the cache flush on
+    // behalf of the category.
+
+    runtimeLock.lock();
+    checkIsKnownClass(cls);
+
+    if (!cls-&gt;isRealized()) {
+        realizeClass(cls);
+    }
+
+    if (initialize  &amp;&amp;  !cls-&gt;isInitialized()) {
+        runtimeLock.unlock();
+        _class_initialize (_class_getNonMetaClass(cls, inst));
+        runtimeLock.lock();
+        // If sel == initialize, _class_initialize will send +initialize and 
+        // then the messenger will send +initialize again after this 
+        // procedure finishes. Of course, if this is not being called 
+        // from the messenger then it won't happen. 2778172
+    }
+
+    
+ retry:    
+    runtimeLock.assertLocked();
+
+    // Try this class's cache.
+
+    imp = cache_getImp(cls, sel);
+    if (imp) goto done;
+
+    // Try this class's method lists.
+    {
+        Method meth = getMethodNoSuper_nolock(cls, sel);
+        if (meth) {
+            log_and_fill_cache(cls, meth-&gt;imp, sel, inst, cls);
+            imp = meth-&gt;imp;
+            goto done;
+        }
+    }
+
+    // Try superclass caches and method lists.
+    {
+        unsigned attempts = unreasonableClassCount();
+        for (Class curClass = cls-&gt;superclass;
+             curClass != nil;
+             curClass = curClass-&gt;superclass)
+        {
+            // Halt if there is a cycle in the superclass chain.
+            if (--attempts == 0) {
+                _objc_fatal(&quot;Memory corruption in class list.&quot;);
+            }
+            
+            // Superclass cache.
+            imp = cache_getImp(curClass, sel);
+            if (imp) {
+                if (imp != (IMP)_objc_msgForward_impcache) {
+                    // Found the method in a superclass. Cache it in this class.
+                    log_and_fill_cache(cls, imp, sel, inst, curClass);
+                    goto done;
+                }
+                else {
+                    // Found a forward:: entry in a superclass.
+                    // Stop searching, but don't cache yet; call method 
+                    // resolver for this class first.
+                    break;
+                }
+            }
+            
+            // Superclass method list.
+            Method meth = getMethodNoSuper_nolock(curClass, sel);
+            if (meth) {
+                log_and_fill_cache(cls, meth-&gt;imp, sel, inst, curClass);
+                imp = meth-&gt;imp;
+                goto done;
+            }
+        }
+    }
+
+    // No implementation found. Try method resolver once.
+
+    if (resolver  &amp;&amp;  !triedResolver) {
+        runtimeLock.unlock();
+        _class_resolveMethod(cls, sel, inst);
+        runtimeLock.lock();
+        // Don't cache the result; we don't hold the lock so it may have 
+        // changed already. Re-do the search from scratch instead.
+        triedResolver = YES;
+        goto retry;
+    }
+
+    // No implementation found, and method resolver didn't help. 
+    // Use forwarding.
+
+    imp = (IMP)_objc_msgForward_impcache;
+    cache_fill(cls, sel, imp, inst);
+
+ done:
+    runtimeLock.unlock();
+
+    return imp;
+}
+
+// objc-initialize.mm
+/***********************************************************************
+* class_initialize.  Send the '+initialize' message on demand to any
+* uninitialized class. Force initialization of superclasses first.
+**********************************************************************/
+void _class_initialize(Class cls)
+{
+    assert(!cls-&gt;isMetaClass());
+
+    Class supercls;
+    bool reallyInitialize = NO;
+
+    // Make sure super is done initializing BEFORE beginning to initialize cls.
+    // See note about deadlock above.
+    supercls = cls-&gt;superclass;
+    if (supercls  &amp;&amp;  !supercls-&gt;isInitialized()) {
+        _class_initialize(supercls);
+    }
+    
+    // Try to atomically set CLS_INITIALIZING.
+    {
+        monitor_locker_t lock(classInitLock);
+        if (!cls-&gt;isInitialized() &amp;&amp; !cls-&gt;isInitializing()) {
+            cls-&gt;setInitializing();
+            reallyInitialize = YES;
+        }
+    }
+    
+    if (reallyInitialize) {
+        // We successfully set the CLS_INITIALIZING bit. Initialize the class.
+        
+        // Record that we're initializing this class so we can message it.
+        _setThisThreadIsInitializingClass(cls);
+
+        if (MultithreadedForkChild) {
+            // LOL JK we don't really call +initialize methods after fork().
+            performForkChildInitialize(cls, supercls);
+            return;
+        }
+        
+        // Send the +initialize message.
+        // Note that +initialize is sent to the superclass (again) if 
+        // this class doesn't implement +initialize. 2157218
+        if (PrintInitializing) {
+            _objc_inform(&quot;INITIALIZE: thread %p: calling +[%s initialize]&quot;,
+                         pthread_self(), cls-&gt;nameForLogging());
+        }
+
+        // Exceptions: A +initialize call that throws an exception 
+        // is deemed to be a complete and successful +initialize.
+        //
+        // Only __OBJC2__ adds these handlers. !__OBJC2__ has a
+        // bootstrapping problem of this versus CF's call to
+        // objc_exception_set_functions().
+#if __OBJC2__
+        @try
+#endif
+        {
+            callInitialize(cls);
+
+            if (PrintInitializing) {
+                _objc_inform(&quot;INITIALIZE: thread %p: finished +[%s initialize]&quot;,
+                             pthread_self(), cls-&gt;nameForLogging());
+            }
+        }
+#if __OBJC2__
+        @catch (...) {
+            if (PrintInitializing) {
+                _objc_inform(&quot;INITIALIZE: thread %p: +[%s initialize] &quot;
+                             &quot;threw an exception&quot;,
+                             pthread_self(), cls-&gt;nameForLogging());
+            }
+            @throw;
+        }
+        @finally
+#endif
+        {
+            // Done initializing.
+            lockAndFinishInitializing(cls, supercls);
+        }
+        return;
+    }
+    
+    else if (cls-&gt;isInitializing()) {
+        // We couldn't set INITIALIZING because INITIALIZING was already set.
+        // If this thread set it earlier, continue normally.
+        // If some other thread set it, block until initialize is done.
+        // It's ok if INITIALIZING changes to INITIALIZED while we're here, 
+        //   because we safely check for INITIALIZED inside the lock 
+        //   before blocking.
+        if (_thisThreadIsInitializingClass(cls)) {
+            return;
+        } else if (!MultithreadedForkChild) {
+            waitForInitializeToComplete(cls);
+            return;
+        } else {
+            // We're on the child side of fork(), facing a class that
+            // was initializing by some other thread when fork() was called.
+            _setThisThreadIsInitializingClass(cls);
+            performForkChildInitialize(cls, supercls);
+        }
+    }
+    
+    else if (cls-&gt;isInitialized()) {
+        // Set CLS_INITIALIZING failed because someone else already 
+        //   initialized the class. Continue normally.
+        // NOTE this check must come AFTER the ISINITIALIZING case.
+        // Otherwise: Another thread is initializing this class. ISINITIALIZED 
+        //   is false. Skip this clause. Then the other thread finishes 
+        //   initialization and sets INITIALIZING=no and INITIALIZED=yes. 
+        //   Skip the ISINITIALIZING clause. Die horribly.
+        return;
+    }
+    
+    else {
+        // We shouldn't be here. 
+        _objc_fatal(&quot;thread-safe class init in objc runtime is buggy!&quot;);
+    }
+}
 </code></pre>
 
-<p>class_getClassMethod
-class_getInstanceMethod
-lookUpImpOrNil
-lookUpImpOrForward
-_class_initialize</p>
-
 <h2 id="reference">Reference</h2>
+
+<ul>
+<li><a href="https://maimieng.com/posts/2019/+load_in_ios/">iOS 中的 +load 方法</a></li>
+</ul>
 
   </div>
   
