@@ -368,7 +368,8 @@ Method class_getClassMethod(Class cls, SEL sel)
 {
     if (!cls  ||  !sel) return nil;
 
-    // ➡️ 返回元类的方法（因为类对象和元类对象的结构一致）
+    // ➡️ 返回元类的方法
+    // 因为类对象和元类对象的结构一致（均为 Class），因此元类的类方法和类的对象方法存储在同样的结构中
     return class_getInstanceMethod(cls-&gt;getMeta(), sel);
 }
 
@@ -383,7 +384,7 @@ Method class_getInstanceMethod(Class cls, SEL sel)
     if (!cls  ||  !sel) return nil;
 
     // This deliberately avoids +initialize because it historically did so.
-    // 历史原因，这里故意避免 +initialize。
+    // 由于历史原因，这里故意避免 +initialize。
 
     // This implementation is a bit weird because it's the only place that 
     // wants a Method instead of an IMP.
@@ -411,9 +412,9 @@ Method class_getInstanceMethod(Class cls, SEL sel)
 IMP lookUpImpOrNil(Class cls, SEL sel, id inst, 
                    bool initialize, bool cache, bool resolver)
 {
-    // 查找 IMP 或向前
+    // ➡️ 查找 IMP
     IMP imp = lookUpImpOrForward(cls, sel, inst, initialize, cache, resolver);
-    // ➡️ 当 IMP 为 _objc_msgForward_impcache 时，返回 nil
+    // 当 IMP 为 _objc_msgForward_impcache 时，返回 nil
     if (imp == _objc_msgForward_impcache) return nil;
     else return imp;
 }
@@ -424,23 +425,32 @@ IMP lookUpImpOrNil(Class cls, SEL sel, id inst,
 * The standard IMP lookup. 
 * 标准 IMP 查找。
 * initialize==NO tries to avoid +initialize (but sometimes fails)
+* initialize==NO 尝试避免 +initialize（但有时会失败）
 * cache==NO skips optimistic unlocked lookup (but uses cache elsewhere)
+* cache==NO 跳过乐观解锁查找（但有时仍会使用缓存）
 * Most callers should use initialize==YES and cache==YES.
+* 大多数调用者应当使用 initialize==YES 且 cache==YES。
 * inst is an instance of cls or a subclass thereof, or nil if none is known. 
+* inst 是 cls 或其子类，如果没有，则为 nil。
 *   If cls is an un-initialized metaclass then a non-nil inst is faster.
+*   如果 cls 是未初始化的元类，那么非 nil 的 inst 更快。
 * May return _objc_msgForward_impcache. IMPs destined for external use 
 *   must be converted to _objc_msgForward or _objc_msgForward_stret.
+* 可能返回 _objc_msgForward_impcache。外部使用 IMP 则注定必须被转换为 _objc_msgForward 或 _objc_msgForward_stret。
 *   If you don't want forwarding at all, use lookUpImpOrNil() instead.
+*   如果根本不需要转发，使用 lookUpImpOrNil() 替代。
 **********************************************************************/
 IMP lookUpImpOrForward(Class cls, SEL sel, id inst, 
                        bool initialize, bool cache, bool resolver)
 {
     IMP imp = nil;
     bool triedResolver = NO;
-
+    
+    // 断言解锁
     runtimeLock.assertUnlocked();
 
     // Optimistic cache lookup
+    // 乐观缓存查找
     if (cache) {
         imp = cache_getImp(cls, sel);
         if (imp) return imp;
@@ -448,12 +458,15 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
 
     // runtimeLock is held during isRealized and isInitialized checking
     // to prevent races against concurrent realization.
+    // 在 isRealized 和 isInitialized 检查期间保持 runtimeLock，防止并发实化竞争。
 
     // runtimeLock is held during method search to make
     // method-lookup + cache-fill atomic with respect to method addition.
+    // 在方法搜索期间保持 runtimeLock，使得方法查找和缓存填充在方法添加部分原子化（不可再分割）。
     // Otherwise, a category could be added but ignored indefinitely because
     // the cache was re-filled with the old value after the cache flush on
     // behalf of the category.
+    // 否则，分类可以被添加但一直被忽略，因为分类的缓存在刷新后会被旧值重复填充。
 
     runtimeLock.lock();
     checkIsKnownClass(cls);
