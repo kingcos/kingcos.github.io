@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>Effective Objective-C 2.0 笔记 :: iBlog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="Book ISBN     编写高质量 iOS 与 OS X 代码的 52 个有效方法 9787111451297   Date Chapters   2019-05-01     熟悉 Objective-C 了解 Objective-C 语言的起源  消息结构（Message Structure）的语言，运行时执行的代码由运行环境决定；函数调用（Function Calling）的语言，运行时所执行的代码由编译器决定，对于多态，则按照虚函数表（Virtual Method Table）寻找。 运行时组件（Runtime Component） 本质上是一种与开发者所编写代码相链接的「动态库（Dynamic Library），这样的好处是只需要更新运行时组件（无需重新编译）即可提升程序性能。 Obj-C 是 C 的超集。 Obj-C 中的对象所占内存总是分配在堆空间（Heap Stack）；而指向对象的指针所占内存总是分配在栈帧（Stack Frame）中。 堆中的内存需要程序员自己管理，栈中的内存会在其栈帧弹出（Pop）时自动清理。 创建对象相比创建结构体（C 结构体）需要额外开销，例如分配和释放堆内存等。  // @&amp;quot;string&amp;quot; 被分配在堆上；a &amp;amp; b &amp;amp; c 被分配在栈上 NSString *a = @&amp;quot;string&amp;quot;; NSString *b = a; NSString *c = @&amp;quot;string&amp;quot;; // (lldb) p a // (__NSCFConstantString *) $0 = 0x0000000100001020 @&amp;quot;string&amp;quot; // (lldb) p b // (__NSCFConstantString *) $1 = 0x0000000100001020 @&amp;quot;string&amp;quot; // (lldb) p c // (__NSCFConstantString *) $2 = 0x0000000100001020 @&amp;quot;string&amp;quot; // (lldb) p &amp;amp;a // (NSString **) $4 = 0x00007ffeefbff548 // (lldb) p &amp;amp;b // (NSString **) $5 = 0x00007ffeefbff540 // (lldb) p &amp;amp;c // (NSString **) $6 = 0x00007ffeefbff538 // (lldb)  在类的头文件中尽量少引入其他头文件  当需要知道有一个类的存在时，而不关心其内部细节时，可以使用向前声明（Forward Declaring）告知编译器，即可以在 ."/>
+<meta name="keywords" content=""/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2019/effective_objc_2.0_notes/" />
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+  <link rel="stylesheet" href="/assets/green.css">
+
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+
+<link rel="shortcut icon" href="/img/favicon/favicon.ico">
+
+
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Effective Objective-C 2.0 笔记 :: iBlog — " />
+<meta name="twitter:description" content="Book ISBN     编写高质量 iOS 与 OS X 代码的 52 个有效方法 9787111451297   Date Chapters   2019-05-01     熟悉 Objective-C 了解 Objective-C 语言的起源  消息结构（Message Structure）的语言，运行时执行的代码由运行环境决定；函数调用（Function Calling）的语言，运行时所执行的代码由编译器决定，对于多态，则按照虚函数表（Virtual Method Table）寻找。 运行时组件（Runtime Component） 本质上是一种与开发者所编写代码相链接的「动态库（Dynamic Library），这样的好处是只需要更新运行时组件（无需重新编译）即可提升程序性能。 Obj-C 是 C 的超集。 Obj-C 中的对象所占内存总是分配在堆空间（Heap Stack）；而指向对象的指针所占内存总是分配在栈帧（Stack Frame）中。 堆中的内存需要程序员自己管理，栈中的内存会在其栈帧弹出（Pop）时自动清理。 创建对象相比创建结构体（C 结构体）需要额外开销，例如分配和释放堆内存等。  // @&amp;quot;string&amp;quot; 被分配在堆上；a &amp;amp; b &amp;amp; c 被分配在栈上 NSString *a = @&amp;quot;string&amp;quot;; NSString *b = a; NSString *c = @&amp;quot;string&amp;quot;; // (lldb) p a // (__NSCFConstantString *) $0 = 0x0000000100001020 @&amp;quot;string&amp;quot; // (lldb) p b // (__NSCFConstantString *) $1 = 0x0000000100001020 @&amp;quot;string&amp;quot; // (lldb) p c // (__NSCFConstantString *) $2 = 0x0000000100001020 @&amp;quot;string&amp;quot; // (lldb) p &amp;amp;a // (NSString **) $4 = 0x00007ffeefbff548 // (lldb) p &amp;amp;b // (NSString **) $5 = 0x00007ffeefbff540 // (lldb) p &amp;amp;c // (NSString **) $6 = 0x00007ffeefbff538 // (lldb)  在类的头文件中尽量少引入其他头文件  当需要知道有一个类的存在时，而不关心其内部细节时，可以使用向前声明（Forward Declaring）告知编译器，即可以在 ." />
+<meta name="twitter:site" content="/" />
+<meta name="twitter:creator" content="" />
+<meta name="twitter:image" content="">
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Effective Objective-C 2.0 笔记 :: iBlog — ">
+<meta property="og:description" content="Book ISBN     编写高质量 iOS 与 OS X 代码的 52 个有效方法 9787111451297   Date Chapters   2019-05-01     熟悉 Objective-C 了解 Objective-C 语言的起源  消息结构（Message Structure）的语言，运行时执行的代码由运行环境决定；函数调用（Function Calling）的语言，运行时所执行的代码由编译器决定，对于多态，则按照虚函数表（Virtual Method Table）寻找。 运行时组件（Runtime Component） 本质上是一种与开发者所编写代码相链接的「动态库（Dynamic Library），这样的好处是只需要更新运行时组件（无需重新编译）即可提升程序性能。 Obj-C 是 C 的超集。 Obj-C 中的对象所占内存总是分配在堆空间（Heap Stack）；而指向对象的指针所占内存总是分配在栈帧（Stack Frame）中。 堆中的内存需要程序员自己管理，栈中的内存会在其栈帧弹出（Pop）时自动清理。 创建对象相比创建结构体（C 结构体）需要额外开销，例如分配和释放堆内存等。  // @&amp;quot;string&amp;quot; 被分配在堆上；a &amp;amp; b &amp;amp; c 被分配在栈上 NSString *a = @&amp;quot;string&amp;quot;; NSString *b = a; NSString *c = @&amp;quot;string&amp;quot;; // (lldb) p a // (__NSCFConstantString *) $0 = 0x0000000100001020 @&amp;quot;string&amp;quot; // (lldb) p b // (__NSCFConstantString *) $1 = 0x0000000100001020 @&amp;quot;string&amp;quot; // (lldb) p c // (__NSCFConstantString *) $2 = 0x0000000100001020 @&amp;quot;string&amp;quot; // (lldb) p &amp;amp;a // (NSString **) $4 = 0x00007ffeefbff548 // (lldb) p &amp;amp;b // (NSString **) $5 = 0x00007ffeefbff540 // (lldb) p &amp;amp;c // (NSString **) $6 = 0x00007ffeefbff538 // (lldb)  在类的头文件中尽量少引入其他头文件  当需要知道有一个类的存在时，而不关心其内部细节时，可以使用向前声明（Forward Declaring）告知编译器，即可以在 ." />
+<meta property="og:url" content="/posts/2019/effective_objc_2.0_notes/" />
+<meta property="og:site_name" content="Effective Objective-C 2.0 笔记" />
+<meta property="og:image" content="">
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+<meta property="article:published_time" content="2019-04-30 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="">
+
+
+<div class="container center">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    iBlog
+  </div>
+</a>
+
+    </div>
+    <div class="menu-trigger">menu</div>
+  </div>
+  
+  
+    
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  
+
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="/posts/2019/effective_objc_2.0_notes/">Effective Objective-C 2.0 笔记</a></h1>
+  <div class="post-meta">
+    <span class="post-date">
+      2019-04-30
+    </span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="/tags/read/">Read</a>&nbsp;
+    
+    #<a href="/tags/ios/">iOS</a>&nbsp;
+    
+    #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
+    
+  </span>
+  
+
+  
+
+  <div class="post-content">
+    
+
+<table>
+<thead>
+<tr>
+<th align="center">Book</th>
+<th align="center">ISBN</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center">编写高质量 iOS 与 OS X 代码的 52 个有效方法</td>
+<td align="center">9787111451297</td>
+</tr>
+
+<tr>
+<td align="center"><strong>Date</strong></td>
+<td align="center"><strong>Chapters</strong></td>
+</tr>
+
+<tr>
+<td align="center">2019-05-01</td>
+<td align="center"></td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="熟悉-objective-c">熟悉 Objective-C</h2>
+
+<h3 id="了解-objective-c-语言的起源">了解 Objective-C 语言的起源</h3>
+
+<ul>
+<li>消息结构（Message Structure）的语言，运行时执行的代码由运行环境决定；函数调用（Function Calling）的语言，运行时所执行的代码由编译器决定，对于多态，则按照虚函数表（Virtual Method Table）寻找。</li>
+<li>运行时组件（Runtime Component） 本质上是一种与开发者所编写代码相链接的「动态库（Dynamic Library），这样的好处是只需要更新运行时组件（无需重新编译）即可提升程序性能。</li>
+<li>Obj-C 是 C 的超集。</li>
+<li>Obj-C 中的对象所占内存总是分配在堆空间（Heap Stack）；而指向对象的指针所占内存总是分配在栈帧（Stack Frame）中。</li>
+<li>堆中的内存需要程序员自己管理，栈中的内存会在其栈帧弹出（Pop）时自动清理。</li>
+<li>创建对象相比创建结构体（C 结构体）需要额外开销，例如分配和释放堆内存等。</li>
+</ul>
+
+<p><img src="/img/2019/effective_objc_2.0_notes/1.png" alt="" /></p>
+
+<pre><code class="language-objectivec">// @&quot;string&quot; 被分配在堆上；a &amp; b &amp; c 被分配在栈上
+NSString *a = @&quot;string&quot;;
+NSString *b = a;
+NSString *c = @&quot;string&quot;;
+
+// (lldb) p a
+// (__NSCFConstantString *) $0 = 0x0000000100001020 @&quot;string&quot;
+// (lldb) p b
+// (__NSCFConstantString *) $1 = 0x0000000100001020 @&quot;string&quot;
+// (lldb) p c
+// (__NSCFConstantString *) $2 = 0x0000000100001020 @&quot;string&quot;
+// (lldb) p &amp;a
+// (NSString **) $4 = 0x00007ffeefbff548
+// (lldb) p &amp;b
+// (NSString **) $5 = 0x00007ffeefbff540
+// (lldb) p &amp;c
+// (NSString **) $6 = 0x00007ffeefbff538
+// (lldb) 
+</code></pre>
+
+<h3 id="在类的头文件中尽量少引入其他头文件">在类的头文件中尽量少引入其他头文件</h3>
+
+<ul>
+<li>当需要知道有一个类的存在时，而不关心其内部细节时，可以使用向前声明（Forward Declaring）告知编译器，即可以在 .h（头文件）中 <code>@class SomeClass</code>；而在 .m（实现文件）中引入实际的 .h。</li>
+<li>当在两个头文件中互相引入对方，则会导致「循环引用（Chicken-Egg Situation）」，无法通过编译。</li>
+<li>将引入头文件的时机尽量延后，只有在确定有需要时才引入，否则会增加耦合度、拉长编译时间、产生相互依赖等问题。</li>
+<li>继承父类和遵循协议则不能使用向前声明，必须引入相应的头文件，因此协议最好声明在单独的头文件中。</li>
+<li>由于代理协议（Delegate Protocol）和遵守协议代理的类声明在一起时才有意义，最好在实现文件中声明类遵守了该代理协议，并将实现代码放在 Class-Continuation 分类（Class-Continuation Category）中；因此只需要在实现文件中引入包含代理协议的头文件即可，而不需要将其放在公共头文件（Public Header File）中。</li>
+</ul>
+
+<h3 id="多用字面量语法-少用与之等价的方法">多用字面量语法，少用与之等价的方法</h3>
+
+<ul>
+<li>字面量（Literal）语法简化了 Obj-C 的部分 API：</li>
+</ul>
+
+<pre><code class="language-objectivec">NSString *strValue = @&quot;str&quot;;
+NSNumber *intValue = @1;
+NSNumber *doubleValue = @3.14;
+NSArray *arrValue = @[@&quot;a&quot;, @&quot;b&quot;, @&quot;c&quot;];
+NSString *firstValueForArr = arrValue[0];
+// ⚠️ 字面量创建的数组、字典都是不可变的
+NSMutableArray *mutableArrValue = [@[@&quot;a&quot;, @&quot;b&quot;, @&quot;c&quot;] mutableCopy];
+mutableArrValue[0] = @&quot;maimieng.com&quot;;
+NSDictionary *dictValue = @{@&quot;key&quot; : @100};
+NSNumber *valueForDictByKey  = dictValue[@&quot;key&quot;];
+NSMutableDictionary *mutableDictValue = [@{@&quot;key&quot; : @100} mutableCopy];
+mutableDictValue[@&quot;key&quot;] = @200;
+</code></pre>
+
+<ul>
+<li>字面量语法在 <code>NSArray</code>、<code>NSDictionary</code> 等类中插入 <code>nil</code> 对象时会直接崩溃，而直接使用 API 则会发生「截断」，对于这两个用法差异务必要注意：</li>
+</ul>
+
+<pre><code class="language-objectivec">id nilObj = nil;
+// *** -[__NSPlaceholderArray initWithObjects:count:]: attempt to insert nil object from objects[3]
+NSArray *arrWithNilObject1 = @[@0, nilObj, @2];
+// (0)
+NSArray *arrWithNilObject2 = [NSArray arrayWithObjects:@0, nil, @2, nil];
+// *** -[__NSPlaceholderDictionary initWithObjects:forKeys:count:]: attempt to insert nil object from objects[0]
+NSDictionary *dictWithNilObject1 = @{@&quot;a&quot; : @&quot;A&quot;, @&quot;b&quot; : nilObj, @&quot;c&quot; : @&quot;C&quot;};
+// { a = A; }
+NSDictionary *dictWithNilObject2 = [NSDictionary dictionaryWithObjectsAndKeys:@&quot;A&quot;, @&quot;a&quot;, nilObj, @&quot;b&quot;, @&quot;C&quot;, @&quot;c&quot;, nil];
+</code></pre>
+
+<ul>
+<li>除了字符串，字面量语法仅适用于 Foundation 框架中，即我们自定义继承自上述支持字面量的类时，将不再支持使用字面量。</li>
+</ul>
+
+<h3 id="多用类型常量-少用-define-预处理指令">多用类型常量，少用 #define 预处理指令</h3>
+
+  </div>
+  
+  <div class="pagination">
+    <div class="pagination__title">
+      <span
+        class="pagination__title-h">Read other posts</span>
+      <hr />
+    </div>
+    <div class="pagination__buttons">
+      
+      
+      <span class="button next">
+        <a href="/posts/2019/&#43;initialize_in_ios/">
+          <span class="button__text">iOS 中的 &#43;initialize 方法</span>
+          <span class="button__icon">→</span>
+        </a>
+      </span>
+      
+    </div>
+  </div>
+  
+
+  
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo="kingcos/kingcos.github.io"
+            issue-term="pathname"
+            label="comments"
+            theme="github-dark"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2019 · <a href="http://github.com/kingcos">kingcos</a></span>
+      </div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>
