@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>[译]摊平由「try?」造成的可选嵌套 :: iBlog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="提案: SE-0230 作者: BJ Homer 审查管理员: John McCall 状态: 已实现 (Swift 5) 实现: apple/swift#16942 审查: (论坛帖子) (验收)  介绍 Swift 的 try? 语句现在很容易引入可选嵌套。而用户难以推断可选嵌套，所以 Swift 尝试避免在一些常见情况下产生可选嵌套。
+该文档建议给予 try? 与其它常见的 Swift 功能中相同的可选摊平行为，来避免时常发生的可选嵌套。
+Swift-evolution 帖子: 使 try? 与可选链摊平协同工作
+动机 It&amp;rsquo;s currently quite easy to end up with a nested Optional type when using try?. Although it is valid to construct a nested optional, it is usually not what the developer intended."/>
+<meta name="keywords" content=""/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2019/0230-flatten-optional-try_cn/" />
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+  <link rel="stylesheet" href="/assets/green.css">
+
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+
+<link rel="shortcut icon" href="/img/favicon/favicon.ico">
+
+
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="[译]摊平由「try?」造成的可选嵌套 :: iBlog — " />
+<meta name="twitter:description" content="提案: SE-0230 作者: BJ Homer 审查管理员: John McCall 状态: 已实现 (Swift 5) 实现: apple/swift#16942 审查: (论坛帖子) (验收)  介绍 Swift 的 try? 语句现在很容易引入可选嵌套。而用户难以推断可选嵌套，所以 Swift 尝试避免在一些常见情况下产生可选嵌套。
+该文档建议给予 try? 与其它常见的 Swift 功能中相同的可选摊平行为，来避免时常发生的可选嵌套。
+Swift-evolution 帖子: 使 try? 与可选链摊平协同工作
+动机 It&amp;rsquo;s currently quite easy to end up with a nested Optional type when using try?. Although it is valid to construct a nested optional, it is usually not what the developer intended." />
+<meta name="twitter:site" content="/" />
+<meta name="twitter:creator" content="" />
+<meta name="twitter:image" content="">
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="[译]摊平由「try?」造成的可选嵌套 :: iBlog — ">
+<meta property="og:description" content="提案: SE-0230 作者: BJ Homer 审查管理员: John McCall 状态: 已实现 (Swift 5) 实现: apple/swift#16942 审查: (论坛帖子) (验收)  介绍 Swift 的 try? 语句现在很容易引入可选嵌套。而用户难以推断可选嵌套，所以 Swift 尝试避免在一些常见情况下产生可选嵌套。
+该文档建议给予 try? 与其它常见的 Swift 功能中相同的可选摊平行为，来避免时常发生的可选嵌套。
+Swift-evolution 帖子: 使 try? 与可选链摊平协同工作
+动机 It&amp;rsquo;s currently quite easy to end up with a nested Optional type when using try?. Although it is valid to construct a nested optional, it is usually not what the developer intended." />
+<meta property="og:url" content="/posts/2019/0230-flatten-optional-try_cn/" />
+<meta property="og:site_name" content="[译]摊平由「try?」造成的可选嵌套" />
+<meta property="og:image" content="">
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+<meta property="article:published_time" content="2019-05-09 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="">
+
+
+<div class="container center">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    iBlog
+  </div>
+</a>
+
+    </div>
+    <div class="menu-trigger">menu</div>
+  </div>
+  
+  
+    
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  
+
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="/posts/2019/0230-flatten-optional-try_cn/">[译]摊平由「try?」造成的可选嵌套</a></h1>
+  <div class="post-meta">
+    <span class="post-date">
+      2019-05-09
+    </span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="/tags/translation/">Translation</a>&nbsp;
+    
+    #<a href="/tags/ios/">iOS</a>&nbsp;
+    
+    #<a href="/tags/swift/">Swift</a>&nbsp;
+    
+  </span>
+  
+
+  
+
+  <div class="post-content">
+    
+
+<ul>
+<li>提案: <a href="https://github.com/apple/swift-evolution/blob/master/proposals/0230-flatten-optional-try.md">SE-0230</a></li>
+<li>作者: <a href="https://github.com/bjhomer">BJ Homer</a></li>
+<li>审查管理员: <a href="https://github.com/rjmccall">John McCall</a></li>
+<li>状态: <strong>已实现 (Swift 5)</strong></li>
+<li>实现: <a href="https://github.com/apple/swift/pull/16942">apple/swift#16942</a></li>
+<li>审查: (<a href="https://forums.swift.org/t/se-0230-flatten-nested-optionals-resulting-from-try/16570">论坛帖子</a>) (<a href="https://forums.swift.org/t/accepted-se-230-flatten-nested-optionals-resulting-from-try/17376">验收</a>)</li>
+</ul>
+
+<h2 id="介绍">介绍</h2>
+
+<p>Swift 的 <code>try?</code> 语句现在很容易引入可选嵌套。而用户难以推断可选嵌套，所以 Swift 尝试避免在一些常见情况下产生可选嵌套。</p>
+
+<p>该文档建议给予 <code>try?</code> 与其它常见的 Swift 功能中相同的可选摊平行为，来避免时常发生的可选嵌套。</p>
+
+<p>Swift-evolution 帖子: <a href="https://forums.swift.org/t/make-try-optional-chain-flattening-work-together/7415">使 try? 与可选链摊平协同工作</a></p>
+
+<h2 id="动机">动机</h2>
+
+<p>It&rsquo;s currently quite easy to end up with a nested <code>Optional</code> type when
+using <code>try?</code>. Although it is valid to construct a nested optional, it
+is usually not what the developer intended.</p>
+
+<p>Swift has various mechanisms to avoid accidentally creating nested optionals. For example:</p>
+
+<pre><code class="language-swift">// Note how 'as?' produces the same type regardless of whether the value
+// being cast is optional or not.
+let x = nonOptionalValue() as? MyType    // x is of type 'MyType?'
+let y = optionalValue() as? MyType       // y is of type 'MyType?'
+
+// Note how optional chaining produces the same type whether or not the
+// call produces an optional value.
+let a = optThing?.pizza()             // a is of type 'Pizza?'
+let b = optThing?.optionalPizza()     // b is of type 'Pizza?'
+</code></pre>
+
+<p>However, <code>try?</code> behaves differently:</p>
+
+<pre><code class="language-swift">let q = try? harbor.boat()           // q is of type 'Boat?'
+let r = try? harbor.optionalBoat()   // r is of type 'Boat??'
+</code></pre>
+
+<p>The above examples are contrived, but it&rsquo;s actually quite common to end
+up with a nested optional in production code. For example:</p>
+
+<pre><code class="language-swift">// The result of 'foo?.makeBar()' is 'Bar?' because of the optional
+// chaining on 'foo'. The 'try?' adds an additional layer of 
+// optionality. So the type of 'x' is 'Bar??'
+let x = try? foo?.makeBar()
+
+// JSONSerialization.jsonObject(with:) returns an 'Any'. We use 'as?' to 
+// verify that the result is of the expected type, but the result is that 'dict' 
+// is now of type '[String: Any]??' because 'try?' added an additional layer.
+let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+</code></pre>
+
+<p>Although it is fairly easy to produce a nested optional using <code>try?</code>, a survey of
+existing code suggests that it is almost never the desired outcome. Code that uses
+<code>try?</code> with nested optionals is almost always accompanied by one of the following patterns:</p>
+
+<pre><code class="language-swift">// Pattern 1: Double if-let or guard-let
+if  let optionalX = try? self.optionalThing(),
+    let x = optionalX {
+    // Use 'x' here
+}
+
+// Pattern 2: Introducing parentheses to let 'as?' flatten for us
+if let x = (try? somethingAsAny()) as? JournalEntry {
+    // use 'x' here
+}
+
+// Pattern 3: Pattern matching
+if case let x?? = try? optionalThing() {
+    // use 'x' here
+}
+</code></pre>
+
+<p>The need for these workarounds makes the language more difficult to
+learn and use, and they don&rsquo;t really give us any benefit in return.</p>
+
+<p>Code using <code>try?</code> generally does not care to distinguish between the error case
+and the nil-result case, which is why all these patterns focus on extracting the
+value and ignore the error. If the developer does care to specifically detect errors,
+they should probably be using <code>do/try/catch</code> instead.</p>
+
+<h2 id="proposed-solution">Proposed solution</h2>
+
+<p>In Swift 5, <code>try? someExpr()</code> will mirror the behavior of <code>foo?.someExpr()</code>:</p>
+
+<ul>
+<li>If <code>someExpr()</code> produces a non-optional value, it will be wrapped in an Optional.</li>
+<li>If <code>someExpr()</code> produces an <code>Optional</code>, then no additional optional-ness is added.</li>
+</ul>
+
+<p>This results in the following changes to the type of a <code>try?</code> expression:</p>
+
+<pre><code class="language-swift">// Swift 4: 'Int??'
+// Swift 5: 'Int?'
+let result = try? database?.countOfRows(matching: predicate)
+
+
+// Swift 4: 'String??'
+// Swift 5: 'String?'
+let myString = try? String(data: someData, encoding: .utf8)
+    
+// Swift 4: '[String: Any]??'
+// Swift 5: '[String: Any]?'
+let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+</code></pre>
+
+<p>There are no changes to the overall type when the sub-expression produces a non-optional.</p>
+
+<pre><code class="language-swift">// Swift 4: 'String?'
+// Swift 5: 'String?'
+let fileContents = try? String(contentsOf: someURL)
+</code></pre>
+
+<p>If the sub-expression already produces a nested optional, the result is equally
+nested:</p>
+
+<pre><code class="language-swift">func doubleOptionalInt() throws -&gt; Int?? {
+    return 3
+}
+
+// Swift 4: 'Int???'
+// Swift 5: 'Int??'
+let x = try? doubleOptionalInt()
+</code></pre>
+
+<blockquote>
+<h3 id="a-side-note-about-try-and-as">A side note about <code>try?</code> and <code>as?</code></h3>
+
+<p>Although <code>as?</code> often has the effect of flattening Optionals (as shown in
+the example in the Motivation section) it does not exhibit exactly
+the same behavior as proposed here for <code>try?</code>. Because <code>as?</code> takes
+an explicit type, it can actually flatten multiple levels of nested
+Optionals. <code>foo as? T</code> will always produce an <code>Optional&lt;T&gt;</code>, regardless
+of how many optionals were on <code>foo</code>. This can potentially <em>add or subtract</em>
+levels of optionals, depending on the type specified. (It can also cast between
+subtypes and supertypes, which is unrelated to the behavior under consideration.)</p>
+
+<p>In practice, the most common use of <code>as?</code> with nested optionals is to reduce from
+<code>T??</code> to <code>T?</code>, which makes it superficially similar to the use optional-chaining
+use case and the proposed behavior of <code>try?</code>. But <code>as?</code> is a more powerful
+and versatile construct than what is proposed for <code>try?</code> here.</p>
+</blockquote>
+
+<h2 id="detailed-design">Detailed design</h2>
+
+<p>The type of a <code>try?</code> expression in Swift 4 is defined as <code>Optional&lt;T&gt;</code>,
+where <code>T</code> is the type of the expression following the <code>try?</code> keyword.</p>
+
+<p>In Swift 5, the type of a <code>try?</code> expression will be some type <code>U</code>, where
+<code>U</code> is an <code>Optional&lt;_&gt;</code> type and where the sub-expression type <code>T</code> is
+coercible to <code>U</code>. The type constraint system automatically chooses the
+smallest level of optional-nesting needed to satisfy this constraint,
+which results in the behavior described in this proposal.</p>
+
+<h4 id="generics">Generics</h4>
+
+<p>Some questions have been raised regarding the interoperability with
+generic code, as in the following example:</p>
+
+<pre><code class="language-swift">func test&lt;T&gt;(fn: () throws -&gt; T) -&gt; T? {
+
+    // Will this line change behavior if T is an Optional?
+    if let result = try? fn() {
+        print(&quot;We got a result!&quot;)
+        return result
+    }
+    else {
+        print(&quot;There was an error&quot;)
+        return nil
+    }
+}
+
+// T is inferred as 'Int' here
+let value  = test({ return 15 })
+
+// T is inferred as 'Int?' here
+let value2 = test({ return 15 as Int? })
+</code></pre>
+
+<p>The answer is that it does not matter if <code>T</code> is optional at runtime.
+At compile time, <code>result</code> has a clearly-defined type: <code>T</code>. This is
+true in both Swift 4 and Swift 5 modes; because <code>T</code> is not known to be
+an <code>Optional</code> type at compile-time, a single layer of <code>Optional</code> is added
+via the <code>try?</code> expression and then unwrapped via <code>if let</code>.</p>
+
+<p>Generic code that uses <code>try?</code> can continue to use it as always without
+concern for whether the generic type might be optional at runtime. No
+behavior is changed in this case.</p>
+
+<h2 id="source-compatibility">Source compatibility</h2>
+
+<p>This is a source-breaking change for <code>try?</code> expressions that operate on an
+<code>Optional</code> sub-expression <em>if they do not explicitly flatten the optional
+themselves</em>. It appears that those cases are rare, though; see the analysis
+below for details. We can provide backward-compatible behavior when the compiler
+is running in Swift 4 mode, and a migration should be possible for most common
+cases.</p>
+
+<p>The bar for including source-breaking changes in Swift 5 is high, but I believe
+it passes the bar. These are the criteria listed in the swift-evolution README:</p>
+
+<h3 id="1-the-current-syntax-api-must-be-shown-to-actively-cause-problems-for-users">1. The current syntax/API must be shown to actively cause problems for users.</h3>
+
+<p>Nested optionals are a complex concept. They have value in the language, but their
+use should be intentional. Currently, it&rsquo;s far too easy for beginners to create a
+nested optional without understanding why, due to the current interaction of
+<code>try?</code> and optional chaining or <code>as?</code> casting.</p>
+
+<p>Code that uses <code>try?</code> to actually detect errors is <em>more</em> difficult to understand
+than just using <code>try</code>. Compare:</p>
+
+<pre><code class="language-swift">// Using 'try?'
+if let result = try? foo?.bar() {
+    // Do something with 'result', which may be nil
+    // even though we are in an 'if let'.
+}
+else {
+    // There was an error, but we don't know what it is
+}
+</code></pre>
+
+<pre><code class="language-swift">// Using 'try/catch'
+do {
+    let result = try foo?.bar()
+    // Do something with 'result', which may be nil due to optional chaining
+}
+catch {
+    // Handle the error
+}
+</code></pre>
+
+<p>The variant using <code>try?</code> is significantly less clear (what is the type of
+<code>result</code>?), and has no obvious advantages. Using <code>try?</code> <em>is</em> better if you
+don&rsquo;t care about the <em>else</em> clause and only want to handle a value if one
+exists, but that use case is better served by the proposed change.</p>
+
+<p>The current syntax is also harmful because of its interaction with <code>as?</code> casting,
+as seen here:</p>
+
+<pre><code class="language-swift">if let x = try? foo() as? String {
+    // We specifically called out `String` as the desired type here,
+    // so it unexpected that `x` is of type `Optional&lt;String&gt;`
+}
+</code></pre>
+
+<h3 id="2-the-new-syntax-api-must-be-clearly-better-and-must-not-conflict-with-existing-swift-syntax">2. The new syntax/API must be clearly better and must not conflict with existing Swift syntax.</h3>
+
+<p>The proposed change resolves all of the above problems, which is better.
+This change also clarifies the role of <code>try?</code> as a means for accessing
+values when possible, rather than as an alternative error-handling
+mechanism to <code>try/catch</code>.</p>
+
+<h3 id="3-there-must-be-a-reasonably-automated-migration-path-for-existing-code">3. There must be a reasonably automated migration path for existing code.</h3>
+
+<p>As shown in the analysis below, most source code will require no migration;
+developers who have encountered code that produces nested Optionals are likely
+already using patterns that are source-compatible with this change. This proposal
+simply provides a way to simplify that code.</p>
+
+<p>Automated migration is implemented for the double <code>if/guard let</code> and
+<code>case let value??:</code> patterns mentioned above.</p>
+
+<h2 id="swift-source-compatibility-suite-analysis">Swift Source Compatibility Suite analysis</h2>
+
+<p>The Swift Source Compatibility Suite suggests that this is unlikely to
+be a breaking change for most users. I manually inspected the use
+cases of <code>try?</code> in the compatibility suite. Here are the results:</p>
+
+<ul>
+<li><p>There are <strong>613</strong> total instances of <code>try?</code> in the compatibility suite. The vast majority of those appear to use non-optional sub-expressions, and would be unaffected by this proposal.</p></li>
+
+<li><p>There are <strong>4</strong> instances of <code>try? ... as?</code>. All four of them wrap the <code>try?</code> in parentheses to get the flattening behavior of <code>as?</code>, and are source-compatible with this change. They all look something like this:</p>
+
+<pre><code class="language-swift">(try? JSONSerialization.jsonObject(with: $0)) as? NSDictionary
+</code></pre></li>
+
+<li><p>There are <strong>12</strong> cases of <code>try? foo?.bar()</code> across 3 projects.
+<strong>10</strong> of those assign it to <code>_ = try? foo?.bar()</code> , so the resulting type does not matter.
+<strong>2</strong> of those cases have a <code>Void</code> sub-expression type, and do not assign the result to any variable.</p></li>
+
+<li><p>There are <strong>6</strong> instances of <code>try? somethingReturningOptional()</code> . They all flatten it manually using <code>flatMap { $0 }</code>, and are thus source-compatible with this change, as the return type of that expression is the same under either behavior.</p>
+
+<pre><code class="language-swift">(try? get(key)).flatMap { $0 }
+</code></pre></li>
+
+<li><p>As far as I can tell, there are <strong>zero</strong> cases in the entire suite where a double-optional is actually used to distinguish between the error case and the nil-as-a-value case.</p></li>
+
+<li><p>As far as I can tell, there are <strong>zero</strong> cases of source incompatibility found in the compatibility suite.</p></li>
+</ul>
+
+<h2 id="effect-on-abi-stability">Effect on ABI stability</h2>
+
+<p>No impact on ABI.</p>
+
+<h2 id="effect-on-api-resilience">Effect on API resilience</h2>
+
+<p>A <code>try?</code> expression is never exposed at function boundaries, so API
+resilience should be unaffected.</p>
+
+<h2 id="alternatives-considered">Alternatives considered</h2>
+
+<h3 id="alter-the-binding-precedence-of-try">Alter the binding precedence of try?</h3>
+
+<p>For expressions like <code>let x = try? getObject() as? Foo</code>, the nested optional
+can be eliminated by parsing the expression as <code>(try? getObject) as? Foo</code>.
+Adding explicit parentheses like this is already a common workaround for
+the double-optional problem.</p>
+
+<p>However, this change would not resolve cases of <code>try?</code> with optional chaining
+(e.g. <code>try? foo?.bar?.baz()</code>), nor cases where an optional result is returned
+directly from a funtion (e.g. <code>try? cachedValue(for: key)</code>).</p>
+
+<p>Altering the binding precedence of <code>try?</code> would also be <em>far</em> more
+source-breaking than this proposal.</p>
+
+<h3 id="do-nothing">Do nothing</h3>
+
+<p>It is possible to write correct code under the current model. We are not
+proposing to eliminate nested Optionals from the language entirely, so
+we could just expect users to figure them out.</p>
+
+<p>This is a workable solution, but it is odd to have such a complex structure
+produced as part of a syntactic sugar designed to simplify a common case.</p>
+
+  </div>
+  
+  <div class="pagination">
+    <div class="pagination__title">
+      <span
+        class="pagination__title-h">Read other posts</span>
+      <hr />
+    </div>
+    <div class="pagination__buttons">
+      
+      
+      <span class="button next">
+        <a href="/posts/2019/swift_4_to_5/">
+          <span class="button__text">Swift/Obj-C 混编项目升级 Swift 5 踩坑</span>
+          <span class="button__icon">→</span>
+        </a>
+      </span>
+      
+    </div>
+  </div>
+  
+
+  
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo="kingcos/kingcos.github.io"
+            issue-term="pathname"
+            label="comments"
+            theme="github-dark"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2019 · <a href="http://github.com/kingcos">kingcos</a></span>
+      </div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>
