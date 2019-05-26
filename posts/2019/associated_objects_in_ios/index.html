@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>iOS 中的关联对象 :: iBlog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="Date Notes Source Code Demo     2019-05-18 首次提交 objc4-750 -    Preface 提到 iOS 中的关联对象，即 Associated Objects，又可以算是一项利用 Runtime 的「黑魔法」。然而作为初学者，很难从其名称联想到是为谁关联对象，以及是如何关联对象的，那么今天就来一起研究下 iOS 中的关联对象是什么、怎么用、以及为什么。
+What 虽然这部分的官方文档已经「年久失修」，不过我们仍然简单看一下官方的概括：
+ Associative References
+Associative references, available starting in OS X v10.6, simulate the addition of object instance variables to an existing class. Using associative references, you can add storage to an object without modifying the class declaration. This may be useful if you do not have access to the source code for the class, or if for binary-compatibility reasons you cannot alter the layout of the object."/>
+<meta name="keywords" content=""/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2019/associated_objects_in_ios/" />
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+  <link rel="stylesheet" href="/assets/green.css">
+
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+
+<link rel="shortcut icon" href="/img/favicon/favicon.ico">
+
+
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="iOS 中的关联对象 :: iBlog — " />
+<meta name="twitter:description" content="Date Notes Source Code Demo     2019-05-18 首次提交 objc4-750 -    Preface 提到 iOS 中的关联对象，即 Associated Objects，又可以算是一项利用 Runtime 的「黑魔法」。然而作为初学者，很难从其名称联想到是为谁关联对象，以及是如何关联对象的，那么今天就来一起研究下 iOS 中的关联对象是什么、怎么用、以及为什么。
+What 虽然这部分的官方文档已经「年久失修」，不过我们仍然简单看一下官方的概括：
+ Associative References
+Associative references, available starting in OS X v10.6, simulate the addition of object instance variables to an existing class. Using associative references, you can add storage to an object without modifying the class declaration. This may be useful if you do not have access to the source code for the class, or if for binary-compatibility reasons you cannot alter the layout of the object." />
+<meta name="twitter:site" content="/" />
+<meta name="twitter:creator" content="" />
+<meta name="twitter:image" content="">
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="iOS 中的关联对象 :: iBlog — ">
+<meta property="og:description" content="Date Notes Source Code Demo     2019-05-18 首次提交 objc4-750 -    Preface 提到 iOS 中的关联对象，即 Associated Objects，又可以算是一项利用 Runtime 的「黑魔法」。然而作为初学者，很难从其名称联想到是为谁关联对象，以及是如何关联对象的，那么今天就来一起研究下 iOS 中的关联对象是什么、怎么用、以及为什么。
+What 虽然这部分的官方文档已经「年久失修」，不过我们仍然简单看一下官方的概括：
+ Associative References
+Associative references, available starting in OS X v10.6, simulate the addition of object instance variables to an existing class. Using associative references, you can add storage to an object without modifying the class declaration. This may be useful if you do not have access to the source code for the class, or if for binary-compatibility reasons you cannot alter the layout of the object." />
+<meta property="og:url" content="/posts/2019/associated_objects_in_ios/" />
+<meta property="og:site_name" content="iOS 中的关联对象" />
+<meta property="og:image" content="">
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+<meta property="article:published_time" content="2019-05-18 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="">
+
+
+<div class="container center">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    iBlog
+  </div>
+</a>
+
+    </div>
+    <div class="menu-trigger">menu</div>
+  </div>
+  
+  
+    
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  
+
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="/posts/2019/associated_objects_in_ios/">iOS 中的关联对象</a></h1>
+  <div class="post-meta">
+    <span class="post-date">
+      2019-05-18
+    </span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="/tags/focus/">Focus</a>&nbsp;
+    
+    #<a href="/tags/ios/">iOS</a>&nbsp;
+    
+    #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
+    
+  </span>
+  
+
+  
+
+  <div class="post-content">
+    
+
+<table>
+<thead>
+<tr>
+<th align="center">Date</th>
+<th align="center">Notes</th>
+<th align="center">Source Code</th>
+<th align="center">Demo</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center">2019-05-18</td>
+<td align="center">首次提交</td>
+<td align="center"><a href="https://opensource.apple.com/tarballs/objc4/">objc4-750</a></td>
+<td align="center">-</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="preface">Preface</h2>
+
+<p>提到 iOS 中的关联对象，即 Associated Objects，又可以算是一项利用 Runtime 的「黑魔法」。然而作为初学者，很难从其名称联想到是为谁关联对象，以及是如何关联对象的，那么今天就来一起研究下 iOS 中的关联对象是什么、怎么用、以及为什么。</p>
+
+<h2 id="what">What</h2>
+
+<p>虽然这部分的官方文档已经「年久失修」，不过我们仍然简单看一下官方的概括：</p>
+
+<blockquote>
+<p><strong>Associative References</strong></p>
+
+<p>Associative references, available starting in OS X v10.6, simulate the addition of object instance variables to an existing class. Using associative references, you can add storage to an object without modifying the class declaration. This may be useful if you do not have access to the source code for the class, or if for binary-compatibility reasons you cannot alter the layout of the object.</p>
+
+<p>—— <a href="https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjectiveC/Chapters/ocAssociativeReferences.html#//apple_ref/doc/uid/TP30001163-CH24">The Objective-C Programming Language, Apple Developer</a></p>
+
+<p>译：</p>
+
+<p><strong>关联引用</strong></p>
+
+<p>从 OS X 10.6 开始，关联引用（这一技术）被引入，用来假装为一个已存在的类添加对象实例变量。使用关联引用，不修改类的声明即可以为对象添加存储。当如果不能访问到类的源码时，或者由于二进制兼容的原因，无法修改对象布局时，这将变得十分有用。</p>
+
+<p>—— <a href="https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjectiveC/Chapters/ocAssociativeReferences.html#//apple_ref/doc/uid/TP30001163-CH24">Objective-C 编程语言，苹果开发者</a></p>
+</blockquote>
+
+<p>由于 Obj-C 强大的运行时，使得其「反射」机制也异常完善。通过上述官方文档，我们也能简单地了解关联对象是为了运行时给已经存在的类动态添加对象类型的成员变量。</p>
+
+<h2 id="how">How</h2>
+
+<h3 id="类与分类-category-的属性">类与分类（Category）的属性</h3>
+
+<p>在类（Class）中定义一个属性（<code>@property</code>），默认会生成 getter &amp; setter，以及 <code>_</code> 开头的成员变量：</p>
+
+<pre><code class="language-objectivec">// Person.h
+#import &lt;Foundation/Foundation.h&gt;
+
+NS_ASSUME_NONNULL_BEGIN
+@interface Person : NSObject
+@property (nonatomic, copy) NSString *name;
+@end
+NS_ASSUME_NONNULL_END
+
+// Person.m
+#import &quot;Person.h&quot;
+
+@implementation Person
+@end
+
+// main.m
+Person *person = [[Person alloc] init];
+[person setName:@&quot;kingcos&quot;];
+NSLog(@&quot;Name: %@&quot;, [person name]);
+NSLog(@&quot;Name: %@&quot;, [person name]);
+// OUTPUT:
+// Name: kingcos
+
+// LLDB:
+// (lldb) po person-&gt;_name
+// kingcos
+</code></pre>
+
+<p>而在「iOS 中的 Category」一文中，我们介绍了分类中也是可以添加属性的，因为分类的结构 <code>category_t</code> 中也有存储属性列表的指针：</p>
+
+<pre><code class="language-cpp">struct _category_t {
+    // ...
+	const struct _prop_list_t *properties;          // 属性列表指针
+};
+</code></pre>
+
+<p>我们也尝试为「Person+Life」分类添加一个属性并使用：</p>
+
+<pre><code class="language-objectivec">// Person+Life.h
+@interface Person (Life)
+@property (nonatomic, copy) NSString *nickname;
+@end
+
+// Person+Life.m
+#import &quot;Person+Life.h&quot;
+
+@implementation Person (Life)
+@end
+
+// main.m
+Person *person = [[Person alloc] init];
+[person setNickname:@&quot;kingcos&quot;];
+NSLog(@&quot;Name: %@&quot;, [person nickname]);
+// Crash:
+// '-[Person setNickname:]: unrecognized selector sent to instance 0x10050fdf0'
+// '-[Person nickname]: unrecognized selector sent to instance 0x102185520'
+
+// LLDB:
+// (lldb) po person-&gt;_nickname
+// error: 'Person' does not have a member named '_nickname'
+</code></pre>
+
+<p>然而我们发现程序在这里崩溃了，这是因为分类中虽然可以定义属性，但其只会为我们声明 getter &amp; setter，并不会创建实例变量，也不会实现 getter &amp; setter，因为分类的结构 <code>category_t</code> 中也确实没有存储成员变量的地方。那么这时我们使用关联对象就可以为分类「假装」添加成员变量。</p>
+
+<h3 id="关联对象的使用">关联对象的使用</h3>
+
+<p>由于关联对象是 Obj-C 运行时的特性之一，因此在使用相关 API 前需要引入 <code>#import &lt;objc/runtime.h&gt;</code>。其中与关联对象相关的函数主要为以下三个：</p>
+
+<pre><code class="language-objectivec">// runtime.h
+objc_setAssociatedObject(id _Nonnull object, const void * _Nonnull key,
+                         id _Nullable value, objc_AssociationPolicy policy)
+    OBJC_AVAILABLE(10.6, 3.1, 9.0, 1.0, 2.0);
+
+objc_getAssociatedObject(id _Nonnull object, const void * _Nonnull key)
+    OBJC_AVAILABLE(10.6, 3.1, 9.0, 1.0, 2.0);
+
+objc_removeAssociatedObjects(id _Nonnull object)
+    OBJC_AVAILABLE(10.6, 3.1, 9.0, 1.0, 2.0);
+</code></pre>
+
+<p>这三个函数从名称也能认出其分别为设置关联对象、获取关联对象、以及移除关联对象；即我们可以在 setter 的实现中设置关联对象，在 getter 中获取关联对象，在不再需要时移除关联对象。尝试将上一节崩溃的程序使用关联对象进行改写：</p>
+
+<pre><code class="language-objectivec">// Person+Life.m
+#import &quot;Person+Life.h&quot;
+#import &lt;objc/runtime.h&gt;
+
+@implementation Person (Life)
+
+static const void *nicknameKey = &amp;nicknameKey;
+
+- (NSString *)nickname {
+    return objc_getAssociatedObject(self, nicknameKey);
+}
+
+- (void)setNickname:(NSString *)nickname {
+    objc_setAssociatedObject(self, nicknameKey, nickname, OBJC_ASSOCIATION_COPY_NONATOMIC);
+}
+
+@end
+
+// main.m
+Person *person = [[Person alloc] init];
+[person setNickname:@&quot;kingcos&quot;];
+// OUTPUT:
+// Name: kingcos
+</code></pre>
+
+<p>我们在 setter 中使用 <code>objc_setAssociatedObject</code> 实现，其一共需要四个参数：</p>
+
+<ul>
+<li><p>第一个参数是将要关联到的对象 <code>id _Nonnull object</code>；我们这里要被关联的即是当前的实例对象 <code>self</code>，当然，类对象也可以被关联。</p></li>
+
+<li><p>第二个参数是标示存入的 <code>const void * _Nonnull key</code>，可以放入指向任何类型的指针。我们可以仿照「iOS 中的 KVO」中对于 <code>context</code> 的定义，将 <code>key</code> 设置为声明变量自身的内存地址，保证了唯一性，并加上 <code>static</code>，保证该变量仅在该 .m 中可以访问。但这样不太方便的是每次都需要额外定义，有更好的解决方案吗？我们其实可以将 getter 或者 setter 方法的地址作为 <code>key</code> 存入，这样就无需再去单独声明一个 <code>key</code> 且支持编译检查。再进一步，由于 Obj-C 中的方法都会有两个隐式参数 <code>self</code> 和 <code>_cmd</code> 分别代表当前对象和当前方法 <code>SEL</code>，后者在 getter 中就等同于的 <code>@selector(nickname)</code>，这样在 getter 中写法就更简单了：</p></li>
+</ul>
+
+<pre><code class="language-objectivec">@implementation Person (Life)
+
+- (NSString *)nickname {
+    // return objc_getAssociatedObject(self, @selector(nickname));
+    return objc_getAssociatedObject(self, _cmd);
+}
+
+- (void)setNickname:(NSString *)nickname {
+    objc_setAssociatedObject(self, @selector(nickname), nickname, OBJC_ASSOCIATION_COPY_NONATOMIC);
+}
+
+@end
+</code></pre>
+
+<ul>
+<li>第三个参数是要关联上的值 <code>id _Nullable value</code>，注意其类型为 <code>id</code>，因此如果想要存入 <code>int</code> 等 C 语言中的类型时，需要先在 setter 中转换为 Obj-C 的对象类型，并在 getter 中再转回：</li>
+</ul>
+
+<pre><code class="language-objectivec">@implementation Person (Life)
+
+- (int)age {
+    return [objc_getAssociatedObject(self, _cmd) intValue];
+}
+
+- (void)setAge:(int)age {
+    objc_setAssociatedObject(self, @selector(age), @(age), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+@end
+</code></pre>
+
+<ul>
+<li>第四个参数是关联的内存语义策略 <code>objc_AssociationPolicy</code>，其中包含了五个枚举项，对应了不同的内存管理策略。可以对照属性的内存管理修饰符来选择合适的策略：</li>
+</ul>
+
+<table>
+<thead>
+<tr>
+<th align="center">objc_AssociationPolicy</th>
+<th align="center">注释</th>
+<th align="center">@property</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center">OBJC_ASSOCIATION_ASSIGN</td>
+<td align="center">弱引用</td>
+<td align="center">assign</td>
+</tr>
+
+<tr>
+<td align="center">OBJC_ASSOCIATION_RETAIN_NONATOMIC</td>
+<td align="center">强引用，非原子性</td>
+<td align="center">strong, nonatomic</td>
+</tr>
+
+<tr>
+<td align="center">OBJC_ASSOCIATION_COPY_NONATOMIC</td>
+<td align="center">拷贝，非原子性</td>
+<td align="center">copy, nonatomic</td>
+</tr>
+
+<tr>
+<td align="center">OBJC_ASSOCIATION_RETAIN</td>
+<td align="center">强引用，原子性</td>
+<td align="center">strong, atomic</td>
+</tr>
+
+<tr>
+<td align="center">OBJC_ASSOCIATION_COPY</td>
+<td align="center">拷贝，原子性</td>
+<td align="center">copy, atomic</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="why">Why</h2>
+
+<p>了解了关联对象是什么、怎么用，那么关联对象到底是如何实现的呢？我们先从 <code>objc_setAssociatedObject</code> 着手：</p>
+
+<pre><code class="language-objectivec">// objc-runtime.mm
+void objc_setAssociatedObject(id object, const void *key, id value, objc_AssociationPolicy policy) {
+    // ➡️ 内部实际调用 _object_set_associative_reference
+    _object_set_associative_reference(object, (void *)key, value, policy);
+}
+
+// objc-references.mm
+void _object_set_associative_reference(id object, void *key, id value, uintptr_t policy) {
+    // retain the new value (if any) outside the lock.
+    // 在加锁前持有新值（如果有）
+    // 初始化一个存储原始关联的对象
+    ObjcAssociation old_association(0, nil);
+    // 根据内存策略和值本身获取值
+    id new_value = value ? acquireValue(value, policy) : nil;
+    {
+        // 声明关联管理器
+        AssociationsManager manager;
+        // 从关联管理器中取出所有关联，HashMap 数据结构
+        AssociationsHashMap &amp;associations(manager.associations());
+        // 「伪装」要关联上的对象
+        disguised_ptr_t disguised_object = DISGUISE(object);
+        if (new_value) {
+            // 如果有新值
+            // break any existing association.
+            // 打破任何现有的关联。
+            // 在管理器的所有关联中根据 object 查找其关联，并放入迭代器
+            AssociationsHashMap::iterator i = associations.find(disguised_object);
+            if (i != associations.end()) {
+                // 如果已存在该对象的关联
+                // secondary table exists
+                // 存在二级表
+                ObjectAssociationMap *refs = i-&gt;second;
+                // 在 object 的所有关联中根据 key 查找对应的某个关联，并放入迭代器
+                ObjectAssociationMap::iterator j = refs-&gt;find(key);
+                if (j != refs-&gt;end()) {
+                    // 如果已存在该 key 的关联
+                    // 原始关联暂存
+                    old_association = j-&gt;second;
+                    // 用新关联的值和内存管理策略构造对象关联并赋值
+                    j-&gt;second = ObjcAssociation(policy, new_value);
+                } else {
+                    // 如果未存在该 key 的关联
+                    // 用新关联的值和内存管理策略构造对象关联并赋值
+                    (*refs)[key] = ObjcAssociation(policy, new_value);
+                }
+            } else {
+                // 如果未存在该对象的关联
+                // create the new association (first time).
+                // 创建新关联（首次）
+                ObjectAssociationMap *refs = new ObjectAssociationMap;
+                // 将新创建 ObjectAssociationMap 存入所有关联中
+                associations[disguised_object] = refs;
+                // 用新关联的值和内存管理策略构造对象关联并赋值
+                (*refs)[key] = ObjcAssociation(policy, new_value);
+                object-&gt;setHasAssociatedObjects();
+            }
+        } else {
+            // 如果值为 nil
+            // setting the association to nil breaks the association.
+            // 设置关系为 nil 来打破关联
+            // 在管理器里所有的关联中根据 object 查找其关联，并放入迭代器
+            AssociationsHashMap::iterator i = associations.find(disguised_object);
+            if (i !=  associations.end()) {
+                // 如果已存在该对象的关联
+                ObjectAssociationMap *refs = i-&gt;second;
+                // 在 object 的所有关联中根据 key 查找对应的某个关联，并放入迭代器
+                ObjectAssociationMap::iterator j = refs-&gt;find(key);
+                if (j != refs-&gt;end()) {
+                    old_association = j-&gt;second;
+                    // 清除该关联
+                    refs-&gt;erase(j);
+                }
+            }
+        }
+    }
+    // release the old value (outside of the lock).
+    // 在加锁后释放原始值
+    if (old_association.hasValue()) ReleaseValue()(old_association);
+}
+</code></pre>
+
+<p>在分析以上代码时，我们注意到了几个与关联对象紧密相关的类型：</p>
+
+<pre><code class="language-objectivec">// objc-references.mm
+class ObjcAssociation {
+    // 内存策略
+    uintptr_t _policy;
+    // 值
+    id _value;
+public:
+    ObjcAssociation(uintptr_t policy, id value) : _policy(policy), _value(value) {}
+    ObjcAssociation() : _policy(0), _value(nil) {}
+
+    uintptr_t policy() const { return _policy; }
+    id value() const { return _value; }
+    
+    bool hasValue() { return _value != nil; }
+};
+
+// objc-references.mm
+class AssociationsManager {
+    // associative references: object pointer -&gt; PtrPtrHashMap.
+    static AssociationsHashMap *_map;
+public:
+    AssociationsManager()   { AssociationsManagerLock.lock(); }
+    ~AssociationsManager()  { AssociationsManagerLock.unlock(); }
+    
+    AssociationsHashMap &amp;associations() {
+        if (_map == NULL)
+            _map = new AssociationsHashMap();
+        return *_map;
+    }
+};
+
+// objc-references.mm
+class AssociationsHashMap : public unordered_map&lt;disguised_ptr_t, ObjectAssociationMap *, DisguisedPointerHash, DisguisedPointerEqual, AssociationsHashMapAllocator&gt; {
+public:
+    void *operator new(size_t n) { return ::malloc(n); }
+    void operator delete(void *ptr) { ::free(ptr); }
+};
+
+// objc-references.mm
+class ObjectAssociationMap : public std::map&lt;void *, ObjcAssociation, ObjectPointerLess, ObjectAssociationMapAllocator&gt; {
+public:
+    void *operator new(size_t n) { return ::malloc(n); }
+    void operator delete(void *ptr) { ::free(ptr); }
+};
+</code></pre>
+
+<p>为了更加直观表述它们的关系，整理成图即：</p>
+
+<p><img src="/img/2019/Associated_Objects_in_iOS/1.png" alt="" /></p>
+
+<p>同理我们可以分析关联对象的其它两个方法：</p>
+
+<pre><code class="language-objectivec">// --- objc_getAssociatedObject ---
+
+// objc-runtime.mm
+id objc_getAssociatedObject(id object, const void *key) {
+    return _object_get_associative_reference(object, (void *)key);
+}
+
+// objc-references.mm
+id _object_get_associative_reference(id object, void *key) {
+    // 默认值 nil
+    id value = nil;
+    // 默认策略 OBJC_ASSOCIATION_ASSIGN
+    uintptr_t policy = OBJC_ASSOCIATION_ASSIGN;
+    {
+        // 声明关联管理器
+        AssociationsManager manager;
+        // 从关联管理器中取出所有关联
+        AssociationsHashMap &amp;associations(manager.associations());
+        // 「伪装」要关联上的对象
+        disguised_ptr_t disguised_object = DISGUISE(object);
+        // 在管理器的所有关联中根据 object 查找其关联，并放入迭代器
+        AssociationsHashMap::iterator i = associations.find(disguised_object);
+        if (i != associations.end()) {
+            // 如果存在该对象的关联
+            ObjectAssociationMap *refs = i-&gt;second;
+            // 在 object 的所有关联中根据 key 查找对应的某个关联，并放入迭代器
+            ObjectAssociationMap::iterator j = refs-&gt;find(key);
+            if (j != refs-&gt;end()) {
+                // 如果存在该 key 的关联
+                ObjcAssociation &amp;entry = j-&gt;second;
+                // 取值
+                value = entry.value();
+                // 取策略
+                policy = entry.policy();
+                if (policy &amp; OBJC_ASSOCIATION_GETTER_RETAIN) {
+                    objc_retain(value);
+                }
+            }
+        }
+    }
+    if (value &amp;&amp; (policy &amp; OBJC_ASSOCIATION_GETTER_AUTORELEASE)) {
+        objc_autorelease(value);
+    }
+    return value;
+}
+
+// --- objc_removeAssociatedObjects ---
+
+// objc-runtime.mm
+void objc_removeAssociatedObjects(id object) 
+{
+    if (object &amp;&amp; object-&gt;hasAssociatedObjects()) {
+        _object_remove_assocations(object);
+    }
+}
+
+// objc-references.mm
+void _object_remove_assocations(id object) {
+    // 声明存储 ObjcAssociation 的 elements
+    vector&lt; ObjcAssociation,ObjcAllocator&lt;ObjcAssociation&gt; &gt; elements;
+    {
+        // 声明关联管理器
+        AssociationsManager manager;
+        // 从关联管理器中取出所有关联
+        AssociationsHashMap &amp;associations(manager.associations());
+        // 如果关联为空，则返回
+        if (associations.size() == 0) return;
+        // 「伪装」要关联上的对象
+        disguised_ptr_t disguised_object = DISGUISE(object);
+        // 在管理器的所有关联中根据 object 查找其关联，并放入迭代器
+        AssociationsHashMap::iterator i = associations.find(disguised_object);
+        if (i != associations.end()) {
+            // 如果存在该对象的关联
+            // copy all of the associations that need to be removed.
+            // 拷贝所有需要被移除的关系
+            ObjectAssociationMap *refs = i-&gt;second;
+            for (ObjectAssociationMap::iterator j = refs-&gt;begin(), end = refs-&gt;end(); j != end; ++j) {
+                elements.push_back(j-&gt;second);
+            }
+            // remove the secondary table.
+            // 移除二级表
+            delete refs;
+            associations.erase(i);
+        }
+    }
+    // the calls to releaseValue() happen outside of the lock.
+    // releaseValue() 的调用发生在锁之外
+    for_each(elements.begin(), elements.end(), ReleaseValue());
+}
+</code></pre>
+
+<p>那么对象销毁了，关联对象会被销毁吗？</p>
+
+<p><a href="https://draveness.me/ao#关联对象的应用">https://draveness.me/ao#关联对象的应用</a>
+<a href="https://nshipster.com/associated-objects/">https://nshipster.com/associated-objects/</a>
+<a href="http://blog.leichunfeng.com/blog/2015/06/26/objective-c-associated-objects-implementation-principle/">http://blog.leichunfeng.com/blog/2015/06/26/objective-c-associated-objects-implementation-principle/</a></p>
+
+<h2 id="reference">Reference</h2>
+
+<ul>
+<li><a href="https://maimieng.com/posts/2019/category_in_ios/">iOS 中的 Category</a></li>
+<li><a href="https://maimieng.com/posts/2019/kvo_in_ios/">iOS 中的 KVO</a></li>
+<li><a href="https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjectiveC/Chapters/ocAssociativeReferences.html#//apple_ref/doc/uid/TP30001163-CH24">The Objective-C Programming Language - Apple Developer</a></li>
+</ul>
+
+  </div>
+  
+  <div class="pagination">
+    <div class="pagination__title">
+      <span
+        class="pagination__title-h">Read other posts</span>
+      <hr />
+    </div>
+    <div class="pagination__buttons">
+      
+      
+      <span class="button next">
+        <a href="/posts/2019/insurance_plan/">
+          <span class="button__text">谈谈我的家庭保险计划</span>
+          <span class="button__icon">→</span>
+        </a>
+      </span>
+      
+    </div>
+  </div>
+  
+
+  
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo="kingcos/kingcos.github.io"
+            issue-term="pathname"
+            label="comments"
+            theme="github-dark"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2019 · <a href="http://github.com/kingcos">kingcos</a></span>
+      </div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>
