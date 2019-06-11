@@ -6,10 +6,20 @@
     <description>Recent content in Tips on iBlog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Wed, 08 May 2019 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 17 May 2019 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/tags/tips/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>将 Obj-C 代码翻译为 C&#43;&#43; 代码</title>
+      <link>/posts/2019/obj-c_to_cpp/</link>
+      <pubDate>Fri, 17 May 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2019/obj-c_to_cpp/</guid>
+      <description>Platform Notes     macOS 10.14.2 clang    Solution ➜ ~ clang --version Apple LLVM version 10.0.0 (clang-1000.11.45.5) Target: x86_64-apple-darwin18.2.0 Thread model: posix InstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin  Xcode 中，C/C++/Obj-C/C++ 的编译器是 clang。其加上 -rewrite-objc 参数可以将 Obj-C 代码翻译为 C++ 代码，即 clang -rewrite-objc main.m -o main.cpp。也可以结合 xcrun 设置编译所基于的 SDK，以及通过 -arch 指定编译架构参数，通过 -framework 指定需要依赖的框架，即 xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m -o main-arm64.cpp -framework UIKit。
+虽然 clang 可以将 Obj-C 代码翻译为 C++，但其实大部分代码都属于 C 语言，比如 Obj-C 的类，其本质是 C 语言中的结构体。而翻译存在的目的是因为 Windows 上的 Visual Studio 中并没有 Obj-C 的编译器，所以 clang 将 Obj-C 转为 C/C++，便于其他 C/C++ 编译器进行编译。在使用 Xcode 构建 Obj-C 项目时并不会将 Obj-C 进行翻译，clang 可以直接编译纯 Obj-C 代码。</description>
+    </item>
     
     <item>
       <title>Swift/Obj-C 混编项目升级 Swift 5.0 踩坑</title>
@@ -43,6 +53,99 @@ Xcode 为了适配 Swift 5.0，首先需要安装 Xcode 10.2。而我们不能�
 添加「NSNotificationName 与 Notification.Name」    Preface Objective-C 与 Swift 的混编是全面转向 Swift 中的必经之路，本篇即是这一过程中的踩坑「真实」记录。
 Optional 与 Nullability  Swift 4.2  在大多数项目中，我们都是在中途决定转向 Swift，Swift 中比较核心且常见的概念便是 Optional，可选类型，而这与 Obj-C 中的概念不大相同。在 Swift 中使用 Obj-C 桥接的属性（特别是 Block）时，尤其要注意：Obj-C 默认属性将被转换为隐式解包类型（SomeClass!），而在 Swift 中这代表开发者要保证值不为 nil，编译器将不再提示。当属性是 Block 时，若直接调用了为 nil 的 Closure 时，将会出现崩溃。
    Obj-C Usage Swift     nullable 可空 SomeClass?   nonnull 不可空 SomeClass   null_unspecified 未指定是否可空（默认） SomeClass!</description>
+    </item>
+    
+    <item>
+      <title>使用 usbmuxd 连接 iPhone</title>
+      <link>/posts/2018/usbmuxd/</link>
+      <pubDate>Sat, 08 Sep 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2018/usbmuxd/</guid>
+      <description>macOS iOS libimobiledevice/usbmuxd     10.13.6 9.0.1 (Jailbroken) v1.0.8    What usbmuxd 全称「USB Multiplexing Daemon」，即 USB 多路传输驻留程序。当 Mac/PC 与 iPhone 之间使用 USB 数据线连接时，iTunes 与 iPhone 间的通信交流便是通过 usbmuxd 服务。usbmuxd 通过给定的端口号和 localhost 建立 TCP 连接。
+在 Mac 端，是由「/System/Library/PrivateFrameworks/MobileDevice.framework/Resources/usbmuxd」处理，并通过 launchd 启动。其将会在「/var/run/usbmuxd」创建一个 UNIX Domain Socket（UNIX 域套接字），usbmuxd 将监听 USB 接口的 iPhone 连接。当 iPhone 在正常模式下连接，其将会连接到该 iPhone，并将开始转发通过「/var/run/usbmuxd」接收到的请求。
+Solution  通过 usbmuxd 用 USB 代替 Wi-Fi 转发 SSH 请求。
+  这里注意选择 1.</description>
+    </item>
+    
+    <item>
+      <title>Xcode 10 beta 趟坑</title>
+      <link>/posts/2018/xcode_10_beta/</link>
+      <pubDate>Wed, 25 Jul 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2018/xcode_10_beta/</guid>
+      <description>Xcode macOS     10 beta 2 10.14 beta 2    $(TeamIdentifierPrefix)  Xcode 10 已知 Bug，无法自动替换。  Workaround  可以手动将 entitlements 文件的 Pass Type ID 值设置为 mobileversion 文件中com.apple.developer.pass-type-identifiers 对应值。  libstdc++  Xcode 10 取消了内置支持的 libstdc++ 库，需等待某些第三方 SDK 修复。  Workaround  手动将 Xcode 9（/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/lib）中的库 libstdc++.6.tbd &amp;amp; libstdc++.6.0.9.tbd 复制到 Xcode 10（/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/lib）。  SWIFT_UNAVALIABLE  在 Obj-C 中调用 Swift 子类的 Obj-C 父类的构造器，提示 Unavaliable，由 Xcode 生成的 *-Swift.</description>
+    </item>
+    
+    <item>
+      <title>在 macOS 上进行直播推流</title>
+      <link>/posts/2018/livestreaming_on_macos/</link>
+      <pubDate>Sun, 22 Jul 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2018/livestreaming_on_macos/</guid>
+      <description>Date Platform Software     2018.07.22 macOS 10.14 beta 4 OBS Studio, Soundflower   2019.03.30 macOS 10.14.4 -     由于更换了电脑，上次好不容易折腾的配置也都无从参考，这次尽力把整个配置过程，以及音频输入输出的部分完善。直播推流使用了 OBS Studio，直播平台为 Bilibili。
+欢迎来围观我的 B 站直播间：https://live.bilibili.com/7900407。
+ Solution Basic setup  使用「Homebrew」安装 OBS
+brew cask install obs    安装期间可以在 Bilibili 申请开通直播，并获取需要的 RTMP 地址以及直播码   打开「OBS」-「Preference」-「流」   在「URL」和「流名称」分别填写 Bilibili 提供的 RTMP 地址以及直播码 回到主界面为默认的场景添加来源，常用的是「显示捕获」（即完全把自己能看到推流出去）以及「窗口捕获」（即只把选中的窗口推流出去） 点击「开始推流」即可开始直播  Audio  使用「Homebrew」安装 Soundflower</description>
+    </item>
+    
+    <item>
+      <title>将树莓派作为 AirPlay 音频服务器</title>
+      <link>/posts/2018/airplay_on_pi/</link>
+      <pubDate>Sun, 22 Jul 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2018/airplay_on_pi/</guid>
+      <description>Raspberry Pi Platform juhovh/shairplay     3 B Raspbian 4.14 765148f98f343b3b9911cc05504ac276cfc44c26    Info 树莓派是个很容易吃灰的设备，配置太低，又弃之可惜。何不作为 AirPlay 来解放你的有线音箱呢？
+Solution  SSH 或直接在树莓派的终端中运行以下命令，关于 SSH、VNC、替换源等操作请自行搜索。
+ Basic setup  安装依赖
+sudo apt-get install autoconf automake libtool sudo apt-get install libltdl-dev libao-dev libavahi-compat-libdnssd-dev sudo apt-get install avahi-daemon  编译安装
+cd ~/Desktop mkdir AirPlay cd AirPlay git clone https://github.com/juhovh/shairplay.git cd shairplay ./autogen.sh ./configure make sudo make install  启动</description>
+    </item>
+    
+    <item>
+      <title>iOS 开发问题解决集锦</title>
+      <link>/posts/2018/ios_dev_issue_list/</link>
+      <pubDate>Tue, 10 Jul 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2018/ios_dev_issue_list/</guid>
+      <description>Unable to boot device in current state: Creating  Xcode: 9.4.1 macOS: 10.13 在使用模拟器或者 xcodebuild test 时可能会出现此问题。  Solution  使用 xcrun simctl list 命令列出所有模拟器机型，用 xcrun simctl erase UDID 还原相应的设备，重试即可。 下面是一个 Python 3 脚本，可以使用 python erase_simulators.py -d &#39;DEVICE_TYPE&#39; 来直接还原相应设备类型的所有设备。  # -*- coding: utf-8 -*- import argparse import subprocess import re def erase_device(device): status, output = subprocess.getstatusoutput(&#39;xcrun simctl list | grep \&#39;&#39; + device + &#39; (\&#39;&#39;) if status == 0: outputs = output.</description>
+    </item>
+    
+    <item>
+      <title>Supervisor 的安装与基本使用</title>
+      <link>/posts/2018/supervisor/</link>
+      <pubDate>Sun, 06 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2018/supervisor/</guid>
+      <description>Platform Supervisor     macOS 10.13.4 3.3.4   Raspbian 4.14 3.3.1    Info Supervisor 是 Linux/UNIX 下的一个由 Python 编写的进程管理工具，可以很方便的用来启动、重启、关闭进程。
+Solution Installation macOS  使用 HomeBrew 安装
+brew install supervisor   Raspbian (Linux) sudo apt-get install supervisor  Usage  安装完成后，可以在查看该默认配置，但并非所有配置项均必须定义，可根据自己需要进行配置 macOS  ; macOS - /etc/supervisord.conf [supervisord] http_port=/var/tmp/supervisor.sock ; (default is to run a UNIX domain socket server) ;http_port=127.0.0.1:9001 ; (alternately, ip_address:port specifies AF_INET) ;sockchmod=0700 ; AF_UNIX socketmode (AF_INET ignore, default 0700) ;sockchown=nobody.</description>
+    </item>
+    
+    <item>
+      <title>使用 Homebrew 安装 Jenkins</title>
+      <link>/posts/2018/jenkins_by_homebrew/</link>
+      <pubDate>Sun, 06 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2018/jenkins_by_homebrew/</guid>
+      <description>Platform Notes     macOS 10.13.4 Jenkins 2.114 &amp;amp; Java 8    Solution  安装 Homebrew  /usr/bin/ruby -e &amp;quot;$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)&amp;quot;   安装 Jenkins  brew install jenkins   运行 Jenkins  # 当前窗口启动（关闭窗口则关闭 Jenkins） # $JENKINS_VERSION_CODE 为版本号，$PORT 为 Jenkins Web 页面端口号 # java -jar /usr/local/Cellar/jenkins/$JENKINS_VERSION_CODE/libexec/jenkins.war --httpPort=$PORT java -jar /usr/local/Cellar/jenkins/$JENKINS_VERSION_CODE/libexec/jenkins.war --httpPort=8080 # 后台启动（关闭窗口无影响） # $OUTPUT_FILENAME 为终端输出内容存放的文件名 # nohup java -jar /usr/local/Cellar/jenkins/$JENKINS_VERSION_CODE/libexec/jenkins.</description>
+    </item>
+    
+    <item>
+      <title>使用 Homebrew 安装 MySQL</title>
+      <link>/posts/2018/mysql_by_homebrew/</link>
+      <pubDate>Sun, 06 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2018/mysql_by_homebrew/</guid>
+      <description>Platform Notes     macOS 10.13.4 MySQL 5.7.21    Solution  安装 Homebrew  /usr/bin/ruby -e &amp;quot;$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)&amp;quot;   安装 MySQL（注意观察可能有错误信息，比如 brew link 失败，可能要先在相应文件夹下开启「写」权限后再手动尝试）  brew install mysql   开启 MySQL 服务  # 现在启动，并加入自启动 brew services start mysql # 后台启动 mysql.server start   连接 MySQL（默认端口为 3306）  mysql -uroot   创建用户并授权  -- CREATE USER &#39;USERNAME&#39;@&#39;HOST_NAME&#39; IDENTIFIED BY &#39;PASSWORD&#39;; CREATE USER &#39;temp_user&#39;@&#39;localhost&#39; IDENTIFIED BY &#39;1234&#39;; -- GRANT PRIVILEGE ON DATABASE_NAME.</description>
+    </item>
+    
+    <item>
+      <title>简单管理多版本 JDK</title>
+      <link>/posts/2018/jdk_multiple_versions/</link>
+      <pubDate>Sun, 06 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2018/jdk_multiple_versions/</guid>
+      <description>    Platform Notes     macOS 10.13.4 JDK 8 &amp;amp; 9    Solution  安装 JDK 8 &amp;amp; 9（其他版本同理） vim ~/.zsh_rc（这里使用的是 BashShell，其他 Shell 自行替换） 文末追加：  # Java export JAVA_8_HOME=$(/usr/libexec/java_home -v1.8) export JAVA_9_HOME=$(/usr/libexec/java_home -v9) # Default for Java 8 export JAVA_HOME=$JAVA_8_HOME alias java9=&#39;export JAVA_HOME=$JAVA_9_HOME&#39; alias java8=&#39;export JAVA_HOME=$JAVA_8_HOME&#39;   切换版本：java8 / java9 检查版本：java -version  Extension  jenv  </description>
     </item>
     
   </channel>

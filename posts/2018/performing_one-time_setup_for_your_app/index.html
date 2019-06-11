@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>[译]为 App 执行一次性设置 :: iBlog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="作者 原文链接     Apple Inc. Performing One-Time Setup for Your App    确保 App 环境被正确配置。
+ 框架  UIKit   概览 当用户第一次启动 App，我们可能希望通过一些一次性任务预备 App 环境。举个例子，可能想要：
+ 从服务器下载必要的数据。 从 App 包（bundle）中拷贝文档模版或可修改的数据文件至一个可写入的目录。 为用户配置默认偏好设置。 设置用户账户或获取其他必要数据。  在 App 代理的 application(_:willFinishLaunchingWithOptions:) 或 application(_:didFinishLaunchingWithOptions:) 方法中执行任何一次性任务。当非必需用户输入时，绝不要因任务阻塞 App 的主线程。取而代之，使用调度队列（dispatch queue）异步开启任务，当 App 完成启动时，让其运行在后台。对于那些必需用户输入的任务，在 application(_:didFinishLaunchingWithOptions:) 方法中作出用户界面的改变。
+在合适的位置安放文件 App 拥有其自身包含的目录来保存文件，我们也应当总是将 App 特定的文件放在 ~/Library 的子目录中。特别地，将以下文件保存在 ~/Library 的子目录：
+ ~/Library/Application Support/ —— 保存想要备份用户的其他内容的 App 特定文件（可以根据需要创建自定义的子目录。）使用该目录保存数据文件，配置文件，文档模版，等等。 ~/Library/Caches/ —— 保存便于重复产生或下载的临时文件。  使用 FileManager 的 urls(for:in:) 方法获得 App 容器的目录 URL。"/>
+<meta name="keywords" content=""/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2018/performing_one-time_setup_for_your_app/" />
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+  <link rel="stylesheet" href="/assets/green.css">
+
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+
+<link rel="shortcut icon" href="/img/favicon/favicon.ico">
+
+
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="[译]为 App 执行一次性设置 :: iBlog — " />
+<meta name="twitter:description" content="作者 原文链接     Apple Inc. Performing One-Time Setup for Your App    确保 App 环境被正确配置。
+ 框架  UIKit   概览 当用户第一次启动 App，我们可能希望通过一些一次性任务预备 App 环境。举个例子，可能想要：
+ 从服务器下载必要的数据。 从 App 包（bundle）中拷贝文档模版或可修改的数据文件至一个可写入的目录。 为用户配置默认偏好设置。 设置用户账户或获取其他必要数据。  在 App 代理的 application(_:willFinishLaunchingWithOptions:) 或 application(_:didFinishLaunchingWithOptions:) 方法中执行任何一次性任务。当非必需用户输入时，绝不要因任务阻塞 App 的主线程。取而代之，使用调度队列（dispatch queue）异步开启任务，当 App 完成启动时，让其运行在后台。对于那些必需用户输入的任务，在 application(_:didFinishLaunchingWithOptions:) 方法中作出用户界面的改变。
+在合适的位置安放文件 App 拥有其自身包含的目录来保存文件，我们也应当总是将 App 特定的文件放在 ~/Library 的子目录中。特别地，将以下文件保存在 ~/Library 的子目录：
+ ~/Library/Application Support/ —— 保存想要备份用户的其他内容的 App 特定文件（可以根据需要创建自定义的子目录。）使用该目录保存数据文件，配置文件，文档模版，等等。 ~/Library/Caches/ —— 保存便于重复产生或下载的临时文件。  使用 FileManager 的 urls(for:in:) 方法获得 App 容器的目录 URL。" />
+<meta name="twitter:site" content="/" />
+<meta name="twitter:creator" content="" />
+<meta name="twitter:image" content="">
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="[译]为 App 执行一次性设置 :: iBlog — ">
+<meta property="og:description" content="作者 原文链接     Apple Inc. Performing One-Time Setup for Your App    确保 App 环境被正确配置。
+ 框架  UIKit   概览 当用户第一次启动 App，我们可能希望通过一些一次性任务预备 App 环境。举个例子，可能想要：
+ 从服务器下载必要的数据。 从 App 包（bundle）中拷贝文档模版或可修改的数据文件至一个可写入的目录。 为用户配置默认偏好设置。 设置用户账户或获取其他必要数据。  在 App 代理的 application(_:willFinishLaunchingWithOptions:) 或 application(_:didFinishLaunchingWithOptions:) 方法中执行任何一次性任务。当非必需用户输入时，绝不要因任务阻塞 App 的主线程。取而代之，使用调度队列（dispatch queue）异步开启任务，当 App 完成启动时，让其运行在后台。对于那些必需用户输入的任务，在 application(_:didFinishLaunchingWithOptions:) 方法中作出用户界面的改变。
+在合适的位置安放文件 App 拥有其自身包含的目录来保存文件，我们也应当总是将 App 特定的文件放在 ~/Library 的子目录中。特别地，将以下文件保存在 ~/Library 的子目录：
+ ~/Library/Application Support/ —— 保存想要备份用户的其他内容的 App 特定文件（可以根据需要创建自定义的子目录。）使用该目录保存数据文件，配置文件，文档模版，等等。 ~/Library/Caches/ —— 保存便于重复产生或下载的临时文件。  使用 FileManager 的 urls(for:in:) 方法获得 App 容器的目录 URL。" />
+<meta property="og:url" content="/posts/2018/performing_one-time_setup_for_your_app/" />
+<meta property="og:site_name" content="[译]为 App 执行一次性设置" />
+<meta property="og:image" content="">
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+<meta property="article:published_time" content="2018-11-18 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="">
+
+
+<div class="container center">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    iBlog
+  </div>
+</a>
+
+    </div>
+    <div class="menu-trigger">menu</div>
+  </div>
+  
+  
+    
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  
+
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="/posts/2018/performing_one-time_setup_for_your_app/">[译]为 App 执行一次性设置</a></h1>
+  <div class="post-meta">
+    <span class="post-date">
+      2018-11-18
+    </span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="/tags/translation/">Translation</a>&nbsp;
+    
+    #<a href="/tags/ios/">iOS</a>&nbsp;
+    
+  </span>
+  
+
+  
+
+  <div class="post-content">
+    
+
+<table>
+<thead>
+<tr>
+<th>作者</th>
+<th>原文链接</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>Apple Inc.</td>
+<td><a href="https://developer.apple.com/documentation/uikit/core_app/managing_your_app_s_life_cycle/responding_to_the_launch_of_your_app/performing_one-time_setup_for_your_app">Performing One-Time Setup for Your App</a></td>
+</tr>
+</tbody>
+</table>
+
+<p>确保 App 环境被正确配置。</p>
+
+<ul>
+<li><strong>框架</strong>
+
+<ul>
+<li>UIKit</li>
+</ul></li>
+</ul>
+
+<hr />
+
+<h2 id="概览">概览</h2>
+
+<p>当用户第一次启动 App，我们可能希望通过一些一次性任务预备 App 环境。举个例子，可能想要：</p>
+
+<ul>
+<li>从服务器下载必要的数据。</li>
+<li>从 App 包（bundle）中拷贝文档模版或可修改的数据文件至一个可写入的目录。</li>
+<li>为用户配置默认偏好设置。</li>
+<li>设置用户账户或获取其他必要数据。</li>
+</ul>
+
+<p>在 App 代理的 <a href="https://developer.apple.com/documentation/uikit/uiapplicationdelegate/1623032-application"><code>application(_:willFinishLaunchingWithOptions:)</code></a> 或 <a href="https://developer.apple.com/documentation/uikit/uiapplicationdelegate/1622921-application"><code>application(_:didFinishLaunchingWithOptions:)</code></a> 方法中执行任何一次性任务。当非必需用户输入时，绝不要因任务阻塞 App 的主线程。取而代之，使用调度队列（dispatch queue）异步开启任务，当 App 完成启动时，让其运行在后台。对于那些必需用户输入的任务，在 <code>application(_:didFinishLaunchingWithOptions:)</code> 方法中作出用户界面的改变。</p>
+
+<h3 id="在合适的位置安放文件">在合适的位置安放文件</h3>
+
+<p>App 拥有其自身包含的目录来保存文件，我们也应当总是将 App 特定的文件放在 <code>~/Library</code> 的子目录中。特别地，将以下文件保存在 <code>~/Library</code> 的子目录：</p>
+
+<ul>
+<li><code>~/Library/Application Support/</code> —— 保存想要备份用户的其他内容的 App 特定文件（可以根据需要创建自定义的子目录。）使用该目录保存数据文件，配置文件，文档模版，等等。</li>
+<li><code>~/Library/Caches/</code> —— 保存便于重复产生或下载的临时文件。</li>
+</ul>
+
+<p>使用 <a href="https://developer.apple.com/documentation/foundation/filemanager"><code>FileManager</code></a> 的 <a href="https://developer.apple.com/documentation/foundation/filemanager/1407726-urls"><code>urls(for:in:)</code></a> 方法获得 App 容器的目录 URL。</p>
+
+<pre><code class="language-swift">// 列表 1 获取 App 制定目录的位置
+let appSupportURL = FileManager.default.urls(for: 
+      .applicationSupportDirectory, in: .userDomainMask)
+
+let cachesURL = FileManager.default.urls(for: 
+      .cachesDirectory, in: .userDomainMask)
+</code></pre>
+
+<p>在 App 的 <code>tmp/</code> 目录下存放任何的临时文件。临时文件可能包含压缩文件，一旦其内容被提取并装载到其他地方后我们就打算删除。使用 <a href="https://developer.apple.com/documentation/foundation/filemanager"><code>FileManager</code></a> 的 <a href="https://developer.apple.com/documentation/foundation/filemanager/1642996-temporarydirectory"><code>temporaryDirectory</code></a> 方法获取 App 临时目录的 URL。</p>
+
+<h2 id="参阅">参阅</h2>
+
+<h3 id="启动时间">启动时间</h3>
+
+<ul>
+<li><a href="https://developer.apple.com/documentation/uikit/core_app/managing_your_app_s_life_cycle/responding_to_the_launch_of_your_app/about_the_app_launch_sequence">关于 App 启动顺序（About the App Launch Sequence）</a>
+
+<ul>
+<li>学习在启动时的代码执行顺序。</li>
+</ul></li>
+</ul>
+
+<hr />
+
+<blockquote>
+<p>以下内容为译者添加：</p>
+</blockquote>
+
+<h2 id="参考">参考</h2>
+
+<ul>
+<li><a href="/posts/2018/about_the_app_launch_sequence/">[译]关于 App 启动顺序</a></li>
+</ul>
+
+  </div>
+  
+  <div class="pagination">
+    <div class="pagination__title">
+      <span
+        class="pagination__title-h">Read other posts</span>
+      <hr />
+    </div>
+    <div class="pagination__buttons">
+      
+      <span class="button previous">
+        <a href="/posts/2018/year_plan/">
+          <span class="button__icon">←</span>
+          <span class="button__text">2018 年「终」总结</span>
+        </a>
+      </span>
+      
+      
+      <span class="button next">
+        <a href="/posts/2018/about_the_app_launch_sequence/">
+          <span class="button__text">[译]关于 App 启动顺序</span>
+          <span class="button__icon">→</span>
+        </a>
+      </span>
+      
+    </div>
+  </div>
+  
+
+  
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo="kingcos/kingcos.github.io"
+            issue-term="pathname"
+            label="comments"
+            theme="github-dark"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2019 · <a href="http://github.com/kingcos">kingcos</a></span>
+      </div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

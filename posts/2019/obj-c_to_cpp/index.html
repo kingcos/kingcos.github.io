@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>将 Obj-C 代码翻译为 C&#43;&#43; 代码 :: iBlog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="Platform Notes     macOS 10.14.2 clang    Solution ➜ ~ clang --version Apple LLVM version 10.0.0 (clang-1000.11.45.5) Target: x86_64-apple-darwin18.2.0 Thread model: posix InstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin  Xcode 中，C/C&#43;&#43;/Obj-C/C&#43;&#43; 的编译器是 clang。其加上 -rewrite-objc 参数可以将 Obj-C 代码翻译为 C&#43;&#43; 代码，即 clang -rewrite-objc main.m -o main.cpp。也可以结合 xcrun 设置编译所基于的 SDK，以及通过 -arch 指定编译架构参数，通过 -framework 指定需要依赖的框架，即 xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m -o main-arm64.cpp -framework UIKit。
+虽然 clang 可以将 Obj-C 代码翻译为 C&#43;&#43;，但其实大部分代码都属于 C 语言，比如 Obj-C 的类，其本质是 C 语言中的结构体。而翻译存在的目的是因为 Windows 上的 Visual Studio 中并没有 Obj-C 的编译器，所以 clang 将 Obj-C 转为 C/C&#43;&#43;，便于其他 C/C&#43;&#43; 编译器进行编译。在使用 Xcode 构建 Obj-C 项目时并不会将 Obj-C 进行翻译，clang 可以直接编译纯 Obj-C 代码。"/>
+<meta name="keywords" content=""/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2019/obj-c_to_cpp/" />
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+  <link rel="stylesheet" href="/assets/green.css">
+
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+
+<link rel="shortcut icon" href="/img/favicon/favicon.ico">
+
+
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="将 Obj-C 代码翻译为 C&#43;&#43; 代码 :: iBlog — " />
+<meta name="twitter:description" content="Platform Notes     macOS 10.14.2 clang    Solution ➜ ~ clang --version Apple LLVM version 10.0.0 (clang-1000.11.45.5) Target: x86_64-apple-darwin18.2.0 Thread model: posix InstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin  Xcode 中，C/C&#43;&#43;/Obj-C/C&#43;&#43; 的编译器是 clang。其加上 -rewrite-objc 参数可以将 Obj-C 代码翻译为 C&#43;&#43; 代码，即 clang -rewrite-objc main.m -o main.cpp。也可以结合 xcrun 设置编译所基于的 SDK，以及通过 -arch 指定编译架构参数，通过 -framework 指定需要依赖的框架，即 xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m -o main-arm64.cpp -framework UIKit。
+虽然 clang 可以将 Obj-C 代码翻译为 C&#43;&#43;，但其实大部分代码都属于 C 语言，比如 Obj-C 的类，其本质是 C 语言中的结构体。而翻译存在的目的是因为 Windows 上的 Visual Studio 中并没有 Obj-C 的编译器，所以 clang 将 Obj-C 转为 C/C&#43;&#43;，便于其他 C/C&#43;&#43; 编译器进行编译。在使用 Xcode 构建 Obj-C 项目时并不会将 Obj-C 进行翻译，clang 可以直接编译纯 Obj-C 代码。" />
+<meta name="twitter:site" content="/" />
+<meta name="twitter:creator" content="" />
+<meta name="twitter:image" content="">
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="将 Obj-C 代码翻译为 C&#43;&#43; 代码 :: iBlog — ">
+<meta property="og:description" content="Platform Notes     macOS 10.14.2 clang    Solution ➜ ~ clang --version Apple LLVM version 10.0.0 (clang-1000.11.45.5) Target: x86_64-apple-darwin18.2.0 Thread model: posix InstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin  Xcode 中，C/C&#43;&#43;/Obj-C/C&#43;&#43; 的编译器是 clang。其加上 -rewrite-objc 参数可以将 Obj-C 代码翻译为 C&#43;&#43; 代码，即 clang -rewrite-objc main.m -o main.cpp。也可以结合 xcrun 设置编译所基于的 SDK，以及通过 -arch 指定编译架构参数，通过 -framework 指定需要依赖的框架，即 xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m -o main-arm64.cpp -framework UIKit。
+虽然 clang 可以将 Obj-C 代码翻译为 C&#43;&#43;，但其实大部分代码都属于 C 语言，比如 Obj-C 的类，其本质是 C 语言中的结构体。而翻译存在的目的是因为 Windows 上的 Visual Studio 中并没有 Obj-C 的编译器，所以 clang 将 Obj-C 转为 C/C&#43;&#43;，便于其他 C/C&#43;&#43; 编译器进行编译。在使用 Xcode 构建 Obj-C 项目时并不会将 Obj-C 进行翻译，clang 可以直接编译纯 Obj-C 代码。" />
+<meta property="og:url" content="/posts/2019/obj-c_to_cpp/" />
+<meta property="og:site_name" content="将 Obj-C 代码翻译为 C&#43;&#43; 代码" />
+<meta property="og:image" content="">
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+<meta property="article:published_time" content="2019-05-17 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="">
+
+
+<div class="container center">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    iBlog
+  </div>
+</a>
+
+    </div>
+    <div class="menu-trigger">menu</div>
+  </div>
+  
+  
+    
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  
+
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="/posts/2019/obj-c_to_cpp/">将 Obj-C 代码翻译为 C++ 代码</a></h1>
+  <div class="post-meta">
+    <span class="post-date">
+      2019-05-17
+    </span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="/tags/tips/">Tips</a>&nbsp;
+    
+    #<a href="/tags/jenkins/">Jenkins</a>&nbsp;
+    
+    #<a href="/tags/devops/">DevOps</a>&nbsp;
+    
+  </span>
+  
+
+  
+
+  <div class="post-content">
+    
+
+<table>
+<thead>
+<tr>
+<th align="center">Platform</th>
+<th align="center">Notes</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center">macOS 10.14.2</td>
+<td align="center">clang</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="solution">Solution</h2>
+
+<pre><code>➜  ~ clang --version
+Apple LLVM version 10.0.0 (clang-1000.11.45.5)
+Target: x86_64-apple-darwin18.2.0
+Thread model: posix
+InstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin
+</code></pre>
+
+<p>Xcode 中，C/C++/Obj-C/C++ 的编译器是 clang。其加上 <code>-rewrite-objc</code> 参数可以将 Obj-C 代码翻译为 C++ 代码，即 <code>clang -rewrite-objc main.m -o main.cpp</code>。也可以结合 <code>xcrun</code> 设置编译所基于的 SDK，以及通过 <code>-arch</code> 指定编译架构参数，通过 <code>-framework</code> 指定需要依赖的框架，即 <code>xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m -o main-arm64.cpp -framework UIKit</code>。</p>
+
+<p><img src="/img/2019/Obj-C_to_Cpp/1.png" alt="clang --help | grep -rewrite-objc" /></p>
+
+<p>虽然 clang 可以将 Obj-C 代码翻译为 C++，但其实大部分代码都属于 C 语言，比如 Obj-C 的类，其本质是 C 语言中的结构体。而翻译存在的目的是因为 Windows 上的 Visual Studio 中并没有 Obj-C 的编译器，所以 clang 将 Obj-C 转为 C/C++，便于其他 C/C++ 编译器进行编译。在使用 Xcode 构建 Obj-C 项目时并不会将 Obj-C 进行翻译，clang 可以直接编译纯 Obj-C 代码。</p>
+
+<h2 id="reference">Reference</h2>
+
+<ul>
+<li><a href="https://stackoverflow.com/questions/44561285/rewrite-objc-and-objective-c-in-clang">StackOverflow - -rewrite-objc and Objective-C in clang</a></li>
+<li><a href="https://stackoverflow.com/questions/55198496/whats-the-relationship-between-objective-c-source-code-and-after-clang-rewrite">StackOverflow - What&rsquo;s the relationship between Objective-C source code and after clang -rewrite-objc C++ code?</a></li>
+</ul>
+
+  </div>
+  
+  <div class="pagination">
+    <div class="pagination__title">
+      <span
+        class="pagination__title-h">Read other posts</span>
+      <hr />
+    </div>
+    <div class="pagination__buttons">
+      
+      <span class="button previous">
+        <a href="/posts/2019/associated_objects_in_ios/">
+          <span class="button__icon">←</span>
+          <span class="button__text">iOS 中的关联对象</span>
+        </a>
+      </span>
+      
+      
+      <span class="button next">
+        <a href="/posts/2019/insurance_plan/">
+          <span class="button__text">谈谈我的家庭保险计划</span>
+          <span class="button__icon">→</span>
+        </a>
+      </span>
+      
+    </div>
+  </div>
+  
+
+  
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo="kingcos/kingcos.github.io"
+            issue-term="pathname"
+            label="comments"
+            theme="github-dark"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2019 · <a href="http://github.com/kingcos">kingcos</a></span>
+      </div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

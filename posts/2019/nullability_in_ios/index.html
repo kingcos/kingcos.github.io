@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>[译]在 Objective-C API 中指定可空性 :: iBlog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="作者 原文链接     Apple Inc. Designating Nullability in Objective-C APIs    使用可空性（Nullability）标志或标志一块区域，以控制将 Objective-C 声明导入 Swift 中的方式。
+ 框架：  Swift 标准库   概览 在 Objective-C 中，常用可以为空的指针来和对象的引用打交道，这（个空）就是 Objective-C 中的 nil。在 Swift 中，所有值——包括对象实例——都被确保为非空（Non-null）。取而代之，表示一个可能丢失的值可以将其包裹在可选（Optional）类型中。当我们需要表示一个值的丢失，可以使用 nil 值。
+我们可以在 Objective-C 的代码中标示声明，以指示一个实例是否可以有空（Null）或 nil 值。这些标志改变了 Swift 如何导入声明（的方式）。举个 Swift 如何导入未标示声明的例子，如下：
+@interface MyList : NSObject - (MyListItem *)itemWithName:(NSString *)name; - (NSString *)nameForItem:(MyListItem *)item; @property (copy) NSArray&amp;lt;MyListItem *&amp;gt; *allItems; @end  Swift 导入了每个对象实例的参数、返回值、以及作为隐式包裹可选的属性（译者注：隐式包裹即 Type!"/>
+<meta name="keywords" content=""/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2019/nullability_in_ios/" />
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+  <link rel="stylesheet" href="/assets/green.css">
+
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+
+<link rel="shortcut icon" href="/img/favicon/favicon.ico">
+
+
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="[译]在 Objective-C API 中指定可空性 :: iBlog — " />
+<meta name="twitter:description" content="作者 原文链接     Apple Inc. Designating Nullability in Objective-C APIs    使用可空性（Nullability）标志或标志一块区域，以控制将 Objective-C 声明导入 Swift 中的方式。
+ 框架：  Swift 标准库   概览 在 Objective-C 中，常用可以为空的指针来和对象的引用打交道，这（个空）就是 Objective-C 中的 nil。在 Swift 中，所有值——包括对象实例——都被确保为非空（Non-null）。取而代之，表示一个可能丢失的值可以将其包裹在可选（Optional）类型中。当我们需要表示一个值的丢失，可以使用 nil 值。
+我们可以在 Objective-C 的代码中标示声明，以指示一个实例是否可以有空（Null）或 nil 值。这些标志改变了 Swift 如何导入声明（的方式）。举个 Swift 如何导入未标示声明的例子，如下：
+@interface MyList : NSObject - (MyListItem *)itemWithName:(NSString *)name; - (NSString *)nameForItem:(MyListItem *)item; @property (copy) NSArray&amp;lt;MyListItem *&amp;gt; *allItems; @end  Swift 导入了每个对象实例的参数、返回值、以及作为隐式包裹可选的属性（译者注：隐式包裹即 Type!" />
+<meta name="twitter:site" content="/" />
+<meta name="twitter:creator" content="" />
+<meta name="twitter:image" content="">
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="[译]在 Objective-C API 中指定可空性 :: iBlog — ">
+<meta property="og:description" content="作者 原文链接     Apple Inc. Designating Nullability in Objective-C APIs    使用可空性（Nullability）标志或标志一块区域，以控制将 Objective-C 声明导入 Swift 中的方式。
+ 框架：  Swift 标准库   概览 在 Objective-C 中，常用可以为空的指针来和对象的引用打交道，这（个空）就是 Objective-C 中的 nil。在 Swift 中，所有值——包括对象实例——都被确保为非空（Non-null）。取而代之，表示一个可能丢失的值可以将其包裹在可选（Optional）类型中。当我们需要表示一个值的丢失，可以使用 nil 值。
+我们可以在 Objective-C 的代码中标示声明，以指示一个实例是否可以有空（Null）或 nil 值。这些标志改变了 Swift 如何导入声明（的方式）。举个 Swift 如何导入未标示声明的例子，如下：
+@interface MyList : NSObject - (MyListItem *)itemWithName:(NSString *)name; - (NSString *)nameForItem:(MyListItem *)item; @property (copy) NSArray&amp;lt;MyListItem *&amp;gt; *allItems; @end  Swift 导入了每个对象实例的参数、返回值、以及作为隐式包裹可选的属性（译者注：隐式包裹即 Type!" />
+<meta property="og:url" content="/posts/2019/nullability_in_ios/" />
+<meta property="og:site_name" content="[译]在 Objective-C API 中指定可空性" />
+<meta property="og:image" content="">
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+<meta property="article:published_time" content="2019-05-09 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="">
+
+
+<div class="container center">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    iBlog
+  </div>
+</a>
+
+    </div>
+    <div class="menu-trigger">menu</div>
+  </div>
+  
+  
+    
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  
+
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="/posts/2019/nullability_in_ios/">[译]在 Objective-C API 中指定可空性</a></h1>
+  <div class="post-meta">
+    <span class="post-date">
+      2019-05-09
+    </span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="/tags/translation/">Translation</a>&nbsp;
+    
+    #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
+    
+  </span>
+  
+
+  
+
+  <div class="post-content">
+    
+
+<table>
+<thead>
+<tr>
+<th>作者</th>
+<th>原文链接</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>Apple Inc.</td>
+<td><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/designating_nullability_in_objective-c_apis">Designating Nullability in Objective-C APIs</a></td>
+</tr>
+</tbody>
+</table>
+
+<p>使用可空性（Nullability）标志或标志一块区域，以控制将 Objective-C 声明导入 Swift 中的方式。</p>
+
+<ul>
+<li><strong>框架：</strong>
+
+<ul>
+<li>Swift 标准库</li>
+</ul></li>
+</ul>
+
+<hr />
+
+<h2 id="概览">概览</h2>
+
+<p>在 Objective-C 中，常用可以为空的指针来和对象的引用打交道，这（个空）就是 Objective-C 中的 <code>nil</code>。在 Swift 中，所有值——包括对象实例——都被确保为非空（Non-null）。取而代之，表示一个可能丢失的值可以将其包裹在可选（Optional）类型中。当我们需要表示一个值的丢失，可以使用 <code>nil</code> 值。</p>
+
+<p>我们可以在 Objective-C 的代码中标示声明，以指示一个实例是否可以有空（Null）或 <code>nil</code> 值。这些标志改变了 Swift 如何导入声明（的方式）。举个 Swift 如何导入未标示声明的例子，如下：</p>
+
+<pre><code class="language-objc">@interface MyList : NSObject
+- (MyListItem *)itemWithName:(NSString *)name;
+- (NSString *)nameForItem:(MyListItem *)item;
+@property (copy) NSArray&lt;MyListItem *&gt; *allItems;
+@end
+</code></pre>
+
+<p>Swift 导入了每个对象实例的参数、返回值、以及作为隐式包裹可选的属性（译者注：隐式包裹即 <code>Type!</code>，表示该值被保证为非 nil，即可在后续使用时省略 <code>?</code> 解包，但当该值为 nil 却没有使用可选解包时，程序将发生崩溃，该点也在另外一篇文章内有提及，有需要的读者可以参考文末 Reference 部分）。</p>
+
+<pre><code class="language-swift">class MyList: NSObject {
+    func item(withName name: String!) -&gt; MyListItem!
+    func name(for item: MyListItem!) -&gt; String!
+    var allItems: [MyListItem]!
+}
+</code></pre>
+
+<h2 id="为单独的声明标记可空性">为单独的声明标记可空性</h2>
+
+<p>在 Objective-C 代码中使用可空性标志可以指定参数类型、属性类型、或者返回值类型是否为可空的。标示属性声明、参数类型、以及返回值类型这些简单对象或者 Block 指针，可以使用 <code>nullable</code>、<code>nonnull</code>、以及 <code>null_resettable</code> 属性标志。如果一个类型没有提供可空性信息，Swift 将不区分可选和非可选引用，并将该类型作为隐式可选解包导入。</p>
+
+<p>下表描述了 Swift 如何导入带有不同可空性标志的类型：</p>
+
+<ul>
+<li>非空（Nonnullable）——无论是直接标示抑或包含在一个标示区域内，都作为非可选（类型）导入</li>
+<li>可空（Nullable）——作为可选（类型）导入</li>
+<li>不带有可空性标示或 <code>null_resettable</code> 标志——作为隐式解包可选（类型）导入</li>
+</ul>
+
+<p>下面的代码展示了标示后的 <code>MyList</code> 类型。两个方法的返回值被标示为 <code>nullable</code>，因为如果列表不包含给定的列表项或名称，方法将返回 <code>nil</code>。所有其他对象实例均被标示为 <code>nonnull</code>。</p>
+
+<pre><code class="language-objc">@interface MyList : NSObject
+- (nullable MyListItem *)itemWithName:(nonnull NSString *)name;
+- (nullable NSString *)nameForItem:(nonnull MyListItem *)item;
+@property (copy, nonnull) NSArray&lt;MyListItem *&gt; *allItems;
+@end
+</code></pre>
+
+<p>通过这些标志，Swift 将不使用任何隐式包裹可选来导入 <code>MyList</code> 类型：</p>
+
+<pre><code class="language-swift">class MyList: NSObject {
+    func item(withName name: String) -&gt; MyListItem?
+    func name(for item: MyListItem) -&gt; String?
+    var allItems: [MyListItem]
+}
+</code></pre>
+
+<p><code>nullable</code> 和 <code>nonnull</code> 标志是 <code>_Nullable</code> 和 <code>_Nonnull</code> 的简化版。当对指针类型使用 <code>const</code> 关键字时，我们可以在绝大多数上下文中使用它们。复杂的指针类型，比如 <code>id *</code> 必须明确标示所使用的标志。举个例子，一个指向可空对象引用的不可空的指针，声明为 <code>_Nullable id * _Nonnull</code>。</p>
+
+<h2 id="标示区域不可空">标示区域不可空</h2>
+
+<blockquote>
+<p>（译者注：原标题为 Annototate Regions as Nonnullable，但英文中并无 Annototate 一词，结合上下文此处应该是 Annotate 的笔误，特此注明。）</p>
+</blockquote>
+
+<p>通过标示整个区域为可空性检查可以简化标示 Objective-C 代码的过程。标记 <code>NS_ASSUME_NONNULL_BEGIN</code> 和 <code>NS_ASSUME_NONNULL_END</code> 之间区域内的代码，只需要标示可空类型的声明。未标记声明的部分将被当作是非空的。</p>
+
+<p>将 <code>MyList</code> 声明标记为可空性检查降低了所需要的标志数量。Swift 将以与上一节相同的方式导入该类型。</p>
+
+<pre><code class="language-objc">NS_ASSUME_NONNULL_BEGIN
+
+@interface MyList : NSObject
+- (nullable MyListItem *)itemWithName:(NSString *)name;
+- (nullable NSString *)nameForItem:(MyListItem *)item;
+@property (copy) NSArray&lt;MyListItem *&gt; *allItems;
+@end
+
+NS_ASSUME_NONNULL_END
+</code></pre>
+
+<p>注意，尽管在检查区域内，但<code>typedef</code> 的类型不会被假定为非空，因为它们内在并非是可空的。</p>
+
+<h2 id="参阅">参阅</h2>
+
+<h3 id="定制-objective-c-api">定制 Objective-C API</h3>
+
+<h3 id="为-swift-重命名-objective-c-api-https-developer-apple-com-documentation-swift-objective-c-and-c-code-customization-renaming-objective-c-apis-for-swift"><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/renaming_objective-c_apis_for_swift">为 Swift 重命名 Objective-C API</a></h3>
+
+<p>使用 <code>NS_SWIFT_NAME</code> 宏为 Swift 定制 API 名称。</p>
+
+<h3 id="为-swift-改进-objective-c-声明-https-developer-apple-com-documentation-swift-objective-c-and-c-code-customization-improving-objective-c-api-declarations-for-swift"><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/improving_objective-c_api_declarations_for_swift">为 Swift 改进 Objective-C 声明</a></h3>
+
+<p>使用 <code>NS_REFINED_FOR_SWIFT</code> 宏以改变 API 是如何导入 Swift 中的。</p>
+
+<h3 id="组合相关的-objective-c-常量-https-developer-apple-com-documentation-swift-objective-c-and-c-code-customization-grouping-related-objective-c-constants"><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/grouping_related_objective-c_constants">组合相关的 Objective-C 常量</a></h3>
+
+<p>在 Objective-C 类型中添加宏以在 Swift 中组合他们的值。</p>
+
+<h3 id="在-objective-c-中标记-api-可用性-https-developer-apple-com-documentation-swift-objective-c-and-c-code-customization-marking-api-availability-in-objective-c"><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/marking_api_availability_in_objective-c">在 Objective-C 中标记 API 可用性</a></h3>
+
+<p>使用宏以表示 Objective-C API 的可用性。</p>
+
+<h3 id="让-objective-c-api-在-swift-中不可用-https-developer-apple-com-documentation-swift-objective-c-and-c-code-customization-making-objective-c-apis-unavailable-in-swift"><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/making_objective-c_apis_unavailable_in_swift">让 Objective-C API 在 Swift 中不可用</a></h3>
+
+<p>使用 <code>NS_SWIFT_UNAVAILABLE</code> 宏以在 Swift 中禁用 API。</p>
+
+<hr />
+
+<blockquote>
+<p>译者注：</p>
+
+<ol>
+<li><p>API 即通用意义上的接口，不再翻译；</p></li>
+
+<li><p>由于 Null 和 Nil 含义类似，均为空，在本文中为表区分，将 Null 翻译为「空」，Nil 不作翻译，代码中不会进行任何翻译；</p></li>
+
+<li><p>由于英文语法规范，通常会有主语 You，我可能会在不改变核心意义的情况下，会忽略人称，在部分情况将其改为第一人称「我们」。</p></li>
+</ol>
+</blockquote>
+
+<h2 id="reference">Reference</h2>
+
+<ul>
+<li><a href="https://github.com/kingcos/Perspective/issues/68">kingcos - Objective-C 与 Swift 桥接中的坑</a></li>
+</ul>
+
+  </div>
+  
+  <div class="pagination">
+    <div class="pagination__title">
+      <span
+        class="pagination__title-h">Read other posts</span>
+      <hr />
+    </div>
+    <div class="pagination__buttons">
+      
+      <span class="button previous">
+        <a href="/posts/2019/insurance_plan/">
+          <span class="button__icon">←</span>
+          <span class="button__text">谈谈我的家庭保险计划</span>
+        </a>
+      </span>
+      
+      
+      <span class="button next">
+        <a href="/posts/2019/swift_4_to_5/">
+          <span class="button__text">Swift/Obj-C 混编项目升级 Swift 5.0 踩坑</span>
+          <span class="button__icon">→</span>
+        </a>
+      </span>
+      
+    </div>
+  </div>
+  
+
+  
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo="kingcos/kingcos.github.io"
+            issue-term="pathname"
+            label="comments"
+            theme="github-dark"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2019 · <a href="http://github.com/kingcos">kingcos</a></span>
+      </div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>
