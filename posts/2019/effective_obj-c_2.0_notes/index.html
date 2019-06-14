@@ -384,7 +384,39 @@ extern NSString * const SomeConstant;
 // 编译器会在数据段（Data Section）为字符串分配存储空间，链接器会将目标文件相互链接，生成最终的可执行文件
 // 全局符号命名规则：范围（通常使用类名）+ 名称
 NSString * const SomeConstant = @&quot;SomeConstant&quot;;
+
+// 在 Obj-C 中，除了 C 中原有的 extern 还存在以下相关的宏定义
+// FOUNDATION_EXTERN、FOUNDATION_EXPORT、FOUNDATION_IMPORT、UIKIT_EXTERN
+
+// NSObjCRuntime.h
+#if defined(__cplusplus)
+// C++ 下兼容 C++ 的 extern
+#define FOUNDATION_EXTERN extern &quot;C&quot;
+#else
+#define FOUNDATION_EXTERN extern
+#endif
+
+
+    #define FOUNDATION_EXPORT  FOUNDATION_EXTERN
+    #define FOUNDATION_IMPORT FOUNDATION_EXTERN
+
+// UIKitDefines.h
+// UIKIT_EXTERN 还声明了符号的可见范围
+#ifdef __cplusplus
+#define UIKIT_EXTERN		extern &quot;C&quot; __attribute__((visibility (&quot;default&quot;)))
+#else
+#define UIKIT_EXTERN	        extern __attribute__((visibility (&quot;default&quot;)))
+#endif
 </code></pre>
+
+<ul>
+<li>对于选择 <code>extern</code> 还是以上 <code>SOME_EXTERN</code>，我查阅了一些资料，得出以下的结论：
+
+<ul>
+<li>对于这些固定前缀的 <code>extern</code> 应当在其范围下使用，即 <code>FOUNDATION_*</code> 在 Foundation 框架内部使用，<code>UIKIT_*</code> 在 <code>UIKit</code> 内部使用，在我们自己的库内应当推荐自定义 <code>SOME_*</code> 来使用，而不是直接套用其他库内的宏定义；</li>
+<li>默认的 <code>extern</code> 由于可能不兼容 C++，那么在库中需要兼容 C++ 时应当使用 <code>extern &quot;C&quot;</code>。</li>
+</ul></li>
+</ul>
 
 <h3 id="用枚举表示状态-选项-状态码">用枚举表示状态、选项、状态码</h3>
 
@@ -392,6 +424,7 @@ NSString * const SomeConstant = @&quot;SomeConstant&quot;;
 
 <ul>
 <li><a href="https://maimieng.com/posts/2019/ivar_access_control_in_obj-c/">Obj-C 中成员变量和类的访问控制</a></li>
+<li><a href="https://stackoverflow.com/questions/17668018/when-to-use-uikit-extern-vs-just-extern">When to use UIKIT_EXTERN vs just extern - StackOverflow</a></li>
 </ul>
 
   </div>
