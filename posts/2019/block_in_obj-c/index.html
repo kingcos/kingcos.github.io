@@ -945,6 +945,39 @@ static struct __main_block_desc_0 {
 
 <h2 id="block"><code>__block</code></h2>
 
+<p>上面的 Demo 中，Block 只是访问了外界的变量，但没有进行过修改，接下来我们尝试下：</p>
+
+<pre><code class="language-objectivec">static int staticGlobalVar = 0;
+
+int main(int argc, const char * argv[]) {
+    @autoreleasepool {
+        int autoVar = 0;
+        static int staticVar = 0;
+        
+        ^{
+            // Error: Variable is not assignable (missing __block type specifier)
+            // autoVar = 10;
+            
+            staticVar = 10;
+            staticGlobalVar = 10;
+        }();
+    }
+}
+</code></pre>
+
+<p>Block 中按引用捕获静态局部变量，以及不捕获全局静态变量，可以直接修改这些变量的值。而对于自动变量，由于其是值传递，内部的 <code>autoVar</code> 与外界已无关系，所以此时不能在内部修改，编译器将提示「Variable is not assignable (missing __block type specifier)」，那么这里的 <code>__block</code> 是什么呢？</p>
+
+<pre><code class="language-obejctivec">int main(int argc, const char * argv[]) {
+    @autoreleasepool {
+        __block int autoVar = 0;
+        
+        ^{
+            autoVar = 10;
+        }();
+    }
+}
+</code></pre>
+
   </div>
   
   <div class="pagination">
