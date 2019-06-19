@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>Java 程序语言设计小作业 :: iBlog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content=" 本文为已归档的历史博客内容，其内容可能随着时间发生已经改变。
+This article is archived from my previous blog, so the content maybe have changed now.
+ Java 代码——在 URL 使用 SAX 解析 XML "/>
+<meta name="keywords" content=""/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2015/depr_javawf/" />
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+  <link rel="stylesheet" href="/assets/green.css">
+
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+
+<link rel="shortcut icon" href="/img/favicon/favicon.ico">
+
+
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Java 程序语言设计小作业 :: iBlog — " />
+<meta name="twitter:description" content=" 本文为已归档的历史博客内容，其内容可能随着时间发生已经改变。
+This article is archived from my previous blog, so the content maybe have changed now.
+ Java 代码——在 URL 使用 SAX 解析 XML " />
+<meta name="twitter:site" content="/" />
+<meta name="twitter:creator" content="" />
+<meta name="twitter:image" content="">
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Java 程序语言设计小作业 :: iBlog — ">
+<meta property="og:description" content=" 本文为已归档的历史博客内容，其内容可能随着时间发生已经改变。
+This article is archived from my previous blog, so the content maybe have changed now.
+ Java 代码——在 URL 使用 SAX 解析 XML " />
+<meta property="og:url" content="/posts/2015/depr_javawf/" />
+<meta property="og:site_name" content="Java 程序语言设计小作业" />
+<meta property="og:image" content="">
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+<meta property="article:published_time" content="2015-10-28 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="">
+
+
+<div class="container center">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    iBlog
+  </div>
+</a>
+
+    </div>
+    <div class="menu-trigger">menu</div>
+  </div>
+  
+  
+    
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  
+
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About &amp; AMA</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About &amp; AMA</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="/posts/2015/depr_javawf/">Java 程序语言设计小作业</a></h1>
+  <div class="post-meta">
+    <span class="post-date">
+      2015-10-28
+    </span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="/tags/deprecated/">Deprecated</a>&nbsp;
+    
+  </span>
+  
+
+  
+
+  <div class="post-content">
+    <blockquote>
+<p>本文为已归档的历史博客内容，其内容可能随着时间发生已经改变。<br>This article is archived from my previous blog, so the content maybe have changed now.</p>
+</blockquote>
+
+<hr />
+
+<blockquote class="blockquote-center">
+Java 代码——在 URL 使用 SAX 解析 XML
+</blockquote>
+
+<blockquote>
+<p>前言：
+此代码只是为了完成作业，后来经本人修改可以运行在 Android 手机上，不过略有 Bug，暂不放出 Android 版本代码。
+请勿抄袭。</p>
+</blockquote>
+
+<p><strong>Info:</strong>
+IDE: Eclipse
+System: Mac OS X 11.1</p>
+
+<p><strong>难点：</strong>
+此 API 需要用 GZIP 解压后方可解析，否则为乱码，且非编码方式原因。</p>
+
+<p><em>Main.java</em></p>
+
+<pre><code class="language-java">import java.io.*;
+import java.net.*;
+import javax.xml.parsers.*;
+import java.util.ArrayList;
+import java.util.zip.GZIPInputStream;
+
+public class Main {
+	private final static String WEATHER_XML_API = &quot;http://wthrcdn.etouch.cn/WeatherApi?citykey=&quot;;
+	private final static String cityID = &quot;101180701&quot;; 
+	public static void main(String[] args) {
+		URL url = null;
+		try {
+			url = new URL(WEATHER_XML_API + cityID);
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		}
+		URLConnection urlc = null;
+		GZIPInputStream in = null;
+		try {
+			urlc = url.openConnection();
+			urlc.setDoInput(true);
+			InputStream is = urlc.getInputStream();
+			in = new GZIPInputStream(is);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		WeatherHandler wh = new WeatherHandler();
+		try {
+			SAXParserFactory factory = SAXParserFactory.newInstance();  
+		    SAXParser parser = factory.newSAXParser();
+		    parser.parse(in, wh);
+			in.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		ArrayList&lt;Weather&gt; WeatherInfo = wh.getWeatherInfo();
+		for (Weather w: WeatherInfo) {
+			System.out.println(w.toString());
+		}
+	}
+}
+</code></pre>
+
+<p><em>WeatherHandler.java</em></p>
+
+<pre><code class="language-java">import java.util.*;
+import org.xml.sax.*;
+import org.xml.sax.helpers.*;
+
+public class WeatherHandler extends DefaultHandler {
+	private static final String CITY = &quot;city&quot;;
+	private static final String UPDATE_TIME = &quot;updatetime&quot;;
+	private static final String TEMPERATURE = &quot;wendu&quot;;
+	private static final String WIND_POWER = &quot;fengli&quot;;
+	private static final String WIND_DIRECTION = &quot;fengxiang&quot;;
+	
+	private ArrayList&lt;Weather&gt; WeatherInfo = new ArrayList&lt;Weather&gt;();;
+	private Weather currentCity = null;
+	private String tagName = null;
+
+	public ArrayList&lt;Weather&gt; getWeatherInfo() {
+		return WeatherInfo;
+	}
+
+//	@Override
+//	public void startDocument() throws SAXException {
+//		super.startDocument();
+//	}
+
+	@Override
+	public void startElement(String uri, String localName, String qName,
+			Attributes attributes) throws SAXException {
+		super.startElement(uri, localName, qName, attributes);
+		if (qName.equals(CITY)){
+			currentCity = new Weather();
+			if (attributes != null) {
+				currentCity.setCity(attributes.getValue(CITY));
+				currentCity.setUpdateTime(attributes.getValue(UPDATE_TIME));
+				currentCity.setTemperature(attributes.getValue(TEMPERATURE));
+				currentCity.setWindPower(attributes.getValue(WIND_POWER));
+				currentCity.setWindDirection(attributes.getValue(WIND_DIRECTION));
+				
+			}
+		}
+		tagName = qName;
+	}
+	
+	@Override
+	public void characters(char[] ch, int start, int length)
+			throws SAXException {
+		super.characters(ch, start, length);
+		if (tagName != null) {
+			String data = new String(ch, start, length);
+			if (tagName.equals(CITY)) {
+				currentCity.setCity(data);
+			} else if (tagName.equals(UPDATE_TIME)) {
+				currentCity.setUpdateTime(data);
+			} else if (tagName.equals(TEMPERATURE)) {
+				currentCity.setTemperature(data);
+			} else if (tagName.equals(WIND_POWER)) {
+				currentCity.setWindPower(data);
+			} else if (tagName.equals(WIND_DIRECTION)) {
+				currentCity.setWindDirection(data);
+			}
+		}
+	}
+	
+	@Override
+	public void endElement(String uri, String localName, String qName)
+			throws SAXException {
+		super.endElement(uri, localName, qName);
+		if (qName.equals(CITY)){
+			WeatherInfo.add(currentCity);
+		}
+		tagName = null;
+	} 
+	
+//	@Override 
+//    public void endDocument() throws SAXException {
+//        super.endDocument(); 
+//    } 
+}
+</code></pre>
+
+<p><em>Weather.java</em></p>
+
+<pre><code class="language-java">public class Weather {
+	private String city;
+	private String updateTime;
+	private String temperature;
+	private String windPower;
+	private String windDirection;
+	
+	public void setCity(String city) {
+		this.city = city;
+	}
+	
+	public String getCity() {
+		return city;
+	}
+	
+	public void setUpdateTime(String updateTime) {
+		this.updateTime = updateTime;
+	}
+	
+	public String getUpdateTime() {
+		return updateTime;
+	}
+	
+	public void setTemperature(String temperature) {
+		this.temperature = temperature;
+	}
+	
+	public String getTemperature() {
+		return temperature;
+	}
+	
+	public void setWindPower(String windPower) {
+		this.windPower = windPower;
+	}
+	
+	public String getWindPower() {
+		return windPower;
+	}
+	
+	public void setWindDirection(String windDirection) {
+		this.windDirection = windDirection;
+	}
+	
+	public String getWindDirection() {
+		return windDirection;
+	}
+	
+	@Override
+	public String toString() {
+		String s = &quot;\n&quot;;
+		String s1 = &quot;City: &quot;;
+		String s2 = &quot;Update Time: &quot;;
+		String s3 = &quot;Temperature: &quot;;
+		String s4 = &quot;Wind Power: &quot;;
+		String s5 = &quot;Wind Direction: &quot;;
+
+		return s1 + city + s
+				+ s2 + updateTime + s
+				+ s3 + temperature + s
+				+ s4 + windPower + s
+				+ s5 + windDirection;
+	}
+}
+</code></pre>
+  </div>
+  
+  <div class="pagination">
+    <div class="pagination__title">
+      <span
+        class="pagination__title-h">Read other posts</span>
+      <hr />
+    </div>
+    <div class="pagination__buttons">
+      
+      <span class="button previous">
+        <a href="/posts/2015/depr_idaily/">
+          <span class="button__icon">←</span>
+          <span class="button__text">iDay-11.12 ~ 12.20</span>
+        </a>
+      </span>
+      
+      
+      <span class="button next">
+        <a href="/posts/2015/depr_cs-c2-bcc/">
+          <span class="button__text">What Have I Learnt From This Chapter</span>
+          <span class="button__icon">→</span>
+        </a>
+      </span>
+      
+    </div>
+  </div>
+  
+
+  
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo="kingcos/kingcos.github.io"
+            issue-term="pathname"
+            label="comments"
+            theme="github-dark"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2019 · <a href="http://github.com/kingcos">kingcos</a></span>
+      </div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>
