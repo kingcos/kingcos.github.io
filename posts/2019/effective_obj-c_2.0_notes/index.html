@@ -520,7 +520,7 @@ NS_ENUM(NSInteger) {
 
 // CFAvailability.h
 #define CF_ENUM(...) __CF_ENUM_GET_MACRO(__VA_ARGS__, __CF_NAMED_ENUM, __CF_ANON_ENUM, )(__VA_ARGS__)
-
+// 根据是否按照 C++ 模式编译而不同
 #define __CF_ENUM_GET_MACRO(_1, _2, NAME, ...) NAME
 #if (__cplusplus &amp;&amp; __cplusplus &gt;= 201103L &amp;&amp; (__has_extension(cxx_strong_enums) || __has_feature(objc_fixed_enum))) || (!__cplusplus &amp;&amp; __has_feature(objc_fixed_enum))
     #define __CF_NAMED_ENUM(_type, _name)     enum __CF_ENUM_ATTRIBUTES _name : _type _name; enum _name : _type
@@ -537,11 +537,29 @@ NS_ENUM(NSInteger) {
     #define CF_CLOSED_ENUM(_type, _name) _type _name; enum
     #define CF_OPTIONS(_type, _name) _type _name; enum
 #endif
+
+// Some.mm
+typedef enum Direction: int FooDirection;
+enum Direction: int {
+    Up      = 1 &lt;&lt; 0,
+    Down    = 1 &lt;&lt; 1,
+    Left    = 1 &lt;&lt; 2,
+    Right   = 1 &lt;&lt; 3
+};
+
+// 在使用或运算操作两个枚举值时，C++ 认为运算结果的数据类型应当是枚举的底层数据类型，即 `NSUInteger`，且 C++ 不支持将底层数据类型隐式转换为枚举类型本身
+// Cannot initialize a variable of type 'FooDirection' (aka 'Direction') with an rvalue of type 'int'
+// FooDirection direct = Up | Left;
 </code></pre>
 
 <ul>
 <li>Foundation 框架中枚举的辅助宏具备向后兼容（Backward Compatibility）能力，即根据目标平台决定相应的语法；</li>
+<li>凡是需要按位或操作来组合的枚举都应当使用 <code>NS_OPTIONS</code> 来定义；否则使用 <code>NS_ENUM</code>。</li>
 </ul>
+
+<h2 id="对象-消息-运行期">对象、消息、运行期</h2>
+
+<h3 id="理解-属性-这一概念">理解「属性」这一概念</h3>
 
 <h2 id="reference">Reference</h2>
 
