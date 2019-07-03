@@ -591,21 +591,49 @@ NSLog(@&quot;%@&quot;, [self foo]);
 </code></pre>
 
 <ul>
-<li>属性特性（Attribute）
+<li><p>属性特性（Attribute）</p>
 
 <ul>
-<li>原子性</li>
-<li>在化学中，原子是不可分割的最小粒子，因此可以理解为一个原子操作是不会被中断的，即线程安全的（但这并不代表 <code>atomic</code> 的属性是线程安全的）；</li>
-<li>默认情况下（即不明确指定原子性时），由编译器所合成的方法（即 getter &amp; setter）会通过锁定机制确保其原子性（Atomicity）；</li>
-<li>若属性为 <code>nonatomic</code> 则不使用同步锁；</li>
-<li>自己实现的 getter &amp; setter 需要自己来保证相应的原子性（即自己实现时与声明的原子性没有关系）；</li>
-<li>对于 <code>atomic</code> 与 <code>nonatomic</code> 之后可能通过更为详细的独立文章论述。</li>
-<li>读写权限</li>
-<li><code>readwrite</code> 即拥有 getter &amp; setter，<code>readonly</code> 即仅拥有 <code>getter</code>；</li>
-<li><code>readwrite</code> 可以用在 <code>.h</code> 声明为 <code>readonly</code> 但内部类扩展中声明为 <code>readwrite</code> 来允许内部设置的情况。</li>
-<li>内存管理语义</li>
-<li>方法名</li>
+<li><p>原子性</p></li>
+
+<li><p>在化学中，原子是不可分割的最小粒子，因此可以理解为一个原子操作是不会被中断的，即线程安全的（但这并不代表 <code>atomic</code> 的属性是线程安全的）；</p></li>
+
+<li><p>默认情况下（即不明确指定原子性时），由编译器所合成的方法（即 getter &amp; setter）会通过锁定机制确保其原子性（Atomicity）；</p></li>
+
+<li><p>若属性为 <code>nonatomic</code> 则不使用同步锁，iOS 中使用同步锁开销较大，可能带来性能问题；</p></li>
+
+<li><p>自己实现的 getter &amp; setter 需要自己来保证相应的原子性（即自己实现时与声明的原子性没有关系）；</p></li>
+
+<li><p><code>nonatomic</code> 性能会好点且 <code>atomic</code> 并不能保证操作是原子的，因此大多数都使用 <code>nonatomic</code>；</p></li>
+
+<li><p>对于 <code>atomic</code> 与 <code>nonatomic</code> 之后可能通过更为详细的独立文章论述。</p></li>
+
+<li><p>读写权限</p></li>
+
+<li><p><code>readwrite</code> 即拥有 getter &amp; setter，<code>readonly</code> 即仅拥有 <code>getter</code>；</p></li>
+
+<li><p><code>readwrite</code> 可以用在 <code>.h</code> 声明为 <code>readonly</code> 但内部类扩展中声明为 <code>readwrite</code> 来允许内部设置的情况。</p></li>
+
+<li><p>内存管理语义</p></li>
+
+<li><p><code>assign</code>：setter 只会针对纯量类型（Scalar Type）例如 <code>CGFloat</code>、<code>NSInteger</code> 等的简单赋值操作；</p></li>
+
+<li><p><code>strong</code>：定义一种拥有关系，为这种属性设置新值时，setter 会先保留新值，并释放旧值，然后再将新值设置上去；</p></li>
+
+<li><p><code>weak</code>：定义一种非拥有关系，为这种属性设置新值时，setter 既不保留新值，也不释放旧值，类似 <code>assign</code>，但当属性所指向的对象销毁时，属性值也会置为 <code>nil</code>；</p></li>
+
+<li><p><code>unsafe_unretained</code>：内存语义与 <code>assign</code> 相同，但适用于对象类型，定义一种非拥有（不保留）关系，但当属性所指向的对象销毁时，属性值<strong>不会</strong>置为 <code>nil</code>（与 <code>weak</code> 的差异；</p></li>
+
+<li><p><code>copy</code>：类似 <code>strong</code>，但 setter 不保留新值，而是将其拷贝；当属性类型为 <code>NSString *</code> 时，可以使用 <code>copy</code> 保护其封装性，因为 setter 接收的新值有可能是指向 <code>NSMutableString</code> 的实例，若不拷贝则可能会被外界随时更改，因此需要拷贝为不可变的情况；</p></li>
+
+<li><p>方法名</p></li>
+
+<li><p><code>getter=&lt;name&gt;</code> 可以指定 getter 名称；</p></li>
+
+<li><p><code>setter=&lt;name&gt;</code> 可以指定 setter 名称；</p></li>
 </ul></li>
+
+<li><p>自己实现的 getter &amp; setter 要保证其具备相应的属性特性</p></li>
 </ul>
 
 <h2 id="reference">Reference</h2>
