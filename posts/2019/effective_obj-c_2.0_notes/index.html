@@ -600,13 +600,9 @@ NSLog(@&quot;%@&quot;, [self foo]);
 
 <li><p>默认情况下（即不明确指定原子性时），由编译器所合成的方法（即 getter &amp; setter）会通过锁定机制确保其原子性（Atomicity）；</p></li>
 
-<li><p>若属性为 <code>nonatomic</code> 则不使用同步锁，iOS 中使用同步锁开销较大，可能带来性能问题；</p></li>
-
 <li><p>自己实现的 getter &amp; setter 需要自己来保证相应的原子性（即自己实现时与声明的原子性没有关系）；</p></li>
 
-<li><p><code>nonatomic</code> 性能会好点且 <code>atomic</code> 并不能保证操作是原子的，因此大多数都使用 <code>nonatomic</code>；</p></li>
-
-<li><p>对于 <code>atomic</code> 与 <code>nonatomic</code> 之后可能通过更为详细的独立文章论述。</p></li>
+<li><p>若属性为 <code>nonatomic</code> 则不使用同步锁，iOS 中使用同步锁开销较大，可能带来性能问题，因此 <code>nonatomic</code> 性能会好点且 <code>atomic</code> 并不能保证操作是原子的，因此通常都使用 <code>nonatomic</code>。</p></li>
 
 <li><p>读写权限</p></li>
 
@@ -633,8 +629,30 @@ NSLog(@&quot;%@&quot;, [self foo]);
 <li><p><code>setter=&lt;name&gt;</code> 可以指定 setter 名称；</p></li>
 </ul></li>
 
-<li><p>自己实现的 getter &amp; setter 要保证其具备相应的属性特性</p></li>
+<li><p>属性特性只在自动生成时有效，自己实现的 getter &amp; setter 要保证其具备相应的属性特性；</p></li>
 </ul>
+
+<pre><code class="language-objectivec">@interface Foo : NSObject
+// 即使 readonly 也要注明 copy，因为在 init 中进行了 copy
+@property (copy, readonly) NSString *bar;
+@end
+
+@implementation Foo
+
+- (instancetype)initWithBar:(NSString *)bar
+{
+    self = [super init];
+    if (self) {
+        // 要保证属性的内存语义
+        _bar = [bar copy];
+    }
+    return self;
+}
+
+@end
+</code></pre>
+
+<h3 id="在对象内部尽量直接访问实例变量">在对象内部尽量直接访问实例变量</h3>
 
 <h2 id="reference">Reference</h2>
 
