@@ -387,7 +387,7 @@ int main(int argc, const char * argv[]) {
 <li>若常量在类之外也可见，则通常需要以类名开头。</li>
 </ul></li>
 
-<li><p>关于 <code>nm</code> 命令的基本使用，可以参考 <a href="/posts/2019/ivar_access_control_in_obj-c/">Obj-C 中成员变量和类的访问控制</a>一文。</p></li>
+<li><p>关于 <code>nm</code> 命令的基本使用，可以参考 <a href="/posts/2019/ivar_access_control_in_obj-c/">Obj-C 中实例变量和类的访问控制</a>一文。</p></li>
 </ul>
 
 <pre><code class="language-objectivec">// Some.h
@@ -559,19 +559,19 @@ enum Direction: int {
 
 <ul>
 <li>应用程序二进制接口（Application Binary Interface，即 ABI）定义了很多内容，其中有生成代码时所应遵循的规范。</li>
-<li>Obj-C 中成员变量（ivar，又称实例变量）的内存布局在编译时刻固定，因此访问成员变量时，编译器会将其替换为偏移量（Offset），而偏移量是硬编码，表示其距离内存起始地址的长度；</li>
+<li>Obj-C 中实例变量（ivar）的内存布局在编译时刻固定，因此访问实例变量时，编译器会将其替换为偏移量（Offset），而偏移量是硬编码，表示其距离内存起始地址的长度；</li>
 <li>如果代码使用了编译时刻计算的偏移量，那么在修改类定义之后必须重新编译，即重新计算偏移量；</li>
 
 <li><p>对于旧的类定义链接了新的类定义会出现不兼容情况，Obj-C 的做法如下：</p>
 
 <ul>
-<li>将成员变量当作一种存储偏移量所用的特殊变量，交由类对象保管，偏移量将在运行时查找，这样即使类定义变化了，也能找到正确的偏移量，甚至可以在运行时新增成员变量；</li>
-<li>尽量不要直接访问成员变量，而是通过 getter &amp; setter，Obj-C 中可以使用 <code>@property</code> 语法；</li>
+<li>将实例变量当作一种存储偏移量所用的特殊变量，交由类对象保管，偏移量将在运行时查找，这样即使类定义变化了，也能找到正确的偏移量，甚至可以在运行时新增实例变量；</li>
+<li>尽量不要直接访问实例变量，而是通过 getter &amp; setter，Obj-C 中可以使用 <code>@property</code> 语法；</li>
 </ul></li>
 
 <li><p>自动合成（Autosynthesis）：编译器会自动为 Obj-C 中的属性便携其所需的方法，该过程由编译器在编译时刻执行；</p></li>
 
-<li><p>编译器还会自动为 Obj-C 中的属性添加适当类型的成员变量，并在属性名前加 <code>_</code> 前缀作为成员变量名。</p></li>
+<li><p>编译器还会自动为 Obj-C 中的属性添加适当类型的实例变量，并在属性名前加 <code>_</code> 前缀作为实例变量名。</p></li>
 </ul>
 
 <pre><code class="language-objectivec">// Some.h
@@ -579,11 +579,11 @@ enum Direction: int {
 @property NSString *bar;
 
 // Some.m
-// @dynamic 将不会自动合成，也不会创建成员变量
+// @dynamic 将不会自动合成，也不会创建实例变量
 // 但使用 getter &amp; setter 可以编译，因为其相信会在运行时找到这些方法
 @dynamic bar;
 
-// @synthesize 指定了属性的成员变量名
+// @synthesize 指定了属性的实例变量名
 @synthesize foo = _foooo;
 
 self-&gt;_foooo = @&quot;Foo&quot;;
@@ -649,10 +649,33 @@ NSLog(@&quot;%@&quot;, [self foo]);
 
 <h3 id="在对象内部尽量直接访问实例变量">在对象内部尽量直接访问实例变量</h3>
 
+<ul>
+<li>直接访问实例变量（ivar）与通过属性（getter &amp; setter）访问的区别：
+
+<ul>
+<li>直接访问不经过方法派发，速度更快；</li>
+<li>直接访问不经过所定义的内存管理语义（例如 <code>copy</code>）；</li>
+<li>直接访问不经过 KVO；</li>
+<li>通过属性访问便于 Debug（可以打断点）。</li>
+</ul></li>
+<li>因此建议读取时直接访问，写入时通过属性，当然具体问题见仁见智。</li>
+</ul>
+
+<pre><code class="language-objectivec">// 懒加载的属性必须要通过 getter 访问
+- (NSObject *)foo {
+    if (!_foo) {
+        _foo = [NSObject new];
+        return _foo;
+    }
+}
+</code></pre>
+
+<h2 id="理解-对象等同性-这一概念">理解「对象等同性」这一概念</h2>
+
 <h2 id="reference">Reference</h2>
 
 <ul>
-<li><a href="/posts/2019/ivar_access_control_in_obj-c/">Obj-C 中成员变量和类的访问控制</a></li>
+<li><a href="/posts/2019/ivar_access_control_in_obj-c/">Obj-C 中实例变量和类的访问控制</a></li>
 <li><a href="https://stackoverflow.com/questions/17668018/when-to-use-uikit-extern-vs-just-extern">When to use UIKIT_EXTERN vs just extern - StackOverflow</a></li>
 </ul>
 
