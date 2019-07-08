@@ -670,7 +670,108 @@ NSLog(@&quot;%@&quot;, [self foo]);
 }
 </code></pre>
 
-<h2 id="理解-对象等同性-这一概念">理解「对象等同性」这一概念</h2>
+<h3 id="理解-对象等同性-这一概念">理解「对象等同性」这一概念</h3>
+
+<ul>
+<li>对于 Obj-C 中的对象类型，<code>==</code> 比较的是两个指针本身的值（即存储的地址）是否一致。</li>
+<li>NSString 类中的 <code>isEqualToString:</code> 比 <code>isEqual:</code> 方法速度更快（但其实差别不大）。</li>
+</ul>
+
+<pre><code class="language-objectivec">- (BOOL)isEqual:(id)object {
+    // 地址一致，则必然一样
+    if (self == object) return YES;
+    // 如果非同类，则不相等（子父类之间比较视情况而定）
+    if ([self class] != [object class]) return NO;
+
+    Foo *foo = (Foo *)object;
+    if (![_bar isEqualToString:foo.bar])
+        return NO;
+
+    if (_baz != foo.baz)
+        return NO;
+
+    return YES;
+}
+</code></pre>
+
+<ul>
+<li>若两个对象相等，<code>hash</code> 也相等；<code>hash</code> 相等，但两个对象并不一定相等。</li>
+<li>实现 <code>hash</code> 方法要在减少碰撞与降低运算复杂程度（性能影响）之间权衡：</li>
+</ul>
+
+<pre><code class="language-objectivec">// 返回固定值
+// 可行，但在 collection 中使用该类型对象将产生性能问题，因为 collection 检索哈希表（Hash Table）时，会用对象的哈希码（Hash Code）做索引。
+// 假如某个 collection 是用 set 实现的，其可能会根据哈希码把对象分装到不同的数组中。
+// 若每个对象都返回相同的哈希码，则需要将所有对象全部扫描。
+- (NSUInteger)hash {
+    return 1024;
+}
+
+// 属性拼接字符串并 hash
+// 但需承担创建字符串的开销；添加到 collection 中由于必须计算哈希码也会产生性能问题
+- (NSUInteger)hash {
+    NSString *str = [NSString stringWithFormat:@&quot;%@:%i&quot;, _bar, _baz];
+    return [str hash];
+}
+
+// 效率高，范围确定
+// 虽然会碰撞，但允许
+- (NSUInteger)hash {
+    NSUInteger bar = [_bar hash];
+    NSUInteger baz = _baz;
+    return bar ^ baz;
+}
+</code></pre>
+
+<ul>
+<li>编写特定类的等同性判定方法（比如 <code>isEqualToString:</code>）时，应一并重写 <code>isEqual:</code> 方法：</li>
+</ul>
+
+<pre><code class="language-objectivec">- (BOOL)isEqualToFoo:(Foo *)foo {
+    if (self == object) return YES;
+
+    if (![_bar isEqualToString:foo.bar])
+        return NO;
+
+    if (_baz != foo.baz)
+        return NO;
+
+    return YES;
+}
+
+- (BOOL)isEqual:(id)object {
+    // 相同类则自己判断
+    if ([self class] == [object class]) {
+        return [self isEqualToFoo:(Foo *)object];
+    }
+
+    // 不同类则交给父类
+    return [super isEqual:object];
+}
+</code></pre>
+
+<ul>
+<li>等同性判定的执行深度取决于受测对象，即若有某个 ID 字段则可以直接根据该 ID 来判定。</li>
+</ul>
+
+<pre><code class="language-objectivec">// 将对象放入 collection 中，不应再改变其哈希码，即需要确保哈希码并非根据对象的可变部分计算得出
+NSMutableSet *set = [NSMutableSet new];
+NSMutableArray *arr1 = [@[@1] mutableCopy];
+NSMutableArray *arr2 = [@[@1, @2] mutableCopy];
+
+[set addObject:arr1];
+[set addObject:arr2];
+
+// {((1), (1,2))}
+NSLog(@&quot;%@&quot;, set);
+
+// Set 中存在了两个完全相同的结构
+// {((1,2), (1,2))}
+[arr1 addObject:@2];
+NSLog(@&quot;%@&quot;, set);
+</code></pre>
+
+<h3 id="以-类族模式-隐藏实现细节">以「类族模式」隐藏实现细节</h3>
 
 <h2 id="reference">Reference</h2>
 
