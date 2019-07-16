@@ -353,49 +353,41 @@ let value2 = test({ return 15 as Int? })
 
 <p>嵌套可选是一个复杂的概念。它们在语言中有份量，但它们的使用应当是有目的的。迫于我们目前对于 <code>try?</code> 的交互以及可选链或者 <code>as?</code> 转换，初学者非常容易不明所以地创造在出可选嵌套。</p>
 
-<p>Code that uses <code>try?</code> to actually detect errors is <em>more</em> difficult to understand
-than just using <code>try</code>. Compare:</p>
+<p>使用 <code>try?</code> 来实际检测错误比理解只使用 <code>try</code> 的代码要*更加*晦涩。对比：</p>
 
-<pre><code class="language-swift">// Using 'try?'
+<pre><code class="language-swift">// 使用 'try?'
 if let result = try? foo?.bar() {
-    // Do something with 'result', which may be nil
-    // even though we are in an 'if let'.
+    // 额外对 'result' 做些什么，尽管在 if let 内其仍然可能为 nil
 }
 else {
+    //出现错误，但我们不清楚原因
     // There was an error, but we don't know what it is
 }
 </code></pre>
 
-<pre><code class="language-swift">// Using 'try/catch'
+<pre><code class="language-swift">// 使用 'try/catch'
 do {
     let result = try foo?.bar()
-    // Do something with 'result', which may be nil due to optional chaining
+    // 额外对 'result' 做些什么，由于可选链其可能为 nil
 }
 catch {
-    // Handle the error
+    // 处理错误
 }
 </code></pre>
 
-<p>The variant using <code>try?</code> is significantly less clear (what is the type of
-<code>result</code>?), and has no obvious advantages. Using <code>try?</code> <em>is</em> better if you
-don&rsquo;t care about the <em>else</em> clause and only want to handle a value if one
-exists, but that use case is better served by the proposed change.</p>
+<p>使用 <code>try?</code> 的变体将非常不清晰（<code>result</code> 是什么类型？），且没有显而易见的好处。在不关心 <em>else</em> 语句且只希望处理存在的值时使用 <code>try?</code> 更好，但提议的改变将更好的作用于这种使用情况。</p>
 
-<p>The current syntax is also harmful because of its interaction with <code>as?</code> casting,
-as seen here:</p>
+<p>由于与 <code>as?</code> 转换的交互，当前的语法仍比较痛苦，如下：</p>
 
 <pre><code class="language-swift">if let x = try? foo() as? String {
-    // We specifically called out `String` as the desired type here,
-    // so it unexpected that `x` is of type `Optional&lt;String&gt;`
+    // 由于我们将 `String` 视作这里想要的类型，
+    // 所以意外的是 `x` 是 `Optional&lt;String&gt;` 类型
 }
 </code></pre>
 
-<h3 id="2-the-new-syntax-api-must-be-clearly-better-and-must-not-conflict-with-existing-swift-syntax">2. The new syntax/API must be clearly better and must not conflict with existing Swift syntax.</h3>
+<h3 id="2-新语法-api-必须更加清晰且不与现存的-swift-语法冲突">2. 新语法 / API 必须更加清晰且不与现存的 Swift 语法冲突</h3>
 
-<p>The proposed change resolves all of the above problems, which is better.
-This change also clarifies the role of <code>try?</code> as a means for accessing
-values when possible, rather than as an alternative error-handling
-mechanism to <code>try/catch</code>.</p>
+<p>以上提出的变更更好地解决了所有的问题。此次变更同样明确了 <code>try?</code> 的角色，即，而非 <code>try/catch</code> 类似的错误处理机制。</p>
 
 <h3 id="3-there-must-be-a-reasonably-automated-migration-path-for-existing-code">3. There must be a reasonably automated migration path for existing code.</h3>
 
