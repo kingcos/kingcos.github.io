@@ -773,6 +773,57 @@ NSLog(@&quot;%@&quot;, set);
 
 <h3 id="以-类族模式-隐藏实现细节">以「类族模式」隐藏实现细节</h3>
 
+<ul>
+<li>类族（Class Cluster，又称类簇）是一种隐藏抽象基类背后的实现细节的模式（例如 <code>UIButton</code> 的 <code>buttonWithType:</code> 类方法）。</li>
+</ul>
+
+<pre><code class="language-swift">// 模式是不限定于语言的，因此这里使用了 Swift 来简单实现
+
+enum FooType {
+    case first
+    case second
+}
+
+class Foo {
+    static func build(_ type: FooType) -&gt; Foo {
+        switch type {
+        case .first: return FooFirst()
+        case .second: return FooSecond()
+        }
+    }
+
+    func bar() {
+        fatalError(&quot;bar should be implemented in subclasses.&quot;)
+    }
+}
+
+class FooFirst: Foo {
+    override func bar() {
+        print(#function)
+    }
+}
+
+class FooSecond: Foo {
+    override func bar() {
+        print(#function)
+    }
+}
+
+// 类族模式目的是隐藏内部实现的细节，因此外界创建的变量虽然是工厂类的类型，但实际上其实是内部子类的类型。
+// 因此在 Obj-C 中使用 isMemberOfClass 判断类是否为工厂类本身，则会返回 NO。
+// foo 在 Swift 中被推断为 Foo
+let foo = Foo.build(.first)
+
+print(foo is Foo)
+print(foo is FooFirst)
+print(foo is FooSecond)
+
+// OUTPUT:
+// true
+// true
+// false
+</code></pre>
+
 <h2 id="reference">Reference</h2>
 
 <ul>
