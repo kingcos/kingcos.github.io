@@ -234,7 +234,7 @@ let x = try? foo?.makeBar()
 let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
 </code></pre>
 
-<p>虽然使用 <code>try?</code> 很容易制造出嵌套可选，但对现存代码的一个调查显示，这并非是理想的结果。使用 <code>try?</code> 和嵌套可选的代码几乎总是伴随着以下几种模式之一：</p>
+<p>虽然使用 <code>try?</code> 很容易造成嵌套可选，但对现存代码的一个调查显示，这并非是理想的结果。使用 <code>try?</code> 和嵌套可选的代码几乎总是伴随着以下几种模式之一：</p>
 
 <pre><code class="language-swift">// 模式 1：双层 if-let 或 guard-let
 if  let optionalX = try? self.optionalThing(),
@@ -242,8 +242,7 @@ if  let optionalX = try? self.optionalThing(),
     // 在这里使用 'x'
 }
 
-// 模式 2：引入括号以使用 'as?' 为我们摊平（嵌套可选）
-// Pattern 2: Introducing parentheses to let 'as?' flatten for us
+// 模式 2：引入括号并使用 'as?' 摊平
 if let x = (try? somethingAsAny()) as? JournalEntry {
     // 在这里使用 'x'
 }
@@ -254,20 +253,20 @@ if case let x?? = try? optionalThing() {
 }
 </code></pre>
 
-<p>这些变通方法的需要使得语言更加难以学习和使用，而且真的没有任何好处回报。</p>
+<p>这些变通方法使得语言更加难以学习和使用，且没有任何好处或者回报。</p>
 
-<p>使用 <code>try?</code> 的代码通常不关心错误和空结果的区别，这就是为什么上述的模式只聚焦于值而忽略错误。如果开发者真的关系如何探测错误，他们可能会使用 <code>do/try/catch</code> 取而代之。</p>
+<p>使用 <code>try?</code> 的代码通常不关心错误和空结果的区别，这就是为什么所有这些模式只关注取出值而忽略错误。如果开发者关心错误，那么应该使用 <code>do/try/catch</code> 取而代之。</p>
 
 <h2 id="提议解决方案">提议解决方案</h2>
 
-<p>在 Swift 5 中，<code>try? someExpr()</code> 将和 <code>foo?.someExpr()</code> 一致：</p>
+<p>在 Swift 5 中，<code>try? someExpr()</code> 将和 <code>foo?.someExpr()</code> 行为一致：</p>
 
 <ul>
-<li>如果 <code>someExpr()</code> 制造非可选值，其将会被包在可选值内。</li>
-<li>如果 <code>someExpr()</code> 制造 <code>Optional</code>，那么将不会附加可选。</li>
+<li>如果 <code>someExpr()</code> 返回非可选值，<code>try? someExpr()</code> 将会被包在可选中。</li>
+<li>如果 <code>someExpr()</code> 返回 <code>Optional</code>，<code>try? someExpr()</code> 将不会再额外附加可选。</li>
 </ul>
 
-<p>这导致以下的 <code>try?</code> 表达式类型改变：</p>
+<p>这将导致以下的 <code>try?</code> 表达式类型改变：</p>
 
 <pre><code class="language-swift">// Swift 4: 'Int??'
 // Swift 5: 'Int?'
@@ -283,14 +282,14 @@ let myString = try? String(data: someData, encoding: .utf8)
 let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
 </code></pre>
 
-<p>当子表达式制造非可选类型时，整体类型将不会发生改变。</p>
+<p>当子表达式返回非可选类型时，整体类型将不会发生改变。</p>
 
 <pre><code class="language-swift">// Swift 4: 'String?'
 // Swift 5: 'String?'
 let fileContents = try? String(contentsOf: someURL)
 </code></pre>
 
-<p>如果子表达式已经制造了嵌套的可选类型，结果将和嵌套的（层级）一致：</p>
+<p>如果子表达式已经是嵌套可选，结果将和此嵌套层级一致：</p>
 
 <pre><code class="language-swift">func doubleOptionalInt() throws -&gt; Int?? {
     return 3
@@ -304,20 +303,20 @@ let x = try? doubleOptionalInt()
 <blockquote>
 <h3 id="关于-try-和-as-的额外说明">关于 <code>try?</code> 和 <code>as?</code> 的额外说明</h3>
 
-<p>虽然 <code>as?</code> 经常有摊平可选类型的影响（如上在「动机」部分的举例），但它与这次的 <code>try？</code> 并非是完全相同的行为。因为 <code>as?</code> 采用的是明确类型，其实际上可以摊平多个层级的嵌套可选。<code>foo as? T</code> 将总是制造 <code>Optional&lt;T&gt;</code> 而无论 <code>foo</code> 上有多少可选。这可能潜在地增加或减少可选的级别，取决于指定的类型。（它同样可以转换子类型与父类型之间，这与所考虑的行为无关。）</p>
+<p>虽然 <code>as?</code> 常有摊平可选类型的作用（如上在「动机」部分的举例），但这与提议的 <code>try？</code> 并非是完全相同的行为。由于 <code>as?</code> 采用明确的类型，所以它实际上可以摊平多个层级的嵌套可选。无论 <code>foo</code> 上有多少层可选，<code>foo as? T</code> 将总是返回 <code>Optional&lt;T&gt;</code>。取决于指定的类型，<code>as?</code> 可以潜在地增加或减少可选的层级。（<code>as?</code> 同样可以在子类型与父类型之间转换，这与正在审议的行为无关。）</p>
 
-<p>在实践中，<code>as?</code> 与嵌套可选最常使用在降低 <code>T??</code> 到 <code>T?</code>，因此使得其外在看来与使用可选链，以及提出的 <code>try?</code> 类似。但是 <code>as?</code> 是一个比这里提出的 <code>try?</code> 更加有力，且多才多艺的结构。</p>
+<p>在实践中，<code>as?</code> 与嵌套可选最常使用在将 <code>T??</code> 降级到 <code>T?</code>，这与使用可选链以及提议的 <code>try?</code> 类似。但 <code>as?</code> 是比提议的 <code>try?</code> 功能更加丰富有力的结构。</p>
 </blockquote>
 
 <h2 id="细节设计">细节设计</h2>
 
-<p>在 Swift 4 中，<code>try?</code> 表达式的类型被定义为 <code>Optional&lt;T&gt;</code>，<code>T</code> 表示 <code>try?</code> 之后的表达式的类型。</p>
+<p>在 Swift 4 中，<code>try?</code> 表达式的类型被定义为 <code>Optional&lt;T&gt;</code>，<code>T</code> 表示位于 <code>try?</code> 之后的表达式类型。</p>
 
-<p>在 Swift 5 中，<code>try?</code> 的类型将变为 <code>U</code>，<code>U</code> 是 <code>Optional&lt;_&gt;</code> 类型且子表达式类型 <code>T</code> 可以强制转换为 <code>U</code>。类型约束系统将自动选择满足约束的最小嵌套可选等级，因此导致了本提案中描述的行为。</p>
+<p>在 Swift 5 中，<code>try?</code> 表达式的类型将变为某种 <code>U</code>，<code>U</code> 是 <code>Optional&lt;_&gt;</code> 类型且子表达式类型 <code>T</code> 能够强制转换为 <code>U</code>。类型约束系统将自动选择满足约束的最小嵌套可选层级，这将导致本提案中描述的行为。</p>
 
 <h4 id="泛型">泛型</h4>
 
-<p>关于与泛型互通的一些问题被提出，如下例：</p>
+<p>关于与泛型互通性的一些问题被提出，如下例：</p>
 
 <pre><code class="language-swift">func test&lt;T&gt;(fn: () throws -&gt; T) -&gt; T? {
 
@@ -339,29 +338,28 @@ let value  = test({ return 15 })
 let value2 = test({ return 15 as Int? })
 </code></pre>
 
-<p>答案是这与 <code>T</code> 在运行时是否可选无关。在编译时刻，<code>result</code> 拥有明确的类型：<code>T</code>。这在 Swift 4 和 Swift 5 的模式中都是正确的，因为 <code>T</code> 在编译时刻无法得知是否是 <code>Optional</code> 类型，<code>try?</code> 表达式添加了一层 <code>Optional</code>，之后通过 <code>if let</code> 解包。</p>
+<p>答案是这与 <code>T</code> 在运行时是否可选无关。在编译时刻，<code>result</code> 拥有清晰的类型：<code>T</code>。这在 Swift 4 和 Swift 5 的模式中都是正确的，因为 <code>T</code> 在编译时刻无法得知是否是 <code>Optional</code> 类型，<code>try?</code> 表达式额外增加了一层 <code>Optional</code>，之后又通过 <code>if let</code> 解包。</p>
 
-<p>使用 <code>try?</code> 的泛型代码可以依然继续使用，而无需关心泛型类型可能在运行时变成可选。这种情况的行为并没有发生改变。</p>
+<p>使用 <code>try?</code> 的泛型代码仍可继续使用，而无需关心泛型是否可能在运行时变成可选。这种情况的行为并没有发生改变。</p>
 
 <h2 id="源代码兼容">源代码兼容</h2>
 
-<p>_如果自身没有明确摊平可选_，却操作可选的子表达式，这对于 <code>try?</code> 表达式来说是一种突破性的改变。尽管出现的情况很少，但详见下面的分析。当编译器运行在 Swift 4 模式下，可以提供向后兼容的行为，以及迁移应当适用于大多数常用情况。</p>
+<p>_如果表达式自身没有明确摊平可选_，这对于操作可选子表达式的 <code>try?</code> 表达式来说是一个打破源的改变。尽管目前出现的情况很少，但详见下面的分析。当编译器运行在 Swift 4 模式下，我们可以提供向后兼容的行为，且为大多数常见情况提供迁移的可能。</p>
 
-<p>关于 Swift 5 中包含突破性变化的讨论很激烈，但我相信它能通过。以下是 swift-evolution README 中列出的标准：</p>
+<p>关于 Swift 5 中包含打破源变化的讨论很激烈，但相信它能通过。以下是 swift-evolution README 中列出的部分标准：</p>
 
 <h3 id="1-当前的语法或-api-必须主动展示可能为用户带来的问题">1. 当前的语法或 API 必须主动展示可能为用户带来的问题</h3>
 
-<p>嵌套可选是一个复杂的概念。它们在语言中有份量，但它们的使用应当是有目的的。迫于我们目前对于 <code>try?</code> 的交互以及可选链或者 <code>as?</code> 转换，初学者非常容易不明所以地创造在出嵌套可选。</p>
+<p>嵌套可选是一个复杂的概念。其在语言中占据一定的份量，但对于其使用应当是意图明确的。由于目前 <code>try?</code> 和可选链或 <code>as?</code> 转换的交互，所以初学者非常容易不明所以地造成嵌套可选。</p>
 
-<p>使用 <code>try?</code> 来实际检测错误比理解只使用 <code>try</code> 的代码要*更加*晦涩。对比：</p>
+<p>使用 <code>try?</code> 检测错误比使用 <code>try</code> 要*更加*晦涩。对比：</p>
 
 <pre><code class="language-swift">// 使用 'try?'
 if let result = try? foo?.bar() {
-    // 额外对 'result' 做些什么，尽管在 if let 内其仍然可能为 nil
+    // 额外对 'result' 做些什么，尽管在 if let 内其仍可能为 nil
 }
 else {
-    //出现错误，但我们不清楚原因
-    // There was an error, but we don't know what it is
+    //出现错误，但不清楚是什么
 }
 </code></pre>
 
@@ -374,6 +372,8 @@ catch {
     // 处理错误
 }
 </code></pre>
+
+<hr />
 
 <p>使用 <code>try?</code> 的变体将非常不清晰（<code>result</code> 是什么类型？），且没有显而易见的好处。在不关心 <em>else</em> 语句且只希望处理存在的值时使用 <code>try?</code> 更好，但提议的改变将更好的作用于这种使用情况。</p>
 
