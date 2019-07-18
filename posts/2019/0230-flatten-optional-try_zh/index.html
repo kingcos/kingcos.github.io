@@ -346,13 +346,13 @@ let value2 = test({ return 15 as Int? })
 
 <p>_如果表达式自身没有明确摊平可选_，这对于操作可选子表达式的 <code>try?</code> 表达式来说是一个打破源的改变。尽管目前出现的情况很少，但详见下面的分析。当编译器运行在 Swift 4 模式下，我们可以提供向后兼容的行为，且为大多数常见情况提供迁移的可能。</p>
 
-<p>关于 Swift 5 中包含打破源变化的讨论很激烈，但相信它能通过。以下是 swift-evolution README 中列出的部分标准：</p>
+<p>关于 Swift 5 中包含打破源变化的讨论很激烈，但我相信最终能通过。以下是 swift-evolution README 中列出的部分标准：</p>
 
 <h3 id="1-当前的语法或-api-必须主动展示可能为用户带来的问题">1. 当前的语法或 API 必须主动展示可能为用户带来的问题</h3>
 
-<p>嵌套可选是一个复杂的概念。其在语言中占据一定的份量，但对于其使用应当是意图明确的。由于目前 <code>try?</code> 和可选链或 <code>as?</code> 转换的交互，所以初学者非常容易不明所以地造成嵌套可选。</p>
+<p>嵌套可选是一个复杂的概念。其在语言中存在是有价值的，但对于其使用应当是目的明确的。由于目前 <code>try?</code> 和可选链或 <code>as?</code> 转换之间的交叉使用，初学者很容易不明所以地造成嵌套可选。</p>
 
-<p>使用 <code>try?</code> 检测错误比使用 <code>try</code> 要*更加*晦涩。对比：</p>
+<p>实际检测错误 <code>try?</code> 要比使用 <code>try</code> 要*更加*困难。对比：</p>
 
 <pre><code class="language-swift">// 使用 'try?'
 if let result = try? foo?.bar() {
@@ -366,64 +366,59 @@ else {
 <pre><code class="language-swift">// 使用 'try/catch'
 do {
     let result = try foo?.bar()
-    // 额外对 'result' 做些什么，由于可选链其可能为 nil
+    // 额外对 'result' 做些什么，由于可选链其仍可能为 nil
 }
 catch {
     // 处理错误
 }
 </code></pre>
 
-<hr />
+<p>使用 <code>try?</code> 的变体将变得非常凌乱（比如关于 <code>result</code> 是什么类型？），而且没有显而易见的优点。在不关心 <em>else</em> 语句且只希望处理存在的值时，<code>try?</code> 是更好的选择，但提议的改变将更好的作用于这种情况。</p>
 
-<p>使用 <code>try?</code> 的变体将非常不清晰（<code>result</code> 是什么类型？），且没有显而易见的好处。在不关心 <em>else</em> 语句且只希望处理存在的值时使用 <code>try?</code> 更好，但提议的改变将更好的作用于这种使用情况。</p>
-
-<p>由于与 <code>as?</code> 转换的交互，当前的语法仍比较痛苦，如下：</p>
+<p>由于与 <code>as?</code> 转换的交叉使用，因此当前的语法仍比较痛苦，如下：</p>
 
 <pre><code class="language-swift">if let x = try? foo() as? String {
-    // 由于我们将 `String` 视作这里想要的类型，
-    // 所以意外的是 `x` 是 `Optional&lt;String&gt;` 类型
+    // `String` 是这里想要得到的类型，
+    // 但意外的是 `x` 是 `Optional&lt;String&gt;` 类型
 }
 </code></pre>
 
 <h3 id="2-新语法-api-必须更加清晰且不与现存的-swift-语法冲突">2. 新语法 / API 必须更加清晰且不与现存的 Swift 语法冲突</h3>
 
-<p>以上提出的变更更好地解决了所有的问题。此次变更同样明确了 <code>try?</code> 的角色，即，而非 <code>try/catch</code> 类似的错误处理机制。</p>
+<p>提出的变更更好地解决了以上所有的问题。此次变更同样明确了 <code>try?</code> 的角色，即在可能的情况下访问值，而非 <code>try/catch</code> 类似的错误处理机制。</p>
 
-<h3 id="3-已存在的代码必须拥有通过合理地自动迁移路径">3. 已存在的代码必须拥有通过合理地自动迁移路径</h3>
+<h3 id="3-已存在的代码必须支持合理地自动迁移">3. 已存在的代码必须支持合理地自动迁移</h3>
 
-<p>如下分析，大多数源代码将无需迁移；已经遇到产生嵌套可选的开发者可能已经使用了包含该变动的源代码兼容的模式。该提案简单地提供了简化代码的方式。</p>
+<p>如下分析，大多数源代码将无需迁移；已经遇到产生嵌套可选的开发者，可能已经使用了兼容模式。该提案简单地提供了一种简化的方式。</p>
 
-<p>自动迁移已为双 <code>if/guard let</code> 和 <code>case let value??:</code> 上述模式实现。</p>
+<p>自动迁移已为双 <code>if/guard let</code> 和 <code>case let value??:</code> 这些上述已提到的模式实现。</p>
 
 <h2 id="swift-源兼容性套件分析">Swift 源兼容性套件分析</h2>
 
-<p>Swift 源兼容性套件表明这对于大多数用户来说并非是一项巨变。我手动检查了 <code>try?</code> 在兼容套件中的使用案例。以下是结果：</p>
+<p>Swift 源兼容性套件建议不要为大多数用户制造巨大的改变。我手动检查了 <code>try?</code> 在兼容性套件中的使用案例。以下是结果：</p>
 
 <ul>
-<li><p>兼容性套件中总共有 <strong>613</strong> 个 <code>try?</code> 的实例。其中绝大多数出现在使用非可选子表达式中，并且不受该提议的影响。</p></li>
+<li><p>兼容性套件中总共有 <strong>613</strong> 个 <code>try?</code> 的用例。其中绝大多数使用在非可选子表达式中，不受该提议的影响。</p></li>
 
-<li><p><code>try? ... as?</code> 的实例有 <strong>4</strong> 个。所有这四个都将 <code>try?</code> 包裹在括号中以获得摊平行为的 <code>as?</code>，且他们与该改动是源代码兼容的。他们看来这样：</p></li>
+<li><p><code>try? ... as?</code> 的用例有 <strong>4</strong> 个。它们都将 <code>try?</code> 包裹在括号中以使用 <code>as?</code> 的摊平行为，且这将是兼容的。它们看来像这样：</p></li>
 </ul>
 
 <pre><code class="language-swift">  (try? JSONSerialization.jsonObject(with: $0)) as? NSDictionary
 </code></pre>
 
 <ul>
-<li><p>横跨三个项目，共有 <strong>12</strong> 个 <code>try? foo?.bar()</code> 的情况。
-其中 <strong>10</strong> 个被分配到 <code>_ = try? foo?.bar()</code>，所以结果的类型不重要。
-其中 <strong>2</strong> 个情况拥有一个 <code>Void</code> 子表达式类型，且没有赋值结果到任何变量。</p></li>
+<li><p>3 个项目中共有 <strong>12</strong> 个 <code>try? foo?.bar()</code> 的用例。其中 <strong>10</strong> 个为 <code>_ = try? foo?.bar()</code>，所以结果的类型不重要。其中 <strong>2</strong> 个拥有 <code>Void</code> 类型的子表达式，且没有赋值结果到任何变量。</p></li>
 
-<li><p>有 <strong>6</strong> 个 <code>try? somethingReturningOptional()</code> 实例。他们全都使用 <code>flatMap { $0 }</code> 手动摊平，且因此和此变更源代码兼容，因为该表达式的返回类型在任一行为下都是相同的。
-They all flatten it manually using <code>flatMap { $0 }</code>, and are thus source-compatible with this change, as the return type of that expression is the same under either behavior.</p></li>
+<li><p>有 <strong>6</strong> 个 <code>try? somethingReturningOptional()</code> 的用例。它们全都使用 <code>flatMap { $0 }</code> 手动摊平，且因此兼容，因为该表达式的返回类型在任一行为下都是相同的。</p></li>
 </ul>
 
 <pre><code class="language-swift">  (try? get(key)).flatMap { $0 }
 </code></pre>
 
 <ul>
-<li><p>据我所知，整个套件中没有任何双可选用来区分错误情况和空值转为值的情况。</p></li>
+<li><p>据我所知，整个套件中没有双可选被实际用来区分错误和 nil 转值的情况。</p></li>
 
-<li><p>据我所知，在兼容套件中没有任何源代码不兼容的情况。</p></li>
+<li><p>据我所知，兼容套件中没有发现任何源代码不兼容的情况。</p></li>
 </ul>
 
 <h2 id="abi-稳定性的影响">ABI 稳定性的影响</h2>
@@ -432,21 +427,21 @@ They all flatten it manually using <code>flatMap { $0 }</code>, and are thus sou
 
 <h2 id="api-适应性的影响">API 适应性的影响</h2>
 
-<p><code>try?</code> 表达式永远不会暴露在函数边界，因此 API 适应性应当不受影响。</p>
+<p><code>try?</code> 表达式永远不会暴露在函数边界，因此 API 适应性理应不受影响。</p>
 
 <h2 id="考虑过的替代方案">考虑过的替代方案</h2>
 
 <h3 id="改变-try-的绑定优先权">改变 try? 的绑定优先权</h3>
 
-<p>如 <code>let x = try? getObject() as? Foo</code> 类似的表达式，可以通过转换表达式为 <code>(try? getObject) as? Foo</code>，来消除嵌套可选。添加明确的括号已经成为双可选问题的常见变通方法。</p>
+<p>对于类似 <code>let x = try? getObject() as? Foo</code> 的表达式，可以通过转换表达式为 <code>(try? getObject) as? Foo</code>，来消除嵌套可选。显式添加括号已经是双可选问题的常用变通方法。</p>
 
-<p>但是，这项改变不会解决 <code>try?</code> 与可选链（例如：<code>try? foo?.bar?.baz()</code>）的情况，以及不会解决从函数直接返回的一个可选结果（例如：<code>try? cachedValue(for: key)</code>）。</p>
+<p>但此举不能解决 <code>try?</code> 与可选链（例如：<code>try? foo?.bar?.baz()</code>）的情况，以及不能解决从函数直接返回的一个可选结果（例如：<code>try? cachedValue(for: key)</code>）。</p>
 
-<p>改变 try? 的绑定优先权也可能会对源码破坏比该提案更深远。</p>
+<p>改变 <code>try?</code> 的绑定优先权可能造成比该提案更加深远的源变化。</p>
 
-<h3 id="什么也没做">什么也没做</h3>
+<h3 id="什么也不做">什么也不做</h3>
 
-<p>在当前的模式下写出正确的代码是可以的。我们并非提出完全从语言中移除嵌套可选，我们只是希望用户将其弄清楚。</p>
+<p>在当前的模式下写出正确的代码是可以的。我们并非提出完全从语言中移除嵌套可选，我们只是希望用户弄清楚它们。</p>
 
 <p>这是一个可行的解决方案，但作为语法糖的一部分，为简化日常使用却拥有如此复杂的结构是很奇怪的。</p>
 
