@@ -230,6 +230,7 @@ if (!doNotTrack) {
 <p>The runtime sends the <code>initialize</code> message to classes in a thread-safe manner. That is, <code>initialize</code> is run by the first thread to send a message to a class, and any other thread that tries to send a message to that class will block until <code>initialize</code> completes.</p>
 
 <p>The superclass implementation may be called multiple times if subclasses do not implement <code>initialize</code>—the runtime will call the inherited implementation—or if subclasses explicitly call <code>[super initialize]</code>. If you want to protect yourself from being run multiple times, you can structure your implementation along these lines:</p>
+</blockquote>
 
 <pre><code class="language-objectivec">+ (void)initialize {
   if (self == [ClassName self]) {
@@ -238,6 +239,7 @@ if (!doNotTrack) {
 }
 </code></pre>
 
+<blockquote>
 <p>Because <code>initialize</code> is called in a blocking manner, it’s important to limit method implementations to the minimum amount of work necessary possible. Specifically, any code that takes locks that might be required by other classes in their <code>initialize</code> methods is liable to lead to deadlocks. Therefore, you should not rely on <code>initialize</code> for complex initialization, and should instead limit it to straightforward, class local initialization.</p>
 
 <p><code>initialize</code> is invoked only once per class. If you want to perform independent initialization for the class and for categories of the class, you should implement <a href="https://developer.apple.com/documentation/objectivec/nsobject/1418815-load?language=objc"><code>load</code></a> methods.</p>
@@ -253,6 +255,7 @@ if (!doNotTrack) {
 <p>运行时以线程安全的方式发送 <code>initialize</code> 消息到类。即 <code>initialize</code> 由第一个线程运行来发送消息到一个类，并且其它任何尝试发送消息的线程都将会被阻塞，直到 <code>initialize</code> 完成。</p>
 
 <p>如果子类未实现 <code>initialize</code> 则父类的实现可能会被调用多次 —— 运行时将会调用继承（自父类）的实现 —— 或者如果子类明确调用 <code>[super initialize]</code>。如果不希望运行多次，可以参考如下实现：</p>
+</blockquote>
 
 <pre><code class="language-objectivec">+ (void)initialize {
   if (self == [ClassName self]) {
@@ -261,6 +264,7 @@ if (!doNotTrack) {
 }
 </code></pre>
 
+<blockquote>
 <p>由于 <code>initialize</code> 以阻塞的方式被调用，因此将方法实现限制为最小工作量是很有必要的。尤其是在 <code>initialize</code> 中使用任何可能被其它类所必需锁的代码都有可能会导致死锁。因此不应当依赖 <code>initialize</code> 做复杂的初始化，相反应该将其限制为简单的类本地初始化。</p>
 
 <p><code>initialize</code> 在每个类中只会被调用一次。如果希望为类以及分类执行独立的初始化，应当实现 <a href="https://developer.apple.com/documentation/objectivec/nsobject/1418815-load?language=objc"><code>load</code></a> 方法。</p>
@@ -342,7 +346,7 @@ int main(int argc, const char * argv[]) {
         Student *stu = [Student alloc];
         NSLog(@&quot;---&quot;);
         stu = [stu init];
-        
+
         NSLog(@&quot;---&quot;);
         [Programmer load];
     }
@@ -395,16 +399,16 @@ Method class_getInstanceMethod(Class cls, SEL sel)
     // This deliberately avoids +initialize because it historically did so.
     // 由于历史原因，这里故意避免 +initialize。
 
-    // This implementation is a bit weird because it's the only place that 
+    // This implementation is a bit weird because it's the only place that
     // wants a Method instead of an IMP.
     // 这里的实现有点奇怪，因为这是唯一需要 Method 而非 IMP 的地方。
 
 #warning fixme build and search caches
-        
+
     // Search method lists, try method resolver, etc.
     // 搜索方法列表，尝试方法解析器等。
     // ➡️ 查找 IMP
-    lookUpImpOrNil(cls, sel, nil, 
+    lookUpImpOrNil(cls, sel, nil,
                    NO/*initialize*/, NO/*cache*/, YES/*resolver*/);
 
 #warning fixme build and search caches
@@ -418,7 +422,7 @@ Method class_getInstanceMethod(Class cls, SEL sel)
 * Like lookUpImpOrForward, but returns nil instead of _objc_msgForward_impcache
 * 类似 lookUpImpOrForward，但返回 nil 替代 _objc_msgForward_impcache
 **********************************************************************/
-IMP lookUpImpOrNil(Class cls, SEL sel, id inst, 
+IMP lookUpImpOrNil(Class cls, SEL sel, id inst,
                    bool initialize, bool cache, bool resolver)
 {
     // ➡️ 查找 IMP
@@ -431,7 +435,7 @@ IMP lookUpImpOrNil(Class cls, SEL sel, id inst,
 // objc-runtime-new.mm
 /***********************************************************************
 * lookUpImpOrForward.
-* The standard IMP lookup. 
+* The standard IMP lookup.
 * 标准 IMP 查找。
 * initialize==NO tries to avoid +initialize (but sometimes fails)
 * initialize==NO 尝试避免 +initialize（但有时会失败）
@@ -439,22 +443,22 @@ IMP lookUpImpOrNil(Class cls, SEL sel, id inst,
 * cache==NO 跳过乐观解锁查找（但有时仍会使用缓存）
 * Most callers should use initialize==YES and cache==YES.
 * 大多数调用者应当使用 initialize==YES 且 cache==YES。
-* inst is an instance of cls or a subclass thereof, or nil if none is known. 
+* inst is an instance of cls or a subclass thereof, or nil if none is known.
 * inst 是 cls 或其子类，如果没有，则为 nil。
 *   If cls is an un-initialized metaclass then a non-nil inst is faster.
 *   如果 cls 是未初始化的元类，那么非 nil 的 inst 更快。
-* May return _objc_msgForward_impcache. IMPs destined for external use 
+* May return _objc_msgForward_impcache. IMPs destined for external use
 *   must be converted to _objc_msgForward or _objc_msgForward_stret.
 * 可能返回 _objc_msgForward_impcache。外部使用 IMP 则注定必须被转换为 _objc_msgForward 或 _objc_msgForward_stret。
 *   If you don't want forwarding at all, use lookUpImpOrNil() instead.
 *   如果根本不需要转发，使用 lookUpImpOrNil() 替代。
 **********************************************************************/
-IMP lookUpImpOrForward(Class cls, SEL sel, id inst, 
+IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
                        bool initialize, bool cache, bool resolver)
 {
     IMP imp = nil;
     bool triedResolver = NO;
-    
+
     // 断言解锁
     runtimeLock.assertUnlocked();
 
@@ -491,16 +495,16 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
         // ➡️ 类初始化
         _class_initialize (_class_getNonMetaClass(cls, inst));
         runtimeLock.lock();
-        // If sel == initialize, _class_initialize will send +initialize and 
-        // then the messenger will send +initialize again after this 
-        // procedure finishes. Of course, if this is not being called 
+        // If sel == initialize, _class_initialize will send +initialize and
+        // then the messenger will send +initialize again after this
+        // procedure finishes. Of course, if this is not being called
         // from the messenger then it won't happen. 2778172
         // 如果 sel 等于 initialize，_class_initialize 将发送 +initialize 消息，
         // 之后发送者将会在该过程完成后再次发送 +initialize。当然，如果不是发送者调用，则不会发生。
     }
 
-    
- retry:    
+
+ retry:
     runtimeLock.assertLocked();
 
     // Try this class's cache.
@@ -529,7 +533,7 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
             if (--attempts == 0) {
                 _objc_fatal(&quot;Memory corruption in class list.&quot;);
             }
-            
+
             // Superclass cache.
             imp = cache_getImp(curClass, sel);
             if (imp) {
@@ -540,12 +544,12 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
                 }
                 else {
                     // Found a forward:: entry in a superclass.
-                    // Stop searching, but don't cache yet; call method 
+                    // Stop searching, but don't cache yet; call method
                     // resolver for this class first.
                     break;
                 }
             }
-            
+
             // Superclass method list.
             Method meth = getMethodNoSuper_nolock(curClass, sel);
             if (meth) {
@@ -562,13 +566,13 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
         runtimeLock.unlock();
         _class_resolveMethod(cls, sel, inst);
         runtimeLock.lock();
-        // Don't cache the result; we don't hold the lock so it may have 
+        // Don't cache the result; we don't hold the lock so it may have
         // changed already. Re-do the search from scratch instead.
         triedResolver = YES;
         goto retry;
     }
 
-    // No implementation found, and method resolver didn't help. 
+    // No implementation found, and method resolver didn't help.
     // Use forwarding.
 
     imp = (IMP)_objc_msgForward_impcache;
@@ -605,7 +609,7 @@ void _class_initialize(Class cls)
     	 // 递归初始化父类
         _class_initialize(supercls);
     }
-    
+
     // Try to atomically set CLS_INITIALIZING.
     // 原子化地设置 CLS_INITIALIZING。
     {
@@ -615,11 +619,11 @@ void _class_initialize(Class cls)
             reallyInitialize = YES;
         }
     }
-    
+
     if (reallyInitialize) {
         // We successfully set the CLS_INITIALIZING bit. Initialize the class.
         // 成功设置 CLS_INITIALIZING 位。初始化类。
-        
+
         // Record that we're initializing this class so we can message it.
         // 记录我们正在初始化该类，以便可以发送这个消息。
         _setThisThreadIsInitializingClass(cls);
@@ -629,10 +633,10 @@ void _class_initialize(Class cls)
             performForkChildInitialize(cls, supercls);
             return;
         }
-        
+
         // Send the +initialize message.
         // 发送 +initialize 消息。
-        // Note that +initialize is sent to the superclass (again) if 
+        // Note that +initialize is sent to the superclass (again) if
         // this class doesn't implement +initialize. 2157218
         // 如果该类未实现 +initialize，需要注意 +initialize（再次）被发送到了父类
         // Xcode 中 OBJC_PRINT_INITIALIZE_METHODS 环境变量值为 YES 时，将可在控制台打印该信息
@@ -642,7 +646,7 @@ void _class_initialize(Class cls)
                          pthread_self(), cls-&gt;nameForLogging());
         }
 
-        // Exceptions: A +initialize call that throws an exception 
+        // Exceptions: A +initialize call that throws an exception
         // is deemed to be a complete and successful +initialize.
         //
         // Only __OBJC2__ adds these handlers. !__OBJC2__ has a
@@ -677,13 +681,13 @@ void _class_initialize(Class cls)
         }
         return;
     }
-    
+
     else if (cls-&gt;isInitializing()) {
         // We couldn't set INITIALIZING because INITIALIZING was already set.
         // If this thread set it earlier, continue normally.
         // If some other thread set it, block until initialize is done.
-        // It's ok if INITIALIZING changes to INITIALIZED while we're here, 
-        //   because we safely check for INITIALIZED inside the lock 
+        // It's ok if INITIALIZING changes to INITIALIZED while we're here,
+        //   because we safely check for INITIALIZED inside the lock
         //   before blocking.
         if (_thisThreadIsInitializingClass(cls)) {
             return;
@@ -697,20 +701,20 @@ void _class_initialize(Class cls)
             performForkChildInitialize(cls, supercls);
         }
     }
-    
+
     else if (cls-&gt;isInitialized()) {
-        // Set CLS_INITIALIZING failed because someone else already 
+        // Set CLS_INITIALIZING failed because someone else already
         //   initialized the class. Continue normally.
         // NOTE this check must come AFTER the ISINITIALIZING case.
-        // Otherwise: Another thread is initializing this class. ISINITIALIZED 
-        //   is false. Skip this clause. Then the other thread finishes 
-        //   initialization and sets INITIALIZING=no and INITIALIZED=yes. 
+        // Otherwise: Another thread is initializing this class. ISINITIALIZED
+        //   is false. Skip this clause. Then the other thread finishes
+        //   initialization and sets INITIALIZING=no and INITIALIZED=yes.
         //   Skip the ISINITIALIZING clause. Die horribly.
         return;
     }
-    
+
     else {
-        // We shouldn't be here. 
+        // We shouldn't be here.
         _objc_fatal(&quot;thread-safe class init in objc runtime is buggy!&quot;);
     }
 }

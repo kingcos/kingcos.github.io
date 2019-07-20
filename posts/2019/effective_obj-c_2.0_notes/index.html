@@ -844,6 +844,41 @@ print(foo is FooSecond)
 
 <h3 id="理解-objc-msgsend-的作用">理解 objc_msgSend 的作用</h3>
 
+<ul>
+<li>内联（Inline）函数：建议（「建议」即具体是否进行内联需要看编译器本身）编译器对函数进行内联扩展，即建议编译器将指定的函数体直接插入到每一处调用该函数的地方。</li>
+<li>C 语言使用静态绑定（Static Binding）来进行函数调用，在编译时刻就能决定运行时所应调用的函数，即在不考虑内联下，会直接生成调用函数的指令，函数地址则被硬编码在指令中。</li>
+<li>C 语言中使用函数指针进行调用则属于动态绑定（Dynamic Binding），所要调用的函数在运行时才能确定。</li>
+</ul>
+
+<pre><code class="language-c">// objc_msgSend 的原型：
+// id self：接收者本身
+// SEL cmd：方法选择器本身
+// ...：cmd 方法的参数（可变参数函数）
+void objc_msgSend(id self, SEL cmd, ...)
+</code></pre>
+
+<ul>
+<li>Obj-C 中的方法使用动态绑定调用。</li>
+<li>Obj-C 对象方法查找顺序：本类的类对象方法列表中查找同名方法（分类 Category 中的方法会合并到类的方法列表中，根据后编译更靠前，会被先找到） -&gt; 若没有找到，则根据 <code>superclass</code> 指针向父类的类对象方法列表中查找，直到查找基类 <code>NSObject</code> 的类对象中也没有则进行消息转发（Message Forwarding）。</li>
+<li><code>objc_msgSend</code> 会将方法的匹配的结果缓存在类对象的 <code>cache_t cache;</code> 中，优化之后查找相同方法的速度，但仍慢于静态绑定，不过也不至于是瓶颈；如果对查找速度极致追求则可使用纯 C 函数。</li>
+
+<li><p>边界情况：</p>
+
+<ul>
+<li><code>objc_msgSend_stret</code>：如果待发送的消息要返回结构体，那么可交由此函数处理。只有当 CPU 的寄存器能够容纳得下消息返回类型时，这个函数才能处理此消息。若是返回值无法容纳于 CPU 寄存器中（比如返回的结构体太大了），那么就交由另一个函数执行派发。此时，那个函数会通过分配在栈上的某个变量来处理消息所返回的结构体。</li>
+<li><code>objc_msgSend_fpret</code>：如果消息返回的是浮点数，那么可交由此函数处理。在某些结构的 CPU 中调用函数时，需要对「浮点数寄存器（Floating-Point Register）」做特殊处理，也就是说，通常所用的 <code>objc_msgSend</code> 在这种情况下并不合适。这个函数是为了处理 x86 等架构 CPU 中某些令人稍觉惊讶的奇怪状况。</li>
+<li><code>objc_msgSendSuper</code>：如果要给父类发送消息，例如 <code>[super message:parameter]</code>，那么就交由此函数处理。也有另外两个与 <code>objc_msgSend_stret</code> 和 <code>objc_msgSend_fpret</code> 等效的函数，用于处理发给 <code>super</code> 的相应的消息。</li>
+</ul></li>
+
+<li><p>Obj-C 对象的每个方法都可以视为简单的 C 函数，其原型为：<code>&lt;return_type&gt; Class_selector(id self, SEL _cmd, ...)</code>。</p></li>
+
+<li><p>Obj-C 每个类中都有以上原型函数表，<code>objc_msgSend</code> 等函数通过该表寻找应该执行的方法并跳至其实现（原型与 <code>objc_msgSend</code> 函数类似是为了利用尾调用优化 Tail-Call Optimization 技术，简化跳至实现的操作）。</p></li>
+
+<li><p>如果某个函数的最后一项操作是调用另外一个函数，那么就可以运用「尾调用优化」技术。编译器会生成调转至另一函数所需的指令码，而且不会向调用堆栈中推入新的「栈帧 Frame Stack」。只有当某函数的最后一个操作仅仅是调用其他函数而不会将其返回值另作他用时，才能执行「尾调用优化」。如果不这样的话，每次调用 Obj-C 方法之前都需要需要为 <code>objc_msgSend</code> 准备栈帧（可以在栈追踪 Stack Trace）中看到这种栈帧）。此外，若是不优化，还会过早地发生「栈溢出（Stack Overflow）」现象。</p></li>
+</ul>
+
+<h3 id="理解消息转发机制">理解消息转发机制</h3>
+
 <h2 id="reference">Reference</h2>
 
 <ul>
