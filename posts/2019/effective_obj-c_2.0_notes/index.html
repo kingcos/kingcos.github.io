@@ -845,6 +845,7 @@ print(foo is FooSecond)
 <h3 id="理解-objc-msgsend-的作用">理解 objc_msgSend 的作用</h3>
 
 <ul>
+<li>略；关于 objc_msgSend，可详见 <a href="/posts/2019/objc_msgsend">objc_msgSend</a> 一文。</li>
 <li>内联（Inline）函数：建议（「建议」即具体是否进行内联需要看编译器本身）编译器对函数进行内联扩展，即建议编译器将指定的函数体直接插入到每一处调用该函数的地方。</li>
 <li>C 语言使用静态绑定（Static Binding）来进行函数调用，在编译时刻就能决定运行时所应调用的函数，即在不考虑内联下，会直接生成调用函数的指令，函数地址则被硬编码在指令中。</li>
 <li>C 语言中使用函数指针进行调用则属于动态绑定（Dynamic Binding），所要调用的函数在运行时才能确定。</li>
@@ -866,7 +867,7 @@ void objc_msgSend(id self, SEL cmd, ...)
 
 <ul>
 <li><code>objc_msgSend_stret</code>：如果待发送的消息要返回结构体，那么可交由此函数处理。只有当 CPU 的寄存器能够容纳得下消息返回类型时，这个函数才能处理此消息。若是返回值无法容纳于 CPU 寄存器中（比如返回的结构体太大了），那么就交由另一个函数执行派发。此时，那个函数会通过分配在栈上的某个变量来处理消息所返回的结构体。</li>
-<li><code>objc_msgSend_fpret</code>：如果消息返回的是浮点数，那么可交由此函数处理。在某些结构的 CPU 中调用函数时，需要对「浮点数寄存器（Floating-Point Register）」做特殊处理，也就是说，通常所用的 <code>objc_msgSend</code> 在这种情况下并不合适。这个函数是为了处理 x86 等架构 CPU 中某些令人稍觉惊讶的奇怪状况。</li>
+<li><code>objc_msgSend_fpret</code>：如果消息返回的是浮点数，那么可交由此函数处理。在某些结构的 CPU 中调用函数时，需要对「浮点数寄存器（Floating-Point Register）」做特殊处理，也就是说，通常所用的 <code>objc_msgSend</code> 在这种情况下并不合适。这个函数是为了处理 x86 等架构 CPU 中某些令人稍觉惊讶的奇怪状况。（不会使用在 ARM 64 架构中）</li>
 <li><code>objc_msgSendSuper</code>：如果要给父类发送消息，例如 <code>[super message:parameter]</code>，那么就交由此函数处理。也有另外两个与 <code>objc_msgSend_stret</code> 和 <code>objc_msgSend_fpret</code> 等效的函数，用于处理发给 <code>super</code> 的相应的消息。</li>
 </ul></li>
 
