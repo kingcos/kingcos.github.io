@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>objc_msgSend :: iBlog</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="Date Notes Source Code     2019-07-20 首次提交 objc4-750.1    Preface 了解 iOS 开发的同学都知道，Obj-C 中方法调用的本质其实是消息发送，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而发送消息就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend。
+What objc_msgSend 将对象和方法选择器作为参数传入（方法本身的参数在最后传入），查找并跳转到方法的函数指针。
+// message.h /** * Sends a message with a simple return value to an instance of a class. * 发送一个带有简易返回值的消息到一个类的实例。 * * @param self A pointer to the instance of the class that is to receive the message."/>
+<meta name="keywords" content=""/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2019/objc_msgsend/" />
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+  <link rel="stylesheet" href="/assets/green.css">
+
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+
+<link rel="shortcut icon" href="/img/favicon/favicon.ico">
+
+
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="objc_msgSend :: iBlog — " />
+<meta name="twitter:description" content="Date Notes Source Code     2019-07-20 首次提交 objc4-750.1    Preface 了解 iOS 开发的同学都知道，Obj-C 中方法调用的本质其实是消息发送，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而发送消息就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend。
+What objc_msgSend 将对象和方法选择器作为参数传入（方法本身的参数在最后传入），查找并跳转到方法的函数指针。
+// message.h /** * Sends a message with a simple return value to an instance of a class. * 发送一个带有简易返回值的消息到一个类的实例。 * * @param self A pointer to the instance of the class that is to receive the message." />
+<meta name="twitter:site" content="/" />
+<meta name="twitter:creator" content="" />
+<meta name="twitter:image" content="">
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="objc_msgSend :: iBlog — ">
+<meta property="og:description" content="Date Notes Source Code     2019-07-20 首次提交 objc4-750.1    Preface 了解 iOS 开发的同学都知道，Obj-C 中方法调用的本质其实是消息发送，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而发送消息就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend。
+What objc_msgSend 将对象和方法选择器作为参数传入（方法本身的参数在最后传入），查找并跳转到方法的函数指针。
+// message.h /** * Sends a message with a simple return value to an instance of a class. * 发送一个带有简易返回值的消息到一个类的实例。 * * @param self A pointer to the instance of the class that is to receive the message." />
+<meta property="og:url" content="/posts/2019/objc_msgsend/" />
+<meta property="og:site_name" content="objc_msgSend" />
+<meta property="og:image" content="">
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+<meta property="article:published_time" content="2019-07-20 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="">
+
+
+<div class="container center">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    iBlog
+  </div>
+</a>
+
+    </div>
+    <div class="menu-trigger">menu</div>
+  </div>
+  
+  
+    
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  
+
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About &amp; AMA</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About &amp; AMA</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="/posts/2019/objc_msgsend/">objc_msgSend</a></h1>
+  <div class="post-meta">
+    <span class="post-date">
+      2019-07-20
+    </span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="/tags/focus/">Focus</a>&nbsp;
+    
+    #<a href="/tags/ios/">iOS</a>&nbsp;
+    
+    #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
+    
+  </span>
+  
+
+  
+
+  <div class="post-content">
+    
+
+<table>
+<thead>
+<tr>
+<th align="center">Date</th>
+<th align="center">Notes</th>
+<th align="center">Source Code</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center">2019-07-20</td>
+<td align="center">首次提交</td>
+<td align="center"><a href="https://opensource.apple.com/tarballs/objc4/">objc4-750.1</a></td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="preface">Preface</h2>
+
+<p>了解 iOS 开发的同学都知道，Obj-C 中方法调用的本质其实是消息发送，即 <code>[foo bar]</code> 是向 <code>foo</code> 对象发送一条 <code>bar</code> 的消息，而发送消息就是通过 <code>objc_msgSend</code> 所进行的。那么这次本文就简单窥探一下 <code>objc_msgSend</code>。</p>
+
+<h2 id="what">What</h2>
+
+<p><code>objc_msgSend</code> 将对象和方法选择器作为参数传入（方法本身的参数在最后传入），查找并跳转到方法的函数指针。</p>
+
+<pre><code class="language-c">// message.h
+/**
+ * Sends a message with a simple return value to an instance of a class.
+ * 发送一个带有简易返回值的消息到一个类的实例。
+ *
+ * @param self A pointer to the instance of the class that is to receive the message.
+ *             指向要接收消息的实例的指针。
+ * @param op The selector of the method that handles the message.
+ *           处理消息的选择器。
+ * @param ...
+ *   A variable argument list containing the arguments to the method.
+ *   包含方法参数的可变参数列表。
+ *
+ * @return The return value of the method.
+ *         方法的返回值。
+ *
+ * @note When it encounters a method call, the compiler generates a call to one of the
+ *  functions \c objc_msgSend, \c objc_msgSend_stret, \c objc_msgSendSuper, or \c objc_msgSendSuper_stret.
+ *  Messages sent to an object’s superclass (using the \c super keyword) are sent using \c objc_msgSendSuper;
+ *  other messages are sent using \c objc_msgSend. Methods that have data structures as return values
+ *  are sent using \c objc_msgSendSuper_stret and \c objc_msgSend_stret.
+ * 当遇到方法调用时，编译器会生成对 objc_msgSend、objc_msgSend_stret、objc_msgSendSuper、objc_msgSendSuper_stret 其中之一的调用。
+ * 消息发送到对象的父类（使用 super 关键字）通过 objc_msgSendSuper 发送；其它消息则通过 objc_msgSend 发送。
+ * 返回值为数据结构体的消息通过 objc_msgSendSuper_stret 或 objc_msgSend_stret 发送。
+ *
+ */
+OBJC_EXPORT id _Nullable
+objc_msgSend(id _Nullable self, SEL _Nonnull op, ...)
+    OBJC_AVAILABLE(10.0, 2.0, 9.0, 1.0, 2.0);
+</code></pre>
+
+<p><code>objc_msgSend</code> 是 Obj-C 的核心，关系着每一个方法消息的发送，官方将其针对不同架构的代码开源在 objc4-750.1 中（如下图）。</p>
+
+<p><img src="/img/2019/objc_msgsend/1.png" alt="1" /></p>
+
+<p>我们可以看到这里的 <code>objc_msgSend</code> 是由汇编语言编写的，原因有两点，一是在 C 语言中编写一个保存未知参数且支持跳转到任一函数指针处的函数是不可能的；二是其需要对性能的极致追求，因此使用汇编编写每一条指令便于优化其速度。</p>
+
+<h2 id="how">How</h2>
+
+<p>在分析 <code>objc_msgSend</code> 前，我们首先要知道 Obj-C 的消息发送本质属于动态绑定，而非 C 语言常用的静态绑定。动态绑定意味着只有在运行时才能确定真正被调用的函数，而静态绑定在编译时即可确定（不考虑内联函数的前提下），编译器会直接生成调用函数的指令，函数地址就被硬编码在指令当中。</p>
+
+<p>因此对于动态绑定的语言来说，其速度一定是慢于静态绑定的。而 Obj-C 会将方法查找的结果缓存在一个快速映射表中（Fast Map），当后续发送同样的消息时即可得到更快得执行。根据这个快慢，消息发送的代码被分为两个部分：其一是快速路径（Fast Path），这一部分由汇编语言实现；其二是慢速路径（Slow Path），由 C 语言实现。当方法没有缓存时，调用 C 语言代码来处理。</p>
+
+<blockquote>
+<p>Talk is cheap, show me the code!</p>
+</blockquote>
+
+<pre><code class="language-asm">/********************************************************************
+ *
+ * id objc_msgSend(id self, SEL _cmd, ...);
+ * IMP objc_msgLookup(id self, SEL _cmd, ...);
+ *
+ * objc_msgLookup ABI:
+ * IMP returned in x17                   x17 为返回的 IMP
+ * x16 reserved for our use but not used x16 保留为我们使用但未使用
+ *
+ ********************************************************************/
+
+#if SUPPORT_TAGGED_POINTERS
+	.data
+	.align 3
+	.globl _objc_debug_taggedpointer_classes
+_objc_debug_taggedpointer_classes:
+	.fill 16, 8, 0
+	.globl _objc_debug_taggedpointer_ext_classes
+_objc_debug_taggedpointer_ext_classes:
+	.fill 256
+
+    // objc_msgSend 入口
+    // ENTRY、UNWIND、END_ENTRY 是三个宏
+	ENTRY _objc_msgSend
+	UNWIND _objc_msgSend, NoFrame
+
+    // cmp：比较两个操作数的大小；#0：立即数 0
+    // 即比较 p0 寄存器内的值与 0 的大小（空值检查）
+	cmp	p0, #0			// nil check and tagged pointer check 空值检查和标记指针检查
+#if SUPPORT_TAGGED_POINTERS // 若支持标记指针
+    // b.le（Branch if Less than or Equal）：如果小于或等于，进入分支
+    // 跳转 LNilOrTagged；ARM 64 通过设置最高位 1 为标记指针，因此为负
+	b.le	LNilOrTagged		//  (MSB tagged pointer looks negative 标记指针最高位（Most Significant Bit）为负)
+#else // 若不支持标记指针
+    // b.eq（Branch if Equal）：如果等于，进入分支
+    // 跳转 LReturnZero
+	b.eq	LReturnZero
+#endif
+    // ldr &lt;目的寄存器&gt;, &lt;存储器地址&gt;：将字数据传送到目的寄存器中
+    // 将 x0（第一个参数 self，即 isa）存储到 p13 寄存器
+	ldr	p13, [x0]		// p13 = isa
+    // 从 isa 中获得类到 p16 ➡️
+	GetClassFromIsa_p16 p13		// p16 = class
+LGetIsaDone:
+    // 缓存查找 ➡️
+	CacheLookup NORMAL		// calls imp or objc_msgSend_uncached 调用 imp 或 objc_msgSend_uncached
+
+#if SUPPORT_TAGGED_POINTERS
+LNilOrTagged:
+	b.eq	LReturnZero		// nil check
+
+	// tagged
+	adrp	x10, _objc_debug_taggedpointer_classes@PAGE
+	add	x10, x10, _objc_debug_taggedpointer_classes@PAGEOFF
+	ubfx	x11, x0, #60, #4
+	ldr	x16, [x10, x11, LSL #3]
+	adrp	x10, _OBJC_CLASS_$___NSUnrecognizedTaggedPointer@PAGE
+	add	x10, x10, _OBJC_CLASS_$___NSUnrecognizedTaggedPointer@PAGEOFF
+	cmp	x10, x16
+	b.ne	LGetIsaDone
+
+	// ext tagged
+	adrp	x10, _objc_debug_taggedpointer_ext_classes@PAGE
+	add	x10, x10, _objc_debug_taggedpointer_ext_classes@PAGEOFF
+	ubfx	x11, x0, #52, #8
+	ldr	x16, [x10, x11, LSL #3]
+	b	LGetIsaDone
+// SUPPORT_TAGGED_POINTERS
+#endif
+
+LReturnZero:
+	// x0 is already zero
+	mov	x1, #0
+	movi	d0, #0
+	movi	d1, #0
+	movi	d2, #0
+	movi	d3, #0
+	ret
+
+	END_ENTRY _objc_msgSend
+    // objc_msgSend 出口
+
+/********************************************************************
+ * GetClassFromIsa_p16 src
+ * src is a raw isa field. Sets p16 to the corresponding class pointer.
+ * The raw isa might be an indexed isa to be decoded, or a
+ * packed isa that needs to be masked.
+ * src 是原始 isa。将类指针设置到 p16。
+ * 原始 isa 可能是要解码的索引 isa，或者可能是要 ISA_MASK 按位与的 isa。
+ *
+ * On exit: 退出：
+ *   $0 is unchanged        $0 未改变
+ *   p16 is a class pointer p16 是类指针
+ *   x10 is clobbered       x10
+ ********************************************************************/
+
+#if SUPPORT_INDEXED_ISA
+	.align 3
+	.globl _objc_indexed_classes
+_objc_indexed_classes:
+	.fill ISA_INDEX_COUNT, PTRSIZE, 0
+#endif
+
+.macro GetClassFromIsa_p16 /* src */
+
+#if SUPPORT_INDEXED_ISA
+	// Indexed isa
+	mov	p16, $0			// optimistically set dst = src
+	tbz	p16, #ISA_INDEX_IS_NPI_BIT, 1f	// done if not non-pointer isa
+	// isa in p16 is indexed
+	adrp	x10, _objc_indexed_classes@PAGE
+	add	x10, x10, _objc_indexed_classes@PAGEOFF
+	ubfx	p16, p16, #ISA_INDEX_SHIFT, #ISA_INDEX_BITS  // extract index
+	ldr	p16, [x10, p16, UXTP #PTRSHIFT]	// load class from array
+1:
+
+// ➡️
+#elif __LP64__ // 如果 64 位
+    // and &lt;结果&gt;, &lt;表达式 1&gt;, &lt;表达式 2&gt;：两个表达式按位与，并保存至结果
+    // 将 isa 地址与 #ISA_MASK 按位与，结果保存到 p16 寄存器
+	// 64-bit packed isa
+	and	p16, $0, #ISA_MASK
+
+#else
+	// 32-bit raw isa
+	mov	p16, $0
+
+#endif
+
+.endmacro
+
+/********************************************************************
+ *
+ * CacheLookup NORMAL|GETIMP|LOOKUP
+ *
+ * Locate the implementation for a selector in a class method cache.
+ * 类的方法缓存中定位选择器的实现。
+ *
+ * Takes: 采用：
+ *	 x1 = selector              x1：选择器
+ *	 x16 = class to be searched x16：搜索的类
+ *
+ * Kills: 杀掉：
+ * 	 x9,x10,x11,x12, x17
+ *
+ * On exit: (found) calls or returns IMP
+ *                  with x16 = class, x17 = IMP
+ *          (not found) jumps to LCacheMiss
+ * 退出：（如果查找到）调用或返回 IMP，x16 类，x17 IMP
+ *      （未找到）跳转到 LCacheMiss
+ *
+ ********************************************************************/
+
+#define NORMAL 0
+#define GETIMP 1
+#define LOOKUP 2
+
+// ➡️
+// x17 为缓存的 IMP，x12 为缓存的 IMP 的地址
+// CacheHit: x17 = cached IMP, x12 = address of cached IMP
+.macro CacheHit
+.if $0 == NORMAL
+    // 尾调用缓存的 IMP
+	TailCallCachedImp x17, x12	// authenticate and call imp 授权并调用
+.elseif $0 == GETIMP
+	mov	p0, p17
+	AuthAndResignAsIMP x0, x12	// authenticate imp and re-sign as IMP
+	ret				// return IMP
+.elseif $0 == LOOKUP
+	AuthAndResignAsIMP x17, x12	// authenticate imp and re-sign as IMP
+	ret				// return imp via x17
+.else
+.abort oops
+.endif
+.endmacro
+
+// ➡️
+.macro CheckMiss
+	// miss if bucket-&gt;sel == 0
+.if $0 == GETIMP
+	cbz	p9, LGetImpMiss
+.elseif $0 == NORMAL
+    // cbz（Compare and Branch on Zero）：比较，为零则跳转
+    //
+	cbz	p9, __objc_msgSend_uncached
+.elseif $0 == LOOKUP
+	cbz	p9, __objc_msgLookup_uncached
+.else
+.abort oops
+.endif
+.endmacro
+
+.macro JumpMiss
+.if $0 == GETIMP
+	b	LGetImpMiss
+.elseif $0 == NORMAL
+	b	__objc_msgSend_uncached
+.elseif $0 == LOOKUP
+	b	__objc_msgLookup_uncached
+.else
+.abort oops
+.endif
+.endmacro
+
+.macro CacheLookup
+    // p1 为 SEL _cmd，p16 为 isa
+	// p1 = SEL, p16 = isa
+    // ldp（Load Pair of Registers）：加载成对的寄存器
+    // 将类的缓存信息存储在 p10 和 p11 寄存器
+    // [x16, #CACHE] 从 x16 偏移 #CACHE（略过 isa 中的 isa 和 superclass）
+    // #define CACHE            (2 * __SIZEOF_POINTER__)
+	ldp	p10, p11, [x16, #CACHE]	// p10 = buckets, p11 = occupied|mask
+    // 可以看下方的缓存结构，p10 存储 _buckets，p11 高 32 位存储 _occupied，低 32 位存储 _mask
+#if !__LP64__ // 非 64 位，暂不考虑
+	and	w11, w11, 0xffff	// p11 = mask
+#endif
+    // w1（x1 _cmd 的低 32 位信息）与 w11（p11 的低 32 位 _mask）按位与，得到 _cmd 索引保存在 w12（类似 _cmd % table_size 但避免了过度开销）
+    // ARM 64 架构包含 31 个 64 位整型寄存器 x0 - x30，可以通过 w0 - w30 访问 x0 - x30 下半部分，即低 32 位信息
+	and	w12, w1, w11		// x12 = _cmd &amp; mask
+    // add：加法指令；LSL：逻辑左移
+    // p12（_cmd）左移与 p10（_buckets）相加得到第一个要查找的 bucket 地址保存在 p12 中
+	add	p12, p10, p12, LSL #(1+PTRSHIFT)
+		             // p12 = buckets + ((_cmd &amp; mask) &lt;&lt; (1+PTRSHIFT))
+
+    // 将 x12 寄存器中的 _bucket 加载到 p17（IMP）和 p9（SEL）中（可参照下方 bucket_t 结构）
+	ldp	p17, p9, [x12]		// {imp, sel} = *bucket
+    // 比较 p9（SEL）与 p1（_cmd）是否相等
+1:	cmp	p9, p1			// if (bucket-&gt;sel != _cmd)
+    // 如果不相等，向后跳转到 2 处
+	b.ne	2f			//     scan more
+    // 缓存命中，调用或返回 imp，将参数透穿 ➡️
+	CacheHit $0			// call or return imp
+
+    // 未命中：p12 为未命中 bucket
+2:	// not hit: p12 = not-hit bucket
+    // ➡️
+	CheckMiss $0			// miss if bucket-&gt;sel == 0
+	cmp	p12, p10		// wrap if bucket == buckets
+	b.eq	3f
+	ldp	p17, p9, [x12, #-BUCKET_SIZE]!	// {imp, sel} = *--bucket
+	b	1b			// loop
+
+3:	// wrap: p12 = first bucket, w11 = mask
+	add	p12, p12, w11, UXTW #(1+PTRSHIFT)
+		                        // p12 = buckets + (mask &lt;&lt; 1+PTRSHIFT)
+
+	// Clone scanning loop to miss instead of hang when cache is corrupt.
+	// The slow path may detect any corruption and halt later.
+
+	ldp	p17, p9, [x12]		// {imp, sel} = *bucket
+1:	cmp	p9, p1			// if (bucket-&gt;sel != _cmd)
+	b.ne	2f			//     scan more
+	CacheHit $0			// call or return imp
+
+2:	// not hit: p12 = not-hit bucket
+	CheckMiss $0			// miss if bucket-&gt;sel == 0
+	cmp	p12, p10		// wrap if bucket == buckets
+	b.eq	3f
+	ldp	p17, p9, [x12, #-BUCKET_SIZE]!	// {imp, sel} = *--bucket
+	b	1b			// loop
+
+3:	// double wrap
+	JumpMiss $0
+
+.endmacro
+
+
+</code></pre>
+
+<pre><code class="language-cpp">// objc-runtime-new.h
+#if __LP64__
+typedef uint32_t mask_t;  // x86_64 &amp; arm64 asm are less efficient with 16-bits
+#else
+typedef uint16_t mask_t;
+#endif
+
+struct cache_t {
+    struct bucket_t *_buckets;
+    mask_t _mask;
+    mask_t _occupied;
+
+public:
+    struct bucket_t *buckets();
+    mask_t mask();
+    mask_t occupied();
+    void incrementOccupied();
+    void setBucketsAndMask(struct bucket_t *newBuckets, mask_t newMask);
+    void initializeToEmpty();
+
+    mask_t capacity();
+    bool isConstantEmptyCache();
+    bool canBeFreed();
+
+    static size_t bytesForCapacity(uint32_t cap);
+    static struct bucket_t * endMarker(struct bucket_t *b, uint32_t cap);
+
+    void expand();
+    void reallocate(mask_t oldCapacity, mask_t newCapacity);
+    struct bucket_t * find(cache_key_t key, id receiver);
+
+    static void bad_cache(id receiver, SEL sel, Class isa) __attribute__((noreturn));
+};
+
+struct bucket_t {
+private:
+    // IMP-first is better for arm64e ptrauth and no worse for arm64.
+    // SEL-first is better for armv7* and i386 and x86_64.
+#if __arm64__
+    MethodCacheIMP _imp;
+    cache_key_t _key;
+#else
+    cache_key_t _key;
+    MethodCacheIMP _imp;
+#endif
+
+public:
+    inline cache_key_t key() const { return _key; }
+    inline IMP imp() const { return (IMP)_imp; }
+    inline void setKey(cache_key_t newKey) { _key = newKey; }
+    inline void setImp(IMP newImp) { _imp = newImp; }
+
+    void set(cache_key_t newKey, IMP newImp);
+};
+</code></pre>
+
+<p><img src="/img/2019/objc_msgsend/2.png" alt="2" /></p>
+
+<h2 id="reference">Reference</h2>
+
+<ul>
+<li><a href="https://www.mikeash.com/pyblog/friday-qa-2017-06-30-dissecting-objc_msgsend-on-arm64.html">Dissecting objc_msgSend on ARM64 - Mike Ash</a></li>
+<li><a href="http://infocenter.arm.com/help/index.jsp">ARM Software development tools - arm.com</a></li>
+<li><a href="https://stackoverflow.com/questions/27353096/1b-and-1f-in-gnu-assembly">1b and 1f in GNU assembly - StackOverflow</a></li>
+</ul>
+
+  </div>
+  
+  <div class="pagination">
+    <div class="pagination__title">
+      <span
+        class="pagination__title-h">Read other posts</span>
+      <hr />
+    </div>
+    <div class="pagination__buttons">
+      
+      
+      <span class="button next">
+        <a href="/posts/2019/0230-flatten-optional-try_zh/">
+          <span class="button__text">[译]摊平由「try?」造成的嵌套可选</span>
+          <span class="button__icon">→</span>
+        </a>
+      </span>
+      
+    </div>
+  </div>
+  
+
+  
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo="kingcos/kingcos.github.io"
+            issue-term="pathname"
+            label="comments"
+            theme="github-dark"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2019 · <a href="http://github.com/kingcos">kingcos</a></span>
+      </div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>
