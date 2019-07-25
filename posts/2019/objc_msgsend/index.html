@@ -276,25 +276,26 @@ _objc_debug_taggedpointer_ext_classes:
 	UNWIND _objc_msgSend, NoFrame
 
     // cmp：比较两个操作数的大小；#0：立即数 0
-    // 即比较 p0 寄存器内的值与 0 的大小（空值检查）
+    // 比较 p0 寄存器内的值（isa）与 0 的大小（空值检查）
 	cmp	p0, #0			// nil check and tagged pointer check 空值检查和标记指针检查
 #if SUPPORT_TAGGED_POINTERS // 若支持标记指针
+    // ARM 64 中标记指针的最高位（Most Significant Bit）为 1，即值为负
     // b.le（Branch if Less than or Equal）：如果小于或等于，进入分支
-    // 跳转 LNilOrTagged；ARM 64 通过设置最高位 1 为标记指针，因此为负
+    // p0 是否小于等于 0，是则跳转 LNilOrTagged
 	b.le	LNilOrTagged		//  (MSB tagged pointer looks negative 标记指针最高位（Most Significant Bit）为负)
 #else // 若不支持标记指针
     // b.eq（Branch if Equal）：如果等于，进入分支
-    // 跳转 LReturnZero
+    // p0 是否等于 0，是则跳转 LReturnZero
 	b.eq	LReturnZero
 #endif
     // ldr &lt;目的寄存器&gt;, &lt;存储器地址&gt;：将字数据传送到目的寄存器中
-    // 将 x0（第一个参数 self，即 isa）存储到 p13 寄存器
+    // 将 x0（isa）存储到 p13 寄存器
 	ldr	p13, [x0]		// p13 = isa
-    // 从 isa 中获得类到 p16 ➡️
+    // 从 isa 中获得 class 到 p16 寄存器 ➡️
 	GetClassFromIsa_p16 p13		// p16 = class
 LGetIsaDone:
     // 缓存查找 ➡️
-	CacheLookup NORMAL		// calls imp or objc_msgSend_uncached 调用 imp 或 objc_msgSend_uncached
+	CacheLookup NORMAL		// calls imp or objc_msgSend_uncached 缓存查找，最终调用 IMP（命中）或 objc_msgSend_uncached（未命中）
 
 #if SUPPORT_TAGGED_POINTERS
 LNilOrTagged:
@@ -354,7 +355,7 @@ _objc_indexed_classes:
 
 .macro GetClassFromIsa_p16 /* src */
 
-#if SUPPORT_INDEXED_ISA
+#if SUPPORT_INDEXED_ISA // 如果支持索引的 isa
 	// Indexed isa
 	mov	p16, $0			// optimistically set dst = src
 	tbz	p16, #ISA_INDEX_IS_NPI_BIT, 1f	// done if not non-pointer isa
@@ -366,9 +367,9 @@ _objc_indexed_classes:
 1:
 
 // ➡️
-#elif __LP64__ // 如果 64 位
+#elif __LP64__ // 如果在 64 位下
     // and &lt;结果&gt;, &lt;表达式 1&gt;, &lt;表达式 2&gt;：两个表达式按位与，并保存至结果
-    // 将 isa 地址与 #ISA_MASK 按位与，结果保存到 p16 寄存器
+    // （64 位下）将 isa 地址与 #ISA_MASK 按位与（得到 isa 真实地址），结果保存到 p16 寄存器
 	// 64-bit packed isa
 	and	p16, $0, #ISA_MASK
 
@@ -432,7 +433,7 @@ _objc_indexed_classes:
 	cbz	p9, LGetImpMiss
 .elseif $0 == NORMAL
     // cbz（Compare and Branch on Zero）：比较，为零则跳转
-    //
+    // p9（SEL）是否为 0
 	cbz	p9, __objc_msgSend_uncached
 .elseif $0 == LOOKUP
 	cbz	p9, __objc_msgLookup_uncached
@@ -445,6 +446,7 @@ _objc_indexed_classes:
 .if $0 == GETIMP
 	b	LGetImpMiss
 .elseif $0 == NORMAL
+    // ➡️ 跳转 __objc_msgSend_uncached
 	b	__objc_msgSend_uncached
 .elseif $0 == LOOKUP
 	b	__objc_msgLookup_uncached
@@ -461,49 +463,57 @@ _objc_indexed_classes:
     // [x16, #CACHE] 从 x16 偏移 #CACHE（略过 isa 中的 isa 和 superclass）
     // #define CACHE            (2 * __SIZEOF_POINTER__)
 	ldp	p10, p11, [x16, #CACHE]	// p10 = buckets, p11 = occupied|mask
-    // 可以看下方的缓存结构，p10 存储 _buckets，p11 高 32 位存储 _occupied，低 32 位存储 _mask
+    // [x16, #CACHE] 从 x16 偏移 #CACHE（略过 isa 中的 isa 和 superclass）到 cache 的地址
 #if !__LP64__ // 非 64 位，暂不考虑
 	and	w11, w11, 0xffff	// p11 = mask
 #endif
-    // w1（x1 _cmd 的低 32 位信息）与 w11（p11 的低 32 位 _mask）按位与，得到 _cmd 索引保存在 w12（类似 _cmd % table_size 但避免了过度开销）
+    // w1（x1 _cmd 的低 32 位信息）与 w11（p11 的低 32 位 _mask）按位与，得到 _cmd 索引保存在 w12（结果等于 _cmd % table_size 但避免了取模的过度开销）
     // ARM 64 架构包含 31 个 64 位整型寄存器 x0 - x30，可以通过 w0 - w30 访问 x0 - x30 下半部分，即低 32 位信息
 	and	w12, w1, w11		// x12 = _cmd &amp; mask
     // add：加法指令；LSL：逻辑左移
-    // p12（_cmd）左移与 p10（_buckets）相加得到第一个要查找的 bucket 地址保存在 p12 中
+    // p12（_cmd）左移 1+PTRSHIFT 与 p10（_buckets）相加得到实际查找的 bucket 地址保存在 p12 中
 	add	p12, p10, p12, LSL #(1+PTRSHIFT)
 		             // p12 = buckets + ((_cmd &amp; mask) &lt;&lt; (1+PTRSHIFT))
 
-    // 将 x12 寄存器中的 _bucket 加载到 p17（IMP）和 p9（SEL）中（可参照下方 bucket_t 结构）
+    // 将 x12 寄存器中的 bucket 加载到 p17（IMP）和 p9（SEL）中
 	ldp	p17, p9, [x12]		// {imp, sel} = *bucket
     // 比较 p9（SEL）与 p1（_cmd）是否相等
 1:	cmp	p9, p1			// if (bucket-&gt;sel != _cmd)
-    // 如果不相等，向后跳转到 2 处
+    // 否（未命中），向后跳转到 2
 	b.ne	2f			//     scan more
-    // 缓存命中，调用或返回 imp，将参数透穿 ➡️
+    // 是（命中），调用或返回 imp，将参数透穿 ➡️
 	CacheHit $0			// call or return imp
 
     // 未命中：p12 为未命中 bucket
 2:	// not hit: p12 = not-hit bucket
     // ➡️
 	CheckMiss $0			// miss if bucket-&gt;sel == 0
+    // 比较 p12（bucket）与 p10（_buckets）
 	cmp	p12, p10		// wrap if bucket == buckets
 	b.eq	3f
+    // x12（bucket）偏移 -BUCKET_SIZE 的结果回写（!）并加载到 p17（IMP）和 p9（SEL）中
 	ldp	p17, p9, [x12, #-BUCKET_SIZE]!	// {imp, sel} = *--bucket
+    // 向前跳转至 1
 	b	1b			// loop
 
 3:	// wrap: p12 = first bucket, w11 = mask
+    // w11（_buckets 大小）左移 1+PTRSHIFT 与 p12（首个 bucket）相加得到 buckets 表尾保存在 p12 寄存器中
 	add	p12, p12, w11, UXTW #(1+PTRSHIFT)
 		                        // p12 = buckets + (mask &lt;&lt; 1+PTRSHIFT)
 
 	// Clone scanning loop to miss instead of hang when cache is corrupt.
 	// The slow path may detect any corruption and halt later.
+    // 当缓存出问题时，跳出循环查询，而非进入挂起；稍后慢路径（Slow Path）可能能够检测到问题并停止执行。
 
+    // 将 x12 寄存器中的新 bucket 加载到 p17（IMP）和 p9（SEL）中
 	ldp	p17, p9, [x12]		// {imp, sel} = *bucket
+    // 下面与之前类似
 1:	cmp	p9, p1			// if (bucket-&gt;sel != _cmd)
 	b.ne	2f			//     scan more
 	CacheHit $0			// call or return imp
 
 2:	// not hit: p12 = not-hit bucket
+    // 下面与之前类似
 	CheckMiss $0			// miss if bucket-&gt;sel == 0
 	cmp	p12, p10		// wrap if bucket == buckets
 	b.eq	3f
@@ -511,12 +521,13 @@ _objc_indexed_classes:
 	b	1b			// loop
 
 3:	// double wrap
+    // ➡️
 	JumpMiss $0
 
 .endmacro
-
-
 </code></pre>
+
+<p>在理解上面汇编代码的同时，需要了解 Obj-C 中对象内部的 <code>cache_t</code> 即缓存的内部结构：</p>
 
 <pre><code class="language-cpp">// objc-runtime-new.h
 #if __LP64__
@@ -573,6 +584,8 @@ public:
     void set(cache_key_t newKey, IMP newImp);
 };
 </code></pre>
+
+<p>由于代码的跳转很难直接在代码中标注，我将其核心流程抽象为下图，由于原图较大，可根据需要方法来看：</p>
 
 <p><img src="/img/2019/objc_msgsend/2.png" alt="2" /></p>
 
