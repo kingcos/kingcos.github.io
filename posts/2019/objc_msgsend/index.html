@@ -6,9 +6,10 @@
   
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Source Code     2019-07-20 首次提交 objc4-750.1    Preface 了解 iOS 开发的同学都知道，Obj-C 中方法调用的本质其实是消息发送，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而发送消息就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend。
-What objc_msgSend 将对象和方法选择器作为参数传入（方法本身的参数在最后传入），查找并跳转到方法的函数指针。
-// message.h /** * Sends a message with a simple return value to an instance of a class. * 发送一个带有简易返回值的消息到一个类的实例。 * * @param self A pointer to the instance of the class that is to receive the message."/>
+<meta name="description" content="Date Notes Source Code     2019-07-20 首次提交 objc4-750.1    Preface 了解 iOS 开发的同学都知道，Obj-C 中方法调用的本质其实是消息发送，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而发送消息就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
+Where 在开始之前，可能有人会问，为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？哪里可以证明呢？
+我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
+#import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar { } @end @interface ViewController () @end @implementation ViewController - (void)viewDidLoad { [super viewDidLoad]; } - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; // 断点打在下一行 ⬇️ [foo bar]; } @end  我们将断点打在 [foo bar]; 一行，选择真机运行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可跳转到如下图界面："/>
 <meta name="keywords" content=""/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2019/objc_msgsend/" />
@@ -31,9 +32,10 @@ What objc_msgSend 将对象和方法选择器作为参数传入（方法本身�
 
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="objc_msgSend :: iBlog — " />
-<meta name="twitter:description" content="Date Notes Source Code     2019-07-20 首次提交 objc4-750.1    Preface 了解 iOS 开发的同学都知道，Obj-C 中方法调用的本质其实是消息发送，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而发送消息就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend。
-What objc_msgSend 将对象和方法选择器作为参数传入（方法本身的参数在最后传入），查找并跳转到方法的函数指针。
-// message.h /** * Sends a message with a simple return value to an instance of a class. * 发送一个带有简易返回值的消息到一个类的实例。 * * @param self A pointer to the instance of the class that is to receive the message." />
+<meta name="twitter:description" content="Date Notes Source Code     2019-07-20 首次提交 objc4-750.1    Preface 了解 iOS 开发的同学都知道，Obj-C 中方法调用的本质其实是消息发送，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而发送消息就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
+Where 在开始之前，可能有人会问，为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？哪里可以证明呢？
+我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
+#import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar { } @end @interface ViewController () @end @implementation ViewController - (void)viewDidLoad { [super viewDidLoad]; } - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; // 断点打在下一行 ⬇️ [foo bar]; } @end  我们将断点打在 [foo bar]; 一行，选择真机运行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可跳转到如下图界面：" />
 <meta name="twitter:site" content="/" />
 <meta name="twitter:creator" content="" />
 <meta name="twitter:image" content="">
@@ -42,9 +44,10 @@ What objc_msgSend 将对象和方法选择器作为参数传入（方法本身�
 <meta property="og:locale" content="en" />
 <meta property="og:type" content="article" />
 <meta property="og:title" content="objc_msgSend :: iBlog — ">
-<meta property="og:description" content="Date Notes Source Code     2019-07-20 首次提交 objc4-750.1    Preface 了解 iOS 开发的同学都知道，Obj-C 中方法调用的本质其实是消息发送，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而发送消息就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend。
-What objc_msgSend 将对象和方法选择器作为参数传入（方法本身的参数在最后传入），查找并跳转到方法的函数指针。
-// message.h /** * Sends a message with a simple return value to an instance of a class. * 发送一个带有简易返回值的消息到一个类的实例。 * * @param self A pointer to the instance of the class that is to receive the message." />
+<meta property="og:description" content="Date Notes Source Code     2019-07-20 首次提交 objc4-750.1    Preface 了解 iOS 开发的同学都知道，Obj-C 中方法调用的本质其实是消息发送，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而发送消息就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
+Where 在开始之前，可能有人会问，为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？哪里可以证明呢？
+我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
+#import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar { } @end @interface ViewController () @end @implementation ViewController - (void)viewDidLoad { [super viewDidLoad]; } - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; // 断点打在下一行 ⬇️ [foo bar]; } @end  我们将断点打在 [foo bar]; 一行，选择真机运行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可跳转到如下图界面：" />
 <meta property="og:url" content="/posts/2019/objc_msgsend/" />
 <meta property="og:site_name" content="objc_msgSend" />
 <meta property="og:image" content="">
@@ -196,7 +199,52 @@ if (!doNotTrack) {
 
 <h2 id="preface">Preface</h2>
 
-<p>了解 iOS 开发的同学都知道，Obj-C 中方法调用的本质其实是消息发送，即 <code>[foo bar]</code> 是向 <code>foo</code> 对象发送一条 <code>bar</code> 的消息，而发送消息就是通过 <code>objc_msgSend</code> 所进行的。那么这次本文就简单窥探一下 <code>objc_msgSend</code>。</p>
+<p>了解 iOS 开发的同学都知道，Obj-C 中方法调用的本质其实是消息发送，即 <code>[foo bar]</code> 是向 <code>foo</code> 对象发送一条 <code>bar</code> 的消息，而发送消息就是通过 <code>objc_msgSend</code> 所进行的。那么这次本文就简单窥探一下 <code>objc_msgSend</code> 吧。</p>
+
+<h2 id="where">Where</h2>
+
+<p>在开始之前，可能有人会问，为什么 Obj-C 中方法调用的本质是 <code>objc_msgSend</code> 呢？哪里可以证明呢？</p>
+
+<p>我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：</p>
+
+<pre><code class="language-objectivec">#import &quot;ViewController.h&quot;
+
+@interface Foo : NSObject
+- (void)bar;
+@end
+
+@implementation Foo
+
+- (void)bar {
+
+}
+
+@end
+
+@interface ViewController ()
+@end
+
+@implementation ViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+}
+
+- (IBAction)clickOnButton:(UIButton *)sender {
+    Foo *foo = [[Foo alloc] init];
+
+    // 断点打在下一行 ⬇️
+    [foo bar];
+}
+
+@end
+</code></pre>
+
+<p>我们将断点打在 <code>[foo bar];</code> 一行，选择真机运行，启动程序并点击按钮。在 Xcode 的控制台多次输入 <code>si</code>（Step Into）即可跳转到如下图界面：</p>
+
+<p><img src="/img/2019/objc_msgsend/3.png" alt="3" /></p>
+
+<p>如图中红框所示，Obj-C 中调用方法最终将走到 <code>objc_msgSend</code>。图中的汇编代码也正是我们下文所即将分析的。</p>
 
 <h2 id="what">What</h2>
 
@@ -237,17 +285,21 @@ objc_msgSend(id _Nullable self, SEL _Nonnull op, ...)
 
 <p><img src="/img/2019/objc_msgsend/1.png" alt="1" /></p>
 
-<p>我们可以看到这里的 <code>objc_msgSend</code> 是由汇编语言编写的，原因有两点，一是在 C 语言中编写一个保存未知参数且支持跳转到任一函数指针处的函数是不可能的；二是其需要对性能的极致追求，因此使用汇编编写每一条指令便于优化其速度。</p>
+<p>我们可以看到这里的 <code>objc_msgSend</code> 是由汇编语言编写的，原因有两点，一是在 C 语言中编写一个保存未知参数且支持跳转到任一函数指针处的函数是无法实现的；二是其需要对性能的极致追求，因此使用汇编便于优化每一条指令的速度。</p>
 
 <h2 id="how">How</h2>
 
 <p>在分析 <code>objc_msgSend</code> 前，我们首先要知道 Obj-C 的消息发送本质属于动态绑定，而非 C 语言常用的静态绑定。动态绑定意味着只有在运行时才能确定真正被调用的函数，而静态绑定在编译时即可确定（不考虑内联函数的前提下），编译器会直接生成调用函数的指令，函数地址就被硬编码在指令当中。</p>
 
-<p>因此对于动态绑定的语言来说，其速度一定是慢于静态绑定的。而 Obj-C 会将方法查找的结果缓存在一个快速映射表中（Fast Map），当后续发送同样的消息时即可得到更快得执行。根据这个快慢，消息发送的代码被分为两个部分：其一是快速路径（Fast Path），这一部分由汇编语言实现；其二是慢速路径（Slow Path），由 C 语言实现。当方法没有缓存时，调用 C 语言代码来处理。</p>
-
 <blockquote>
-<p>Talk is cheap, show me the code!</p>
+<p><strong>内联（Inline）函数</strong></p>
+
+<p>建议（「建议」即具体是否进行内联需要看编译器本身）编译器对函数进行内联扩展，即建议编译器将指定的函数体直接插入到每一处调用该函数的地方。</p>
 </blockquote>
+
+<p>因此对于动态绑定的语言来说，其方法查找的速度一定是慢于静态绑定的。Obj-C 会将方法查找的结果缓存在一个快速映射表中（Fast Map），当后续发送同样的消息时即可得到更快得执行。根据这个快慢，消息发送的代码被分为两个部分：其一是快速路径（Fast Path），这一部分由汇编语言实现；其二是慢速路径（Slow Path），由 C 语言实现。当没有缓存时，将调用 C 语言代码来处理。</p>
+
+<p>Talk is cheap, show me the code! 我们直接请上「objc-msg-arm64.s」：</p>
 
 <pre><code class="language-asm">/********************************************************************
  *
@@ -255,20 +307,23 @@ objc_msgSend(id _Nullable self, SEL _Nonnull op, ...)
  * IMP objc_msgLookup(id self, SEL _cmd, ...);
  *
  * objc_msgLookup ABI:
- * IMP returned in x17                   x17 为返回的 IMP
- * x16 reserved for our use but not used x16 保留为我们使用但未使用
+ * IMP returned in x17
+ * x17 为返回的 IMP
+ *
+ * x16 reserved for our use but not used
+ * x16 保留为我们使用但未使用
  *
  ********************************************************************/
 
-#if SUPPORT_TAGGED_POINTERS
-	.data
-	.align 3
-	.globl _objc_debug_taggedpointer_classes
+#if SUPPORT_TAGGED_POINTERS // 如果支持标记指针
+    .data
+    .align 3
+    .globl _objc_debug_taggedpointer_classes
 _objc_debug_taggedpointer_classes:
-	.fill 16, 8, 0
-	.globl _objc_debug_taggedpointer_ext_classes
+    .fill 16, 8, 0
+    .globl _objc_debug_taggedpointer_ext_classes
 _objc_debug_taggedpointer_ext_classes:
-	.fill 256
+    .fill 256
 
     // objc_msgSend 入口
     // ENTRY、UNWIND、END_ENTRY 是三个宏
@@ -589,6 +644,38 @@ public:
 
 <p><img src="/img/2019/objc_msgsend/2.png" alt="2" /></p>
 
+<ul>
+<li>C 语言使用静态绑定（Static Binding）来进行函数调用，在编译时刻就能决定运行时所应调用的函数，即在不考虑内联下，会直接生成调用函数的指令，函数地址则被硬编码在指令中。</li>
+<li>C 语言中使用函数指针进行调用则属于动态绑定（Dynamic Binding），所要调用的函数在运行时才能确定。</li>
+</ul>
+
+<pre><code class="language-c">// objc_msgSend 的原型：
+// id self：接收者本身
+// SEL cmd：方法选择器本身
+// ...：cmd 方法的参数（可变参数函数）
+void objc_msgSend(id self, SEL cmd, ...)
+</code></pre>
+
+<ul>
+<li>Obj-C 中的方法使用动态绑定调用。</li>
+<li>Obj-C 对象方法查找顺序：本类的类对象方法列表中查找同名方法（分类 Category 中的方法会合并到类的方法列表中，根据后编译更靠前，会被先找到） -&gt; 若没有找到，则根据 <code>superclass</code> 指针向父类的类对象方法列表中查找，直到查找基类 <code>NSObject</code> 的类对象中也没有则进行消息转发（Message Forwarding）。</li>
+<li><code>objc_msgSend</code> 会将方法的匹配的结果缓存在类对象的 <code>cache_t cache;</code> 中，优化之后查找相同方法的速度，但仍慢于静态绑定，不过也不至于是瓶颈；如果对查找速度极致追求则可使用纯 C 函数。</li>
+
+<li><p>边界情况：</p>
+
+<ul>
+<li><code>objc_msgSend_stret</code>：如果待发送的消息要返回结构体，那么可交由此函数处理。只有当 CPU 的寄存器能够容纳得下消息返回类型时，这个函数才能处理此消息。若是返回值无法容纳于 CPU 寄存器中（比如返回的结构体太大了），那么就交由另一个函数执行派发。此时，那个函数会通过分配在栈上的某个变量来处理消息所返回的结构体。</li>
+<li><code>objc_msgSend_fpret</code>：如果消息返回的是浮点数，那么可交由此函数处理。在某些结构的 CPU 中调用函数时，需要对「浮点数寄存器（Floating-Point Register）」做特殊处理，也就是说，通常所用的 <code>objc_msgSend</code> 在这种情况下并不合适。这个函数是为了处理 x86 等架构 CPU 中某些令人稍觉惊讶的奇怪状况。（不会使用在 ARM 64 架构中）</li>
+<li><code>objc_msgSendSuper</code>：如果要给父类发送消息，例如 <code>[super message:parameter]</code>，那么就交由此函数处理。也有另外两个与 <code>objc_msgSend_stret</code> 和 <code>objc_msgSend_fpret</code> 等效的函数，用于处理发给 <code>super</code> 的相应的消息。</li>
+</ul></li>
+
+<li><p>Obj-C 对象的每个方法都可以视为简单的 C 函数，其原型为：<code>&lt;return_type&gt; Class_selector(id self, SEL _cmd, ...)</code>。</p></li>
+
+<li><p>Obj-C 每个类中都有以上原型函数表，<code>objc_msgSend</code> 等函数通过该表寻找应该执行的方法并跳至其实现（原型与 <code>objc_msgSend</code> 函数类似是为了利用尾调用优化 Tail-Call Optimization 技术，简化跳至实现的操作）。</p></li>
+
+<li><p>如果某个函数的最后一项操作是调用另外一个函数，那么就可以运用「尾调用优化」技术。编译器会生成调转至另一函数所需的指令码，而且不会向调用堆栈中推入新的「栈帧 Frame Stack」。只有当某函数的最后一个操作仅仅是调用其他函数而不会将其返回值另作他用时，才能执行「尾调用优化」。如果不这样的话，每次调用 Obj-C 方法之前都需要需要为 <code>objc_msgSend</code> 准备栈帧（可以在栈追踪 Stack Trace）中看到这种栈帧）。此外，若是不优化，还会过早地发生「栈溢出（Stack Overflow）」现象。</p></li>
+</ul>
+
 <h2 id="reference">Reference</h2>
 
 <ul>
@@ -596,6 +683,44 @@ public:
 <li><a href="http://infocenter.arm.com/help/index.jsp">ARM Software development tools - arm.com</a></li>
 <li><a href="https://stackoverflow.com/questions/27353096/1b-and-1f-in-gnu-assembly">1b and 1f in GNU assembly - StackOverflow</a></li>
 </ul>
+
+<pre><code class="language-lldb">(lldb) register read
+General Purpose Registers:
+        x0 = 0x0000000280ecc0e0
+        x1 = 0x0000000102adcd50  &quot;bar&quot;
+        x2 = 0x0000000000000000
+        x3 = 0x0000000280ecc0f0
+        x4 = 0x0000000283ec8000
+        x5 = 0x0000000283ec8000
+        x6 = 0x0000000000000000
+        x7 = 0x0000000000000403
+        x8 = 0x000001a102adcda9 (0x0000000102adcda9) (void *)0xd80000000102adcd
+        x9 = 0x0000000000000000
+       x10 = 0x0000000000000002
+       x11 = 0x00000002819b8c28
+       x12 = 0x0000000000000002
+       x13 = 0x0000000000000000
+       x14 = 0x00000000000000c6
+       x15 = 0x0000000000000000
+       x16 = 0x000000018efdd1e8  libsystem_malloc.dylib`calloc
+       x17 = 0x000000018f00af84  libobjc.A.dylib`-[NSObject init]
+       x18 = 0x0000000000000000
+       x19 = 0x0000000283ec8000
+       x20 = 0x00000001030092b0
+       x21 = 0x0000000102adac97  &quot;clickOnButton:&quot;
+       x22 = 0x0000000103105570
+       x23 = 0x0000000102adac97  &quot;clickOnButton:&quot;
+       x24 = 0x00000001d63996f0  UIKitCore`UIApp
+       x25 = 0x0000000000000000
+       x26 = 0x00000001c638e570
+       x27 = 0x00000002802cb330
+       x28 = 0x0000000103105570
+        fp = 0x000000016d329420
+        lr = 0x0000000102ada804  msgSend`-[ViewController clickOnButton:] + 96 at ViewController.m:33:16
+        sp = 0x000000016d3293f0
+        pc = 0x0000000102ada810  msgSend`-[ViewController clickOnButton:] + 108 at ViewController.m:35:6
+      cpsr = 0x40000000
+</code></pre>
 
   </div>
   
