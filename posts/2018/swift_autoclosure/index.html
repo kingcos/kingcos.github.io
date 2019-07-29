@@ -223,22 +223,22 @@ if (!doNotTrack) {
 
 <ul>
 <li><code>@autoclosure</code> 名称中即明确了这是一种「自动」闭包，即可以让返回该参数类型的闭包作为参数；</li>
-<li>其只可以修饰作为参数的闭包类型，但该闭包不能有参数，否则会报错：「error: argument type of @autoclosure parameter must be &lsquo;()&lsquo;」。</li>
-</ul>
+
+<li><p>其只可以修饰作为参数的闭包类型，但该闭包不能有参数，否则会报错：「error: argument type of @autoclosure parameter must be &lsquo;()&lsquo;」。</p>
 
 <pre><code class="language-Swift">func logIfTrue(_ predicate: () -&gt; Bool) {
-    if predicate() {
-        print(#function)
-    }
+if predicate() {
+    print(#function)
+}
 }
 
 // logIfTrue(predicate: () -&gt; Bool)
 logIfTrue { 1 &lt; 2 }
 
 func logIfTrueWithAutoclosure(_ predicate: @autoclosure () -&gt; Bool) {
-    if predicate() {
-        print(#function)
-    }
+if predicate() {
+    print(#function)
+}
 }
 
 // logIfTrueWithAutoclosure(predicate: Bool)
@@ -247,15 +247,16 @@ logIfTrueWithAutoclosure(1 &lt; 2)
 // OUTPUT:
 // logIfTrue
 // logIfTrueWithAutoclosure
-</code></pre>
+</code></pre></li>
+</ul>
 
 <h3 id="延迟调用-delay-evaluation">延迟调用（Delay Evaluation）</h3>
 
 <ul>
 <li>Swift 中的闭包会被延迟调用，即只有在真正被调用时，才被执行；</li>
 <li>延迟调用特性有利于非必须执行且运算开销较大的代码；</li>
-<li>该特性非 <code>@autoclosure</code> 独有，但通常搭配使用。</li>
-</ul>
+
+<li><p>该特性非 <code>@autoclosure</code> 独有，但通常搭配使用。</p>
 
 <pre><code class="language-Swift">var array = [1, 2, 3, 4, 5]
 
@@ -272,31 +273,33 @@ print(array.count)
 // 4
 // 4
 // 3
-</code></pre>
+</code></pre></li>
+</ul>
 
 <h3 id="escaping">@escaping</h3>
 
 <ul>
 <li>当闭包的真正执行时机可能要在其所在函数返回（Return）之后时，通常使用 <code>@escaping</code>，可以用于处理一些耗时操作的回调；</li>
-<li><code>@autoclosure</code> 与 <code>@escaping</code> 是可以兼容的，放置顺序可以颠倒。</li>
-</ul>
+
+<li><p><code>@autoclosure</code> 与 <code>@escaping</code> 是可以兼容的，放置顺序可以颠倒。</p>
 
 <pre><code class="language-Swift">func doWith(_ completion: () -&gt; Void) {
-    completion()
+completion()
 }
 
 func doWithAutoclosureAndEscaping(_ escaper: @autoclosure @escaping () -&gt; Void) {
-    doWith {
-        escaper()
-    }
+doWith {
+    escaper()
+}
 }
 
 func doWithEscapingAndAutoclosure(_ escaper: @escaping @autoclosure () -&gt; Void) {
-    doWith {
-        escaper()
-    }
+doWith {
+    escaper()
 }
-</code></pre>
+}
+</code></pre></li>
+</ul>
 
 <h2 id="source-code">Source Code</h2>
 
@@ -365,20 +368,19 @@ public func ?? &lt;T&gt;(optional: T?, defaultValue: @autoclosure () throws -&gt
 </code></pre>
 
 <ul>
-<li>Swift 中的 <code>&amp;&amp;</code>、<code>||</code> 以及 <code>??</code> 属于短路运算符，即当表达式左边的结果已经可以决定整个运算符的返回值时（运算符的本质也是函数），右边便没有必要运算。利用了 <code>@autoclosure</code> 使得运算符右边可以为闭包，再凭借 Delay Evaluation 特性保证了「短路」。</li>
-</ul>
+<li><p>Swift 中的 <code>&amp;&amp;</code>、<code>||</code> 以及 <code>??</code> 属于短路运算符，即当表达式左边的结果已经可以决定整个运算符的返回值时（运算符的本质也是函数），右边便没有必要运算。利用了 <code>@autoclosure</code> 使得运算符右边可以为闭包，再凭借 Delay Evaluation 特性保证了「短路」。</p>
 
 <pre><code class="language-swift">var flag = 0
 var age: Int? = nil
 
 func getAgeA() -&gt; Int? {
-    flag += 10
-    return 20
+flag += 10
+return 20
 }
 
 func getAgeB() -&gt; Int? {
-    flag += 100
-    return nil
+flag += 100
+return nil
 }
 
 age ?? getAgeA() ?? getAgeB()
@@ -386,149 +388,150 @@ print(flag)
 
 // OUTPUT:
 // 10
-</code></pre>
+</code></pre></li>
+</ul>
 
 <h4 id="断言-assert">断言（Assert）</h4>
 
 <ul>
-<li>断言相关的方法将某些参数设置为闭包类型，并标注了 <code>@autoclosure</code>，一是可以直接将闭包直接作为参数；二是当 Release 模式时，Closure 没有必要执行，即可节省开销（XCTest 和 Dispatch 中的部分方法同理）。</li>
-</ul>
+<li><p>断言相关的方法将某些参数设置为闭包类型，并标注了 <code>@autoclosure</code>，一是可以直接将闭包直接作为参数；二是当 Release 模式时，Closure 没有必要执行，即可节省开销（XCTest 和 Dispatch 中的部分方法同理）。</p>
 
 <pre><code class="language-Swift">// AssertCommon.swift
 @_inlineable // FIXME(sil-serialize-all)
 public // COMPILER_INTRINSIC
 func _undefined&lt;T&gt;(
-  _ message: @autoclosure () -&gt; String = String(),
-  file: StaticString = #file, line: UInt = #line
+_ message: @autoclosure () -&gt; String = String(),
+file: StaticString = #file, line: UInt = #line
 ) -&gt; T {
-  _assertionFailure(&quot;Fatal error&quot;, message(), file: file, line: line, flags: 0)
+_assertionFailure(&quot;Fatal error&quot;, message(), file: file, line: line, flags: 0)
 }
 
 // Assert.swift
 @_inlineable // FIXME(sil-serialize-all)
 @_transparent
 public func assert(
-  _ condition: @autoclosure () -&gt; Bool,
-  _ message: @autoclosure () -&gt; String = String(),
-  file: StaticString = #file, line: UInt = #line
+_ condition: @autoclosure () -&gt; Bool,
+_ message: @autoclosure () -&gt; String = String(),
+file: StaticString = #file, line: UInt = #line
 ) {
-  // Only assert in debug mode.
-  // 在 Debug 模式且条件不成立，断言失败
-  if _isDebugAssertConfiguration() {
-    if !_branchHint(condition(), expected: true) {
-      _assertionFailure(&quot;Assertion failed&quot;, message(), file: file, line: line,
-        flags: _fatalErrorFlags())
-    }
-  }
+// Only assert in debug mode.
+// 在 Debug 模式且条件不成立，断言失败
+if _isDebugAssertConfiguration() {
+if !_branchHint(condition(), expected: true) {
+  _assertionFailure(&quot;Assertion failed&quot;, message(), file: file, line: line,
+    flags: _fatalErrorFlags())
+}
+}
 }
 
 @_inlineable // FIXME(sil-serialize-all)
 @_transparent
 public func precondition(
-  _ condition: @autoclosure () -&gt; Bool,
-  _ message: @autoclosure () -&gt; String = String(),
-  file: StaticString = #file, line: UInt = #line
+_ condition: @autoclosure () -&gt; Bool,
+_ message: @autoclosure () -&gt; String = String(),
+file: StaticString = #file, line: UInt = #line
 ) {
-  // Only check in debug and release mode.  In release mode just trap.
-  if _isDebugAssertConfiguration() {
-    if !_branchHint(condition(), expected: true) {
-      _assertionFailure(&quot;Precondition failed&quot;, message(), file: file, line: line,
-        flags: _fatalErrorFlags())
-    }
-  } else if _isReleaseAssertConfiguration() {
-    let error = !condition()
-    Builtin.condfail(error._value)
-  }
+// Only check in debug and release mode.  In release mode just trap.
+if _isDebugAssertConfiguration() {
+if !_branchHint(condition(), expected: true) {
+  _assertionFailure(&quot;Precondition failed&quot;, message(), file: file, line: line,
+    flags: _fatalErrorFlags())
+}
+} else if _isReleaseAssertConfiguration() {
+let error = !condition()
+Builtin.condfail(error._value)
+}
 }
 
 @_inlineable // FIXME(sil-serialize-all)
 @inline(__always)
 public func assertionFailure(
-  _ message: @autoclosure () -&gt; String = String(),
-  file: StaticString = #file, line: UInt = #line
+_ message: @autoclosure () -&gt; String = String(),
+file: StaticString = #file, line: UInt = #line
 ) {
-  if _isDebugAssertConfiguration() {
-    _assertionFailure(&quot;Fatal error&quot;, message(), file: file, line: line,
-      flags: _fatalErrorFlags())
-  }
-  else if _isFastAssertConfiguration() {
-    _conditionallyUnreachable()
-  }
+if _isDebugAssertConfiguration() {
+_assertionFailure(&quot;Fatal error&quot;, message(), file: file, line: line,
+  flags: _fatalErrorFlags())
+}
+else if _isFastAssertConfiguration() {
+_conditionallyUnreachable()
+}
 }
 
 @_inlineable // FIXME(sil-serialize-all)
 @_transparent
 public func preconditionFailure(
-  _ message: @autoclosure () -&gt; String = String(),
-  file: StaticString = #file, line: UInt = #line
+_ message: @autoclosure () -&gt; String = String(),
+file: StaticString = #file, line: UInt = #line
 ) -&gt; Never {
-  // Only check in debug and release mode.  In release mode just trap.
-  if _isDebugAssertConfiguration() {
-    _assertionFailure(&quot;Fatal error&quot;, message(), file: file, line: line,
-      flags: _fatalErrorFlags())
-  } else if _isReleaseAssertConfiguration() {
-    Builtin.int_trap()
-  }
-  _conditionallyUnreachable()
+// Only check in debug and release mode.  In release mode just trap.
+if _isDebugAssertConfiguration() {
+_assertionFailure(&quot;Fatal error&quot;, message(), file: file, line: line,
+  flags: _fatalErrorFlags())
+} else if _isReleaseAssertConfiguration() {
+Builtin.int_trap()
+}
+_conditionallyUnreachable()
 }
 
 @_inlineable // FIXME(sil-serialize-all)
 @_transparent
 public func fatalError(
-  _ message: @autoclosure () -&gt; String = String(),
-  file: StaticString = #file, line: UInt = #line
+_ message: @autoclosure () -&gt; String = String(),
+file: StaticString = #file, line: UInt = #line
 ) -&gt; Never {
-  _assertionFailure(&quot;Fatal error&quot;, message(), file: file, line: line,
-    flags: _fatalErrorFlags())
+_assertionFailure(&quot;Fatal error&quot;, message(), file: file, line: line,
+flags: _fatalErrorFlags())
 }
 
 @_inlineable // FIXME(sil-serialize-all)
 @_transparent
 public func _precondition(
-  _ condition: @autoclosure () -&gt; Bool, _ message: StaticString = StaticString(),
-  file: StaticString = #file, line: UInt = #line
+_ condition: @autoclosure () -&gt; Bool, _ message: StaticString = StaticString(),
+file: StaticString = #file, line: UInt = #line
 ) {
-  // Only check in debug and release mode. In release mode just trap.
-  if _isDebugAssertConfiguration() {
-    if !_branchHint(condition(), expected: true) {
-      _fatalErrorMessage(&quot;Fatal error&quot;, message, file: file, line: line,
-        flags: _fatalErrorFlags())
-    }
-  } else if _isReleaseAssertConfiguration() {
-    let error = !condition()
-    Builtin.condfail(error._value)
-  }
+// Only check in debug and release mode. In release mode just trap.
+if _isDebugAssertConfiguration() {
+if !_branchHint(condition(), expected: true) {
+  _fatalErrorMessage(&quot;Fatal error&quot;, message, file: file, line: line,
+    flags: _fatalErrorFlags())
+}
+} else if _isReleaseAssertConfiguration() {
+let error = !condition()
+Builtin.condfail(error._value)
+}
 }
 
 @_inlineable // FIXME(sil-serialize-all)
 @_transparent
 public func _debugPrecondition(
-  _ condition: @autoclosure () -&gt; Bool, _ message: StaticString = StaticString(),
-  file: StaticString = #file, line: UInt = #line
+_ condition: @autoclosure () -&gt; Bool, _ message: StaticString = StaticString(),
+file: StaticString = #file, line: UInt = #line
 ) {
-  // Only check in debug mode.
-  if _isDebugAssertConfiguration() {
-    if !_branchHint(condition(), expected: true) {
-      _fatalErrorMessage(&quot;Fatal error&quot;, message, file: file, line: line,
-        flags: _fatalErrorFlags())
-    }
-  }
+// Only check in debug mode.
+if _isDebugAssertConfiguration() {
+if !_branchHint(condition(), expected: true) {
+  _fatalErrorMessage(&quot;Fatal error&quot;, message, file: file, line: line,
+    flags: _fatalErrorFlags())
+}
+}
 }
 
 @_inlineable // FIXME(sil-serialize-all)
 @_transparent
 public func _sanityCheck(
-  _ condition: @autoclosure () -&gt; Bool, _ message: StaticString = StaticString(),
-  file: StaticString = #file, line: UInt = #line
+_ condition: @autoclosure () -&gt; Bool, _ message: StaticString = StaticString(),
+file: StaticString = #file, line: UInt = #line
 ) {
 #if INTERNAL_CHECKS_ENABLED
-  if !_branchHint(condition(), expected: true) {
-    _fatalErrorMessage(&quot;Fatal error&quot;, message, file: file, line: line,
-      flags: _fatalErrorFlags())
-  }
+if !_branchHint(condition(), expected: true) {
+_fatalErrorMessage(&quot;Fatal error&quot;, message, file: file, line: line,
+  flags: _fatalErrorFlags())
+}
 #endif
 }
-</code></pre>
+</code></pre></li>
+</ul>
 
 <h2 id="summary">Summary</h2>
 

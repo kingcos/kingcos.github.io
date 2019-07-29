@@ -261,15 +261,14 @@ class Person {}
 <h3 id="lazy-初始化的-演变-过程">Lazy 初始化的「演变」过程</h3>
 
 <ul>
-<li>根据上面 Demo，延迟存储属性的初始化代码部分可能有些让人迷惑，但其实也是初始化的一步步的演变过程。在 <a href="https://weibo.com/u/1683298872">@Onetaway</a> 的 <a href="http://www.bilibili.com/video/av10139582/">【菜鸡Playground 1】Swift 中 lazy initialization</a> 中也有描述这个过程，简单用代码表示也如下所示：</li>
-</ul>
+<li><p>根据上面 Demo，延迟存储属性的初始化代码部分可能有些让人迷惑，但其实也是初始化的一步步的演变过程。在 <a href="https://weibo.com/u/1683298872">@Onetaway</a> 的 <a href="http://www.bilibili.com/video/av10139582/">【菜鸡Playground 1】Swift 中 lazy initialization</a> 中也有描述这个过程，简单用代码表示也如下所示：</p>
 
 <pre><code class="language-Swift">struct Person {
-    var name = &quot;&quot;
+var name = &quot;&quot;
 
-    init() {
-        print(#function)
-    }
+init() {
+    print(#function)
+}
 }
 
 // 直接初始化
@@ -277,40 +276,40 @@ let p1 = Person()
 
 // 利用闭包
 let getOnePerson = { () -&gt; Person in
-    let p = Person()
-    return p
+let p = Person()
+return p
 }
 
 let p2 = getOnePerson()
 
 // 闭包执行
 let p3 = { () -&gt; Person in
-    let p = Person()
-    return p
+let p = Person()
+return p
 }()
 
 // 简化
 let p4: Person = {
-    let p = Person()
-    return p
+let p = Person()
+return p
 }()
-</code></pre>
+</code></pre></li>
+</ul>
 
 <h3 id="lazy-方法">Lazy 方法</h3>
 
 <ul>
-<li><a href="https://onevcat.com">@Onevcat</a> 的 Swifter Tips 中也提到，在 Swift 标准库中，也有一些 Lazy 方法，就可以在不需要运行时，避免消耗太多的性能。</li>
-</ul>
+<li><p><a href="https://onevcat.com">@Onevcat</a> 的 Swifter Tips 中也提到，在 Swift 标准库中，也有一些 Lazy 方法，就可以在不需要运行时，避免消耗太多的性能。</p>
 
 <pre><code class="language-Swift">let data = 0...3
 let result = data.lazy.map { (i: Int) -&gt; Int in
-    print(&quot;Handling...&quot;)
-    return i * 2
+print(&quot;Handling...&quot;)
+return i * 2
 }
 
 print(&quot;Begin:&quot;)
 for i in result {
-    print(i)
+print(i)
 }
 // OUTPUT:
 // Begin:
@@ -322,7 +321,8 @@ for i in result {
 // 4
 // Handling...
 // 6
-</code></pre>
+</code></pre></li>
+</ul>
 
 <h2 id="devxoul-then">devxoul/Then</h2>
 
@@ -363,53 +363,55 @@ class ViewController: UIViewController {
 
 <ul>
 <li>因为 <code>then()</code> 内部将 <code>self</code> 返回，即可在初始化完成后，调用该方法，并在闭包中设置属性，而且不需要再将自身返回。</li>
-<li>支持 NSObject 子类，也可以将自定义类型（仅支持 AnyObject 类型，即 class）声明实现该协议即可（协议扩展已经拥有默认实现，所以仅声明实现协议即可）。</li>
-</ul>
+
+<li><p>支持 NSObject 子类，也可以将自定义类型（仅支持 AnyObject 类型，即 class）声明实现该协议即可（协议扩展已经拥有默认实现，所以仅声明实现协议即可）。</p>
 
 <pre><code class="language-Swift">extension Then where Self: AnyObject {
 
-  /// Makes it available to set properties with closures just after initializing.
-  public func then(_ block: (Self) -&gt; Void) -&gt; Self {
-    block(self)
-    return self
-  }
+/// Makes it available to set properties with closures just after initializing.
+public func then(_ block: (Self) -&gt; Void) -&gt; Self {
+block(self)
+return self
+}
 
 }
-</code></pre>
+</code></pre></li>
+</ul>
 
 <h3 id="with"><code>with()</code></h3>
 
 <ul>
 <li><code>then()</code> 适用于引用类型，而 <code>with()</code> 适用于值类型。</li>
-<li>使用了 <code>inout</code> 确保方法内外共用一个值类型变量。</li>
-</ul>
+
+<li><p>使用了 <code>inout</code> 确保方法内外共用一个值类型变量。</p>
 
 <pre><code class="language-Swift">extension Then where Self: Any {
 
-  /// Makes it available to set properties with closures just after initializing and copying the value types.
-  public func with(_ block: (inout Self) -&gt; Void) -&gt; Self {
-    var copy = self
-    block(&amp;copy)
-    return copy
-  }
+/// Makes it available to set properties with closures just after initializing and copying the value types.
+public func with(_ block: (inout Self) -&gt; Void) -&gt; Self {
+var copy = self
+block(&amp;copy)
+return copy
+}
 
 }
-</code></pre>
+</code></pre></li>
+</ul>
 
 <h3 id="do"><code>do()</code></h3>
 
 <ul>
-<li><code>do()</code> 使得可以直接在闭包中简单地执行一些操作。</li>
-</ul>
+<li><p><code>do()</code> 使得可以直接在闭包中简单地执行一些操作。</p>
 
 <pre><code class="language-Swift">extension Then where Self: Any {
-  /// Makes it available to execute something with closures.
-  public func `do`(_ block: (Self) -&gt; Void) {
-    block(self)
-  }
+/// Makes it available to execute something with closures.
+public func `do`(_ block: (Self) -&gt; Void) {
+block(self)
+}
 
 }
-</code></pre>
+</code></pre></li>
+</ul>
 
 <h2 id="计算属性">计算属性</h2>
 

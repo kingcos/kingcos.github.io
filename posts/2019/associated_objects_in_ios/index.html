@@ -342,42 +342,38 @@ Person *person = [[Person alloc] init];
 <ul>
 <li><p>第一个参数是将要关联到的对象 <code>id _Nonnull object</code>；我们这里要被关联的即是当前的实例对象 <code>self</code>，当然，类对象也可以被关联。</p></li>
 
-<li><p>第二个参数是标示存入的 <code>const void * _Nonnull key</code>，可以放入指向任何类型的指针。我们可以仿照「iOS 中的 KVO」中对于 <code>context</code> 的定义，将 <code>key</code> 设置为声明变量自身的内存地址，保证了唯一性，并加上 <code>static</code>，保证该变量仅在该 .m 中可以访问。但这样不太方便的是每次都需要额外定义，有更好的解决方案吗？我们其实可以将 getter 或者 setter 方法的地址作为 <code>key</code> 存入，这样就无需再去单独声明一个 <code>key</code> 且支持编译检查。再进一步，由于 Obj-C 中的方法都会有两个隐式参数 <code>self</code> 和 <code>_cmd</code> 分别代表当前对象和当前方法 <code>SEL</code>，后者在 getter 中就等同于的 <code>@selector(nickname)</code>，这样在 getter 中写法就更简单了：</p></li>
-</ul>
+<li><p>第二个参数是标示存入的 <code>const void * _Nonnull key</code>，可以放入指向任何类型的指针。我们可以仿照「iOS 中的 KVO」中对于 <code>context</code> 的定义，将 <code>key</code> 设置为声明变量自身的内存地址，保证了唯一性，并加上 <code>static</code>，保证该变量仅在该 .m 中可以访问。但这样不太方便的是每次都需要额外定义，有更好的解决方案吗？我们其实可以将 getter 或者 setter 方法的地址作为 <code>key</code> 存入，这样就无需再去单独声明一个 <code>key</code> 且支持编译检查。再进一步，由于 Obj-C 中的方法都会有两个隐式参数 <code>self</code> 和 <code>_cmd</code> 分别代表当前对象和当前方法 <code>SEL</code>，后者在 getter 中就等同于的 <code>@selector(nickname)</code>，这样在 getter 中写法就更简单了：</p>
 
 <pre><code class="language-objectivec">@implementation Person (Life)
 
 - (NSString *)nickname {
-    // return objc_getAssociatedObject(self, @selector(nickname));
-    return objc_getAssociatedObject(self, _cmd);
+// return objc_getAssociatedObject(self, @selector(nickname));
+return objc_getAssociatedObject(self, _cmd);
 }
 
 - (void)setNickname:(NSString *)nickname {
-    objc_setAssociatedObject(self, @selector(nickname), nickname, OBJC_ASSOCIATION_COPY_NONATOMIC);
+objc_setAssociatedObject(self, @selector(nickname), nickname, OBJC_ASSOCIATION_COPY_NONATOMIC);
 }
 
 @end
-</code></pre>
+</code></pre></li>
 
-<ul>
-<li>第三个参数是要关联上的值 <code>id _Nullable value</code>，注意其类型为 <code>id</code>，因此如果想要存入 <code>int</code> 等 C 语言中的类型时，需要先在 setter 中转换为 Obj-C 的对象类型，并在 getter 中再转回：</li>
-</ul>
+<li><p>第三个参数是要关联上的值 <code>id _Nullable value</code>，注意其类型为 <code>id</code>，因此如果想要存入 <code>int</code> 等 C 语言中的类型时，需要先在 setter 中转换为 Obj-C 的对象类型，并在 getter 中再转回：</p>
 
 <pre><code class="language-objectivec">@implementation Person (Life)
 
 - (int)age {
-    return [objc_getAssociatedObject(self, _cmd) intValue];
+return [objc_getAssociatedObject(self, _cmd) intValue];
 }
 
 - (void)setAge:(int)age {
-    objc_setAssociatedObject(self, @selector(age), @(age), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+objc_setAssociatedObject(self, @selector(age), @(age), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 @end
-</code></pre>
+</code></pre></li>
 
-<ul>
-<li>第四个参数是关联的内存语义策略 <code>objc_AssociationPolicy</code>，其中包含了五个枚举项，对应了不同的内存管理策略。可以对照属性的内存管理修饰符来选择合适的策略：</li>
+<li><p>第四个参数是关联的内存语义策略 <code>objc_AssociationPolicy</code>，其中包含了五个枚举项，对应了不同的内存管理策略。可以对照属性的内存管理修饰符来选择合适的策略：</p></li>
 </ul>
 
 <table>
