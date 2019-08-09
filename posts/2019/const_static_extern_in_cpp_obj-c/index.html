@@ -443,172 +443,91 @@ cout &lt;&lt; **baz &lt;&lt; endl; // 10
 cout &lt;&lt; **baz &lt;&lt; endl; // 10
 </code></pre>
 
-<p>在了解了简单的指针之后，我们再进一步，了解一下「指向指针的指针」。指向指针的指针也是指针，因此其中保存的也是内存地址，需要注意的是该内存地址指向的内存空间存储的值仍然是一个内存地址，最终这个内存地址指向的是一个值。当 <code>const</code> 位于第一个 <code>*</code></p>
+<p>在了解了简单的指针之后，我们再进一步，了解一下「指向指针的指针（也称二维指针）」。指向指针的指针也是指针，因此其中保存的也是内存地址，需要注意的是该内存地址指向的内存空间存储的值仍然是一个内存地址，最终这个内存地址指向的是一个值。</p>
 
-<pre><code class="language-cpp">
-// error: cannot initialize a variable of type 'const int **' with an rvalue of type 'int **'
-// const int **baz2 = &amp;bar;
-// int const **baz2 = &amp;bar;
-const int **baz2;
+<p>当 <code>const</code> 位于表达式中的 <code>int</code> 之前或之后时，表示最终指向的 <code>int</code> 值不应被改变，需要注意的是 <code>int **</code> 将无法赋值给 <code>const int **</code>，因为后者的类型限定更加严格：</p>
+
+<pre><code class="language-cpp">const int **baz2;
 // error: assigning to 'const int **' from incompatible type 'int **'
 // baz2 = &amp;bar;
 
-int *const *baz3 = &amp;bar;
-cout &lt;&lt; **baz3 &lt;&lt; endl; // 0
-baz3 = &amp;bar2;
-cout &lt;&lt; **baz3 &lt;&lt; endl; // 10
-// error: read-only variable is not assignable
-// *baz3 = &amp;foo2;
-**baz3 = foo2;
-cout &lt;&lt; **baz3 &lt;&lt; endl; // 10
+const int foo3 = 100;
+const int *bar3 = &amp;foo3;
+const int **baz3 = &amp;bar3;
+</code></pre>
 
-int **const baz4 = &amp;bar;
+<p>当 <code>const</code> 位于表达式第一个 <code>*</code> 之后时，表示第一维指针 <code>*baz4</code> 的值（即 <code>foo</code> 的地址）将无法改变，但我们仍然可以改变第二维指针 <code>baz4</code> 的值（即 <code>bar</code> 的地址）或者 <code>foo</code> 中的值：</p>
+
+<pre><code class="language-cpp">int *const *baz4 = &amp;bar;
+
 cout &lt;&lt; **baz4 &lt;&lt; endl; // 0
-// error: cannot assign to variable 'baz4' with const-qualified type 'int **const'
-// baz4 = &amp;bar2;
-*baz4 = &amp;foo2;
+baz4 = &amp;bar2;
 cout &lt;&lt; **baz4 &lt;&lt; endl; // 10
+// error: read-only variable is not assignable
+// *baz4 = &amp;foo2;
 **baz4 = foo2;
 cout &lt;&lt; **baz4 &lt;&lt; endl; // 10
 </code></pre>
 
+<p>当 <code>const</code> 位于表达式第二个 <code>*</code> 之后时，表示第二维指针 <code>baz5</code> 的值（即 <code>bar</code> 的地址）将无法改变，但我们仍然可以改变第一维指针 <code>*baz5</code> 的值（即 <code>foo</code> 的地址）或者 <code>foo</code> 中的值：</p>
+
+<pre><code class="language-cpp">int **const baz5 = &amp;bar;
+
+cout &lt;&lt; **baz5 &lt;&lt; endl; // 0
+// error: cannot assign to variable 'baz5' with const-qualified type 'int **const'
+// baz5 = &amp;bar2;
+*baz5 = &amp;foo2;
+cout &lt;&lt; **baz5 &lt;&lt; endl; // 0
+**baz5 = foo2;
+cout &lt;&lt; **baz5 &lt;&lt; endl; // 0
+</code></pre>
+
+<p>有了上面几个不同位置的 <code>const</code> 我们就可以组合多个 <code>const</code> 来满足我们的需求。</p>
+
 <h2 id="static"><code>static</code></h2>
+
+<p>与 <code>const</code> 约束变量是否可变不同，<code>static</code> 主要是对变量生命周期和作用域的控制，将存储在内存的静态区。</p>
+
+<p>当我们定义一个全局变量，其默认将存储在全局区，作为一个全局符号暴露给外界；而此时如果使用 <code>static</code> 修饰，那么其将只能在当前文件内使用，且其生命周期将持续到程序结束：</p>
+
+<pre><code class="language-cpp">int foo = 1;
+static int bar = 1;
+
+void baz()
+{
+    foo = 2;
+    bar = 2;
+}
+
+int main()
+{
+    baz();
+    printf(&quot;%d\n&quot;, foo); // 2
+    printf(&quot;%d&quot;, bar);   // 2
+
+    return 0;
+}
+</code></pre>
+
+<p>如何可以证明呢？我们可以使用 <code>nm -gC &lt;OBJECT_FILE&gt;</code> 查看目标文件中的全局符号，其中只有 <code>foo</code> 而没有 <code>bar</code>：</p>
+
+<pre><code class="language-shell">➜  ~ nm -gC a.out
+
+0000000100000f20 T baz()
+0000000100000000 T __mh_execute_header
+0000000100001018 D _foo
+0000000100000f40 T _main
+                 U _printf
+                 U dyld_stub_binder
+</code></pre>
+
+<p>在 Obj-C 中，我们通常将无需暴露给外界的全局变量使用 <code>static</code> 修饰并放置在相应的实现（.m）文件中，阻止了外界访问也避免了全局符号的冲突。</p>
 
 <h2 id="extern"><code>extern</code></h2>
 
-<h2 id="reference">Reference</h2>
+<p>在软件工程中，我们几乎很少会只使用到一个源文件，而编译通常是针对每个文件进行单独编译为目标文件，并在链接阶段进行链接，最终成为可执行文件。因此在一个文件中需要使用到其他文件中变量时，我们需要使用 <code>extern</code> 来告知编译器最终将存在这个变量，允许编译通过。</p>
 
-<pre><code>
-
-//        PersonA *p = [[PersonA alloc] init];
-//        [p doSomethingHiddly];
-
-        ////    AAA = @&quot;BBB&quot;;
-        //    BBB = @&quot;CCC&quot;;
-        //    NSString *a = @&quot;CCC&quot;;
-        //    BBB = a;
-        ////    NSLog(@&quot;%@&quot;, BBB);
-        ////    DDD = 333;
-        ////    CCC = 333;
-
-//        NSString * const D = @&quot;DD&quot;;
-//        const NSString *E = @&quot;EE&quot;;
-//
-//        id DD = [D copy];
-//        id EE = [E copy];
-//
-//        //    D = @&quot;D&quot;;
-//        E = [[NSString alloc] init];
-//
-//        BBB = @&quot;&quot;;
-//
-//        // 指向的内存地址不能改，自己的地址能改
-//        PersonA * const ppp1 = [[PersonA alloc] init];
-//        // 指向的内存地址能改，自己的地址不能改
-//        const PersonA * ppp2 = [[PersonA alloc] init];
-//        const PersonA * const ppp3 = [[PersonA alloc] init];
-//
-//        PersonA const * ppp4 = [[PersonA alloc] init];
-//        PersonA const * const ppp5 = [[PersonA alloc] init];
-
-
-//        PersonA * ppp3 = ppp1;
-//        &amp;ppp1 = &amp;ppp3;
-//
-//        ppp1.name = @&quot;111&quot;;
-//
-//        ppp1 = [[PersonA alloc] init];
-//        ppp2 = [[PersonA alloc] init];
-
-
-
-//        ppp4.name = @&quot;&quot;;
-
-
-
-        // 一旦变量被声明，系统将为该变量分配内存空间，这块内存空间是不可更改的。
-
-        // a/b 是 int 型，保存的数据是 int
-        // 这个数据本身是不能更改的
-        const int a = 5;
-//        a = 10;
-        // ---
-        int const b = 5;
-//        b = 10;
-        // ---
-        int cc = 5;
-        int dd = 10;
-        // c 是指针类型，保存的数据是内存地址，该内存地址指向的区域存储了 int 类型
-        // const int * c 代表保存的内存地址可以改变，但其保存的内存地址所指向的 int 不可变
-        // const int const * c == int const * c == const int * c
-        int const * c = &amp;cc;
-//        const int * c = &amp;cc;
-//        const int const * c = &amp;cc;
-//        *c = dd;
-        c = &amp;dd;
-
-        NSLog(@&quot;c - %d&quot;, *c);
-
-        // d 是指针类型，保存的数据是内存地址，该内存地址指向的区域存储了 int 类型
-        // int * const d 代表保存的内存地址不可变，但其保存的内存地址所指向的 int 可以变
-        int * const d = &amp;dd;
-//        d = &amp;cc;
-        *d = cc;
-
-        NSLog(@&quot;d - %d&quot;, *d);
-
-        int ee = 5;
-        int eee = 10;
-
-        // e 是指针类型，保存的数据是内存地址，该内存地址指向的区域存储了 int 类型
-        // const int * const e 代表保存的内存地址和其所指向的 int 都不可以变
-        const int * const e = &amp;ee;
-//        e = &amp;eee;
-//        *e = eee;
-
-        const NSString *str = @&quot;str&quot;;
-        str = @&quot;string&quot;;
-
-
-//        const Person * p = [[Person alloc] init];
-//        const Person const * p = [[Person alloc] init];
-//        PersonA const * p = [[PersonA alloc] init];
-//        p-&gt;_height = 10;
-//        p-&gt;_name = @&quot;&quot;;
-//        p = [PersonA new];
-
-//        PersonA * const pp = [[PersonA alloc] init];
-//        pp-&gt;_height = 10;
-//        pp-&gt;_name = @&quot;&quot;;
-//        pp = [Person new];
-
-        PersonA *pa = [[PersonA alloc] init];
-//        pa-&gt;_name = @&quot;11&quot;;
-//        NSLog(@&quot;%@&quot;, pa-&gt;_name);
-        pa.name = @&quot;11&quot;;
-        [pa test];
-
-
-
-
-
-//        NSString *str1 = [[NSString alloc] initWithString:@&quot;The string&quot;];
-//        NSString *str2 = [NSString stringWithString:@&quot;The string&quot;];
-//        NSString *str3 = @&quot;The string&quot;;
-//        NSString *str4 = [NSString stringWithFormat:@&quot;string&quot;];
-//        NSString *str5 = str4;
-//        Method method = class_getInstanceMethod([PersonA class], @selector(doSomethingHiddly));
-
-        NSLog(@&quot;---&quot;);
-        NSString *aaa = @&quot;1234567890-&quot;;
-        NSString *bbb = @&quot;1234567890-&quot;;
-        bbb = @&quot;&quot;;
-
-        NSLog(@&quot;%d&quot;, aaa == bbb);
-        NSLog(@&quot;%d&quot;, [aaa isEqual:bbb]);
-        NSLog(@&quot;%d&quot;, [aaa isEqualToString:bbb]);
-        NSLog(@&quot;%d&quot;, aaa == @&quot;1234567890-&quot;);
-</code></pre>
+<p>在 Obj-C 中，我们通常将</p>
 
   </div>
   
