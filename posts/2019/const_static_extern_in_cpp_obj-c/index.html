@@ -525,9 +525,31 @@ int main()
 
 <h2 id="extern"><code>extern</code></h2>
 
-<p>在软件工程中，我们几乎很少会只使用到一个源文件，而编译通常是针对每个文件进行单独编译为目标文件，并在链接阶段进行链接，最终成为可执行文件。因此在一个文件中需要使用到其他文件中变量时，我们需要使用 <code>extern</code> 来告知编译器最终将存在这个变量，允许编译通过。</p>
+<p>在软件工程中，我们几乎很少会只使用到一个源文件，而编译通常是针对每个文件进行单独编译为目标文件，并在链接阶段进行链接，最终成为可执行文件。因此在一个文件中需要使用到其他文件中变量时，我们需要使用 <code>extern</code> 来告知编译器在全局符号表中存在该符号，允许编译通过。</p>
 
-<p>在 Obj-C 中，我们通常将</p>
+<pre><code class="language-objectivec">// A.m
+NSString *const Foo = @&quot;Foo&quot;;
+
+// main.m
+extern NSString const * Foo;
+
+int main(int argc, const char * argv[]) {
+    @autoreleasepool {
+        NSLog(@&quot;%@&quot;, Foo); // Foo
+    }
+}
+</code></pre>
+
+<p>而如果我们使用了实际不存在但 <code>extern</code> 的变量，将会在编译时出现错误：</p>
+
+<pre><code>Undefined symbols for architecture x86_64:
+  &quot;_Foo&quot;, referenced from:
+      _main in main.o
+ld: symbol(s) not found for architecture x86_64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+</code></pre>
+
+<p>在 Obj-C 中，我们通常将常量声明在实现（.m）文件中，在对应的头（.h）文件中 <code>extern</code>，其他文件需要访问这些常量时，即可通过引入该头文件即可。</p>
 
   </div>
   
