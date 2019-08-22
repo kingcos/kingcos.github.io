@@ -2,14 +2,13 @@
 <html lang="en">
 <head>
   
-    <title>objc_msgSend :: iBlog</title>
+    <title>浅尝 objc_msgSend :: iBlog</title>
   
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-08-20 整理结构，未完待续 -    Preface 了解 iOS 开发的同学都知道，Obj-C 中方法调用的本质其实是消息发送，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而发送消息本质就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
-Where 在开始之前，可能有人会问，为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？哪里可以证明呢？
-我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
-#import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar { } @end @interface ViewController () @end @implementation ViewController - (void)viewDidLoad { [super viewDidLoad]; } - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; // 断点打在下一行 ⬇️ [foo bar]; } @end  我们将断点打在 [foo bar]; 一行，选择真机运行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可跳转到如下图界面："/>
+<meta name="description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-08-20 整理结构，未完待续 -    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送本质就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
+Where 为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
+#import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar {} @end @interface ViewController () @end @implementation ViewController - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; [foo bar]; // 🔴 Breakpoint } @end  我们将断点打在 [foo bar]; 一行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可最终跳转到 objc_msgSend："/>
 <meta name="keywords" content=""/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2019/objc_msgsend/" />
@@ -31,11 +30,10 @@ Where 在开始之前，可能有人会问，为什么 Obj-C 中方法调用的�
 
 
 <meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="objc_msgSend :: iBlog — " />
-<meta name="twitter:description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-08-20 整理结构，未完待续 -    Preface 了解 iOS 开发的同学都知道，Obj-C 中方法调用的本质其实是消息发送，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而发送消息本质就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
-Where 在开始之前，可能有人会问，为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？哪里可以证明呢？
-我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
-#import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar { } @end @interface ViewController () @end @implementation ViewController - (void)viewDidLoad { [super viewDidLoad]; } - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; // 断点打在下一行 ⬇️ [foo bar]; } @end  我们将断点打在 [foo bar]; 一行，选择真机运行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可跳转到如下图界面：" />
+<meta name="twitter:title" content="浅尝 objc_msgSend :: iBlog — " />
+<meta name="twitter:description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-08-20 整理结构，未完待续 -    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送本质就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
+Where 为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
+#import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar {} @end @interface ViewController () @end @implementation ViewController - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; [foo bar]; // 🔴 Breakpoint } @end  我们将断点打在 [foo bar]; 一行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可最终跳转到 objc_msgSend：" />
 <meta name="twitter:site" content="/" />
 <meta name="twitter:creator" content="" />
 <meta name="twitter:image" content="">
@@ -43,13 +41,12 @@ Where 在开始之前，可能有人会问，为什么 Obj-C 中方法调用的�
 
 <meta property="og:locale" content="en" />
 <meta property="og:type" content="article" />
-<meta property="og:title" content="objc_msgSend :: iBlog — ">
-<meta property="og:description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-08-20 整理结构，未完待续 -    Preface 了解 iOS 开发的同学都知道，Obj-C 中方法调用的本质其实是消息发送，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而发送消息本质就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
-Where 在开始之前，可能有人会问，为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？哪里可以证明呢？
-我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
-#import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar { } @end @interface ViewController () @end @implementation ViewController - (void)viewDidLoad { [super viewDidLoad]; } - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; // 断点打在下一行 ⬇️ [foo bar]; } @end  我们将断点打在 [foo bar]; 一行，选择真机运行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可跳转到如下图界面：" />
+<meta property="og:title" content="浅尝 objc_msgSend :: iBlog — ">
+<meta property="og:description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-08-20 整理结构，未完待续 -    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送本质就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
+Where 为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
+#import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar {} @end @interface ViewController () @end @implementation ViewController - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; [foo bar]; // 🔴 Breakpoint } @end  我们将断点打在 [foo bar]; 一行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可最终跳转到 objc_msgSend：" />
 <meta property="og:url" content="/posts/2019/objc_msgsend/" />
-<meta property="og:site_name" content="objc_msgSend" />
+<meta property="og:site_name" content="浅尝 objc_msgSend" />
 <meta property="og:image" content="">
 <meta property="og:image:width" content="2048">
 <meta property="og:image:height" content="1024">
@@ -154,7 +151,7 @@ if (!doNotTrack) {
     
 <div class="post">
   <h1 class="post-title">
-    <a href="/posts/2019/objc_msgsend/">objc_msgSend</a></h1>
+    <a href="/posts/2019/objc_msgsend/">浅尝 objc_msgSend</a></h1>
   <div class="post-meta">
     <span class="post-date">
       2019-07-20
@@ -209,13 +206,11 @@ if (!doNotTrack) {
 
 <h2 id="preface">Preface</h2>
 
-<p>了解 iOS 开发的同学都知道，Obj-C 中方法调用的本质其实是消息发送，即 <code>[foo bar]</code> 是向 <code>foo</code> 对象发送一条 <code>bar</code> 的消息，而发送消息本质就是通过 <code>objc_msgSend</code> 所进行的。那么这次本文就简单窥探一下 <code>objc_msgSend</code> 吧。</p>
+<p>Obj-C 中方法调用的本质是消息发送机制，即 <code>[foo bar]</code> 是向 <code>foo</code> 对象发送一条 <code>bar</code> 的消息，而消息发送本质就是通过 <code>objc_msgSend</code> 所进行的。那么这次本文就简单窥探一下 <code>objc_msgSend</code> 吧。</p>
 
 <h2 id="where">Where</h2>
 
-<p>在开始之前，可能有人会问，为什么 Obj-C 中方法调用的本质是 <code>objc_msgSend</code> 呢？哪里可以证明呢？</p>
-
-<p>我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：</p>
+<p>为什么 Obj-C 中方法调用的本质是 <code>objc_msgSend</code> 呢？我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：</p>
 
 <pre><code class="language-objectivec">#import &quot;ViewController.h&quot;
 
@@ -224,11 +219,7 @@ if (!doNotTrack) {
 @end
 
 @implementation Foo
-
-- (void)bar {
-
-}
-
+- (void)bar {}
 @end
 
 @interface ViewController ()
@@ -236,37 +227,39 @@ if (!doNotTrack) {
 
 @implementation ViewController
 
-- (void)viewDidLoad {
-    [super viewDidLoad];
-}
-
 - (IBAction)clickOnButton:(UIButton *)sender {
     Foo *foo = [[Foo alloc] init];
 
-    // 断点打在下一行 ⬇️
-    [foo bar];
+    [foo bar]; // 🔴 Breakpoint
 }
 
 @end
 </code></pre>
 
-<p>我们将断点打在 <code>[foo bar];</code> 一行，选择真机运行，启动程序并点击按钮。在 Xcode 的控制台多次输入 <code>si</code>（Step Into）即可跳转到如下图界面：</p>
+<p>我们将断点打在 <code>[foo bar];</code> 一行，启动程序并点击按钮。在 Xcode 的控制台多次输入 <code>si</code>（Step Into）即可最终跳转到 <code>objc_msgSend</code>：</p>
 
 <p><img src="/img/2019/objc_msgsend/3.png" alt="3" /></p>
 
-<p>如图中红框所示，Obj-C 中调用方法最终将走到 <code>objc_msgSend</code>。图中的汇编代码也正是我们下文所即将分析的。</p>
+<p>因此 Obj-C 中方法调用的本质即 <code>objc_msgSend</code>。</p>
 
-<h2 id="what">What</h2>
+<h2 id="steps">Steps</h2>
 
-<p><code>objc_msgSend</code> 将对象和方法选择器作为参数传入（方法本身的参数在最后传入），查找并跳转到方法的函数指针。</p>
+<p><code>objc_msgSend</code> 的执行总共分为消息发送、动态方法解析、以及消息转发三大部分。</p>
+
+<h3 id="消息发送">消息发送</h3>
+
+<p><code>objc_msgSend</code> 中的第一个部分是消息发送部分，即对消息接收者发送一条方法消息，当接收者可以处理消息时将执行相应的方法，无法处理时则进入下一步骤。</p>
+
+<p>而在 Apple 开源的 objc4 源码中，我们只能在「message.h」中找到 <code>objc_msgSend</code> 的声明：</p>
 
 <pre><code class="language-c">// message.h
+
 /**
  * Sends a message with a simple return value to an instance of a class.
  * 发送一个带有简易返回值的消息到一个类的实例。
  *
  * @param self A pointer to the instance of the class that is to receive the message.
- *             指向要接收消息的实例的指针。
+ *             指向接收消息者实例的指针。
  * @param op The selector of the method that handles the message.
  *           处理消息的选择器。
  * @param ...
@@ -281,9 +274,9 @@ if (!doNotTrack) {
  *  Messages sent to an object’s superclass (using the \c super keyword) are sent using \c objc_msgSendSuper;
  *  other messages are sent using \c objc_msgSend. Methods that have data structures as return values
  *  are sent using \c objc_msgSendSuper_stret and \c objc_msgSend_stret.
- * 当遇到方法调用时，编译器会生成对 objc_msgSend、objc_msgSend_stret、objc_msgSendSuper、objc_msgSendSuper_stret 其中之一的调用。
- * 消息发送到对象的父类（使用 super 关键字）通过 objc_msgSendSuper 发送；其它消息则通过 objc_msgSend 发送。
- * 返回值为数据结构体的消息通过 objc_msgSendSuper_stret 或 objc_msgSend_stret 发送。
+ * 注意：当遇到方法调用时，编译器会生成对 objc_msgSend、objc_msgSend_stret、objc_msgSendSuper、objc_msgSendSuper_stret 四个函数之一的调用。
+ * 到达对象父类（使用 super 关键字）的消息通过 objc_msgSendSuper 发送；其它消息则通过 objc_msgSend 发送。
+ * 返回值为结构体的消息通过 objc_msgSendSuper_stret 或 objc_msgSend_stret 发送。
  *
  */
 OBJC_EXPORT id _Nullable
@@ -291,20 +284,16 @@ objc_msgSend(id _Nullable self, SEL _Nonnull op, ...)
     OBJC_AVAILABLE(10.0, 2.0, 9.0, 1.0, 2.0);
 </code></pre>
 
-<p><code>objc_msgSend</code> 是 Obj-C 的核心，关系着每一个方法消息的发送，官方将其针对不同架构的代码开源在 objc4-750.1 中（如下图）。</p>
+<p>这里的 <code>objc_msgSend</code> 将消息接收者（即对象）作为第一个参数，将方法选择器作为第二个参数，并将方法的参数追加在参数列表的最后。那么方法的具体实现在哪里呢？其实 <code>objc_msgSend</code> 是由汇编语言编写的，原因有两点，<strong>一是在 C 语言中编写一个保存未知参数且支持跳转到任一函数指针处的函数是无法实现的（引自 <a href="https://www.mikeash.com/pyblog/friday-qa-2017-06-30-dissecting-objc_msgsend-on-arm64.html">Dissecting objc_msgSend on ARM64 - Mike Ash</a>）</strong>；<strong>二是对性能的极致追求，使用汇编便于优化每一条指令的速度</strong>。</p>
 
 <p><img src="/img/2019/objc_msgsend/1.png" alt="1" /></p>
 
-<p>我们可以看到这里的 <code>objc_msgSend</code> 是由汇编语言编写的，原因有两点，一是在 C 语言中编写一个保存未知参数且支持跳转到任一函数指针处的函数是无法实现的；二是其需要对性能的极致追求，因此使用汇编便于优化每一条指令的速度。</p>
-
-<h2 id="how">How</h2>
-
-<p>在分析 <code>objc_msgSend</code> 前，我们首先要知道 Obj-C 的消息发送本质属于动态绑定，而非 C 语言常用的静态绑定。动态绑定意味着只有在运行时才能确定真正被调用的函数，而静态绑定在编译时即可确定（不考虑内联函数的前提下），编译器会直接生成调用函数的指令，函数地址就被硬编码在指令当中。</p>
+<p>在分析 <code>objc_msgSend</code> 前，我们首先要知道 Obj-C 的消息发送本质属于<strong>动态绑定（Dynamic Binding）</strong>，而非 C 语言常用的静态绑定。动态绑定意味着只有在运行时才能确定真正被调用的函数；而静态绑定在编译时即可确定（不考虑内联函数的前提下），编译器会直接生成调用函数的指令，函数地址就被硬编码在指令当中。</p>
 
 <blockquote>
-<p><strong>内联（Inline）函数</strong></p>
+<p><strong>Tips - 内联（Inline）函数</strong></p>
 
-<p>建议（「建议」即具体是否进行内联需要看编译器本身）编译器对函数进行内联扩展，即建议编译器将指定的函数体直接插入到每一处调用该函数的地方。</p>
+<p>建议（「建议」指具体是否进行内联需要看编译器本身）编译器对函数进行内联扩展，即建议编译器将指定的函数体直接插入到每一处调用该函数的地方。</p>
 </blockquote>
 
 <p>因此对于动态绑定的语言来说，其方法查找的速度一定是慢于静态绑定的。Obj-C 会将方法查找的结果缓存在一个快速映射表中（Fast Map），当后续发送同样的消息时即可得到更快得执行。根据这个快慢，消息发送的代码被分为两个部分：其一是快速路径（Fast Path），这一部分由汇编语言实现；其二是慢速路径（Slow Path），由 C 语言实现。当没有缓存时，将调用 C 语言代码来处理。</p>
