@@ -6,8 +6,9 @@
   
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-08-20 整理结构，未完待续 -    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送本质就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
-Where 为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
+<meta name="description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-08-20 整理结构，未完待续 -    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
+Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？
+我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
 #import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar {} @end @interface ViewController () @end @implementation ViewController - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; [foo bar]; // 🔴 Breakpoint } @end  我们将断点打在 [foo bar]; 一行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可最终跳转到 objc_msgSend："/>
 <meta name="keywords" content=""/>
 <meta name="robots" content="noodp"/>
@@ -31,8 +32,9 @@ Where 为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？我们创�
 
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="浅尝 objc_msgSend :: iBlog — " />
-<meta name="twitter:description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-08-20 整理结构，未完待续 -    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送本质就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
-Where 为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
+<meta name="twitter:description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-08-20 整理结构，未完待续 -    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
+Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？
+我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
 #import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar {} @end @interface ViewController () @end @implementation ViewController - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; [foo bar]; // 🔴 Breakpoint } @end  我们将断点打在 [foo bar]; 一行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可最终跳转到 objc_msgSend：" />
 <meta name="twitter:site" content="/" />
 <meta name="twitter:creator" content="" />
@@ -42,8 +44,9 @@ Where 为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？我们创�
 <meta property="og:locale" content="en" />
 <meta property="og:type" content="article" />
 <meta property="og:title" content="浅尝 objc_msgSend :: iBlog — ">
-<meta property="og:description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-08-20 整理结构，未完待续 -    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送本质就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
-Where 为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
+<meta property="og:description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-08-20 整理结构，未完待续 -    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
+Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？
+我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
 #import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar {} @end @interface ViewController () @end @implementation ViewController - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; [foo bar]; // 🔴 Breakpoint } @end  我们将断点打在 [foo bar]; 一行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可最终跳转到 objc_msgSend：" />
 <meta property="og:url" content="/posts/2019/objc_msgsend/" />
 <meta property="og:site_name" content="浅尝 objc_msgSend" />
@@ -206,11 +209,13 @@ if (!doNotTrack) {
 
 <h2 id="preface">Preface</h2>
 
-<p>Obj-C 中方法调用的本质是消息发送机制，即 <code>[foo bar]</code> 是向 <code>foo</code> 对象发送一条 <code>bar</code> 的消息，而消息发送本质就是通过 <code>objc_msgSend</code> 所进行的。那么这次本文就简单窥探一下 <code>objc_msgSend</code> 吧。</p>
+<p>Obj-C 中方法调用的本质是消息发送机制，即 <code>[foo bar]</code> 是向 <code>foo</code> 对象发送一条 <code>bar</code> 的消息，而消息发送就是通过 <code>objc_msgSend</code> 所进行的。那么这次本文就简单窥探一下 <code>objc_msgSend</code> 吧。</p>
 
-<h2 id="where">Where</h2>
+<h2 id="why">Why</h2>
 
-<p>为什么 Obj-C 中方法调用的本质是 <code>objc_msgSend</code> 呢？我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：</p>
+<p>在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是 <code>objc_msgSend</code> 呢？</p>
+
+<p>我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：</p>
 
 <pre><code class="language-objectivec">#import &quot;ViewController.h&quot;
 
@@ -240,17 +245,27 @@ if (!doNotTrack) {
 
 <p><img src="/img/2019/objc_msgsend/3.png" alt="3" /></p>
 
-<p>因此 Obj-C 中方法调用的本质即 <code>objc_msgSend</code>。</p>
+<p>或者我们也可以使用 <code>xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc ViewController.m -o foo.cpp</code> 将 Obj-C 翻译为 C/C++ 代码：</p>
+
+<pre><code class="language-objectivec">static void _I_ViewController_clickOnButton_(ViewController * self, SEL _cmd, UIButton *sender) {
+    Foo *foo = ((Foo *(*)(id, SEL))(void *)objc_msgSend)((id)((Foo *(*)(id, SEL))(void *)objc_msgSend)((id)objc_getClass(&quot;Foo&quot;), sel_registerName(&quot;alloc&quot;)), sel_registerName(&quot;init&quot;));
+
+    // objc_msgSend(foo, sel_registerName(&quot;bar&quot;))
+    ((void (*)(id, SEL))(void *)objc_msgSend)((id)foo, sel_registerName(&quot;bar&quot;));
+}
+</code></pre>
+
+<p>综上，我们可以说 Obj-C 中方法调用的本质即是 <code>objc_msgSend</code>。</p>
 
 <h2 id="steps">Steps</h2>
 
-<p><code>objc_msgSend</code> 的执行总共分为消息发送、动态方法解析、以及消息转发三大部分。</p>
+<p><code>objc_msgSend</code> 总共分为消息发送、动态方法解析、以及消息转发三大部分，下面就依次来研究一下。</p>
 
 <h3 id="消息发送">消息发送</h3>
 
-<p><code>objc_msgSend</code> 中的第一个部分是消息发送部分，即对消息接收者发送一条方法消息，当接收者可以处理消息时将执行相应的方法，无法处理时则进入下一步骤。</p>
+<p><code>objc_msgSend</code> 中的第一个部分是消息发送，即对消息接收者发送一条方法消息，当接收者可以处理消息时将执行相应的方法，无法处理时则进入下一步骤。</p>
 
-<p>而在 Apple 开源的 objc4 源码中，我们只能在「message.h」中找到 <code>objc_msgSend</code> 的声明：</p>
+<p>在 Apple 开源的 objc4 源码中，我们似乎只能在「message.h」中找到 <code>objc_msgSend</code> 的声明：</p>
 
 <pre><code class="language-c">// message.h
 
@@ -284,7 +299,7 @@ objc_msgSend(id _Nullable self, SEL _Nonnull op, ...)
     OBJC_AVAILABLE(10.0, 2.0, 9.0, 1.0, 2.0);
 </code></pre>
 
-<p>这里的 <code>objc_msgSend</code> 将消息接收者（即对象）作为第一个参数，将方法选择器作为第二个参数，并将方法的参数追加在参数列表的最后。那么方法的具体实现在哪里呢？其实 <code>objc_msgSend</code> 是由汇编语言编写的，原因有两点，<strong>一是在 C 语言中编写一个保存未知参数且支持跳转到任一函数指针处的函数是无法实现的（引自 <a href="https://www.mikeash.com/pyblog/friday-qa-2017-06-30-dissecting-objc_msgsend-on-arm64.html">Dissecting objc_msgSend on ARM64 - Mike Ash</a>）</strong>；<strong>二是对性能的极致追求，使用汇编便于优化每一条指令的速度</strong>。</p>
+<p>这里 <code>objc_msgSend</code> 将消息接收者（即对象）作为第一个参数，将消息（即方法选择器）作为第二个参数，并将方法的参数追加在参数列表的最后。那么方法的具体实现在哪里呢？其实 <code>objc_msgSend</code> 是由汇编语言编写的，原因有两点：<strong>一是对性能的极致追求，每一条汇编指令都对应一条机器指令，使用汇编便于针对不同架构的 CPU 优化每一条指令的速度</strong>；<strong>二是 C 语言无法实现一个保存未知参数且支持跳转到任一函数指针处的函数（引自 <a href="https://www.mikeash.com/pyblog/friday-qa-2017-06-30-dissecting-objc_msgsend-on-arm64.html">Dissecting objc_msgSend on ARM64 - Mike Ash</a>）</strong>。</p>
 
 <p><img src="/img/2019/objc_msgsend/1.png" alt="1" /></p>
 
@@ -293,567 +308,47 @@ objc_msgSend(id _Nullable self, SEL _Nonnull op, ...)
 <blockquote>
 <p><strong>Tips - 内联（Inline）函数</strong></p>
 
-<p>建议（「建议」指具体是否进行内联需要看编译器本身）编译器对函数进行内联扩展，即建议编译器将指定的函数体直接插入到每一处调用该函数的地方。</p>
+<p>建议编译器对函数进行内联扩展，即建议编译器将指定的函数体直接插入到每一处调用该函数的地方（注：「建议」指具体是否进行内联需要看编译器本身）。</p>
 </blockquote>
 
 <p>因此对于动态绑定的语言来说，其方法查找的速度一定是慢于静态绑定的。Obj-C 会将方法查找的结果缓存在一个快速映射表中（Fast Map），当后续发送同样的消息时即可得到更快得执行。根据这个快慢，消息发送的代码被分为两个部分：其一是快速路径（Fast Path），这一部分由汇编语言实现；其二是慢速路径（Slow Path），由 C 语言实现。当没有缓存时，将调用 C 语言代码来处理。</p>
 
-<p>Talk is cheap, show me the code! 而由于代码的跳转很难直接在代码中标注，我将其核心流程抽象为下图，由于原图较大，可根据需要放大来看：</p>
+<p>由于代码的跳转很难直接在代码中标注，我将其核心流程抽象为下图，由于原图较大，可根据需要放大来看：</p>
 
-<p><img src="/img/2019/objc_msgsend/2.png" alt="2" /></p>
+<p>当然，源码还是有些枯燥，不过我们可以尝试分析以下几个特定的用例。</p>
 
-<p><details>
-<summary>-&gt; 点击此处即可查看「objc-msg-arm64.s」完整内容 &lt;-</summary></p>
+<h4 id="当接收者为-nil-时">当接收者为 <code>nil</code> 时</h4>
 
-<pre><code class="language-asm">// objc-msg-arm64.s
+<p>当接收者为 <code>nil</code> 时，即 <code>[foo bar]</code> 中的 <code>foo</code> 为 <code>nil</code>：</p>
 
-/********************************************************************
- *
- *  objc-msg-arm64.s - ARM64 code to support objc messaging
- *
- ********************************************************************/
+<pre><code class="language-objectivec">- (IBAction)clickOnButton:(UIButton *)sender {
+    Foo *foo = [[Foo alloc] init];
 
-#ifdef __arm64__
-
-#include &lt;arm/arch.h&gt;
-#include &quot;isa.h&quot;
-#include &quot;arm64-asm.h&quot;
-
-.data
-
-// _objc_entryPoints and _objc_exitPoints are used by method dispatch
-// caching code to figure out whether any threads are actively
-// in the cache for dispatching.  The labels surround the asm code
-// that do cache lookups.  The tables are zero-terminated.
-
-.align 4
-.private_extern _objc_entryPoints
-_objc_entryPoints:
-	PTR   _cache_getImp
-	PTR   _objc_msgSend
-	PTR   _objc_msgSendSuper
-	PTR   _objc_msgSendSuper2
-	PTR   _objc_msgLookup
-	PTR   _objc_msgLookupSuper2
-	PTR   0
-
-.private_extern _objc_exitPoints
-_objc_exitPoints:
-	PTR   LExit_cache_getImp
-	PTR   LExit_objc_msgSend
-	PTR   LExit_objc_msgSendSuper
-	PTR   LExit_objc_msgSendSuper2
-	PTR   LExit_objc_msgLookup
-	PTR   LExit_objc_msgLookupSuper2
-	PTR   0
-
-
-/* objc_super parameter to sendSuper */
-#define RECEIVER         0
-#define CLASS            __SIZEOF_POINTER__
-
-/* Selected field offsets in class structure */
-#define SUPERCLASS       __SIZEOF_POINTER__
-#define CACHE            (2 * __SIZEOF_POINTER__)
-
-/* Selected field offsets in method structure */
-#define METHOD_NAME      0
-#define METHOD_TYPES     __SIZEOF_POINTER__
-#define METHOD_IMP       (2 * __SIZEOF_POINTER__)
-
-#define BUCKET_SIZE      (2 * __SIZEOF_POINTER__)
-
-
-/********************************************************************
- * GetClassFromIsa_p16 src
- * src is a raw isa field. Sets p16 to the corresponding class pointer.
- * The raw isa might be an indexed isa to be decoded, or a
- * packed isa that needs to be masked.
- *
- * On exit:
- *   $0 is unchanged
- *   p16 is a class pointer
- *   x10 is clobbered
- ********************************************************************/
-
-#if SUPPORT_INDEXED_ISA
-	.align 3
-	.globl _objc_indexed_classes
-_objc_indexed_classes:
-	.fill ISA_INDEX_COUNT, PTRSIZE, 0
-#endif
-
-.macro GetClassFromIsa_p16 /* src */
-
-#if SUPPORT_INDEXED_ISA
-	// Indexed isa
-	mov	p16, $0			// optimistically set dst = src
-	tbz	p16, #ISA_INDEX_IS_NPI_BIT, 1f	// done if not non-pointer isa
-	// isa in p16 is indexed
-	adrp	x10, _objc_indexed_classes@PAGE
-	add	x10, x10, _objc_indexed_classes@PAGEOFF
-	ubfx	p16, p16, #ISA_INDEX_SHIFT, #ISA_INDEX_BITS  // extract index
-	ldr	p16, [x10, p16, UXTP #PTRSHIFT]	// load class from array
-1:
-
-#elif __LP64__
-	// 64-bit packed isa
-	and	p16, $0, #ISA_MASK
-
-#else
-	// 32-bit raw isa
-	mov	p16, $0
-
-#endif
-
-.endmacro
-
-
-/********************************************************************
- * ENTRY functionName
- * STATIC_ENTRY functionName
- * END_ENTRY functionName
- ********************************************************************/
-
-.macro ENTRY /* name */
-	.text
-	.align 5
-	.globl    $0
-$0:
-.endmacro
-
-.macro STATIC_ENTRY /*name*/
-	.text
-	.align 5
-	.private_extern $0
-$0:
-.endmacro
-
-.macro END_ENTRY /* name */
-LExit$0:
-.endmacro
-
-
-/********************************************************************
- * UNWIND name, flags
- * Unwind info generation
- ********************************************************************/
-.macro UNWIND
-	.section __LD,__compact_unwind,regular,debug
-	PTR $0
-	.set  LUnwind$0, LExit$0 - $0
-	.long LUnwind$0
-	.long $1
-	PTR 0	 /* no personality */
-	PTR 0  /* no LSDA */
-	.text
-.endmacro
-
-#define NoFrame 0x02000000  // no frame, no SP adjustment
-#define FrameWithNoSaves 0x04000000  // frame, no non-volatile saves
-
-
-/********************************************************************
- *
- * CacheLookup NORMAL|GETIMP|LOOKUP
- *
- * Locate the implementation for a selector in a class method cache.
- *
- * Takes:
- *	 x1 = selector
- *	 x16 = class to be searched
- *
- * Kills:
- * 	 x9,x10,x11,x12, x17
- *
- * On exit: (found) calls or returns IMP
- *                  with x16 = class, x17 = IMP
- *          (not found) jumps to LCacheMiss
- *
- ********************************************************************/
-
-#define NORMAL 0
-#define GETIMP 1
-#define LOOKUP 2
-
-// CacheHit: x17 = cached IMP, x12 = address of cached IMP
-.macro CacheHit
-.if $0 == NORMAL
-	TailCallCachedImp x17, x12	// authenticate and call imp
-.elseif $0 == GETIMP
-	mov	p0, p17
-	AuthAndResignAsIMP x0, x12	// authenticate imp and re-sign as IMP
-	ret				// return IMP
-.elseif $0 == LOOKUP
-	AuthAndResignAsIMP x17, x12	// authenticate imp and re-sign as IMP
-	ret				// return imp via x17
-.else
-.abort oops
-.endif
-.endmacro
-
-.macro CheckMiss
-	// miss if bucket-&gt;sel == 0
-.if $0 == GETIMP
-	cbz	p9, LGetImpMiss
-.elseif $0 == NORMAL
-	cbz	p9, __objc_msgSend_uncached
-.elseif $0 == LOOKUP
-	cbz	p9, __objc_msgLookup_uncached
-.else
-.abort oops
-.endif
-.endmacro
-
-.macro JumpMiss
-.if $0 == GETIMP
-	b	LGetImpMiss
-.elseif $0 == NORMAL
-	b	__objc_msgSend_uncached
-.elseif $0 == LOOKUP
-	b	__objc_msgLookup_uncached
-.else
-.abort oops
-.endif
-.endmacro
-
-.macro CacheLookup
-	// p1 = SEL, p16 = isa
-	ldp	p10, p11, [x16, #CACHE]	// p10 = buckets, p11 = occupied|mask
-#if !__LP64__
-	and	w11, w11, 0xffff	// p11 = mask
-#endif
-	and	w12, w1, w11		// x12 = _cmd &amp; mask
-	add	p12, p10, p12, LSL #(1+PTRSHIFT)
-		             // p12 = buckets + ((_cmd &amp; mask) &lt;&lt; (1+PTRSHIFT))
-
-	ldp	p17, p9, [x12]		// {imp, sel} = *bucket
-1:	cmp	p9, p1			// if (bucket-&gt;sel != _cmd)
-	b.ne	2f			//     scan more
-	CacheHit $0			// call or return imp
-
-2:	// not hit: p12 = not-hit bucket
-	CheckMiss $0			// miss if bucket-&gt;sel == 0
-	cmp	p12, p10		// wrap if bucket == buckets
-	b.eq	3f
-	ldp	p17, p9, [x12, #-BUCKET_SIZE]!	// {imp, sel} = *--bucket
-	b	1b			// loop
-
-3:	// wrap: p12 = first bucket, w11 = mask
-	add	p12, p12, w11, UXTW #(1+PTRSHIFT)
-		                        // p12 = buckets + (mask &lt;&lt; 1+PTRSHIFT)
-
-	// Clone scanning loop to miss instead of hang when cache is corrupt.
-	// The slow path may detect any corruption and halt later.
-
-	ldp	p17, p9, [x12]		// {imp, sel} = *bucket
-1:	cmp	p9, p1			// if (bucket-&gt;sel != _cmd)
-	b.ne	2f			//     scan more
-	CacheHit $0			// call or return imp
-
-2:	// not hit: p12 = not-hit bucket
-	CheckMiss $0			// miss if bucket-&gt;sel == 0
-	cmp	p12, p10		// wrap if bucket == buckets
-	b.eq	3f
-	ldp	p17, p9, [x12, #-BUCKET_SIZE]!	// {imp, sel} = *--bucket
-	b	1b			// loop
-
-3:	// double wrap
-	JumpMiss $0
-
-.endmacro
-
-
-/********************************************************************
- *
- * id objc_msgSend(id self, SEL _cmd, ...);
- * IMP objc_msgLookup(id self, SEL _cmd, ...);
- *
- * objc_msgLookup ABI:
- * IMP returned in x17
- * x16 reserved for our use but not used
- *
- ********************************************************************/
-
-#if SUPPORT_TAGGED_POINTERS
-	.data
-	.align 3
-	.globl _objc_debug_taggedpointer_classes
-_objc_debug_taggedpointer_classes:
-	.fill 16, 8, 0
-	.globl _objc_debug_taggedpointer_ext_classes
-_objc_debug_taggedpointer_ext_classes:
-	.fill 256, 8, 0
-#endif
-
-	ENTRY _objc_msgSend
-	UNWIND _objc_msgSend, NoFrame
-
-	cmp	p0, #0			// nil check and tagged pointer check
-#if SUPPORT_TAGGED_POINTERS
-	b.le	LNilOrTagged		//  (MSB tagged pointer looks negative)
-#else
-	b.eq	LReturnZero
-#endif
-	ldr	p13, [x0]		// p13 = isa
-	GetClassFromIsa_p16 p13		// p16 = class
-LGetIsaDone:
-	CacheLookup NORMAL		// calls imp or objc_msgSend_uncached
-
-#if SUPPORT_TAGGED_POINTERS
-LNilOrTagged:
-	b.eq	LReturnZero		// nil check
-
-	// tagged
-	adrp	x10, _objc_debug_taggedpointer_classes@PAGE
-	add	x10, x10, _objc_debug_taggedpointer_classes@PAGEOFF
-	ubfx	x11, x0, #60, #4
-	ldr	x16, [x10, x11, LSL #3]
-	adrp	x10, _OBJC_CLASS_$___NSUnrecognizedTaggedPointer@PAGE
-	add	x10, x10, _OBJC_CLASS_$___NSUnrecognizedTaggedPointer@PAGEOFF
-	cmp	x10, x16
-	b.ne	LGetIsaDone
-
-	// ext tagged
-	adrp	x10, _objc_debug_taggedpointer_ext_classes@PAGE
-	add	x10, x10, _objc_debug_taggedpointer_ext_classes@PAGEOFF
-	ubfx	x11, x0, #52, #8
-	ldr	x16, [x10, x11, LSL #3]
-	b	LGetIsaDone
-// SUPPORT_TAGGED_POINTERS
-#endif
-
-LReturnZero:
-	// x0 is already zero
-	mov	x1, #0
-	movi	d0, #0
-	movi	d1, #0
-	movi	d2, #0
-	movi	d3, #0
-	ret
-
-	END_ENTRY _objc_msgSend
-
-
-	ENTRY _objc_msgLookup
-	UNWIND _objc_msgLookup, NoFrame
-	cmp	p0, #0			// nil check and tagged pointer check
-#if SUPPORT_TAGGED_POINTERS
-	b.le	LLookup_NilOrTagged	//  (MSB tagged pointer looks negative)
-#else
-	b.eq	LLookup_Nil
-#endif
-	ldr	p13, [x0]		// p13 = isa
-	GetClassFromIsa_p16 p13		// p16 = class
-LLookup_GetIsaDone:
-	CacheLookup LOOKUP		// returns imp
-
-#if SUPPORT_TAGGED_POINTERS
-LLookup_NilOrTagged:
-	b.eq	LLookup_Nil	// nil check
-
-	// tagged
-	mov	x10, #0xf000000000000000
-	cmp	x0, x10
-	b.hs	LLookup_ExtTag
-	adrp	x10, _objc_debug_taggedpointer_classes@PAGE
-	add	x10, x10, _objc_debug_taggedpointer_classes@PAGEOFF
-	ubfx	x11, x0, #60, #4
-	ldr	x16, [x10, x11, LSL #3]
-	b	LLookup_GetIsaDone
-
-LLookup_ExtTag:
-	adrp	x10, _objc_debug_taggedpointer_ext_classes@PAGE
-	add	x10, x10, _objc_debug_taggedpointer_ext_classes@PAGEOFF
-	ubfx	x11, x0, #52, #8
-	ldr	x16, [x10, x11, LSL #3]
-	b	LLookup_GetIsaDone
-// SUPPORT_TAGGED_POINTERS
-#endif
-
-LLookup_Nil:
-	adrp	x17, __objc_msgNil@PAGE
-	add	x17, x17, __objc_msgNil@PAGEOFF
-	ret
-
-	END_ENTRY _objc_msgLookup
-
-
-	STATIC_ENTRY __objc_msgNil
-
-	// x0 is already zero
-	mov	x1, #0
-	movi	d0, #0
-	movi	d1, #0
-	movi	d2, #0
-	movi	d3, #0
-	ret
-
-	END_ENTRY __objc_msgNil
-
-
-	ENTRY _objc_msgSendSuper
-	UNWIND _objc_msgSendSuper, NoFrame
-
-	ldp	p0, p16, [x0]		// p0 = real receiver, p16 = class
-	CacheLookup NORMAL		// calls imp or objc_msgSend_uncached
-
-	END_ENTRY _objc_msgSendSuper
-
-	// no _objc_msgLookupSuper
-
-	ENTRY _objc_msgSendSuper2
-	UNWIND _objc_msgSendSuper2, NoFrame
-
-	ldp	p0, p16, [x0]		// p0 = real receiver, p16 = class
-	ldr	p16, [x16, #SUPERCLASS]	// p16 = class-&gt;superclass
-	CacheLookup NORMAL
-
-	END_ENTRY _objc_msgSendSuper2
-
-
-	ENTRY _objc_msgLookupSuper2
-	UNWIND _objc_msgLookupSuper2, NoFrame
-
-	ldp	p0, p16, [x0]		// p0 = real receiver, p16 = class
-	ldr	p16, [x16, #SUPERCLASS]	// p16 = class-&gt;superclass
-	CacheLookup LOOKUP
-
-	END_ENTRY _objc_msgLookupSuper2
-
-
-.macro MethodTableLookup
-
-	// push frame
-	SignLR
-	stp	fp, lr, [sp, #-16]!
-	mov	fp, sp
-
-	// save parameter registers: x0..x8, q0..q7
-	sub	sp, sp, #(10*8 + 8*16)
-	stp	q0, q1, [sp, #(0*16)]
-	stp	q2, q3, [sp, #(2*16)]
-	stp	q4, q5, [sp, #(4*16)]
-	stp	q6, q7, [sp, #(6*16)]
-	stp	x0, x1, [sp, #(8*16+0*8)]
-	stp	x2, x3, [sp, #(8*16+2*8)]
-	stp	x4, x5, [sp, #(8*16+4*8)]
-	stp	x6, x7, [sp, #(8*16+6*8)]
-	str	x8,     [sp, #(8*16+8*8)]
-
-	// receiver and selector already in x0 and x1
-	mov	x2, x16
-	bl	__class_lookupMethodAndLoadCache3
-
-	// IMP in x0
-	mov	x17, x0
-
-	// restore registers and return
-	ldp	q0, q1, [sp, #(0*16)]
-	ldp	q2, q3, [sp, #(2*16)]
-	ldp	q4, q5, [sp, #(4*16)]
-	ldp	q6, q7, [sp, #(6*16)]
-	ldp	x0, x1, [sp, #(8*16+0*8)]
-	ldp	x2, x3, [sp, #(8*16+2*8)]
-	ldp	x4, x5, [sp, #(8*16+4*8)]
-	ldp	x6, x7, [sp, #(8*16+6*8)]
-	ldr	x8,     [sp, #(8*16+8*8)]
-
-	mov	sp, fp
-	ldp	fp, lr, [sp], #16
-	AuthenticateLR
-
-.endmacro
-
-	STATIC_ENTRY __objc_msgSend_uncached
-	UNWIND __objc_msgSend_uncached, FrameWithNoSaves
-
-	// THIS IS NOT A CALLABLE C FUNCTION
-	// Out-of-band p16 is the class to search
-
-	MethodTableLookup
-	TailCallFunctionPointer x17
-
-	END_ENTRY __objc_msgSend_uncached
-
-
-	STATIC_ENTRY __objc_msgLookup_uncached
-	UNWIND __objc_msgLookup_uncached, FrameWithNoSaves
-
-	// THIS IS NOT A CALLABLE C FUNCTION
-	// Out-of-band p16 is the class to search
-
-	MethodTableLookup
-	ret
-
-	END_ENTRY __objc_msgLookup_uncached
-
-
-	STATIC_ENTRY _cache_getImp
-
-	GetClassFromIsa_p16 p0
-	CacheLookup GETIMP
-
-LGetImpMiss:
-	mov	p0, #0
-	ret
-
-	END_ENTRY _cache_getImp
-
-
-/********************************************************************
-*
-* id _objc_msgForward(id self, SEL _cmd,...);
-*
-* _objc_msgForward is the externally-callable
-*   function returned by things like method_getImplementation().
-* _objc_msgForward_impcache is the function pointer actually stored in
-*   method caches.
-*
-********************************************************************/
-
-	STATIC_ENTRY __objc_msgForward_impcache
-
-	// No stret specialization.
-	b	__objc_msgForward
-
-	END_ENTRY __objc_msgForward_impcache
-
-
-	ENTRY __objc_msgForward
-
-	adrp	x17, __objc_forward_handler@PAGE
-	ldr	p17, [x17, __objc_forward_handler@PAGEOFF]
-	TailCallFunctionPointer x17
-
-	END_ENTRY __objc_msgForward
-
-
-	ENTRY _objc_msgSend_noarg
-	b	_objc_msgSend
-	END_ENTRY _objc_msgSend_noarg
-
-	ENTRY _objc_msgSend_debug
-	b	_objc_msgSend
-	END_ENTRY _objc_msgSend_debug
-
-	ENTRY _objc_msgSendSuper2_debug
-	b	_objc_msgSendSuper2
-	END_ENTRY _objc_msgSendSuper2_debug
-
-
-	ENTRY _method_invoke
-	// x1 is method triplet instead of SEL
-	add	p16, p1, #METHOD_IMP
-	ldr	p17, [x16]
-	ldr	p1, [x1, #METHOD_NAME]
-	TailCallMethodListImp x17, x16
-	END_ENTRY _method_invoke
-
-#endif
+    // 将接收者置为 nil
+    foo = nil;
+    [foo bar];
+}
 </code></pre>
 
-<p></details></p>
+<p>在 Xcode 中 <code>si</code> 执行即可看到具体的汇编代码跳转：</p>
+
+<pre><code class="language-asm">libobjc.A.dylib`objc_msgSend:
+    0x192bd8180 &lt;+0&gt;:   cmp    x0, #0x0                  ; =0x0
+    0x192bd8184 &lt;+4&gt;:   b.le   0x192bd81f8               ; &lt;+120&gt;
+    ; ...
+    0x192bd81f8 &lt;+120&gt;: b.eq   0x192bd8230               ; &lt;+176&gt;
+    ; ...
+    0x192bd8230 &lt;+176&gt;: mov    x1, #0x0
+    0x192bd8234 &lt;+180&gt;: movi   d0, #0000000000000000
+    0x192bd8238 &lt;+184&gt;: movi   d1, #0000000000000000
+    0x192bd823c &lt;+188&gt;: movi   d2, #0000000000000000
+    0x192bd8240 &lt;+192&gt;: movi   d3, #0000000000000000
+    0x192bd8244 &lt;+196&gt;: ret
+</code></pre>
+
+<p><img src="/img/2019/objc_msgsend/4.png" alt="4" /></p>
+
+<hr />
 
 <p>在理解上面汇编代码的同时，需要了解 Obj-C 中对象内部的 <code>cache_t</code> 即缓存的内部结构：</p>
 

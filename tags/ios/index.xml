@@ -35,6 +35,30 @@ Where // NSObject.h @interface NSObject &amp;lt;NSObject&amp;gt; { #pragma clang
     </item>
     
     <item>
+      <title>Obj-C 中的对象</title>
+      <link>/posts/2019/objects_in_obj-c/</link>
+      <pubDate>Sun, 18 Aug 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2019/objects_in_obj-c/</guid>
+      <description>Date Notes Refer.     2019-03-18 首次提交 objc4-750   2019-08-18 抽离 isa 部分；
+重整文章结构 Obj-C 中的 isa 指针 - kingcos    Preface Obj-C 中的对象分为实例对象（Instance Object）、类对象（Class Object）、以及元类对象（Meta-class Object），本文将深入源码，浅谈这些不同的 Obj-C 对象。对于 isa 详见 Obj-C 中的 isa 指针一文。
+类对象和元类对象的类型均为 Class，即 typedef struct objc_class *Class;，所以它们的结构其实是一致的，只是存放的内容不同。
+这里我们定义一个继承自 NSObject 的 Computer 类，方便后续 Demo。
+// EDdeviceProtocol 协议 @protocol EDdeviceProtocol - (void)powerOn; @end // Computer 类，继承自 NSObject，遵守 EDdeviceProtocol @interface Computer : NSObject &amp;lt;EDdeviceProtocol&amp;gt; { // 成员变量 @public int _memorySize; int _diskSize; } // 属性 @property (copy) NSString *model; // 实例方法 - (void)print:(NSString *)content; // 类方法 + (NSString *)arch; @end @implementation Computer - (void)print:(NSString *)content { NSLog(@&amp;quot;Print Content: %@&amp;quot;, content); } // 协议方法 - (void)powerOn { NSLog(@&amp;quot;Start.</description>
+    </item>
+    
+    <item>
+      <title>Xcode 中的 Link Map 文件</title>
+      <link>/posts/2019/link_map_file_in_xcode/</link>
+      <pubDate>Sun, 28 Jul 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2019/link_map_file_in_xcode/</guid>
+      <description>Date Notes Xcode Swift     2019-04-01 首次提交 10.1 -   2019-04-16 增加 Swift 项目 10.1 4.2   2019-07-28 增加目录导图，折叠过长内容 - -    Preface Link Map File，译作链接映射文件（下文将称 Link Map 文件）。Xcode 在构建可执行文件之前，需要先编译为目标文件（Object File），并链接所需要的其他库，那么 Link Map 文件就记录了链接器（Linker）在链接过程中产生的一些信息，本文将谈谈这个文件的构成。
+What Xcode 中默认是不会将 Link Map 文件在构建时暴露出来的，需要我们手动在「Build Settings」-「Write Link Map File」-「Yes」打开该写入该文件的设置。这样当我们再次编译项目，默认就可以在 ~/Library/Developer/Xcode/DerivedData/&amp;lt;TARGET_NAME&amp;gt;-&amp;lt;Random_ID&amp;gt;/Build/Intermediates.noindex/&amp;lt;TARGET_NAME&amp;gt;.build/Debug-&amp;lt;Device_Type&amp;gt;/&amp;lt;TARGET_NAME&amp;gt;.build/&amp;lt;TARGET_NAME&amp;gt;-LinkMap-normal-&amp;lt;Arch&amp;gt;.txt 中找到。如有更改 Link Map 文件路径的需求也可以在「Path to Link Map File」中更改。
+举个例子，我的 DemoiOS 项目（Obj-C）中 Link Map 文件的完整路径为：/Users/kingcos/Library/Developer/Xcode/DerivedData/DemoiOS-hifhuapijabsaxgpelrpiwhbzlqv/Build/Intermediates.noindex/DemoiOS.build/Debug-iphonesimulator/DemoiOS.build/DemoiOS-LinkMap-normal-x86_64.txt。</description>
+    </item>
+    
+    <item>
       <title>Obj-C 中的 Block</title>
       <link>/posts/2019/block_in_obj-c/</link>
       <pubDate>Sat, 27 Jul 2019 00:00:00 +0000</pubDate>
@@ -52,8 +76,9 @@ Where // NSObject.h @interface NSObject &amp;lt;NSObject&amp;gt; { #pragma clang
       <pubDate>Sat, 20 Jul 2019 00:00:00 +0000</pubDate>
       
       <guid>/posts/2019/objc_msgsend/</guid>
-      <description>Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-08-20 整理结构，未完待续 -    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送本质就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
-Where 为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
+      <description>Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-08-20 整理结构，未完待续 -    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
+Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？
+我们创建一个使用 Obj-C 的 iOS 项目，如下在「ViewController」中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
 #import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar {} @end @interface ViewController () @end @implementation ViewController - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; [foo bar]; // 🔴 Breakpoint } @end  我们将断点打在 [foo bar]; 一行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可最终跳转到 objc_msgSend：</description>
     </item>
     
@@ -167,17 +192,6 @@ Introspection should not be confused with reflection, which goes a step further 
     </item>
     
     <item>
-      <title>Xcode 中的 Link Map 文件</title>
-      <link>/posts/2019/link_map_file_in_xcode/</link>
-      <pubDate>Mon, 01 Apr 2019 00:00:00 +0000</pubDate>
-      
-      <guid>/posts/2019/link_map_file_in_xcode/</guid>
-      <description>Date Notes Xcode Swift     2019-07-28 增加目录导图，折叠过长内容 - -   2019-04-16 增加 Swift 项目 10.1 4.2   2019-04-01 首次提交 10.1 -    Preface Link Map File，译作链接映射文件（下文将称 Link Map 文件）。Xcode 在构建可执行文件之前，需要先编译为目标文件（Object File），并链接所需要的其他库，那么 Link Map 文件就记录了链接器（Linker）在链接过程中产生的一些信息，本文将谈谈这个文件的构成。
-What Xcode 中默认是不会将 Link Map 文件在构建时暴露出来的，需要我们手动在「Build Settings」-「Write Link Map File」-「Yes」打开该写入该文件的设置。这样当我们再次编译项目，默认就可以在 ~/Library/Developer/Xcode/DerivedData/&amp;lt;TARGET_NAME&amp;gt;-&amp;lt;Random_ID&amp;gt;/Build/Intermediates.noindex/&amp;lt;TARGET_NAME&amp;gt;.build/Debug-&amp;lt;Device_Type&amp;gt;/&amp;lt;TARGET_NAME&amp;gt;.build/&amp;lt;TARGET_NAME&amp;gt;-LinkMap-normal-&amp;lt;Arch&amp;gt;.txt 中找到。如有更改 Link Map 文件路径的需求也可以在「Path to Link Map File」中更改。
-举个例子，我的 DemoiOS 项目（Obj-C）中 Link Map 文件的完整路径为：/Users/kingcos/Library/Developer/Xcode/DerivedData/DemoiOS-hifhuapijabsaxgpelrpiwhbzlqv/Build/Intermediates.noindex/DemoiOS.build/Debug-iphonesimulator/DemoiOS.build/DemoiOS-LinkMap-normal-x86_64.txt。</description>
-    </item>
-    
-    <item>
       <title>Obj-C 中实例变量和类的访问控制</title>
       <link>/posts/2019/ivar_access_control_in_obj-c/</link>
       <pubDate>Sat, 30 Mar 2019 00:00:00 +0000</pubDate>
@@ -205,19 +219,6 @@ Basics How #import &amp;lt;Foundation/Foundation.h&amp;gt; @interface Speaker : 
       <guid>/posts/2019/override_and_overload_in_obj-c/</guid>
       <description>Date Platform     2019-03-20 macOS 10.14.2    Preface 重载（Overload）和重写（Override）是面向对象语言中十分基本的两个概念，本文将谈谈 Obj-C 中的重载与重写。
 重载  In some programming languages, function overloading or method overloading is the ability to create multiple functions of the same name with different implementations. Calls to an overloaded function will run a specific implementation of that function appropriate to the context of the call, allowing one function call to perform different tasks depending on context.</description>
-    </item>
-    
-    <item>
-      <title>Obj-C 中的对象</title>
-      <link>/posts/2019/objects_in_obj-c/</link>
-      <pubDate>Mon, 18 Mar 2019 00:00:00 +0000</pubDate>
-      
-      <guid>/posts/2019/objects_in_obj-c/</guid>
-      <description>Date Notes Refer.     2019-03-18 首次提交 objc4-750   2019-08-18 抽离 isa 部分；
-重整文章结构 Obj-C 中的 isa 指针 - kingcos    Preface Obj-C 中的对象分为实例对象（Instance Object）、类对象（Class Object）、以及元类对象（Meta-class Object），本文将深入源码，浅谈这些不同的 Obj-C 对象。对于 isa 详见 Obj-C 中的 isa 指针一文。
-类对象和元类对象的类型均为 Class，即 typedef struct objc_class *Class;，所以它们的结构其实是一致的，只是存放的内容不同。
-这里我们定义一个继承自 NSObject 的 Computer 类，方便后续 Demo。
-// EDdeviceProtocol 协议 @protocol EDdeviceProtocol - (void)powerOn; @end // Computer 类，继承自 NSObject，遵守 EDdeviceProtocol @interface Computer : NSObject &amp;lt;EDdeviceProtocol&amp;gt; { // 成员变量 @public int _memorySize; int _diskSize; } // 属性 @property (copy) NSString *model; // 实例方法 - (void)print:(NSString *)content; // 类方法 + (NSString *)arch; @end @implementation Computer - (void)print:(NSString *)content { NSLog(@&amp;quot;Print Content: %@&amp;quot;, content); } // 协议方法 - (void)powerOn { NSLog(@&amp;quot;Start.</description>
     </item>
     
     <item>
