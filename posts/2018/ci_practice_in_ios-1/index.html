@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  
-    <title>iOS 项目持续集成实践（一） :: iBlog</title>
-  
-  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <head>
+    
+      <title>iOS 项目持续集成实践（一） :: iBlog — github.com/kingcos</title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <meta name="description" content="Preface 一个软件工程项目从编写、到测试、再最终交付到用户通常有很多重复且固定的步骤。虽然作为开发者，我们的核心任务是编写代码，而这些其他的步骤却也不能忽视，持续集成（Continuous Integration）则可以帮助开发者完成这些琐碎的事务，提升团队的开发效率与质量。
 本文将主要介绍持续集成是什么，以及其中的好处。当然，您可能也注意到了标题后面「（一）」，没错，持续集成并非一篇文章可以概括，笔者希望尽可能将目前团队中使用到的和持续集成相关的内容进行总结，目的是为了让大家一起思考如何让持续集成更好地服务我们开发。当然，限于笔者能力，文中不免出现遗漏，也望读者能够批评和指出。
@@ -13,104 +13,61 @@ Why &amp;amp; Why not 那么为什么需要 CI 呢？相比于传统的先开发
  及时发现错误。CI 并不能消除错误，但 CI 将发现错误的时机尽可能地提前，所以也更加节省时间来改正错误。当开发者提交代码至代码仓库时，其对于代码的熟悉程度是最高的。如果这个时候尽可能的纠正一些错误或不当，开发者将能很快注意到并将错误改正，避免了由于时间或者团队中其他人对于代码的修改所导致的问题，提升了开发效率。 自动化。市面上的 CI 平台都给了开发者比较高的自由度，能够执行脚本或命令。因此很多自动化的操作都可以制定好，来自动化地执行，节省开发者的时间。  如果这两个显而易见的好处还不足以说服，可以参考文末 Reference 中 EKATERINA NOVOSELTSEVA 的文章。那么 CI 会不会也存在什么难处呢？
  跨技术栈。CI 并不特定于前端或者后端，CI 通常根据不同的平台而有很多不同，包括配置的方法、使用的语言、自由度等等。CI 又和 Docker 的发展有一定的关系，因此跨技术栈可能让一些团队望而却步。不过好的是，DevOps（Development &amp;amp; Operations）也在国内渐渐兴起，越来越被重视。 跨平台。这里所指的平台是指代码托管平台、CI 平台、以及部署平台。在公司开始时，可能并不能轻易考虑到后续的发展，因此在原有平台加入 CI 可能需要跨平台的协作。对于一些「黑盒」的平台，有时便难以很好的集成。不过，现在 Git 的两大平台 GitHub 和 GitLab 都很重视且支持 CI 平台，也便于开发者使用。  如果后面两个问题并没有阻挠你，那么就开始尝试 CI 吧～
 How CI 并不依赖于某种特定的技术栈，其属于一种编程范式。但是，具体谈及如何实践，这就需要结合不同的工具和业务，进行定制。"/>
-<meta name="keywords" content=""/>
+<meta name="keywords" content="ios,swift,objective-c,obj-c,objc,oc,geek,python,ruby"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2018/ci_practice_in_ios-1/" />
 
 
+
+
+
 <link rel="stylesheet" href="/assets/style.css">
-
-  <link rel="stylesheet" href="/assets/green.css">
-
 
 
 <link rel="stylesheet" href="/style.css">
 
 
 <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
-
-<link rel="shortcut icon" href="/img/favicon/favicon.ico">
-
+<link rel="shortcut icon" href="/img/favicon.png">
 
 
-<meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="iOS 项目持续集成实践（一） :: iBlog — " />
-<meta name="twitter:description" content="Preface 一个软件工程项目从编写、到测试、再最终交付到用户通常有很多重复且固定的步骤。虽然作为开发者，我们的核心任务是编写代码，而这些其他的步骤却也不能忽视，持续集成（Continuous Integration）则可以帮助开发者完成这些琐碎的事务，提升团队的开发效率与质量。
-本文将主要介绍持续集成是什么，以及其中的好处。当然，您可能也注意到了标题后面「（一）」，没错，持续集成并非一篇文章可以概括，笔者希望尽可能将目前团队中使用到的和持续集成相关的内容进行总结，目的是为了让大家一起思考如何让持续集成更好地服务我们开发。当然，限于笔者能力，文中不免出现遗漏，也望读者能够批评和指出。
-What 持续集成，译自 Continuous Integration，简称 CI（在下文中，将统一使用该英文简称）。在 Wikipedia 中，也有针对 CI 特别详细且专业的介绍。简而言之，当开发者通过版本控制系统（例如 Git）提交了代码，CI 系统将为其自动执行构建、分析、测试等服务，当前面的服务一致通过，其也能直接将产品部署到生产环境，而后进入下一个循环。其中每一步都将自动触发、执行，结果也将会自动反馈回开发者。正如下图所示，CI 的重点在于 C——持续。
-Why &amp;amp; Why not 那么为什么需要 CI 呢？相比于传统的先开发，再测试，后上线的模式有哪些好处呢？在团队使用 CI 这段时间中，得出了以下主要两个好处：
- 及时发现错误。CI 并不能消除错误，但 CI 将发现错误的时机尽可能地提前，所以也更加节省时间来改正错误。当开发者提交代码至代码仓库时，其对于代码的熟悉程度是最高的。如果这个时候尽可能的纠正一些错误或不当，开发者将能很快注意到并将错误改正，避免了由于时间或者团队中其他人对于代码的修改所导致的问题，提升了开发效率。 自动化。市面上的 CI 平台都给了开发者比较高的自由度，能够执行脚本或命令。因此很多自动化的操作都可以制定好，来自动化地执行，节省开发者的时间。  如果这两个显而易见的好处还不足以说服，可以参考文末 Reference 中 EKATERINA NOVOSELTSEVA 的文章。那么 CI 会不会也存在什么难处呢？
- 跨技术栈。CI 并不特定于前端或者后端，CI 通常根据不同的平台而有很多不同，包括配置的方法、使用的语言、自由度等等。CI 又和 Docker 的发展有一定的关系，因此跨技术栈可能让一些团队望而却步。不过好的是，DevOps（Development &amp;amp; Operations）也在国内渐渐兴起，越来越被重视。 跨平台。这里所指的平台是指代码托管平台、CI 平台、以及部署平台。在公司开始时，可能并不能轻易考虑到后续的发展，因此在原有平台加入 CI 可能需要跨平台的协作。对于一些「黑盒」的平台，有时便难以很好的集成。不过，现在 Git 的两大平台 GitHub 和 GitLab 都很重视且支持 CI 平台，也便于开发者使用。  如果后面两个问题并没有阻挠你，那么就开始尝试 CI 吧～
-How CI 并不依赖于某种特定的技术栈，其属于一种编程范式。但是，具体谈及如何实践，这就需要结合不同的工具和业务，进行定制。" />
-<meta name="twitter:site" content="/" />
-<meta name="twitter:creator" content="" />
-<meta name="twitter:image" content="">
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="iOS 项目持续集成实践（一）"/>
+<meta name="twitter:description" content="一个软件工程项目从编写、到测试、再最终交付到用户通常有很多重复且固定的步骤。虽然作为开发者，我们的核心任务是编写代码，而这些其他的步骤却也不能忽视，持续集成（Continuous Integration）则可以帮助开发者完成这些琐碎的事务，提升团队的开发效率与质量。"/>
 
 
-<meta property="og:locale" content="en" />
+
+<meta property="og:title" content="iOS 项目持续集成实践（一）" />
+<meta property="og:description" content="一个软件工程项目从编写、到测试、再最终交付到用户通常有很多重复且固定的步骤。虽然作为开发者，我们的核心任务是编写代码，而这些其他的步骤却也不能忽视，持续集成（Continuous Integration）则可以帮助开发者完成这些琐碎的事务，提升团队的开发效率与质量。" />
 <meta property="og:type" content="article" />
-<meta property="og:title" content="iOS 项目持续集成实践（一） :: iBlog — ">
-<meta property="og:description" content="Preface 一个软件工程项目从编写、到测试、再最终交付到用户通常有很多重复且固定的步骤。虽然作为开发者，我们的核心任务是编写代码，而这些其他的步骤却也不能忽视，持续集成（Continuous Integration）则可以帮助开发者完成这些琐碎的事务，提升团队的开发效率与质量。
-本文将主要介绍持续集成是什么，以及其中的好处。当然，您可能也注意到了标题后面「（一）」，没错，持续集成并非一篇文章可以概括，笔者希望尽可能将目前团队中使用到的和持续集成相关的内容进行总结，目的是为了让大家一起思考如何让持续集成更好地服务我们开发。当然，限于笔者能力，文中不免出现遗漏，也望读者能够批评和指出。
-What 持续集成，译自 Continuous Integration，简称 CI（在下文中，将统一使用该英文简称）。在 Wikipedia 中，也有针对 CI 特别详细且专业的介绍。简而言之，当开发者通过版本控制系统（例如 Git）提交了代码，CI 系统将为其自动执行构建、分析、测试等服务，当前面的服务一致通过，其也能直接将产品部署到生产环境，而后进入下一个循环。其中每一步都将自动触发、执行，结果也将会自动反馈回开发者。正如下图所示，CI 的重点在于 C——持续。
-Why &amp;amp; Why not 那么为什么需要 CI 呢？相比于传统的先开发，再测试，后上线的模式有哪些好处呢？在团队使用 CI 这段时间中，得出了以下主要两个好处：
- 及时发现错误。CI 并不能消除错误，但 CI 将发现错误的时机尽可能地提前，所以也更加节省时间来改正错误。当开发者提交代码至代码仓库时，其对于代码的熟悉程度是最高的。如果这个时候尽可能的纠正一些错误或不当，开发者将能很快注意到并将错误改正，避免了由于时间或者团队中其他人对于代码的修改所导致的问题，提升了开发效率。 自动化。市面上的 CI 平台都给了开发者比较高的自由度，能够执行脚本或命令。因此很多自动化的操作都可以制定好，来自动化地执行，节省开发者的时间。  如果这两个显而易见的好处还不足以说服，可以参考文末 Reference 中 EKATERINA NOVOSELTSEVA 的文章。那么 CI 会不会也存在什么难处呢？
- 跨技术栈。CI 并不特定于前端或者后端，CI 通常根据不同的平台而有很多不同，包括配置的方法、使用的语言、自由度等等。CI 又和 Docker 的发展有一定的关系，因此跨技术栈可能让一些团队望而却步。不过好的是，DevOps（Development &amp;amp; Operations）也在国内渐渐兴起，越来越被重视。 跨平台。这里所指的平台是指代码托管平台、CI 平台、以及部署平台。在公司开始时，可能并不能轻易考虑到后续的发展，因此在原有平台加入 CI 可能需要跨平台的协作。对于一些「黑盒」的平台，有时便难以很好的集成。不过，现在 Git 的两大平台 GitHub 和 GitLab 都很重视且支持 CI 平台，也便于开发者使用。  如果后面两个问题并没有阻挠你，那么就开始尝试 CI 吧～
-How CI 并不依赖于某种特定的技术栈，其属于一种编程范式。但是，具体谈及如何实践，这就需要结合不同的工具和业务，进行定制。" />
 <meta property="og:url" content="/posts/2018/ci_practice_in_ios-1/" />
-<meta property="og:site_name" content="iOS 项目持续集成实践（一）" />
-<meta property="og:image" content="">
-<meta property="og:image:width" content="2048">
-<meta property="og:image:height" content="1024">
-
-<meta property="article:published_time" content="2018-07-07 00:00:00 &#43;0000 UTC" />
+<meta property="article:published_time" content="2018-07-07T00:00:00+00:00" />
+<meta property="article:modified_time" content="2018-07-07T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
 
 
 
 
 
 
-
-
-
-
-
-</head>
-<body class="">
-
-
-<div class="container center">
-
-  <header class="header">
-  <div class="header__inner">
-    <div class="header__logo">
-      <a href="/">
-  <div class="logo">
-    iBlog
-  </div>
+  </head>
+  <body class="dark-theme">
+    <div class="container">
+      <header class="header">
+  <span class="header__inner">
+    <a href="/" class="logo" style="text-decoration: none;">
+  
+    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
+  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
+</svg>
+</span>
+    <span class="logo__text">iBlog</span>
+    <span class="logo__cursor"></span>
+  
 </a>
 
-    </div>
-    <div class="menu-trigger">menu</div>
-  </div>
-  
-  
-    
-<script type="application/javascript">
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
-	ga('create', 'UA-138311951-1', 'auto');
-	
-	ga('send', 'pageview');
-}
-</script>
-<script async src='https://www.google-analytics.com/analytics.js'></script>
-
-  
-
-  
-    <nav class="menu">
+    <span class="header__right">
+      
+        <nav class="menu">
   <ul class="menu__inner menu__inner--desktop">
     
       
@@ -155,38 +112,58 @@ if (!doNotTrack) {
   </ul>
 </nav>
 
-  
+        <span class="menu-trigger">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M0 0h24v24H0z" fill="none"/>
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+          </svg>
+        </span>
+      
+      <span class="theme-toggle">
+        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+
+      </span>
+    </span>
+  </span>
 </header>
 
 
-  <div class="content">
-    
-<div class="post">
-  <h1 class="post-title">
-    <a href="/posts/2018/ci_practice_in_ios-1/">iOS 项目持续集成实践（一）</a></h1>
-  <div class="post-meta">
-    <span class="post-date">
-      2018-07-07
-    </span>
-    
-  </div>
+      <div class="content">
+        
+  <div class="post">
+    <h2 class="post-title"><a href="/posts/2018/ci_practice_in_ios-1/">iOS 项目持续集成实践（一）</a></h2>
+    <div class="post-meta">
+      
+        <span class="post-date">
+            2018-07-07
+        </span>
+      
+      
+      
+        <span class="post-read-time">— 1 min read</span>
+      
+    </div>
 
-  
-  <span class="post-tags">
     
-    #<a href="/tags/practice/">Practice</a>&nbsp;
+      <span class="post-tags">
+        
+          #<a href="/tags/practice/">Practice</a>&nbsp;
+        
+          #<a href="/tags/ios/">iOS</a>&nbsp;
+        
+          #<a href="/tags/devops/">DevOps</a>&nbsp;
+        
+      </span>
     
-    #<a href="/tags/ios/">iOS</a>&nbsp;
-    
-    #<a href="/tags/devops/">DevOps</a>&nbsp;
-    
-  </span>
-  
 
-  
-
-  <div class="post-content">
     
+
+    <div class="post-content">
+      
 
 <p><img src="/img/2018/CI_Practice_in_iOS-1/0.png" alt="CI in Practice" /></p>
 
@@ -256,62 +233,92 @@ if (!doNotTrack) {
 <li><a href="https://gitlab.com">GitLab</a></li>
 </ul>
 
-  </div>
-  
-  <div class="pagination">
-    <div class="pagination__title">
-      <span
-        class="pagination__title-h">Read other posts</span>
-      <hr />
     </div>
-    <div class="pagination__buttons">
-      
-      <span class="button previous">
-        <a href="/posts/2018/uncovering_sourcekit/">
-          <span class="button__icon">←</span>
-          <span class="button__text">[译]起底 SourceKit</span>
-        </a>
-      </span>
-      
-      
-      <span class="button next">
-        <a href="/posts/2019/zen_of_git/">
-          <span class="button__text">Zen of Git</span>
-          <span class="button__icon">→</span>
-        </a>
-      </span>
-      
-    </div>
-  </div>
-  
+    
+      <div class="pagination">
+        <div class="pagination__title">
+          <span class="pagination__title-h">Read other posts</span>
+          <hr />
+        </div>
+        <div class="pagination__buttons">
+          
+            <span class="button previous">
+              <a href="/posts/2018/uncovering_sourcekit/">
+                <span class="button__icon">←</span>
+                <span class="button__text">[译]起底 SourceKit</span>
+              </a>
+            </span>
+          
+          
+            <span class="button next">
+              <a href="/posts/2019/zen_of_git/">
+                <span class="button__text">Zen of Git</span>
+                <span class="button__icon">→</span>
+              </a>
+            </span>
+          
+        </div>
+      </div>
+    
 
-  
+    
 
     
     
-    <div class="post bg-white">
-      <script src="https://utteranc.es/client.js"
-            repo="kingcos/kingcos.github.io"
-            issue-term="pathname"
-            label="comments"
-            theme="github-dark"
-            crossorigin="anonymous"
-            async>
+    <div>
+      <div id="github-comment">
+      </div>
+
+      <script type="text/javascript">
+        function getUtterances(isDark) {
+          var utterances = document.createElement('script');
+          utterances.type = 'text/javascript';
+          utterances.async = true;
+          utterances.setAttribute('issue-term', "pathname")
+          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
+          utterances.setAttribute('label', "comments")
+          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
+          utterances.crossorigin = 'anonymous';
+          utterances.src = 'https://utteranc.es/client.js';
+
+          return utterances
+        }
+
+        var themeToggle = document.querySelector(".theme-toggle")
+        themeToggle.addEventListener("click", function () {
+          var getTheme = window.localStorage && window.localStorage.getItem("theme")
+          var divNode = document.getElementById('github-comment')
+          while(divNode.hasChildNodes()) {
+            divNode.removeChild(divNode.firstChild);
+          }
+          
+          
+          
+
+          
+          
+          
+          
+          
+          
+          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
+        })
+
+        var getTheme = window.localStorage && window.localStorage.getItem("theme")
+        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
       </script>
     </div>
     
 
-</div>
+    </div>
 
-  </div>
+      </div>
 
-  
-    <footer class="footer">
+      
+        <footer class="footer">
   <div class="footer__inner">
     
-      <div class="copyright">
-        <span>© 2019 · <a href="http://github.com/kingcos">kingcos</a></span>
-      </div>
+      <div class="copyright copyright--user">Powered by github.com/kingcos</div>
     
   </div>
 </footer>
@@ -320,11 +327,24 @@ if (!doNotTrack) {
 <script src="/assets/prism.js"></script>
 
 
+      
+    </div>
 
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
 
-
-  
-</div>
-
-</body>
+    
+  </body>
 </html>
