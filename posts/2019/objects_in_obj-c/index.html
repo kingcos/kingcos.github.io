@@ -7,7 +7,7 @@
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <meta name="description" content="Date Notes Refer.     2019-03-18 首次提交 objc4-750   2019-08-18 抽离 isa 部分；
-重整文章结构 Obj-C 中的 isa 指针 - kingcos    Preface Obj-C 中的对象分为实例对象（Instance Object）、类对象（Class Object）、以及元类对象（Meta-class Object）三种，一起来认识下这些不同的 Obj-C 对象吧～
+重整文章结构 Obj-C 中的 isa 指针 - kingcos   2019-08 增加 class_rw_t 等 -    Preface Obj-C 中的对象分为实例对象（Instance Object）、类对象（Class Object）、以及元类对象（Meta-class Object）三种，一起来认识下这些不同的 Obj-C 对象吧～
 为了方便下文举例，这里我们定义一个 EDdeviceProtocol 协议，并让继承自 NSObject 的 Computer 类遵守该协议：
 // EDdeviceProtocol 协议 @protocol EDdeviceProtocol - (void)powerOn; @end // Computer 类，继承自 NSObject，遵守 EDdeviceProtocol @interface Computer : NSObject &amp;lt;EDdeviceProtocol&amp;gt; { // 成员变量 @public int _memorySize; int _diskSize; } // 属性 @property (copy) NSString *model; // 实例方法 - (void)print:(NSString *)content; // 类方法 &#43; (NSString *)arch; @end @implementation Computer - (void)print:(NSString *)content { NSLog(@&amp;quot;Print content: %@."/>
 <meta name="keywords" content="ios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
@@ -185,6 +185,12 @@
 <td align="center">抽离 <code>isa</code> 部分；<br>重整文章结构</td>
 <td align="center"><a href="../isa_in_objc/">Obj-C 中的 isa 指针 - kingcos</a></td>
 </tr>
+
+<tr>
+<td align="center">2019-08</td>
+<td align="center">增加 <code>class_rw_t</code> 等</td>
+<td align="center">-</td>
+</tr>
 </tbody>
 </table>
 
@@ -277,10 +283,10 @@ Class cptClass3 = object_getClass(cpt);
 // (lldb) p/x cptClass2
 // (Class) $1 = 0x00000001000013d0 Computer
 // (lldb) p/x cptClass3
-// (Class) $1 = 0x00000001000013d0 Computer
+// (Class) $2 = 0x00000001000013d0 Computer
 </code></pre>
 
-<p>类对象的类型是 <code>Class</code>，但在 Xcode 中并没有直接暴露该类型，因此我们只能在源码中找到定义。通过定义我们可以得知，类对象中存放了 <code>isa</code> 指针、<code>superclass</code> 指针、以及为该类实例对象所公用的信息。它并不存放成员变量以及属性的具体值，但存放了诸如名称、类型等信息；它还存放了该类的对象方法、遵守的协议信息等，因为这些公共信息对于一个类只保存一份即可：</p>
+<p>类对象的类型是 <code>Class</code>，本质是指向 <code>struct objc_class</code> 结构体的指针。通过其定义我们可以得知，类对象中存放了 <code>isa</code> 指针、<code>superclass</code> 指针、方法缓存、以及为该类实例对象所公用的信息：</p>
 
 <pre><code class="language-objectivec">// Object.mm
 typedef struct objc_class *Class;
@@ -290,12 +296,10 @@ struct objc_class : objc_object {
     // Class ISA;
     // ➡️ 父类指针
     Class superclass;
+    // ➡️ 方法缓存
     cache_t cache;             // formerly cache pointer and vtable
+    // ➡️ 可读可写表（class_rw_t）等
     class_data_bits_t bits;    // class_rw_t * plus custom rr/alloc flags
-
-    class_rw_t *data() {
-        return bits.data();
-    }
 
     // ...
 };
@@ -308,13 +312,57 @@ private:
 
 // ...
 }
+</code></pre>
 
-// objc-runtime-new.h
+<h3 id="class-rw-t">class_rw_t</h3>
+
+<p><code>class_data_bits_t bits;</code> 中其实就主要存储着 <code>class_rw_t</code>：</p>
+
+<pre><code class="language-objectivec">// objc-runtime-new.h
+
+struct objc_class : objc_object {
+    // ...
+
+    class_rw_t *data() {
+        return bits.data();
+    }
+
+    // ...
+}
+
+#if !__LP64__
+// data pointer
+#define FAST_DATA_MASK        0xfffffffcUL
+#elif 1
+#define FAST_DATA_MASK          0x00007ffffffffff8UL // ✅
+#else
+#define FAST_DATA_MASK          0x00007ffffffffff8UL
+#endif
+
+struct class_data_bits_t {
+    // Values are the FAST_ flags above.
+    uintptr_t bits;
+
+    // ...
+
+    class_rw_t* data() {
+        return (class_rw_t *)(bits &amp; FAST_DATA_MASK);
+    }
+
+    // ...
+}
+</code></pre>
+
+<p>指的是可读可写表。其中存储了指向 <code>class_ro_t</code> 只读表的指针、方法、属性、协议等信息。</p>
+
+<pre><code class="language-objectivec">// objc-runtime-new.h
+// ➡️ 可读可写表
 struct class_rw_t {
     // Be warned that Symbolication knows the layout of this structure.
     uint32_t flags;
     uint32_t version;
 
+    // ➡️ 只读表的指针
     const class_ro_t *ro;
 
     // ➡️ 方法、属性、协议信息
@@ -326,6 +374,7 @@ struct class_rw_t {
 };
 
 // objc-runtime-new.h
+// ➡️ 只读表
 struct class_ro_t {
     uint32_t flags;
     uint32_t instanceStart;
@@ -352,6 +401,8 @@ struct class_ro_t {
     }
 };
 </code></pre>
+
+<hr />
 
 <p>如上，<code>Class</code> 的本质是一个指向 <code>objc_class</code> 结构体的指针。<code>objc_class</code> 继承的父类 <code>objc_object</code> 中只有一个成员变量，即 <code>isa</code>。<code>objc_class</code> 自身还拥有 <code>superclass</code>、<code>bits</code> 等成员变量，<code>bits</code> 中的 <code>data()</code> 存放了指向 <code>class_rw_t</code> 的指针，即一些可读可写的数据（表）；<code>class_rw_t</code>，里面又包含了 <code>methods</code> 方法列表、<code>properties</code> 属性列表、<code>protocols</code> 协议列表、以及一个指向 <code>class_ro_t</code> 类型的指针（该指针为 <code>const</code> 不可变更指向地址），存放只读的数据（表）；<code>class_ro_t</code> 结构体里存放了 <code>instanceSize</code> 实例大小、<code>ivars</code> 成员变量等数据。</p>
 
