@@ -355,7 +355,7 @@ struct class_data_bits_t {
 }
 </code></pre>
 
-<p><code>class_rw_t</code> 指的是可读可写表。其中存储了指向 <code>class_ro_t</code> 只读表的指针、方法、属性、协议等信息：</p>
+<p><code>class_rw_t</code> 指的是可读可写（Read-Write）表。其中存储了指向 <code>class_ro_t</code> 只读表的指针、方法、属性、协议等信息：</p>
 
 <pre><code class="language-objectivec">// objc-runtime-new.h
 
@@ -407,86 +407,108 @@ struct class_ro_t {
 
 <p>我们以 <code>method_array_t methods;</code> 为例看一下其类型：</p>
 
-<pre><code class="language-objectivec">// objc-runtime-new.h
+<pre><code class="language-cpp">// objc-runtime-new.h
 
+// method_array_t 继承自 list_array_tt，其中元素类型为 method_t，列表为 method_list_t
 class method_array_t :
     public list_array_tt&lt;method_t, method_list_t&gt;
 {
-    typedef list_array_tt&lt;method_t, method_list_t&gt; Super;
-
- public:
-    method_list_t **beginCategoryMethodLists() {
-        return beginLists();
-    }
-
-    method_list_t **endCategoryMethodLists(Class cls);
-
-    method_array_t duplicate() {
-        return Super::duplicate&lt;method_array_t&gt;();
-    }
+    // ...
 };
 
+// list_array_tt 中定义了元素类型为 Element，列表为 List
+template &lt;typename Element, typename List&gt;
+class list_array_tt {
+    // ...
+};
+
+// method_t 即是 Obj-C 中方法的结构
 struct method_t {
     SEL name;
     const char *types;
     MethodListIMP imp;
 
-    struct SortBySELAddress :
-        public std::binary_function&lt;const method_t&amp;,
-                                    const method_t&amp;, bool&gt;
-    {
-        bool operator() (const method_t&amp; lhs,
-                         const method_t&amp; rhs)
-        { return lhs.name &lt; rhs.name; }
-    };
+    // ...
 };
 
-// Two bits of entsize are used for fixup markers.
+// method_list_t 继承自 entsize_list_tt，其中元素类型为 method_t，列表为 method_list_t
+// 因此 method_array_t 可以认为是二维的 method_list_t
 struct method_list_t : entsize_list_tt&lt;method_t, method_list_t, 0x3&gt; {
-    bool isFixedUp() const;
-    void setFixedUp();
+    // ...
+};
 
-    uint32_t indexOfMethod(const method_t *meth) const {
-        uint32_t i =
-            (uint32_t)(((uintptr_t)meth - (uintptr_t)this) / entsize());
-        assert(i &lt; count);
-        return i;
-    }
+// entsize_list_tt 是非脆弱（Non-fragile）结构体数组的一般实现
+template &lt;typename Element, typename List, uint32_t FlagMask&gt;
+struct entsize_list_tt {
+    // ...
 };
 </code></pre>
 
-<hr />
+<p>由于 Obj-C 中的 <code>Class</code> 是一个不透明类型，但我们可以尝试一下将类对象的原始结构桥接到其中，首先需要将以下我整理好的内容放在 <code>.h</code> 引入，需要注意的是引入的实现文件需要支持 C++，即以 <code>.mm</code> 结尾：</p>
 
-<p>如上，<code>Class</code> 的本质是一个指向 <code>objc_class</code> 结构体的指针。<code>objc_class</code> 继承的父类 <code>objc_object</code> 中只有一个成员变量，即 <code>isa</code>。<code>objc_class</code> 自身还拥有 <code>superclass</code>、<code>bits</code> 等成员变量，<code>bits</code> 中的 <code>data()</code> 存放了指向 <code>class_rw_t</code> 的指针，即一些可读可写的数据（表）；<code>class_rw_t</code>，里面又包含了 <code>methods</code> 方法列表、<code>properties</code> 属性列表、<code>protocols</code> 协议列表、以及一个指向 <code>class_ro_t</code> 类型的指针（该指针为 <code>const</code> 不可变更指向地址），存放只读的数据（表）；<code>class_ro_t</code> 结构体里存放了 <code>instanceSize</code> 实例大小、<code>ivars</code> 成员变量等数据。</p>
+<p><details>
+<summary>-&gt; 点击此处即可查看完整内容 &lt;-</summary></p>
 
-<p>Obj-C 中，将类对象作为了一个透明类型，让我们无需关心其内部实现细节，但因为代码已经开源，所以我们尝试下将 <code>Computer</code> 类对象的结构展示出来。</p>
+<pre><code class="language-cpp">//
+//  class_details.h
+//  Powered by maimieng.com
+//
+//  Created by kingcos on 2019/8/31.
+//  Copyright © 2019 kingcos. All rights reserved.
+//
 
-<pre><code class="language-objectivec">#ifndef objc_header_h
-#define objc_header_h
+#ifndef class_details_h
+#define class_details_h
 
-typedef struct v_objc_class *VClass;
+#define FAST_DATA_MASK          0x00007ffffffffff8UL
 
-union isa_t {
-    VClass cls;
-    uintptr_t bits;
+typedef struct v_objc_class *V_Class;
+typedef unsigned long v_uintptr_t;
+typedef v_uintptr_t v_cache_key_t;
+typedef uint32_t v_mask_t;
+typedef v_uintptr_t v_protocol_ref_t;
+
+struct v_bucket_t {
+    IMP _imp;
+    v_cache_key_t _key;
 };
 
-template &lt;typename Element&gt;
-struct entsize_list_tt {
+struct v_cache_t {
+    struct v_bucket_t *_buckets;
+    v_mask_t _mask;
+    v_mask_t _occupied;
+};
+
+union v_isa_t {
+    V_Class cls;
+    v_uintptr_t bits;
+};
+
+struct v_objc_object {
+    v_isa_t isa;
+};
+
+template &lt;typename Element, typename List, uint32_t FlagMask&gt;
+struct v_entsize_list_tt {
     uint32_t entsizeAndFlags;
     uint32_t count;
     Element first;
 };
 
-struct ivar_t {
-#if __x86_64__
-    // *offset was originally 64-bit on some x86_64 platforms.
-    // We read and write only 32 bits of it.
-    // Some metadata provides all 64 bits. This is harmless for unsigned
-    // little-endian values.
-    // Some code uses all 64 bits. class_addIvar() over-allocates the
-    // offset for their benefit.
-#endif
+struct v_method_t {
+    SEL name;
+    const char *types;
+    IMP imp;
+};
+
+struct v_method_list_t : v_entsize_list_tt&lt;v_method_t, v_method_list_t, 0x3&gt; {
+};
+
+struct v_protocol_list_t {
+    uintptr_t count;
+};
+
+struct v_ivar_t {
     int32_t *offset;
     const char *name;
     const char *type;
@@ -495,32 +517,140 @@ struct ivar_t {
     uint32_t size;
 };
 
-struct ivar_list_t : entsize_list_tt&lt;ivar_t&gt; {
+struct v_ivar_list_t : v_entsize_list_tt&lt;v_ivar_t, v_ivar_list_t, 0&gt; {
 };
 
-struct method_t {
-    SEL name;
-    const char *types;
-    IMP imp;
-};
-
-struct method_list_t : entsize_list_tt&lt;method_t&gt; {
-};
-
-struct protocol_list_t {
-    // count is 64-bit by accident.
-    uintptr_t count;
-};
-
-struct property_t {
+struct v_property_t {
     const char *name;
     const char *attributes;
 };
 
-struct property_list_t : entsize_list_tt&lt;property_t&gt; {
+struct v_property_list_t : v_entsize_list_tt&lt;v_property_t, v_property_list_t, 0&gt; {
 };
 
-struct class_ro_t {
+struct v_class_ro_t {
+    uint32_t flags;
+    uint32_t instanceStart;
+    uint32_t instanceSize;
+    uint32_t reserved;
+
+    const uint8_t * ivarLayout;
+
+    const char * name;
+    v_method_list_t * baseMethodList;
+    v_protocol_list_t*** * baseProtocols;
+    const v_ivar_list_t * ivars;
+
+    const uint8_t * weakIvarLayout;
+    v_property_list_t *baseProperties;
+};
+
+template &lt;typename Element, typename List&gt;
+class v_list_array_tt {
+    union {
+        List* list;
+        v_uintptr_t arrayAndFlag;
+    };
+};
+
+class v_method_array_t :
+public v_list_array_tt&lt;v_method_t, v_method_list_t&gt;
+{
+};
+
+class v_property_array_t :
+public v_list_array_tt&lt;v_property_t, v_property_list_t&gt;
+{
+};
+
+class v_protocol_array_t :
+public v_list_array_tt&lt;v_protocol_ref_t, v_protocol_list_t&gt;
+{
+};
+
+struct v_class_rw_t {
+    uint32_t flags;
+    uint32_t version;
+
+    const v_class_ro_t *ro;
+
+    v_method_array_t methods;
+    v_property_array_t properties;
+    v_protocol_array_t protocols;
+};
+
+struct v_class_data_bits_t {
+    v_uintptr_t bits;
+
+    v_class_rw_t* data() {
+        return (v_class_rw_t *)(bits &amp; FAST_DATA_MASK);
+    }
+};
+
+struct v_objc_class : v_objc_object {
+    V_Class superclass;
+    v_cache_t cache;
+    v_class_data_bits_t bits;
+
+    v_class_rw_t *data() {
+        return bits.data();
+    }
+};
+
+#endif /* class_details_h */
+</code></pre>
+
+<p></details></p>
+
+<pre><code class="language-objectivec">@protocol Bar &lt;NSObject&gt;
+@optional
+- (void)optional;
+@end
+
+@interface Foo : NSObject &lt;Bar&gt;
+@property (nonatomic, copy) NSString *fooStr;
+@end
+
+@implementation Foo
+- (void)foo {
+    NSLog(@&quot;%s&quot;, __func__);
+}
+@end
+
+@interface Foo (Baz)
+@end
+
+@implementation Foo (Bar)
+- (void)bar {
+    NSLog(@&quot;%s&quot;, __func__);
+}
+- (void)optional {
+    NSLog(@&quot;%s&quot;, __func__);
+}
+@end
+</code></pre>
+
+<p>这样，我们将类或元类对象转换为其真实结构时就能看到其中的细节了：</p>
+
+<pre><code class="language-objectivec">V_Class fooClassObject = (__bridge V_Class)[Foo class];
+v_class_rw_t *fooRWTable = fooClassObject-&gt;data();
+</code></pre>
+
+<p><img src="/img/2019/objects_in_obj-c/4.png" alt="4" /></p>
+
+<p><code>class_rw_t</code> 中直接存储的方法、属性和协议都继承自 <code>list_array_tt&lt;Element, List&gt;</code>。以方法列表为例（其它同理），<code>list_array_tt&lt;method_t, method_list_t&gt;</code> 中的值共有三种可能：</p>
+
+<ol>
+<li>空；即无方法</li>
+<li>一个指向单一列表的指针；即只存储了编译时确定的方法（包括类本身和分类中的）</li>
+<li>一个指向列表的指针数组（类似二维数组）；即存储了编译时确定的方法以及运行时附加的方法</li>
+</ol>
+
+<h3 id="class-ro-t">class_ro_t</h3>
+
+<p><code>class_ro_t</code> 存在于 <code>class_rw_t</code> 中，是只读（Read-Only）表：</p>
+
+<pre><code class="language-cpp">struct class_ro_t {
     uint32_t flags;
     uint32_t instanceStart;
     uint32_t instanceSize;
@@ -537,90 +667,76 @@ struct class_ro_t {
 
     const uint8_t * weakIvarLayout;
     property_list_t *baseProperties;
-};
 
-struct class_rw_t {
-    // Be warned that Symbolication knows the layout of this structure.
-    uint32_t flags;
-    uint32_t version;
-
-    const class_ro_t *ro;
-
-    method_list_t *methods;
-    property_list_t *properties;
-    protocol_list_t *protocols;
-};
-
-#define FAST_DATA_MASK          0x00007ffffffffff8UL
-struct class_data_bits_t {
-    // Values are the FAST_ flags above.
-    uintptr_t bits;
-public:
-    class_rw_t* data() {
-        return (class_rw_t *)(bits &amp; FAST_DATA_MASK);
+    method_list_t *baseMethods() const {
+        return baseMethodList;
     }
 };
-
-typedef uintptr_t cache_key_t;
-struct bucket_t {
-    IMP _imp;
-    cache_key_t _key;
-};
-
-typedef uint32_t mask_t;  // x86_64 &amp; arm64 asm are less efficient with 16-bits
-struct cache_t {
-    struct bucket_t *_buckets;
-    mask_t _mask;
-    mask_t _occupied;
-};
-
-struct v_objc_object {
-    union isa_t isa;
-};
-
-struct v_objc_class : v_objc_object {
-    // Class ISA;
-    VClass superclass;
-    cache_t cache;             // formerly cache pointer and vtable
-    class_data_bits_t bits;    // class_rw_t * plus custom rr/alloc flags
-
-    class_rw_t *data() {
-        return bits.data();
-    }
-};
-
-#endif /* objc_header_h */
 </code></pre>
 
-<p>将以上内容放进一个头文件中，即可使用我们定义好结构的指针指向类对象的内存空间。需要注意的是，以上代码含有 C++ 语法，所以引入该头文件的 <code>.m</code> 文件需要改名为 <code>.mm</code>，即 Objective-C++ 文件类型。</p>
+<p>而与 <code>class_rw_t</code> 不同的是，<code>class_ro_t</code> 中的方法、属性、成员变量分别继承自 <code>method_list_t</code>、<code>ivar_list_t</code> 和 <code>property_list_t</code>， 少了一维。这是因为其中只存储了编译时确定的方法（包括类本身和分类中的），在运行时将不会改动其中的数据。</p>
 
-<pre><code class="language-objectivec">VClass cptVClass = (__bridge VClass)[Computer class];
-class_rw_t *rwt = cptVClass-&gt;data();
+<h3 id="method-t">method_t</h3>
 
-// LLDB:
-// 对象方法
-// Printing description of rwt-&gt;methods-&gt;first:
-// (method_t) first = {
-//     name = &quot;coresCount&quot;
-//     types = 0x0000000100000f94 &quot;i16@0:8&quot;
-//     imp = 0x0000000100000d80 (DemoOC`::-[Computer coresCount]() at main.mm:36)
-// }
-// 属性
-// Printing description of rwt-&gt;properties-&gt;first:
-// (property_t) first = (name = &quot;coresCount&quot;, attributes = &quot;Ti,N,V_coresCount&quot;)
-// 协议
-// Printing description of rwt-&gt;protocols-&gt;count:
-// (uintptr_t) count = 1
-// 成员变量
-// (lldb) p rwt-&gt;ro-&gt;ivars-&gt;first
-// (const ivar_t) $3 = {
-//   offset = 0x00000001000012c0
-//   name = 0x0000000100000f5c &quot;_memorySize&quot;
-//   type = 0x0000000100000fa7 &quot;i&quot;
-//   alignment_raw = 2
-//   size = 4
-// }
+<p><code>method_t</code> 是 Obj-C 中方法的本质类型：</p>
+
+<pre><code class="language-cpp">// objc.h
+
+/// An opaque type that represents a method selector.
+typedef struct objc_selector *SEL;
+
+// objc-ptrauth.h
+
+#if __has_feature(ptrauth_calls)
+// Method lists use process-independent signature for compatibility.
+using MethodListIMP = IMP __ptrauth_objc_method_list_imp;
+#else
+using MethodListIMP = IMP;
+#endif
+
+struct method_t {
+    SEL name;
+    const char *types;
+    MethodListIMP imp;
+
+    struct SortBySELAddress :
+        public std::binary_function&lt;const method_t&amp;,
+                                    const method_t&amp;, bool&gt;
+    {
+        bool operator() (const method_t&amp; lhs,
+                         const method_t&amp; rhs)
+        { return lhs.name &lt; rhs.name; }
+    };
+};
 </code></pre>
+
+<p><code>method_t</code> 中存储了方法的名称、类型和 <code>IMP</code>：</p>
+
+<table>
+<thead>
+<tr>
+<th align="center">Member</th>
+<th align="center">Notes</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center"><code>SEL name;</code></td>
+<td align="center">方法名，又称方法选择器（Selector），同名方法即使不同类也拥有相同的 <code>SEL</code> 类型方法名；其底层数据类型为 <code>struct objc_selector</code> 但没有找到相关开源，可近似认为是 C 中 <code>char *</code> 字符串；可以使用 <code>@selector()</code> 或 <code>sel_registerName()</code> 方法传入方法来得到方法名；也可通过 <code>sel_getName()</code> 或 <code>NSStringFromSelector()</code> 将 <code>SEL</code> 类型转换为 <code>char *</code> 或 <code>NSString</code></td>
+</tr>
+
+<tr>
+<td align="center"><code>const char *types;</code></td>
+<td align="center">方法类型编码（Type Encoding），将方法的返回值、参数等信息编码的字符串；Obj-C 方法默认会有两个参数，即 <code>id self</code> &amp; <code>SEL op</code>，因此默认就会有 <code>@:</code>，首个数字代表所有参数占用的总字节数，后续则代表每个参数的起始字节数；<code>@encode()</code>；详细可见 <a href="https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html">Type Encodings - Objective-C Runtime Programming Guide</a></td>
+</tr>
+
+<tr>
+<td align="center"><code>MethodListIMP imp;</code></td>
+<td align="center">方法实现，即方法的内存地址，可以通过该地址访问到方法的代码块进而执行</td>
+</tr>
+</tbody>
+</table>
 
 <h2 id="元类对象">元类对象</h2>
 
@@ -711,6 +827,7 @@ class_rw_t *rwt = cptMetaVClass-&gt;data();
 <ul>
 <li><a href="../override_and_overload_in_obj-c/">Obj-C 中的重载与重写 - kingcos</a></li>
 <li><a href="../isa_in_objc/">Obj-C 中的 isa 指针 - kingcos</a></li>
+<li><a href="https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html">Type Encodings - Objective-C Runtime Programming Guide</a></li>
 </ul>
 
     </div>
