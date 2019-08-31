@@ -6,7 +6,7 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-08-24 整理结构，未完待续 -    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
+<meta name="description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-08-31 整理结构，未完待续 Obj-C 中的对象 - kingcos    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
 Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？
 我们创建一个使用 Obj-C 的 iOS 项目，如下在 ViewController 中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
 #import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar {} @end @interface ViewController () @end @implementation ViewController - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; [foo bar]; // 🔴 Breakpoint } @end  我们将断点打在 [foo bar]; 一行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可最终跳转到 objc_msgSend："/>
@@ -141,7 +141,7 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
       
       
       
-        <span class="post-read-time">— 7 min read</span>
+        <span class="post-read-time">— 5 min read</span>
       
     </div>
 
@@ -181,9 +181,9 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
 </tr>
 
 <tr>
-<td align="center">2019-08-24</td>
+<td align="center">2019-08-31</td>
 <td align="center">整理结构，未完待续</td>
-<td align="center">-</td>
+<td align="center"><a href="../objects_in_obj-c/">Obj-C 中的对象 - kingcos</a></td>
 </tr>
 </tbody>
 </table>
@@ -494,66 +494,8 @@ void objc_msgSend(id self, SEL cmd, ...)
 <li><a href="http://infocenter.arm.com/help/index.jsp">ARM Software development tools - arm.com</a></li>
 <li><a href="https://stackoverflow.com/questions/27353096/1b-and-1f-in-gnu-assembly">1b and 1f in GNU assembly - StackOverflow</a></li>
 <li><a href="https://clang.llvm.org/doxygen/Basic_2Targets_2ARM_8cpp_source.html">ARM.cpp - clang</a></li>
-
-<li><p><a href="https://www.ibm.com/support/knowledgecenter/zh/SSXVZZ_13.1.0/com.ibm.xlcpp131.linux.doc/getstart/predef_macro_v10v12.html">预定义宏 - IBM</a></p>
-
-<pre><code>0x192bd8180 &lt;+0&gt;:   cmp    x0, #0x0                  ; =0x0
-0x192bd8184 &lt;+4&gt;:   b.le   0x192bd81f8               ; &lt;+120&gt;
-0x192bd8188 &lt;+8&gt;:   ldr    x13, [x0]
-0x192bd818c &lt;+12&gt;:  and    x16, x13, #0xffffffff8
--&gt;  0x192bd8190 &lt;+16&gt;:  ldr    x11, [x16, #0x10]
-0x192bd8194 &lt;+20&gt;:  and    x10, x11, #0xffffffffffff
-0x192bd8198 &lt;+24&gt;:  and    x12, x1, x11, lsr #48
-0x192bd819c &lt;+28&gt;:  add    x12, x10, x12, lsl #4
-0x192bd81a0 &lt;+32&gt;:  ldp    x17, x9, [x12]
-0x192bd81a4 &lt;+36&gt;:  cmp    x9, x1
-0x192bd81a8 &lt;+40&gt;:  b.ne   0x192bd81b4               ; &lt;+52&gt;
-0x192bd81ac &lt;+44&gt;:  eor    x17, x17, x16
-0x192bd81b0 &lt;+48&gt;:  br     x17
-0x192bd81b4 &lt;+52&gt;:  cbz    x9, 0x192bd84c0           ; _objc_msgSend_uncached
-0x192bd81b8 &lt;+56&gt;:  cmp    x12, x10
-0x192bd81bc &lt;+60&gt;:  b.eq   0x192bd81c8               ; &lt;+72&gt;
-0x192bd81c0 &lt;+64&gt;:  ldp    x17, x9, [x12, #-0x10]!
-0x192bd81c4 &lt;+68&gt;:  b      0x192bd81a4               ; &lt;+36&gt;
-0x192bd81c8 &lt;+72&gt;:  add    x12, x12, x11, lsr #44
-0x192bd81cc &lt;+76&gt;:  ldp    x17, x9, [x12]
-0x192bd81d0 &lt;+80&gt;:  cmp    x9, x1
-0x192bd81d4 &lt;+84&gt;:  b.ne   0x192bd81e0               ; &lt;+96&gt;
-0x192bd81d8 &lt;+88&gt;:  eor    x17, x17, x16
-0x192bd81dc &lt;+92&gt;:  br     x17
-0x192bd81e0 &lt;+96&gt;:  cbz    x9, 0x192bd84c0           ; _objc_msgSend_uncached
-0x192bd81e4 &lt;+100&gt;: cmp    x12, x10
-0x192bd81e8 &lt;+104&gt;: b.eq   0x192bd81f4               ; &lt;+116&gt;
-0x192bd81ec &lt;+108&gt;: ldp    x17, x9, [x12, #-0x10]!
-0x192bd81f0 &lt;+112&gt;: b      0x192bd81d0               ; &lt;+80&gt;
-0x192bd81f4 &lt;+116&gt;: b      0x192bd84c0               ; _objc_msgSend_uncached
-0x192bd81f8 &lt;+120&gt;: b.eq   0x192bd8230               ; &lt;+176&gt;
-0x192bd81fc &lt;+124&gt;: adrp   x10, 291010
-0x192bd8200 &lt;+128&gt;: add    x10, x10, #0xf00          ; =0xf00
-0x192bd8204 &lt;+132&gt;: lsr    x11, x0, #60
-0x192bd8208 &lt;+136&gt;: ldr    x16, [x10, x11, lsl #3]
-0x192bd820c &lt;+140&gt;: adrp   x10, 291010
-0x192bd8210 &lt;+144&gt;: add    x10, x10, #0xe68          ; =0xe68
-0x192bd8214 &lt;+148&gt;: cmp    x10, x16
-0x192bd8218 &lt;+152&gt;: b.ne   0x192bd8190               ; &lt;+16&gt;
-0x192bd821c &lt;+156&gt;: adrp   x10, 291010
-0x192bd8220 &lt;+160&gt;: add    x10, x10, #0xf80          ; =0xf80
-0x192bd8224 &lt;+164&gt;: ubfx   x11, x0, #52, #8
-0x192bd8228 &lt;+168&gt;: ldr    x16, [x10, x11, lsl #3]
-0x192bd822c &lt;+172&gt;: b      0x192bd8190               ; &lt;+16&gt;
-0x192bd8230 &lt;+176&gt;: mov    x1, #0x0
-0x192bd8234 &lt;+180&gt;: movi   d0, #0000000000000000
-0x192bd8238 &lt;+184&gt;: movi   d1, #0000000000000000
-0x192bd823c &lt;+188&gt;: movi   d2, #0000000000000000
-0x192bd8240 &lt;+192&gt;: movi   d3, #0000000000000000
-0x192bd8244 &lt;+196&gt;: ret
-0x192bd8248 &lt;+200&gt;: nop
-0x192bd824c &lt;+204&gt;: nop
-0x192bd8250 &lt;+208&gt;: nop
-0x192bd8254 &lt;+212&gt;: nop
-0x192bd8258 &lt;+216&gt;: nop
-0x192bd825c &lt;+220&gt;: nop
-</code></pre></li>
+<li><a href="https://www.ibm.com/support/knowledgecenter/zh/SSXVZZ_13.1.0/com.ibm.xlcpp131.linux.doc/getstart/predef_macro_v10v12.html">预定义宏 - IBM</a></li>
+<li><a href="../objects_in_obj-c/">Obj-C 中的对象 - kingcos</a></li>
 </ul>
 
     </div>
