@@ -141,7 +141,7 @@
       
       
       
-        <span class="post-read-time">— 9 min read</span>
+        <span class="post-read-time">— 8 min read</span>
       
     </div>
 
@@ -385,7 +385,7 @@ struct class_data_bits_t {
 
 <tr>
 <td align="center">3</td>
-<td align="center"><code>FAST_HAS_DEFAULT_RR</code>：类或父类含有默认的 <code>retain</code>/<code>release</code>/<code>autorelease</code>/<code>retainCount</code>/<code>_tryRetain</code>/<code>_isDeallocating</code>/<code>retainWeakReference</code>/<code>allowsWeakReference</code></td>
+<td align="center"><code>FAST_HAS_DEFAULT_RR</code>：类或父类含有默认的持有或引用（Retain/Reference）<code>retain</code>/<code>release</code>/<code>autorelease</code>/<code>retainCount</code>/<code>_tryRetain</code>/<code>_isDeallocating</code>/<code>retainWeakReference</code>/<code>allowsWeakReference</code></td>
 </tr>
 
 <tr>
@@ -395,7 +395,7 @@ struct class_data_bits_t {
 
 <tr>
 <td align="center">63</td>
-<td align="center"></td>
+<td align="center">-</td>
 </tr>
 </tbody>
 </table>
@@ -410,7 +410,7 @@ struct class_rw_t {
     uint32_t flags;
     uint32_t version;
 
-    // ➡️ 只读表的指针
+    // ➡️ 只读表的指针（const：不可修改指针指向内存空间中的数据）
     const class_ro_t *ro;
 
     // ➡️ 方法、属性、协议信息
@@ -420,41 +420,13 @@ struct class_rw_t {
 
     // ...
 };
-
-// objc-runtime-new.h
-// ➡️ 只读表
-struct class_ro_t {
-    uint32_t flags;
-    uint32_t instanceStart;
-    // ➡️ 实例大小
-    uint32_t instanceSize;
-#ifdef __LP64__
-    uint32_t reserved;
-#endif
-
-    const uint8_t * ivarLayout;
-
-    // ➡️ 类名
-    const char * name;
-    method_list_t * baseMethodList;
-    protocol_list_t * baseProtocols;
-    // ➡️ 成员变量
-    const ivar_list_t * ivars;
-
-    const uint8_t * weakIvarLayout;
-    property_list_t *baseProperties;
-
-    method_list_t *baseMethods() const {
-        return baseMethodList;
-    }
-};
 </code></pre>
 
 <p>我们以 <code>method_array_t methods;</code> 为例看一下其类型：</p>
 
 <pre><code class="language-cpp">// objc-runtime-new.h
 
-// method_array_t 继承自 list_array_tt，其中元素类型为 method_t，列表为 method_list_t
+// method_array_t 继承自 list_array_tt，其中 List 类型为 method_list_t，Element 类型为 method_t
 class method_array_t :
     public list_array_tt&lt;method_t, method_list_t&gt;
 {
@@ -467,7 +439,7 @@ class list_array_tt {
     // ...
 };
 
-// method_t 即是 Obj-C 中方法的结构
+// method_t 即是 Obj-C 中方法的结构（详见下文）
 struct method_t {
     SEL name;
     const char *types;
@@ -476,8 +448,7 @@ struct method_t {
     // ...
 };
 
-// method_list_t 继承自 entsize_list_tt，其中元素类型为 method_t，列表为 method_list_t
-// 因此 method_array_t 可以认为是二维的 method_list_t
+// method_list_t 继承自 entsize_list_tt，其中 List 类型为 method_list_t，Element 类型为 method_t
 struct method_list_t : entsize_list_tt&lt;method_t, method_list_t, 0x3&gt; {
     // ...
 };
@@ -683,21 +654,26 @@ v_class_rw_t *fooRWTable = fooClassObject-&gt;data();
 
 <p><img src="/img/2019/objects_in_obj-c/4.png" alt="4" /></p>
 
-<p><code>class_rw_t</code> 中直接存储的方法、属性和协议都继承自 <code>list_array_tt&lt;Element, List&gt;</code>。以方法列表为例（其它同理），<code>list_array_tt&lt;method_t, method_list_t&gt;</code> 中的值共有三种可能：</p>
+<p><code>class_rw_t</code> 中直接存储的方法、属性和协议都继承自 <code>list_array_tt&lt;Element, List&gt;</code>，其中的值共有三种可能：</p>
 
 <ol>
-<li>空；即无方法</li>
-<li>一个指向单一列表的指针；即只存储了编译时确定的方法（包括类本身和分类中的）</li>
-<li>一个指向列表的指针数组（类似二维数组）；即存储了编译时确定的方法以及运行时附加的方法</li>
+<li>空；即没有定义任何内容</li>
+<li>一个指向单一列表的指针；即只存储了编译时（包括类本身和分类中）确定的内容</li>
+<li>一个指向列表的指针数组（类似二维数组）；即存储了编译时确定以及运行时附加的内容</li>
 </ol>
 
 <h3 id="class-ro-t">class_ro_t</h3>
 
 <p><code>class_ro_t</code> 存在于 <code>class_rw_t</code> 中，是只读（Read-Only）表：</p>
 
-<pre><code class="language-cpp">struct class_ro_t {
+<pre><code class="language-cpp">// objc-runtime-new.h
+
+// ➡️ 只读表
+struct class_ro_t {
+    // ➡️ 标志位
     uint32_t flags;
     uint32_t instanceStart;
+    // ➡️ 实例大小
     uint32_t instanceSize;
 #ifdef __LP64__
     uint32_t reserved;
@@ -705,9 +681,11 @@ v_class_rw_t *fooRWTable = fooClassObject-&gt;data();
 
     const uint8_t * ivarLayout;
 
+    // ➡️ 类名
     const char * name;
     method_list_t * baseMethodList;
     protocol_list_t * baseProtocols;
+    // ➡️ 成员变量
     const ivar_list_t * ivars;
 
     const uint8_t * weakIvarLayout;
@@ -719,131 +697,82 @@ v_class_rw_t *fooRWTable = fooClassObject-&gt;data();
 };
 </code></pre>
 
-<p>而与 <code>class_rw_t</code> 不同的是，<code>class_ro_t</code> 中的方法、属性、成员变量分别继承自 <code>method_list_t</code>、<code>ivar_list_t</code> 和 <code>property_list_t</code>， 少了一维。这是因为其中只存储了编译时确定的方法（包括类本身和分类中的），在运行时将不会改动其中的数据。</p>
+<p>而与 <code>class_rw_t</code> 不同的是，<code>class_ro_t</code> 中的方法、属性、成员变量分别直接继承自 <code>method_list_t</code>、<code>ivar_list_t</code> 和 <code>property_list_t</code>， 少了一维。这是因为只读表只存储编译时（包括类本身和分类中）确定的内容，在运行时将不会再次附加其它的数据。</p>
 
-<pre><code class="language-cpp">// objc-runtime-new.mm
+<p>为了证明结论，我们再简单了解一下类在首次初始化中所执行的 <code>realizeClass</code> 方法：</p>
+
+<pre><code class="language-cpp">// objc-runtime-new.h
+
+// class is unrealized future class - must never be set by compiler
+#define RO_FUTURE             (1&lt;&lt;30)
+// class is realized - must never be set by compiler
+#define RO_REALIZED           (1&lt;&lt;31)
+
+// class_t-&gt;data is class_rw_t, not class_ro_t
+#define RW_REALIZED           (1&lt;&lt;31)
+// class is unresolved future class
+#define RW_FUTURE             (1&lt;&lt;30)
+
+// objc-runtime-new.mm
 
 /***********************************************************************
 * realizeClass
 * Performs first-time initialization on class cls,
+* 在类上执行首次初始化，
 * including allocating its read-write data.
+* 包括分配读写数据。
 * Returns the real class structure for the class.
+* 返回类的真实类结构。
 * Locking: runtimeLock must be write-locked by the caller
 **********************************************************************/
 static Class realizeClass(Class cls)
 {
     runtimeLock.assertLocked();
 
+    // 只读表指针
     const class_ro_t *ro;
+    // 可读可写表指针
     class_rw_t *rw;
     Class supercls;
     Class metacls;
     bool isMeta;
 
+    // 判空
     if (!cls) return nil;
+    // 判断是否已经实化
     if (cls-&gt;isRealized()) return cls;
     assert(cls == remapClass(cls));
 
     // fixme verify class is not in an un-dlopened part of the shared cache?
 
+    // 实化前，cls-&gt;data() 返回指向只读表的指针，因此可以强转
     ro = (const class_ro_t *)cls-&gt;data();
+    // 判断是否为未来的类（即 RO_FUTURE 标志着读写数据是否已经被分配）
+    // 可读可写表和只读表的首个成员均为 flags 且 RO_FUTURE 与 RW_FUTURE 实际值相同
     if (ro-&gt;flags &amp; RO_FUTURE) {
+        // 2⃣️
         // This was a future class. rw data is already allocated.
+        // 将数据赋值给可读可写表
         rw = cls-&gt;data();
+        // 将可读可写表中的只读表赋值给只读表
         ro = cls-&gt;data()-&gt;ro;
+        // 更新标记位
         cls-&gt;changeInfo(RW_REALIZED|RW_REALIZING, RW_FUTURE);
     } else {
+        // 1⃣️
         // Normal class. Allocate writeable class data.
+        // 普通类，分配可写入类数据。
+        // 分配空间
         rw = (class_rw_t *)calloc(sizeof(class_rw_t), 1);
+        // 将可读可写表的只读表指针指向只读表指针
         rw-&gt;ro = ro;
+        // 更新标记位
         rw-&gt;flags = RW_REALIZED|RW_REALIZING;
+        // 将可读可写表写回类中
         cls-&gt;setData(rw);
     }
 
-    isMeta = ro-&gt;flags &amp; RO_META;
-
-    rw-&gt;version = isMeta ? 7 : 0;  // old runtime went up to 6
-
-
-    // Choose an index for this class.
-    // Sets cls-&gt;instancesRequireRawIsa if indexes no more indexes are available
-    cls-&gt;chooseClassArrayIndex();
-
-    if (PrintConnecting) {
-        _objc_inform(&quot;CLASS: realizing class '%s'%s %p %p #%u&quot;,
-                     cls-&gt;nameForLogging(), isMeta ? &quot; (meta)&quot; : &quot;&quot;,
-                     (void*)cls, ro, cls-&gt;classArrayIndex());
-    }
-
-    // Realize superclass and metaclass, if they aren't already.
-    // This needs to be done after RW_REALIZED is set above, for root classes.
-    // This needs to be done after class index is chosen, for root metaclasses.
-    supercls = realizeClass(remapClass(cls-&gt;superclass));
-    metacls = realizeClass(remapClass(cls-&gt;ISA()));
-
-#if SUPPORT_NONPOINTER_ISA
-    // Disable non-pointer isa for some classes and/or platforms.
-    // Set instancesRequireRawIsa.
-    bool instancesRequireRawIsa = cls-&gt;instancesRequireRawIsa();
-    bool rawIsaIsInherited = false;
-    static bool hackedDispatch = false;
-
-    if (DisableNonpointerIsa) {
-        // Non-pointer isa disabled by environment or app SDK version
-        instancesRequireRawIsa = true;
-    }
-    else if (!hackedDispatch  &amp;&amp;  !(ro-&gt;flags &amp; RO_META)  &amp;&amp;
-             0 == strcmp(ro-&gt;name, &quot;OS_object&quot;))
-    {
-        // hack for libdispatch et al - isa also acts as vtable pointer
-        hackedDispatch = true;
-        instancesRequireRawIsa = true;
-    }
-    else if (supercls  &amp;&amp;  supercls-&gt;superclass  &amp;&amp;
-             supercls-&gt;instancesRequireRawIsa())
-    {
-        // This is also propagated by addSubclass()
-        // but nonpointer isa setup needs it earlier.
-        // Special case: instancesRequireRawIsa does not propagate
-        // from root class to root metaclass
-        instancesRequireRawIsa = true;
-        rawIsaIsInherited = true;
-    }
-
-    if (instancesRequireRawIsa) {
-        cls-&gt;setInstancesRequireRawIsa(rawIsaIsInherited);
-    }
-// SUPPORT_NONPOINTER_ISA
-#endif
-
-    // Update superclass and metaclass in case of remapping
-    cls-&gt;superclass = supercls;
-    cls-&gt;initClassIsa(metacls);
-
-    // Reconcile instance variable offsets / layout.
-    // This may reallocate class_ro_t, updating our ro variable.
-    if (supercls  &amp;&amp;  !isMeta) reconcileInstanceVariables(cls, supercls, ro);
-
-    // Set fastInstanceSize if it wasn't set already.
-    cls-&gt;setInstanceSize(ro-&gt;instanceSize);
-
-    // Copy some flags from ro to rw
-    if (ro-&gt;flags &amp; RO_HAS_CXX_STRUCTORS) {
-        cls-&gt;setHasCxxDtor();
-        if (! (ro-&gt;flags &amp; RO_HAS_CXX_DTOR_ONLY)) {
-            cls-&gt;setHasCxxCtor();
-        }
-    }
-
-    // Connect this class to its superclass's subclass lists
-    if (supercls) {
-        addSubclass(supercls, cls);
-    } else {
-        addRootClass(cls);
-    }
-
-    // Attach categories
-    methodizeClass(cls);
+    // ...
 
     return cls;
 }
