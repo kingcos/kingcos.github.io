@@ -141,7 +141,7 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
       
       
       
-        <span class="post-read-time">— 6 min read</span>
+        <span class="post-read-time">— 5 min read</span>
       
     </div>
 
@@ -289,11 +289,11 @@ objc_msgSend(id _Nullable self, SEL _Nonnull op, ...)
 <p>而 <code>objc_msgSend</code> 的具体实现是由汇编语言编写的，原因有两点：</p>
 
 <ol>
-<li>对性能的极致追求，每一条汇编指令都对应一条机器指令，使用汇编便于针对不同架构的 CPU 优化每一条指令的速度；</li>
-<li>C 语言无法实现一个保存未知参数且支持跳转到任一函数指针处的函数（引自 <a href="https://www.mikeash.com/pyblog/friday-qa-2017-06-30-dissecting-objc_msgsend-on-arm64.html">Dissecting objc_msgSend on ARM64 - Mike Ash</a>）。</li>
+<li>对性能的极致追求，因为每一条汇编指令都对应一条机器指令，使用汇编可便于针对不同架构的 CPU 优化每一条指令的速度；</li>
+<li>C 语言无法实现一个保存未知参数且支持跳转到任一函数指针处的函数，对于 C 来说没有必要的特性来表示（引自 <a href="https://www.mikeash.com/pyblog/friday-qa-2017-06-30-dissecting-objc_msgsend-on-arm64.html">Dissecting objc_msgSend on ARM64 - Mike Ash</a>）。</li>
 </ol>
 
-<p>由于 <code>objc_msgSend</code> 整个流程比较复杂，我将其分为多个用例，逐个分析。</p>
+<p>由于 <code>objc_msgSend</code> 整个流程比较复杂，下面我将尝试把流程分解为多个用例，逐个分析。</p>
 
 <h4 id="当接收者为-nil-时">当接收者为 <code>nil</code> 时</h4>
 
@@ -459,64 +459,6 @@ if (getTriple().isWatchABI())
 <p>综上，在 iOS 的真机设备中，<code>SUPPORT_INDEXED_ISA</code> 的值最终为 <code>0</code>。</p>
 
 <hr />
-
-<p>在理解上面汇编代码的同时，需要了解 Obj-C 中对象内部的 <code>cache_t</code> 即缓存的内部结构：</p>
-
-<pre><code class="language-cpp">// objc-runtime-new.h
-#if __LP64__
-typedef uint32_t mask_t;  // x86_64 &amp; arm64 asm are less efficient with 16-bits
-#else
-typedef uint16_t mask_t;
-#endif
-
-struct cache_t {
-    struct bucket_t *_buckets;
-    mask_t _mask;
-    mask_t _occupied;
-
-public:
-    struct bucket_t *buckets();
-    mask_t mask();
-    mask_t occupied();
-    void incrementOccupied();
-    void setBucketsAndMask(struct bucket_t *newBuckets, mask_t newMask);
-    void initializeToEmpty();
-
-    mask_t capacity();
-    bool isConstantEmptyCache();
-    bool canBeFreed();
-
-    static size_t bytesForCapacity(uint32_t cap);
-    static struct bucket_t * endMarker(struct bucket_t *b, uint32_t cap);
-
-    void expand();
-    void reallocate(mask_t oldCapacity, mask_t newCapacity);
-    struct bucket_t * find(cache_key_t key, id receiver);
-
-    static void bad_cache(id receiver, SEL sel, Class isa) __attribute__((noreturn));
-};
-
-struct bucket_t {
-private:
-    // IMP-first is better for arm64e ptrauth and no worse for arm64.
-    // SEL-first is better for armv7* and i386 and x86_64.
-#if __arm64__
-    MethodCacheIMP _imp;
-    cache_key_t _key;
-#else
-    cache_key_t _key;
-    MethodCacheIMP _imp;
-#endif
-
-public:
-    inline cache_key_t key() const { return _key; }
-    inline IMP imp() const { return (IMP)_imp; }
-    inline void setKey(cache_key_t newKey) { _key = newKey; }
-    inline void setImp(IMP newImp) { _imp = newImp; }
-
-    void set(cache_key_t newKey, IMP newImp);
-};
-</code></pre>
 
 <ul>
 <li>C 语言使用静态绑定（Static Binding）来进行函数调用，在编译时刻就能决定运行时所应调用的函数，即在不考虑内联下，会直接生成调用函数的指令，函数地址则被硬编码在指令中。</li>
