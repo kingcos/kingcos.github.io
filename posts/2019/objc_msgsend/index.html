@@ -141,7 +141,7 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
       
       
       
-        <span class="post-read-time">— 5 min read</span>
+        <span class="post-read-time">— 6 min read</span>
       
     </div>
 
@@ -293,14 +293,6 @@ objc_msgSend(id _Nullable self, SEL _Nonnull op, ...)
 <li>C 语言无法实现一个保存未知参数且支持跳转到任一函数指针处的函数（引自 <a href="https://www.mikeash.com/pyblog/friday-qa-2017-06-30-dissecting-objc_msgsend-on-arm64.html">Dissecting objc_msgSend on ARM64 - Mike Ash</a>）。</li>
 </ol>
 
-<!-- Obj-C 的消息发送本质属于**动态绑定（Dynamic Binding）**，而非 C 语言常用的静态绑定。动态绑定意味着只有在运行时才能确定真正被调用的函数；而静态绑定在编译时即可确定（不考虑内联函数的前提下），编译器会直接生成调用函数的指令，函数地址就被硬编码在指令当中。
-
-> **Tips - 内联（Inline）函数**
->
-> 建议编译器对函数进行内联扩展，即建议编译器将指定的函数体直接插入到每一处调用该函数的地方（注：「建议」指具体是否进行内联需要看编译器本身）。
-
-因此对于动态绑定的语言来说，其方法查找的速度一定是慢于静态绑定的。Obj-C 会将方法查找的结果缓存在一个快速映射表中（Fast Map），当后续发送同样的消息时即可得到更快得执行。根据这个快慢，消息发送的代码被分为两个部分：其一是快速路径（Fast Path），这一部分由汇编语言实现；其二是慢速路径（Slow Path），由 C 语言实现。当没有缓存时，将调用 C 语言代码来处理。 -->
-
 <p>由于 <code>objc_msgSend</code> 整个流程比较复杂，我将其分为多个用例，逐个分析。</p>
 
 <h4 id="当接收者为-nil-时">当接收者为 <code>nil</code> 时</h4>
@@ -338,6 +330,78 @@ objc_msgSend(id _Nullable self, SEL _Nonnull op, ...)
     0x192bd8240 &lt;+192&gt;: movi   d3, #0000000000000000
     0x192bd8244 &lt;+196&gt;: ret
 </code></pre>
+
+<h4 id="方法缓存">方法缓存</h4>
+
+<pre><code class="language-cpp">struct objc_class : objc_object {
+    // Class ISA;
+    Class superclass;
+    // ⬇️ 方法缓存
+    cache_t cache;             // formerly cache pointer and vtable
+    class_data_bits_t bits;    // class_rw_t * plus custom rr/alloc flags
+};
+</code></pre>
+
+<p>在 <a href="../objects_in_obj-c/">Obj-C 中的对象</a>一文中，我们简单了解了 Obj-C 中类和元类对象的结构，其中的 <code>cache_t cache;</code> 是方法缓存。那么为什么需要缓存呢？</p>
+
+<p>Obj-C 的消息发送本质属于<strong>动态绑定（Dynamic Binding）</strong>，而非 C 语言常用的静态绑定。动态绑定意味着只有在运行时才能确定真正被调用的函数；而静态绑定在编译时即可确定（不考虑内联函数的前提下），编译器会直接生成调用函数的指令，函数地址就被硬编码在指令当中。</p>
+
+<blockquote>
+<p><strong>Tips - 内联（Inline）函数</strong></p>
+
+<p>建议编译器对函数进行内联扩展，即建议编译器将指定的函数体直接插入到每一处调用该函数的地方（注：「建议」指具体是否进行内联需要看编译器本身）。</p>
+</blockquote>
+
+<p>因此对于动态绑定的语言来说，其方法查找的速度一定是慢于静态绑定的。为了提高效率，Obj-C 会将方法查找的结果缓存在 <code>cache_t cache;</code> 中，当后续发送同样的消息时即可得到更快得执行。</p>
+
+<!-- 根据这个快慢，消息发送的代码被分为两个部分：其一是快速路径（Fast Path），这一部分由汇编语言实现；其二是慢速路径（Slow Path），由 C 语言实现。当没有缓存时，将调用 C 语言代码来处理。 -->
+
+<pre><code class="language-cpp">// _uint32_t.h
+
+typedef unsigned int uint32_t;
+
+// _uintptr_t.h
+
+typedef unsigned long           uintptr_t;
+
+// objc-ptrauth.h
+
+using MethodCacheIMP = IMP;
+
+// objc-runtime-new.h
+
+#if __LP64__
+typedef uint32_t mask_t;  // x86_64 &amp; arm64 asm are less efficient with 16-bits
+#else
+typedef uint16_t mask_t;
+#endif
+typedef uintptr_t cache_key_t;
+
+struct bucket_t {
+private:
+    // IMP-first is better for arm64e ptrauth and no worse for arm64.
+    // SEL-first is better for armv7* and i386 and x86_64.
+#if __arm64__
+    MethodCacheIMP _imp;
+    cache_key_t _key;
+#else
+    cache_key_t _key;
+    MethodCacheIMP _imp;
+#endif
+
+    // ...
+};
+
+struct cache_t {
+    struct bucket_t *_buckets;
+    mask_t _mask;
+    mask_t _occupied;
+
+    // ...
+};
+</code></pre>
+
+<p><code>cache_t</code> 结构体中存储了指向 <code>bucket_t</code> 结构体（数组）的指针、<code>_mask</code>（表示散列表最后一位的索引）、以及 <code>_occupied</code>（表示已缓存方法的数量）。<code>bucket_t</code> 即缓存方法的散列表，方法名将作为键，<code>IMP</code> 即方法的内存地址将作为值。</p>
 
 <h4 id="当未命中缓存时">当未命中缓存时</h4>
 
