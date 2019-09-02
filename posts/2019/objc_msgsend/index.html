@@ -141,7 +141,7 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
       
       
       
-        <span class="post-read-time">— 5 min read</span>
+        <span class="post-read-time">— 11 min read</span>
       
     </div>
 
@@ -313,6 +313,8 @@ objc_msgSend(id _Nullable self, SEL _Nonnull op, ...)
 //       x0 = 0x0000000000000000
 </code></pre>
 
+<p>我们从 <code>ENTRY _objc_msgSend</code> 的第一条语句 <code>cmp p0, #0</code> 开始：</p>
+
 <p><img src="/img/2019/objc_msgsend/4.png" alt="4" /></p>
 
 <p>在 Xcode 中 <code>si</code> 执行即可看到具体的汇编代码跳转，也与上图的源码分析一致：</p>
@@ -405,7 +407,348 @@ struct cache_t {
 
 <h4 id="当未命中缓存时">当未命中缓存时</h4>
 
+<p>方法的首次调用将无法命中缓存，因此我们仍从 <code>cmp p0, #0</code> 开始，但这次接收者并非 <code>nil</code> 所以不会跳入判空分支：</p>
+
 <p><img src="/img/2019/objc_msgsend/5.png" alt="5" /></p>
+
+<p>到达 <code>bl __class_lookupMethodAndLoadCache3</code> 后将跳入 C 函数 <code>_class_lookupMethodAndLoadCache3</code> 中：</p>
+
+<pre><code class="language-cpp">// objc-runtime-new.mm
+
+/***********************************************************************
+* _class_lookupMethodAndLoadCache.
+* Method lookup for dispatchers ONLY. OTHER CODE SHOULD USE lookUpImp().
+* 仅供调度程序所使用的方法查找。其它代码应当使用 lookUpImp()。
+* This lookup avoids optimistic cache scan because the dispatcher
+* already tried that.
+* 此查找可避免乐观缓存扫描，因为调度程序已经尝试了此操作。
+**********************************************************************/
+IMP _class_lookupMethodAndLoadCache3(id obj, SEL sel, Class cls)
+{
+    // ⬇️
+    return lookUpImpOrForward(cls, sel, obj,
+                              YES/*initialize*/, NO/*cache*/, YES/*resolver*/);
+}
+
+/***********************************************************************
+* lookUpImpOrForward.
+* The standard IMP lookup.
+* 标准 IMP 查找。
+* initialize==NO tries to avoid +initialize (but sometimes fails)
+* initialize==NO 尝试避免调用 +initialize（但有时会失败）
+* cache==NO skips optimistic unlocked lookup (but uses cache elsewhere)
+* cache==NO 跳过乐观解锁查找（但在其它地方使用缓存）
+* Most callers should use initialize==YES and cache==YES.
+* 大多数调用者应当使用 initialize==YES 和 cache==YES。
+* inst is an instance of cls or a subclass thereof, or nil if none is known.
+* inst 是 cls 或其子类的实例，若未知则为 nil。
+*   If cls is an un-initialized metaclass then a non-nil inst is faster.
+*   如果 cls 是未初始化的元类，那么非空 inst 将更快。
+* May return _objc_msgForward_impcache. IMPs destined for external use
+*   must be converted to _objc_msgForward or _objc_msgForward_stret.
+* 可能会返回 _objc_msgForward_impcache。被指定外部使用的 IMP 必须转换为 _objc_msgForward 或 _objc_msgForward_stret。
+*   If you don't want forwarding at all, use lookUpImpOrNil() instead.
+*   如果不你需要任何转发，使用 lookUpImpOrNil() 代替。
+**********************************************************************/
+IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
+                       bool initialize, bool cache, bool resolver)
+{
+    IMP imp = nil;
+    bool triedResolver = NO;
+
+    runtimeLock.assertUnlocked();
+
+    // Optimistic cache lookup
+    // cache 为 NO，跳过
+    if (cache) {
+        imp = cache_getImp(cls, sel);
+        if (imp) return imp;
+    }
+
+    // runtimeLock is held during isRealized and isInitialized checking
+    // to prevent races against concurrent realization.
+
+    // runtimeLock is held during method search to make
+    // method-lookup + cache-fill atomic with respect to method addition.
+    // Otherwise, a category could be added but ignored indefinitely because
+    // the cache was re-filled with the old value after the cache flush on
+    // behalf of the category.
+
+    runtimeLock.lock();
+    checkIsKnownClass(cls);
+
+    // 若类未实化，则进行实化
+    if (!cls-&gt;isRealized()) {
+        realizeClass(cls);
+    }
+
+    if (initialize  &amp;&amp;  !cls-&gt;isInitialized()) {
+        runtimeLock.unlock();
+        _class_initialize (_class_getNonMetaClass(cls, inst));
+        runtimeLock.lock();
+        // If sel == initialize, _class_initialize will send +initialize and
+        // then the messenger will send +initialize again after this
+        // procedure finishes. Of course, if this is not being called
+        // from the messenger then it won't happen. 2778172
+    }
+
+
+ retry:
+    runtimeLock.assertLocked();
+
+    // Try this class's cache.
+
+    // ⬇️ 缓存中取 IMP（汇编）
+    imp = cache_getImp(cls, sel);
+    // 取到了则结束
+    if (imp) goto done;
+
+    // Try this class's method lists.
+    {
+        Method meth = getMethodNoSuper_nolock(cls, sel);
+        if (meth) {
+            log_and_fill_cache(cls, meth-&gt;imp, sel, inst, cls);
+            imp = meth-&gt;imp;
+            goto done;
+        }
+    }
+
+    // Try superclass caches and method lists.
+    {
+        unsigned attempts = unreasonableClassCount();
+        for (Class curClass = cls-&gt;superclass;
+             curClass != nil;
+             curClass = curClass-&gt;superclass)
+        {
+            // Halt if there is a cycle in the superclass chain.
+            if (--attempts == 0) {
+                _objc_fatal(&quot;Memory corruption in class list.&quot;);
+            }
+
+            // Superclass cache.
+            imp = cache_getImp(curClass, sel);
+            if (imp) {
+                if (imp != (IMP)_objc_msgForward_impcache) {
+                    // Found the method in a superclass. Cache it in this class.
+                    log_and_fill_cache(cls, imp, sel, inst, curClass);
+                    goto done;
+                }
+                else {
+                    // Found a forward:: entry in a superclass.
+                    // Stop searching, but don't cache yet; call method
+                    // resolver for this class first.
+                    break;
+                }
+            }
+
+            // Superclass method list.
+            Method meth = getMethodNoSuper_nolock(curClass, sel);
+            if (meth) {
+                log_and_fill_cache(cls, meth-&gt;imp, sel, inst, curClass);
+                imp = meth-&gt;imp;
+                goto done;
+            }
+        }
+    }
+
+    // No implementation found. Try method resolver once.
+
+    if (resolver  &amp;&amp;  !triedResolver) {
+        runtimeLock.unlock();
+        _class_resolveMethod(cls, sel, inst);
+        runtimeLock.lock();
+        // Don't cache the result; we don't hold the lock so it may have
+        // changed already. Re-do the search from scratch instead.
+        triedResolver = YES;
+        goto retry;
+    }
+
+    // No implementation found, and method resolver didn't help.
+    // Use forwarding.
+
+    imp = (IMP)_objc_msgForward_impcache;
+    cache_fill(cls, sel, imp, inst);
+
+ done:
+    runtimeLock.unlock();
+
+    return imp;
+}
+
+static method_t *
+getMethodNoSuper_nolock(Class cls, SEL sel)
+{
+    runtimeLock.assertLocked();
+
+    assert(cls-&gt;isRealized());
+    // fixme nil cls?
+    // fixme nil sel?
+
+    // ⬇️ 遍历方法列表
+    for (auto mlists = cls-&gt;data()-&gt;methods.beginLists(),
+              end = cls-&gt;data()-&gt;methods.endLists();
+         mlists != end;
+         ++mlists)
+    {
+        method_t *m = search_method_list(*mlists, sel);
+        // ⬇️ 找到则返回
+        if (m) return m;
+    }
+
+    return nil;
+}
+
+/***********************************************************************
+* log_and_fill_cache
+* Log this method call. If the logger permits it, fill the method cache.
+* 记录该方法调用。如果记录器允许，填充方法缓存。
+* cls is the method whose cache should be filled.
+* 方法应当填充在 cls 的缓存中。
+* implementer is the class that owns the implementation in question.
+* implementer 指拥有相关实现的类。
+**********************************************************************/
+static void
+log_and_fill_cache(Class cls, IMP imp, SEL sel, id receiver, Class implementer)
+{
+#if SUPPORT_MESSAGE_LOGGING
+    if (objcMsgLogEnabled) {
+        bool cacheIt = logMessageSend(implementer-&gt;isMetaClass(),
+                                      cls-&gt;nameForLogging(),
+                                      implementer-&gt;nameForLogging(),
+                                      sel);
+        if (!cacheIt) return;
+    }
+#endif
+    // ⬇️ 填充缓存
+    cache_fill (cls, sel, imp, receiver);
+}
+
+// objc-cache.mm
+
+void cache_fill(Class cls, SEL sel, IMP imp, id receiver)
+{
+#if !DEBUG_TASK_THREADS
+    mutex_locker_t lock(cacheUpdateLock);
+    // ⬇️ 填充缓存
+    cache_fill_nolock(cls, sel, imp, receiver);
+#else
+    _collecting_in_critical();
+    return;
+#endif
+}
+
+static void cache_fill_nolock(Class cls, SEL sel, IMP imp, id receiver)
+{
+    cacheUpdateLock.assertLocked();
+
+    // Never cache before +initialize is done
+    // 若类未初始化，则返回
+    if (!cls-&gt;isInitialized()) return;
+
+    // Make sure the entry wasn't added to the cache by some other thread
+    // before we grabbed the cacheUpdateLock.
+    // 若缓存已存在，则返回
+    if (cache_getImp(cls, sel)) return;
+
+    cache_t *cache = getCache(cls);
+    // ⬇️ 获取缓存 key
+    cache_key_t key = getKey(sel);
+
+    // Use the cache as-is if it is less than 3/4 full
+    // 如果小于 3/4 满，则使用缓存
+    // newOccupied 为当前占用数 + 1
+    // capacity 为容量
+    mask_t newOccupied = cache-&gt;occupied() + 1;
+    mask_t capacity = cache-&gt;capacity();
+    if (cache-&gt;isConstantEmptyCache()) {
+        // 缓存为空
+        // Cache is read-only. Replace it.
+        // 重新分配内存
+        cache-&gt;reallocate(capacity, capacity ?: INIT_CACHE_SIZE);
+    }
+    else if (newOccupied &lt;= capacity / 4 * 3) {
+        // Cache is less than 3/4 full. Use it as-is.
+        // 缓存小于 3/4 满，则使用
+    }
+    else {
+        // Cache is too full. Expand it.
+        // ⬇️ 缓存太满了，扩容。
+        cache-&gt;expand();
+    }
+
+    // Scan for the first unused slot and insert there.
+    // 扫描首个未使用的间隙并插入。
+    // There is guaranteed to be an empty slot because the
+    // minimum size is 4 and we resized at 3/4 full.
+    // 能够被确保有空间隙是因为最小大小为 4，并重调为 3/4 满。
+    // ⬇️
+    bucket_t *bucket = cache-&gt;find(key, receiver);
+    // key 为空，则为新占用缓存，占用数自增
+    if (bucket-&gt;key() == 0) cache-&gt;incrementOccupied();
+    // 存入 bucket
+    bucket-&gt;set(key, imp);
+}
+
+// 由此得出散列表的 key 本质是 SEL
+cache_key_t getKey(SEL sel)
+{
+    assert(sel);
+    return (cache_key_t)sel;
+}
+
+// 根据 key 查找 bucket_t
+bucket_t * cache_t::find(cache_key_t k, id receiver)
+{
+    assert(k != 0);
+
+    bucket_t *b = buckets();
+    mask_t m = mask();
+    // begin 为方法在散列表的索引
+    mask_t begin = cache_hash(k, m);
+    mask_t i = begin;
+    do {
+        // 如果 bucket_t 中的键为我们查找的 key 或为空
+        if (b[i].key() == 0  ||  b[i].key() == k) {
+            return &amp;b[i];
+        }
+        // 进入 cache 下一格
+    } while ((i = cache_next(i, m)) != begin);
+
+    // hack
+    Class cls = (Class)((uintptr_t)this - offsetof(objc_class, cache));
+    cache_t::bad_cache(receiver, (SEL)k, cls);
+}
+
+// Class points to cache. SEL is key. Cache buckets store SEL+IMP.
+// Caches are never built in the dyld shared cache.
+
+static inline mask_t cache_hash(cache_key_t key, mask_t mask)
+{
+    return (mask_t)(key &amp; mask);
+}
+
+static inline mask_t cache_next(mask_t i, mask_t mask) {
+    return (i+1) &amp; mask;
+}
+
+// 缓存扩容
+void cache_t::expand()
+{
+    cacheUpdateLock.assertLocked();
+
+    uint32_t oldCapacity = capacity();
+    // 扩容大小为原空间 2 倍（若原为空，则扩容为初始大小）
+    uint32_t newCapacity = oldCapacity ? oldCapacity*2 : INIT_CACHE_SIZE;
+
+    if ((uint32_t)(mask_t)newCapacity != newCapacity) {
+        // mask overflow - can't grow further
+        // fixme this wastes one bit of mask
+        newCapacity = oldCapacity;
+    }
+
+    reallocate(oldCapacity, newCapacity);
+}
+</code></pre>
 
 <h4 id="当命中缓存时">当命中缓存时</h4>
 
