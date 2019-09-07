@@ -6,7 +6,7 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-09-01 整理结构，未完待续 Obj-C 中的对象 - kingcos    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
+<meta name="description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-09-07 完成「未命中缓存」部分 Obj-C 中的对象 - kingcos    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
 Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？
 我们创建一个使用 Obj-C 的 iOS 项目，如下在 ViewController 中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
 #import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar {} @end @interface ViewController () @end @implementation ViewController - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; [foo bar]; // 🔴 Breakpoint } @end  我们将断点打在 [foo bar]; 一行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可最终跳转到 objc_msgSend："/>
@@ -38,8 +38,8 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
 <meta property="og:description" content="Obj-C 中方法调用的本质是消息发送机制，即 `[foo bar]` 是向 `foo` 对象发送一条 `bar` 的消息，而消息发送就是通过 `objc_msgSend` 所进行的。那么这次本文就简单窥探一下 `objc_msgSend` 吧。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/posts/2019/objc_msgsend/" />
-<meta property="article:published_time" content="2019-09-01T00:00:00+00:00" />
-<meta property="article:modified_time" content="2019-09-01T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+<meta property="article:published_time" content="2019-09-07T00:00:00+00:00" />
+<meta property="article:modified_time" content="2019-09-07T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
 
 
 
@@ -136,7 +136,7 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
     <div class="post-meta">
       
         <span class="post-date">
-            2019-09-01
+            2019-09-07
         </span>
       
       
@@ -181,8 +181,8 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
 </tr>
 
 <tr>
-<td align="center">2019-09-01</td>
-<td align="center">整理结构，未完待续</td>
+<td align="center">2019-09-07</td>
+<td align="center">完成「未命中缓存」部分</td>
 <td align="center"><a href="../objects_in_obj-c/">Obj-C 中的对象 - kingcos</a></td>
 </tr>
 </tbody>
@@ -356,8 +356,6 @@ objc_msgSend(id _Nullable self, SEL _Nonnull op, ...)
 
 <p>因此对于动态绑定的语言来说，其方法查找的速度一定是慢于静态绑定的。为了提高效率，Obj-C 会将方法查找的结果缓存在 <code>cache_t cache;</code> 中，当后续发送同样的消息时即可得到更快得执行。</p>
 
-<!-- 根据这个快慢，消息发送的代码被分为两个部分：其一是快速路径（Fast Path），这一部分由汇编语言实现；其二是慢速路径（Slow Path），由 C 语言实现。当没有缓存时，将调用 C 语言代码来处理。 -->
-
 <pre><code class="language-cpp">// _uint32_t.h
 
 typedef unsigned int uint32_t;
@@ -403,11 +401,11 @@ struct cache_t {
 };
 </code></pre>
 
-<p><code>cache_t</code> 结构体中存储了指向 <code>bucket_t</code> 结构体（数组）的指针、<code>_mask</code>（表示散列表最后一位的索引）、以及 <code>_occupied</code>（表示已缓存方法的数量）。<code>bucket_t</code> 即缓存方法的散列表，方法名将作为键，<code>IMP</code> 即方法的内存地址将作为值。</p>
+<p><code>cache_t</code> 结构体中存储了指向 <code>bucket_t</code> 结构体（数组）的指针、<code>_mask</code>（表示散列表容量 - 1，详见下文源码）、以及 <code>_occupied</code>（表示已缓存方法的数量）。<code>bucket_t</code> 即缓存方法的散列表，方法名将作为键，<code>IMP</code> 即方法的内存地址将作为值。</p>
 
 <h4 id="当未命中缓存时">当未命中缓存时</h4>
 
-<p>方法的首次调用将无法命中缓存，因此我们仍从 <code>cmp p0, #0</code> 开始，但这次接收者并非 <code>nil</code> 所以不会跳入判空分支：</p>
+<p>方法的首次调用或遇到缓存扩容后将无法命中缓存，因此我们仍从 <code>cmp p0, #0</code> 开始，但这次接收者并非 <code>nil</code> 所以不会跳入判空分支：</p>
 
 <p><img src="/img/2019/objc_msgsend/5.png" alt="5" /></p>
 
@@ -425,7 +423,7 @@ struct cache_t {
 **********************************************************************/
 IMP _class_lookupMethodAndLoadCache3(id obj, SEL sel, Class cls)
 {
-    // ⬇️
+    // ⬇️ 查找 IMP 或转发
     return lookUpImpOrForward(cls, sel, obj,
                               YES/*initialize*/, NO/*cache*/, YES/*resolver*/);
 }
@@ -534,12 +532,12 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
             if (imp) {
                 if (imp != (IMP)_objc_msgForward_impcache) {
                     // Found the method in a superclass. Cache it in this class.
-                    // 父类中找到了，则缓存并返回 IMP
+                    // 父类中找到了，则在本类缓存并返回 IMP
                     log_and_fill_cache(cls, imp, sel, inst, curClass);
                     goto done;
                 }
                 else {
-                    // ⚠️ 父类的方法转发入口，跳出循环
+                    // ⚠️ 父类的方法转发入口，停止循环
                     // Found a forward:: entry in a superclass.
                     // Stop searching, but don't cache yet; call method
                     // resolver for this class first.
@@ -548,9 +546,10 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
             }
 
             // Superclass method list.
-            // 父类的方法列表中查找
+            // 父类缓存未找到，则在父类的方法列表中查找
             Method meth = getMethodNoSuper_nolock(curClass, sel);
             if (meth) {
+                // 找到则在本类缓存
                 log_and_fill_cache(cls, meth-&gt;imp, sel, inst, curClass);
                 imp = meth-&gt;imp;
                 goto done;
@@ -566,6 +565,7 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
         runtimeLock.lock();
         // Don't cache the result; we don't hold the lock so it may have
         // changed already. Re-do the search from scratch instead.
+        // 标记为 YES
         triedResolver = YES;
         goto retry;
     }
@@ -688,18 +688,18 @@ static void cache_fill_nolock(Class cls, SEL sel, IMP imp, id receiver)
 
     // Make sure the entry wasn't added to the cache by some other thread
     // before we grabbed the cacheUpdateLock.
-    // 若缓存已存在，则返回
+    // 若缓存中已存在，则返回
     if (cache_getImp(cls, sel)) return;
 
     cache_t *cache = getCache(cls);
-    // ⬇️ 获取缓存 key
+    // ⬇️ 获取缓存 key，本质即 SEL
     cache_key_t key = getKey(sel);
 
     // Use the cache as-is if it is less than 3/4 full
-    // 如果小于 3/4 满，则使用缓存
+    // 如果小于等于 3/4 满，则使用缓存
     // newOccupied 为当前占用数 + 1
-    // capacity 为容量
     mask_t newOccupied = cache-&gt;occupied() + 1;
+    // capacity 为容量（mask + 1 或 0）
     mask_t capacity = cache-&gt;capacity();
     if (cache-&gt;isConstantEmptyCache()) {
         // 缓存为空
@@ -709,11 +709,11 @@ static void cache_fill_nolock(Class cls, SEL sel, IMP imp, id receiver)
     }
     else if (newOccupied &lt;= capacity / 4 * 3) {
         // Cache is less than 3/4 full. Use it as-is.
-        // 缓存小于 3/4 满，则使用
+        // 缓存已占用比例小于等于 3/4，则使用
     }
     else {
         // Cache is too full. Expand it.
-        // ⬇️ 缓存太满了，扩容。
+        // ⬇️ 大于 3/4 则先扩容。
         cache-&gt;expand();
     }
 
@@ -722,37 +722,45 @@ static void cache_fill_nolock(Class cls, SEL sel, IMP imp, id receiver)
     // There is guaranteed to be an empty slot because the
     // minimum size is 4 and we resized at 3/4 full.
     // 能够被确保有空间隙是因为最小大小为 4，并重调为 3/4 满。
-    // ⬇️
+    // ⬇️ 查找要存入的 bucket_t
     bucket_t *bucket = cache-&gt;find(key, receiver);
-    // key 为空，则为新占用缓存，占用数自增
+    // key 为空，则为新占用缓存，占用数需自增
     if (bucket-&gt;key() == 0) cache-&gt;incrementOccupied();
     // 存入 bucket
     bucket-&gt;set(key, imp);
 }
 
-// 由此得出散列表的 key 本质是 SEL
+mask_t cache_t::capacity()
+{
+    return mask() ? mask()+1 : 0;
+}
+
 cache_key_t getKey(SEL sel)
 {
     assert(sel);
+    // 将 SEL 强转为 cache_key_t 类型
     return (cache_key_t)sel;
 }
 
-// 根据 key 查找 bucket_t
+// 🌟 根据 key 查找 bucket_t
 bucket_t * cache_t::find(cache_key_t k, id receiver)
 {
     assert(k != 0);
 
+    // b 为 buckets 数组首地址
     bucket_t *b = buckets();
     mask_t m = mask();
     // begin 为方法在散列表的索引
     mask_t begin = cache_hash(k, m);
+    // 从索引开始遍历
     mask_t i = begin;
     do {
-        // 如果 bucket_t 中的键为我们查找的 key 或为空
+        // 如果该索引对应的 bucket_t 中的 key（SEL）对应了我们查找的 key（即已存在）或为空
+        // 则代表当前 bucket_t 可插入
         if (b[i].key() == 0  ||  b[i].key() == k) {
             return &amp;b[i];
         }
-        // 进入 cache 下一格
+        // 索引冲突，则进入当前索引的下一格
     } while ((i = cache_next(i, m)) != begin);
 
     // hack
@@ -765,6 +773,7 @@ bucket_t * cache_t::find(cache_key_t k, id receiver)
 
 static inline mask_t cache_hash(cache_key_t key, mask_t mask)
 {
+    // key &amp; mask 获得索引
     return (mask_t)(key &amp; mask);
 }
 
@@ -789,9 +798,20 @@ void cache_t::expand()
 
     reallocate(oldCapacity, newCapacity);
 }
+
+/* Initial cache bucket count. INIT_CACHE_SIZE must be a power of two. */
+enum {
+    INIT_CACHE_SIZE_LOG2 = 2,
+    // 左移 2 位，为 4
+    INIT_CACHE_SIZE      = (1 &lt;&lt; INIT_CACHE_SIZE_LOG2)
+};
 </code></pre>
 
+<p>如上，消息发送的代码被分为两个部分：其一是快速路径（Fast Path），这一部分由汇编语言实现；其二是慢速路径（Slow Path），由 C 语言实现。当未命中缓存时，将调用 C 语言代码来查找方法列表，并缓存方法。</p>
+
 <h4 id="当命中缓存时">当命中缓存时</h4>
+
+<p><img src="/img/2019/objc_msgsend/6.png" alt="6" /></p>
 
 <h4 id="support-indexed-isa"><code>SUPPORT_INDEXED_ISA</code></h4>
 
