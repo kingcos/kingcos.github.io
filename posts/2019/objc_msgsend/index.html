@@ -141,7 +141,7 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
       
       
       
-        <span class="post-read-time">— 17 min read</span>
+        <span class="post-read-time">— 19 min read</span>
       
     </div>
 
@@ -346,7 +346,7 @@ objc_msgSend(id _Nullable self, SEL _Nonnull op, ...)
 
 <p>在 <a href="../objects_in_obj-c/">Obj-C 中的对象</a>一文中，我们简单了解了 Obj-C 中类和元类对象的结构，其中的 <code>cache_t cache;</code> 是方法缓存。那么为什么需要缓存呢？</p>
 
-<p>Obj-C 的消息发送本质属于<strong>动态绑定（Dynamic Binding）</strong>，而非 C 语言常用的静态绑定。动态绑定意味着只有在运行时才能确定真正被调用的函数；而静态绑定在编译时即可确定（不考虑内联函数的前提下），编译器会直接生成调用函数的指令，函数地址就被硬编码在指令当中。</p>
+<p>Obj-C 的消息发送本质属于<strong>动态绑定（Dynamic Binding）</strong>，而非 C 语言常用的静态绑定（Static Binding）。动态绑定意味着只有在运行时才能确定真正被调用的函数；而静态绑定在编译时即可确定（不考虑内联函数的前提下），编译器会直接生成调用函数的指令，函数地址就被硬编码在指令当中。</p>
 
 <blockquote>
 <p><strong>Tips - 内联（Inline）函数</strong></p>
@@ -867,6 +867,8 @@ if (getTriple().isWatchABI())
 
 <h4 id="尾递归调用">尾递归调用</h4>
 
+<p>🚧</p>
+
 <h3 id="动态方法解析">动态方法解析</h3>
 
 <h4 id="what">What</h4>
@@ -876,6 +878,7 @@ if (getTriple().isWatchABI())
 <pre><code class="language-objectivec">@interface Foo : NSObject
 - (void)foo;
 + (void)classFoo;
+- (void)tryC;
 @end
 
 @implementation Foo
@@ -888,14 +891,23 @@ if (getTriple().isWatchABI())
     NSLog(@&quot;%s&quot;, __func__);
 }
 
+void c_func(id self, SEL _cmd) {
+    NSLog(@&quot;%p - %@&quot;, self, NSStringFromSelector(_cmd));
+}
+
 + (BOOL)resolveInstanceMethod:(SEL)sel {
     if (sel == @selector(foo)) {
         // 通过 Runtime API 获得类对象中的实例方法
         Method method = class_getInstanceMethod(self, @selector(bar));
         // 动态添加方法
-        class_addMethod(self, @selector(foo), method_getImplementation(method), method_getTypeEncoding(method));
+        class_addMethod(self, sel, method_getImplementation(method), method_getTypeEncoding(method));
 
         return YES;
+    }
+
+    if (sel == @selector(tryC)) {
+        // 也可以将 C 函数转换为 Method 格式作为动态方法；
+        class_addMethod(self, sel, (IMP)c_func, &quot;v16@0:8&quot;);
     }
 
     // 当实现了动态方法解析时，最好按要求返回 YES，但目前看返回值并不影响结果（详见下源码）
@@ -907,7 +919,7 @@ if (getTriple().isWatchABI())
         // 通过 Runtime API 获得元类对象中的类方法
         Method method = class_getClassMethod(object_getClass(self), @selector(classBar));
         // 动态添加方法（注意将k类方法添加到元类对象中）
-        class_addMethod(object_getClass(self), @selector(classFoo), method_getImplementation(method), method_getTypeEncoding(method));
+        class_addMethod(object_getClass(self), sel, method_getImplementation(method), method_getTypeEncoding(method));
 
         return YES;
     }
@@ -924,6 +936,7 @@ Foo *foo = [[Foo alloc] init];
 // OUTPUT:
 // -[Foo bar]
 // +[Foo classBar]
+// 0x2802d0a50 - tryC
 </code></pre>
 
 <p>这里的 <code>Method</code> 是一个类似 <code>Class</code> 的不透明类型，我们可以在 objc4 源码中看到它的结构，本质即 <code>method_t</code>：</p>
@@ -946,7 +959,7 @@ typedef struct method_t *Method;
 // ...
 </code></pre>
 
-<p>而 <code>class_addMethod</code> 将把新方法放置在一个一维方法列表中，并最终附加在 Obj-C 类中 <code>class_rw_t</code> 的二维 <code>method_array_t methods;</code> 中：</p>
+<p>而 <code>class_addMethod</code> 将把新方法放置在一个一维方法列表中，并最终附加在 Obj-C 类中 <code>class_rw_t</code> 的二维 <code>method_array_t methods;</code> 中（因此 <code>class_addMethod</code> 对于每个方法只会调用一次）：</p>
 
 <pre><code class="language-cpp">// objc-runtime-new.mm
 
@@ -1102,7 +1115,7 @@ class list_array_tt {
 
 <h4 id="how">How</h4>
 
-<p>在上面未命中缓存且本类及所有父类中都无法找到要调用的方法时，将进入 <code>lookUpImpOrForward</code> 中的 Method Resovle 即「动态方法解析」：</p>
+<p>正如上所述，在上面未命中缓存且本类及所有父类中都无法找到要调用的方法时，将进入 <code>lookUpImpOrForward</code> 中的 Method Resovle 即「动态方法解析」：</p>
 
 <pre><code class="language-cpp">// objc-runtime-new.mm
 
@@ -1265,7 +1278,123 @@ IMP lookUpImpOrNil(Class cls, SEL sel, id inst,
 
 <h3 id="消息转发">消息转发</h3>
 
-<p>而当动态方法解析也无法奏效时，将进入 <code>lookUpImpOrForward</code> 中的 Method Forward 即「消息转发」：</p>
+<h4 id="what-1">What</h4>
+
+<p>当动态方法解析也无能为力时，将最终尝试消息转发。即 <code>- (id)forwardingTargetForSelector:(SEL)aSelector</code> 实例方法或 <code>+ (id)forwardingTargetForSelector:(SEL)aSelector</code> 类方法，如果我们将需要转发到的目标返回，那么目标就可以执行到转发的相同方法：</p>
+
+<pre><code class="language-objectivec">@interface FooBackup : NSObject
+@end
+
+@implementation FooBackup
+- (void)foo {
+    NSLog(@&quot;%s&quot;, __func__);
+}
+
++ (void)foo {
+    NSLog(@&quot;%s&quot;, __func__);
+}
+
++ (void)classFoo {
+    NSLog(@&quot;%s&quot;, __func__);
+}
+
+- (void)classFoo {
+    NSLog(@&quot;%s&quot;, __func__);
+}
+@end
+
+@interface Foo : NSObject
+- (void)foo;
++ (void)classFoo;
+@end
+
+@implementation Foo
+- (id)forwardingTargetForSelector:(SEL)aSelector {
+    if (aSelector == @selector(foo)) {
+        // 实例方法也可以转发给类对象
+        // return [FooBackup class];
+        return [[FooBackup alloc] init];
+    }
+
+    return [super forwardingTargetForSelector:aSelector];
+}
+
++ (id)forwardingTargetForSelector:(SEL)aSelector {
+    if (aSelector == @selector(classFoo)) {
+        // return [[FooBackup alloc] init];
+        return [FooBackup class];
+    }
+
+    return [super forwardingTargetForSelector:aSelector];
+}
+@end
+
+Foo *foo = [[Foo alloc] init];
+[foo foo];
+
+[Foo classFoo];
+
+// OUTPUT:
+// -[FooBackup foo]
+// +[FooBackup classFoo]
+</code></pre>
+
+<p>如果 <code>forwardingTargetForSelector:</code> 没有转发到目标，消息将尝试从 <code>- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector</code>/<code>+ (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector</code> 获取方法签名，方法签名可以根据方法的类型编码获得；接下来将可以通过 <code>- (void)forwardInvocation:(NSInvocation *)anInvocation</code>/<code>+ (void)forwardInvocation:(NSInvocation *)anInvocation</code> 执行，原来的消息将被封装在 <code>NSInvocation</code> 中：</p>
+
+<pre><code class="language-objectivec">@interface FooBackup : NSObject
+@end
+
+@implementation FooBackup
+- (void)foo {
+    NSLog(@&quot;%s&quot;, __func__);
+}
+
++ (void)classFoo {
+    NSLog(@&quot;%s&quot;, __func__);
+}
+@end
+
+@interface Foo : NSObject
+- (void)foo;
++ (void)classFoo;
+@end
+
+@implementation Foo
+- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector {
+    if (aSelector == @selector(foo)) {
+        // return [NSMethodSignature signatureWithObjCTypes:&quot;v@:&quot;];
+        return [NSMethodSignature signatureWithObjCTypes:&quot;v16@0:8&quot;];
+    }
+
+    return [super methodSignatureForSelector:aSelector];
+}
+
+- (void)forwardInvocation:(NSInvocation *)anInvocation {
+    if (anInvocation.selector == @selector(foo)) {
+        [anInvocation invokeWithTarget:[[FooBackup alloc] init]];
+    }
+}
+
++ (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector {
+    if (aSelector == @selector(classFoo)) {
+        // return [NSMethodSignature signatureWithObjCTypes:&quot;v@:&quot;];
+        return [NSMethodSignature signatureWithObjCTypes:&quot;v16@0:8&quot;];
+    }
+
+    return [super methodSignatureForSelector:aSelector];
+}
+
++ (void)forwardInvocation:(NSInvocation *)anInvocation {
+    if (anInvocation.selector == @selector(classFoo)) {
+        [anInvocation invokeWithTarget:[FooBackup class]];
+    }
+}
+@end
+</code></pre>
+
+<h4 id="how-1">How</h4>
+
+<p>正如上所述，当动态方法解析也无法奏效或者我们在动态方法解析中并没有添加了正确的方法时，将进入 <code>lookUpImpOrForward</code> 中的 Method Forward 即「消息转发」：</p>
 
 <pre><code class="language-cpp">IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
                        bool initialize, bool cache, bool resolver)
@@ -1282,18 +1411,69 @@ IMP lookUpImpOrNil(Class cls, SEL sel, id inst,
 }
 </code></pre>
 
-<!-- - C 语言使用静态绑定（Static Binding）来进行函数调用，在编译时刻就能决定运行时所应调用的函数，即在不考虑内联下，会直接生成调用函数的指令，函数地址则被硬编码在指令中。
-- C 语言中使用函数指针进行调用则属于动态绑定（Dynamic Binding），所要调用的函数在运行时才能确定。
+<p><code>_objc_msgForward_impcache</code> 则又是在汇编中：</p>
 
-```c
-// objc_msgSend 的原型：
-// id self：接收者本身
-// SEL cmd：方法选择器本身
-// ...：cmd 方法的参数（可变参数函数）
-void objc_msgSend(id self, SEL cmd, ...)
-```
+<pre><code class="language-asm">// objc-msg-arm.s
+/********************************************************************
+*
+* id _objc_msgForward(id self, SEL _cmd,...);
+*
+* _objc_msgForward is the externally-callable
+*   function returned by things like method_getImplementation().
+* _objc_msgForward_impcache is the function pointer actually stored in
+*   method caches.
+*
+********************************************************************/
 
-- Obj-C 中的方法使用动态绑定调用。
+	STATIC_ENTRY __objc_msgForward_impcache
+
+	// No stret specialization.
+	b	__objc_msgForward
+
+	END_ENTRY __objc_msgForward_impcache
+
+
+	ENTRY __objc_msgForward
+
+	adrp	x17, __objc_forward_handler@PAGE
+	ldr	p17, [x17, __objc_forward_handler@PAGEOFF]
+	TailCallFunctionPointer x17
+
+	END_ENTRY __objc_msgForward
+</code></pre>
+
+<p>最终会发现 objc4 中并没有开源的 <code>objc_msgForward</code> 实现：</p>
+
+<pre><code class="language-cpp">// objc-runtime.mm
+
+// Default forward handler halts the process.
+__attribute__((noreturn)) void
+objc_defaultForwardHandler(id self, SEL sel)
+{
+    _objc_fatal(&quot;%c[%s %s]: unrecognized selector sent to instance %p &quot;
+                &quot;(no message forward handler is installed)&quot;,
+                class_isMetaClass(object_getClass(self)) ? '+' : '-',
+                object_getClassName(self), sel_getName(sel), self);
+}
+void *_objc_forward_handler = (void*)objc_defaultForwardHandler;
+</code></pre>
+
+<hr />
+
+<p>综上，一个 Obj-C 方法调用的过程可以描述为：</p>
+
+<ol>
+<li><code>objc_msgSend</code> 判断消息接收者是否为 <code>nil</code></li>
+<li>当非 <code>nil</code> 时，将根据 <code>isa</code> 指针找到缓存所在的类或元类对象的缓存中寻找；</li>
+<li>当无法在缓存中找到时，将从本类开始到父类（到父类的父）在其方法列表中查找，如果找到会同时缓存到原有类中一份；</li>
+<li>如果方法列表也无法找到将尝试动态方法解析，即进入 <code>resolveInstanceMethod</code>/<code>resolveClassMethod</code>，如果其中将方法正确地动态添加了，则从方法列表中调用并缓存；</li>
+<li>如果仍无，将尝试 <code>forwardingTargetForSelector</code>，其返回将作为被转发到的目标尝试执行相应方法；</li>
+<li>如果转发目标为 <code>nil</code>，将最终尝试 <code>methodSignatureForSelector:</code> 返回方法签名并在 <code>forwardInvocation:</code> 决定根据消息的信息选择如何执行；</li>
+<li>如果在 <code>methodSignatureForSelector:</code> 返回了空方法签名，将最终导致「unrecognized selector sent to instance」。</li>
+</ol>
+
+<!--
+
 - Obj-C 对象方法查找顺序：本类的类对象方法列表中查找同名方法（分类 Category 中的方法会合并到类的方法列表中，根据后编译更靠前，会被先找到） -> 若没有找到，则根据 `superclass` 指针向父类的类对象方法列表中查找，直到查找基类 `NSObject` 的类对象中也没有则进行消息转发（Message Forwarding）。
 - `objc_msgSend` 会将方法的匹配的结果缓存在类对象的 `cache_t cache;` 中，优化之后查找相同方法的速度，但仍慢于静态绑定，不过也不至于是瓶颈；如果对查找速度极致追求则可使用纯 C 函数。
 - 边界情况：
@@ -1302,7 +1482,6 @@ void objc_msgSend(id self, SEL cmd, ...)
   - `objc_msgSend_fpret`：如果消息返回的是浮点数，那么可交由此函数处理。在某些结构的 CPU 中调用函数时，需要对「浮点数寄存器（Floating-Point Register）」做特殊处理，也就是说，通常所用的 `objc_msgSend` 在这种情况下并不合适。这个函数是为了处理 x86 等架构 CPU 中某些令人稍觉惊讶的奇怪状况。（不会使用在 ARM 64 架构中）
   - `objc_msgSendSuper`：如果要给父类发送消息，例如 `[super message:parameter]`，那么就交由此函数处理。也有另外两个与 `objc_msgSend_stret` 和 `objc_msgSend_fpret` 等效的函数，用于处理发给 `super` 的相应的消息。
 
-- Obj-C 对象的每个方法都可以视为简单的 C 函数，其原型为：`<return_type> Class_selector(id self, SEL _cmd, ...)`。
 - Obj-C 每个类中都有以上原型函数表，`objc_msgSend` 等函数通过该表寻找应该执行的方法并跳至其实现（原型与 `objc_msgSend` 函数类似是为了利用尾调用优化 Tail-Call Optimization 技术，简化跳至实现的操作）。
 - 如果某个函数的最后一项操作是调用另外一个函数，那么就可以运用「尾调用优化」技术。编译器会生成调转至另一函数所需的指令码，而且不会向调用堆栈中推入新的「栈帧 Frame Stack」。只有当某函数的最后一个操作仅仅是调用其他函数而不会将其返回值另作他用时，才能执行「尾调用优化」。如果不这样的话，每次调用 Obj-C 方法之前都需要需要为 `objc_msgSend` 准备栈帧（可以在栈追踪 Stack Trace）中看到这种栈帧）。此外，若是不优化，还会过早地发生「栈溢出（Stack Overflow）」现象。 -->
 
@@ -1316,6 +1495,15 @@ void objc_msgSend(id self, SEL cmd, ...)
 <li><a href="https://www.ibm.com/support/knowledgecenter/zh/SSXVZZ_13.1.0/com.ibm.xlcpp131.linux.doc/getstart/predef_macro_v10v12.html">预定义宏 - IBM</a></li>
 <li><a href="../objects_in_obj-c/">Obj-C 中的对象 - kingcos</a></li>
 <li><a href="../category_in_ios/">iOS 中的 Category - kingcos</a></li>
+<li><a href="http://yulingtianxia.com/blog/2016/06/15/Objective-C-Message-Sending-and-Forwarding/">Objective-C 消息发送与转发机制原理 - 杨萧玉</a></li>
+</ul>
+
+<h2 id="todo">TODO</h2>
+
+<ul class="task-list">
+<li><label><input type="checkbox" disabled class="task-list-item"> 尾递归调用</label></li>
+<li><label><input type="checkbox" disabled class="task-list-item"> 尝试逆向得到消息转发部分的步骤</label></li>
+<li><label><input type="checkbox" disabled class="task-list-item"> 消息发送流程图</label></li>
 </ul>
 
     </div>
