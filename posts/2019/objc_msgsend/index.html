@@ -6,7 +6,7 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-09-07 完成「缓存」相关部分 Obj-C 中的对象 - kingcos    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
+<meta name="description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-09-07 完成「缓存、动态方法解析」等部分 Obj-C 中的对象 - kingcos    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
 Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？
 我们创建一个使用 Obj-C 的 iOS 项目，如下在 ViewController 中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
 #import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar {} @end @interface ViewController () @end @implementation ViewController - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; [foo bar]; // 🔴 Breakpoint } @end  我们将断点打在 [foo bar]; 一行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可最终跳转到 objc_msgSend："/>
@@ -141,7 +141,7 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
       
       
       
-        <span class="post-read-time">— 12 min read</span>
+        <span class="post-read-time">— 17 min read</span>
       
     </div>
 
@@ -182,7 +182,7 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
 
 <tr>
 <td align="center">2019-09-07</td>
-<td align="center">完成「缓存」相关部分</td>
+<td align="center">完成「缓存、动态方法解析」等部分</td>
 <td align="center"><a href="../objects_in_obj-c/">Obj-C 中的对象 - kingcos</a></td>
 </tr>
 </tbody>
@@ -558,7 +558,7 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
     }
 
     // No implementation found. Try method resolver once.
-    // IMP 找不到，则进入方法动态解析一次。
+    // IMP 找不到，则进入方法动态解析一次。详见下文「动态方法解析」一节。
     if (resolver  &amp;&amp;  !triedResolver) {
         runtimeLock.unlock();
         _class_resolveMethod(cls, sel, inst);
@@ -572,6 +572,7 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
 
     // No implementation found, and method resolver didn't help.
     // Use forwarding.
+    // 实现无法找到，方法解析无效，尝试方法转发。
 
     imp = (IMP)_objc_msgForward_impcache;
     cache_fill(cls, sel, imp, inst);
@@ -868,28 +869,418 @@ if (getTriple().isWatchABI())
 
 <h3 id="动态方法解析">动态方法解析</h3>
 
-<p>在上面未命中缓存且本类及所有父类中都无法找到要调用的方法时，将进入 <code>lookUpImpOrForward</code> 中的 Method Resovle 即「动态方法解析」。</p>
+<h4 id="what">What</h4>
 
-<pre><code class="language-cpp">IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
+<p>当一个类或元类自身及其所有父类中都没有相应的方法实现时，将尝试动态方法解析。即调用 <code>resolveInstanceMethod:</code> 或 <code>resolveClassMethod</code> 类方法（两者依次对应解析实例方法、类方法），如果我们在其中动态将方法添加，那么将可以执行到相应的方法中：</p>
+
+<pre><code class="language-objectivec">@interface Foo : NSObject
+- (void)foo;
++ (void)classFoo;
+@end
+
+@implementation Foo
+
+- (void)bar {
+    NSLog(@&quot;%s&quot;, __func__);
+}
+
++ (void)classBar {
+    NSLog(@&quot;%s&quot;, __func__);
+}
+
++ (BOOL)resolveInstanceMethod:(SEL)sel {
+    if (sel == @selector(foo)) {
+        // 通过 Runtime API 获得类对象中的实例方法
+        Method method = class_getInstanceMethod(self, @selector(bar));
+        // 动态添加方法
+        class_addMethod(self, @selector(foo), method_getImplementation(method), method_getTypeEncoding(method));
+
+        return YES;
+    }
+
+    // 当实现了动态方法解析时，最好按要求返回 YES，但目前看返回值并不影响结果（详见下源码）
+    return [super resolveInstanceMethod:sel];
+}
+
++ (BOOL)resolveClassMethod:(SEL)sel {
+    if (sel == @selector(classFoo)) {
+        // 通过 Runtime API 获得元类对象中的类方法
+        Method method = class_getClassMethod(object_getClass(self), @selector(classBar));
+        // 动态添加方法（注意将k类方法添加到元类对象中）
+        class_addMethod(object_getClass(self), @selector(classFoo), method_getImplementation(method), method_getTypeEncoding(method));
+
+        return YES;
+    }
+
+    return [super resolveClassMethod:sel];
+}
+@end
+
+Foo *foo = [[Foo alloc] init];
+[foo foo];
+
+[Foo classFoo];
+
+// OUTPUT:
+// -[Foo bar]
+// +[Foo classBar]
+</code></pre>
+
+<p>这里的 <code>Method</code> 是一个类似 <code>Class</code> 的不透明类型，我们可以在 objc4 源码中看到它的结构，本质即 <code>method_t</code>：</p>
+
+<pre><code class="language-objectivec">// runtime.h
+
+/// An opaque type that represents a method in a class definition.
+typedef struct objc_method *Method;
+
+struct objc_method {
+    SEL _Nonnull method_name                                 OBJC2_UNAVAILABLE;
+    char * _Nullable method_types                            OBJC2_UNAVAILABLE;
+    IMP _Nonnull method_imp                                  OBJC2_UNAVAILABLE;
+}
+
+// objc-private.h
+
+#if __OBJC2__
+typedef struct method_t *Method;
+// ...
+</code></pre>
+
+<p>而 <code>class_addMethod</code> 将把新方法放置在一个一维方法列表中，并最终附加在 Obj-C 类中 <code>class_rw_t</code> 的二维 <code>method_array_t methods;</code> 中：</p>
+
+<pre><code class="language-cpp">// objc-runtime-new.mm
+
+BOOL
+class_addMethod(Class cls, SEL name, IMP imp, const char *types)
+{
+    if (!cls) return NO;
+
+    mutex_locker_t lock(runtimeLock);
+    // ⬇️
+    return ! addMethod(cls, name, imp, types ?: &quot;&quot;, NO);
+}
+
+/**********************************************************************
+* addMethod
+* fixme
+* Locking: runtimeLock must be held by the caller
+**********************************************************************/
+static IMP
+addMethod(Class cls, SEL name, IMP imp, const char *types, bool replace)
+{
+    IMP result = nil;
+
+    runtimeLock.assertLocked();
+
+    checkIsKnownClass(cls);
+
+    assert(types);
+    assert(cls-&gt;isRealized());
+
+    method_t *m;
+    if ((m = getMethodNoSuper_nolock(cls, name))) {
+        // already exists
+        if (!replace) {
+            result = m-&gt;imp;
+        } else {
+            result = _method_setImplementation(cls, m, imp);
+        }
+    } else {
+        // fixme optimize
+        // 初始化新的 method_list_t
+        method_list_t *newlist;
+        newlist = (method_list_t *)calloc(sizeof(*newlist), 1);
+        newlist-&gt;entsizeAndFlags =
+            (uint32_t)sizeof(method_t) | fixed_up_method_list;
+        newlist-&gt;count = 1;
+        // 将方法放置在新的方法列表中
+        newlist-&gt;first.name = name;
+        newlist-&gt;first.types = strdupIfMutable(types);
+        newlist-&gt;first.imp = imp;
+
+        // 方法列表的准备工作
+        prepareMethodLists(cls, &amp;newlist, 1, NO, NO);
+        // ⬇️ 附加方法列表
+        cls-&gt;data()-&gt;methods.attachLists(&amp;newlist, 1);
+        flushCaches(cls);
+
+        result = nil;
+    }
+
+    return result;
+}
+
+static void
+prepareMethodLists(Class cls, method_list_t **addedLists, int addedCount,
+                   bool baseMethods, bool methodsFromBundle)
+{
+    runtimeLock.assertLocked();
+
+    if (addedCount == 0) return;
+
+    // Don't scan redundantly
+    bool scanForCustomRR = !cls-&gt;hasCustomRR();
+    bool scanForCustomAWZ = !cls-&gt;hasCustomAWZ();
+
+    // There exist RR/AWZ special cases for some class's base methods.
+    // But this code should never need to scan base methods for RR/AWZ:
+    // default RR/AWZ cannot be set before setInitialized().
+    // Therefore we need not handle any special cases here.
+    if (baseMethods) {
+        assert(!scanForCustomRR  &amp;&amp;  !scanForCustomAWZ);
+    }
+
+    // Add method lists to array.
+    // Reallocate un-fixed method lists.
+    // The new methods are PREPENDED to the method list array.
+
+    for (int i = 0; i &lt; addedCount; i++) {
+        method_list_t *mlist = addedLists[i];
+        assert(mlist);
+
+        // Fixup selectors if necessary
+        if (!mlist-&gt;isFixedUp()) {
+            fixupMethodList(mlist, methodsFromBundle, true/*sort*/);
+        }
+
+        // Scan for method implementations tracked by the class's flags
+        if (scanForCustomRR  &amp;&amp;  methodListImplementsRR(mlist)) {
+            cls-&gt;setHasCustomRR();
+            scanForCustomRR = false;
+        }
+        if (scanForCustomAWZ  &amp;&amp;  methodListImplementsAWZ(mlist)) {
+            cls-&gt;setHasCustomAWZ();
+            scanForCustomAWZ = false;
+        }
+    }
+}
+
+// objc-runtime-new.h
+
+template &lt;typename Element, typename List&gt;
+class list_array_tt {
+    // ...
+
+    void attachLists(List* const * addedLists, uint32_t addedCount) {
+        if (addedCount == 0) return;
+
+        if (hasArray()) {
+            // many lists -&gt; many lists
+            // 已成二维，则先分配空间，挪动原表，放置新表
+            //（关于 memmove &amp; momcpy 可参考文末 Reference 中「iOS 中的 Category」一文）
+            uint32_t oldCount = array()-&gt;count;
+            uint32_t newCount = oldCount + addedCount;
+            setArray((array_t *)realloc(array(), array_t::byteSize(newCount)));
+            array()-&gt;count = newCount;
+            memmove(array()-&gt;lists + addedCount, array()-&gt;lists,
+                    oldCount * sizeof(array()-&gt;lists[0]));
+            memcpy(array()-&gt;lists, addedLists,
+                   addedCount * sizeof(array()-&gt;lists[0]));
+        }
+        else if (!list  &amp;&amp;  addedCount == 1) {
+            // 0 lists -&gt; 1 list
+            // 空表则直接附加
+            list = addedLists[0];
+        }
+        else {
+            // 1 list -&gt; many lists
+            // 一维单表附加至二维
+            List* oldList = list;
+            uint32_t oldCount = oldList ? 1 : 0;
+            uint32_t newCount = oldCount + addedCount;
+            setArray((array_t *)malloc(array_t::byteSize(newCount)));
+            array()-&gt;count = newCount;
+            if (oldList) array()-&gt;lists[addedCount] = oldList;
+            memcpy(array()-&gt;lists, addedLists,
+                   addedCount * sizeof(array()-&gt;lists[0]));
+        }
+    }
+
+    // ...
+};
+</code></pre>
+
+<h4 id="how">How</h4>
+
+<p>在上面未命中缓存且本类及所有父类中都无法找到要调用的方法时，将进入 <code>lookUpImpOrForward</code> 中的 Method Resovle 即「动态方法解析」：</p>
+
+<pre><code class="language-cpp">// objc-runtime-new.mm
+
+IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
                        bool initialize, bool cache, bool resolver)
     // ...
 
+    // No implementation found. Try method resolver once.
+    // IMP 找不到，则进入方法动态解析一次。
     if (resolver  &amp;&amp;  !triedResolver) {
         runtimeLock.unlock();
+        // ⬇️ 尝试方法解析
         _class_resolveMethod(cls, sel, inst);
         runtimeLock.lock();
         // Don't cache the result; we don't hold the lock so it may have
         // changed already. Re-do the search from scratch instead.
         // 标记为 YES
         triedResolver = YES;
+        // 添加到方法列表后，进而进入再次尝试从方法列表中获取并存入缓存
         goto retry;
     }
 
     // ...
 }
+
+/***********************************************************************
+* _class_resolveMethod
+* Call +resolveClassMethod or +resolveInstanceMethod.
+* Returns nothing; any result would be potentially out-of-date already.
+* Does not check if the method already exists.
+**********************************************************************/
+void _class_resolveMethod(Class cls, SEL sel, id inst)
+{
+    if (! cls-&gt;isMetaClass()) {
+        // 非元类对象，则解析类对象
+        // try [cls resolveInstanceMethod:sel]
+        _class_resolveInstanceMethod(cls, sel, inst);
+    }
+    else {
+        // 解析元类对象
+        // try [nonMetaClass resolveClassMethod:sel]
+        // and [cls resolveInstanceMethod:sel]
+        _class_resolveClassMethod(cls, sel, inst);
+        if (!lookUpImpOrNil(cls, sel, inst,
+                            NO/*initialize*/, YES/*cache*/, NO/*resolver*/))
+        {
+            _class_resolveInstanceMethod(cls, sel, inst);
+        }
+    }
+}
+
+/***********************************************************************
+* _class_resolveInstanceMethod
+* Call +resolveInstanceMethod, looking for a method to be added to class cls.
+* 调用 +resolveInstanceMethod，并查找要添加到 cls 类的方法。
+* cls may be a metaclass or a non-meta class.
+* cls 可能是元类或非元类。
+* Does not check if the method already exists.
+* 如果方法已经存在则不检查。
+**********************************************************************/
+static void _class_resolveInstanceMethod(Class cls, SEL sel, id inst)
+{
+    // 如果未实现 resolveInstanceMethod 则返回
+    if (! lookUpImpOrNil(cls-&gt;ISA(), SEL_resolveInstanceMethod, cls,
+                         NO/*initialize*/, YES/*cache*/, NO/*resolver*/))
+    {
+        // Resolver not implemented.
+        return;
+    }
+
+    BOOL (*msg)(Class, SEL, SEL) = (typeof(msg))objc_msgSend;
+    // 使用 objc_msgSend 执行 resolveInstanceMethod，将返回值保存为 resolved
+    bool resolved = msg(cls, SEL_resolveInstanceMethod, sel);
+
+    // 根据 resolved 做一些日志等处理
+    // Cache the result (good or bad) so the resolver doesn't fire next time.
+    // +resolveInstanceMethod adds to self a.k.a. cls
+    IMP imp = lookUpImpOrNil(cls, sel, inst,
+                             NO/*initialize*/, YES/*cache*/, NO/*resolver*/);
+
+    if (resolved  &amp;&amp;  PrintResolving) {
+        if (imp) {
+            _objc_inform(&quot;RESOLVE: method %c[%s %s] &quot;
+                         &quot;dynamically resolved to %p&quot;,
+                         cls-&gt;isMetaClass() ? '+' : '-',
+                         cls-&gt;nameForLogging(), sel_getName(sel), imp);
+        }
+        else {
+            // Method resolver didn't add anything?
+            _objc_inform(&quot;RESOLVE: +[%s resolveInstanceMethod:%s] returned YES&quot;
+                         &quot;, but no new implementation of %c[%s %s] was found&quot;,
+                         cls-&gt;nameForLogging(), sel_getName(sel),
+                         cls-&gt;isMetaClass() ? '+' : '-',
+                         cls-&gt;nameForLogging(), sel_getName(sel));
+        }
+    }
+}
+
+/***********************************************************************
+* _class_resolveClassMethod
+* Call +resolveClassMethod, looking for a method to be added to class cls.
+* 调用 +resolveClassMethod，并查找要添加到 cls 类的方法。
+* cls should be a metaclass.
+* cls 应当是元类。
+* Does not check if the method already exists.
+* 如果方法已经存在则不检查。
+**********************************************************************/
+static void _class_resolveClassMethod(Class cls, SEL sel, id inst)
+{
+    assert(cls-&gt;isMetaClass());
+
+    if (! lookUpImpOrNil(cls, SEL_resolveClassMethod, inst,
+                         NO/*initialize*/, YES/*cache*/, NO/*resolver*/))
+    {
+        // Resolver not implemented.
+        return;
+    }
+
+    BOOL (*msg)(Class, SEL, SEL) = (typeof(msg))objc_msgSend;
+    bool resolved = msg(_class_getNonMetaClass(cls, inst),
+                        SEL_resolveClassMethod, sel);
+
+    // Cache the result (good or bad) so the resolver doesn't fire next time.
+    // +resolveClassMethod adds to self-&gt;ISA() a.k.a. cls
+    IMP imp = lookUpImpOrNil(cls, sel, inst,
+                             NO/*initialize*/, YES/*cache*/, NO/*resolver*/);
+
+    if (resolved  &amp;&amp;  PrintResolving) {
+        if (imp) {
+            _objc_inform(&quot;RESOLVE: method %c[%s %s] &quot;
+                         &quot;dynamically resolved to %p&quot;,
+                         cls-&gt;isMetaClass() ? '+' : '-',
+                         cls-&gt;nameForLogging(), sel_getName(sel), imp);
+        }
+        else {
+            // Method resolver didn't add anything?
+            _objc_inform(&quot;RESOLVE: +[%s resolveClassMethod:%s] returned YES&quot;
+                         &quot;, but no new implementation of %c[%s %s] was found&quot;,
+                         cls-&gt;nameForLogging(), sel_getName(sel),
+                         cls-&gt;isMetaClass() ? '+' : '-',
+                         cls-&gt;nameForLogging(), sel_getName(sel));
+        }
+    }
+}
+
+/***********************************************************************
+* lookUpImpOrNil.
+* Like lookUpImpOrForward, but returns nil instead of _objc_msgForward_impcache
+* 类似 lookUpImpOrForward，但返回 nil 而非 _objc_msgForward_impcache
+**********************************************************************/
+IMP lookUpImpOrNil(Class cls, SEL sel, id inst,
+                   bool initialize, bool cache, bool resolver)
+{
+    IMP imp = lookUpImpOrForward(cls, sel, inst, initialize, cache, resolver);
+    // 若找不到该方法（返回了消息转发），则返回 nil
+    if (imp == _objc_msgForward_impcache) return nil;
+    else return imp;
+}
 </code></pre>
 
 <h3 id="消息转发">消息转发</h3>
+
+<p>而当动态方法解析也无法奏效时，将进入 <code>lookUpImpOrForward</code> 中的 Method Forward 即「消息转发」：</p>
+
+<pre><code class="language-cpp">IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
+                       bool initialize, bool cache, bool resolver)
+    // ...
+
+    // No implementation found, and method resolver didn't help.
+    // Use forwarding.
+    // 实现无法找到，方法解析无效，尝试方法转发。
+
+    imp = (IMP)_objc_msgForward_impcache;
+    cache_fill(cls, sel, imp, inst);
+
+    // ...
+}
+</code></pre>
 
 <!-- - C 语言使用静态绑定（Static Binding）来进行函数调用，在编译时刻就能决定运行时所应调用的函数，即在不考虑内联下，会直接生成调用函数的指令，函数地址则被硬编码在指令中。
 - C 语言中使用函数指针进行调用则属于动态绑定（Dynamic Binding），所要调用的函数在运行时才能确定。
@@ -924,6 +1315,7 @@ void objc_msgSend(id self, SEL cmd, ...)
 <li><a href="https://clang.llvm.org/doxygen/Basic_2Targets_2ARM_8cpp_source.html">ARM.cpp - clang</a></li>
 <li><a href="https://www.ibm.com/support/knowledgecenter/zh/SSXVZZ_13.1.0/com.ibm.xlcpp131.linux.doc/getstart/predef_macro_v10v12.html">预定义宏 - IBM</a></li>
 <li><a href="../objects_in_obj-c/">Obj-C 中的对象 - kingcos</a></li>
+<li><a href="../category_in_ios/">iOS 中的 Category - kingcos</a></li>
 </ul>
 
     </div>
