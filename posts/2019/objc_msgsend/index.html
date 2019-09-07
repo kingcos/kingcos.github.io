@@ -6,7 +6,7 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-09-07 完成「未命中缓存」部分 Obj-C 中的对象 - kingcos    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
+<meta name="description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-09-07 完成「缓存」相关部分 Obj-C 中的对象 - kingcos    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
 Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？
 我们创建一个使用 Obj-C 的 iOS 项目，如下在 ViewController 中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
 #import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar {} @end @interface ViewController () @end @implementation ViewController - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; [foo bar]; // 🔴 Breakpoint } @end  我们将断点打在 [foo bar]; 一行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可最终跳转到 objc_msgSend："/>
@@ -141,7 +141,7 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
       
       
       
-        <span class="post-read-time">— 11 min read</span>
+        <span class="post-read-time">— 12 min read</span>
       
     </div>
 
@@ -182,7 +182,7 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
 
 <tr>
 <td align="center">2019-09-07</td>
-<td align="center">完成「未命中缓存」部分</td>
+<td align="center">完成「缓存」相关部分</td>
 <td align="center"><a href="../objects_in_obj-c/">Obj-C 中的对象 - kingcos</a></td>
 </tr>
 </tbody>
@@ -405,7 +405,7 @@ struct cache_t {
 
 <h4 id="当未命中缓存时">当未命中缓存时</h4>
 
-<p>方法的首次调用或遇到缓存扩容后将无法命中缓存，因此我们仍从 <code>cmp p0, #0</code> 开始，但这次接收者并非 <code>nil</code> 所以不会跳入判空分支：</p>
+<p>方法的首次调用或遇到缓存扩容后无法命中缓存，将进入 C 函数中搜索，并在找到方法后缓存在调用者本身的缓存中。因此我们仍从 <code>cmp p0, #0</code> 开始，但这次接收者并非 <code>nil</code> 所以不会跳入判空分支：</p>
 
 <p><img src="/img/2019/objc_msgsend/5.png" alt="5" /></p>
 
@@ -811,6 +811,8 @@ enum {
 
 <h4 id="当命中缓存时">当命中缓存时</h4>
 
+<p>当方法被再次调用时，将可以命中缓存得以快速执行：</p>
+
 <p><img src="/img/2019/objc_msgsend/6.png" alt="6" /></p>
 
 <h4 id="support-indexed-isa"><code>SUPPORT_INDEXED_ISA</code></h4>
@@ -862,7 +864,30 @@ if (getTriple().isWatchABI())
 
 <p>综上，在 iOS 的真机设备中，<code>SUPPORT_INDEXED_ISA</code> 的值最终为 <code>0</code>。</p>
 
+<h4 id="尾递归调用">尾递归调用</h4>
+
 <h3 id="动态方法解析">动态方法解析</h3>
+
+<p>在上面未命中缓存且本类及所有父类中都无法找到要调用的方法时，将进入 <code>lookUpImpOrForward</code> 中的 Method Resovle 即「动态方法解析」。</p>
+
+<pre><code class="language-cpp">IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
+                       bool initialize, bool cache, bool resolver)
+    // ...
+
+    if (resolver  &amp;&amp;  !triedResolver) {
+        runtimeLock.unlock();
+        _class_resolveMethod(cls, sel, inst);
+        runtimeLock.lock();
+        // Don't cache the result; we don't hold the lock so it may have
+        // changed already. Re-do the search from scratch instead.
+        // 标记为 YES
+        triedResolver = YES;
+        goto retry;
+    }
+
+    // ...
+}
+</code></pre>
 
 <h3 id="消息转发">消息转发</h3>
 
