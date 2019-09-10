@@ -253,7 +253,7 @@ What // NSObject.h @interface NSObject &amp;lt;NSObject&amp;gt; { &#43; (void)lo
 <blockquote>
 <p><strong>重点</strong></p>
 
-<p>Swift 类中桥接到 Obj-C的 <code>load</code> 方法自定义实现将不会自动调用。</p>
+<p>Swift 类中桥接到 Obj-C 的 <code>load</code> 方法自定义实现将不会自动调用。</p>
 </blockquote>
 
 <p>—— 文档，苹果开发者</p>
@@ -328,7 +328,7 @@ What // NSObject.h @interface NSObject &amp;lt;NSObject&amp;gt; { &#43; (void)lo
 
 <p>在 objc4 源码中有一个「libobjc.order」的文件，列举了该库方法符号的调用顺序，我们能看到第一个就是 <code>__objc_init</code>。编译时，C/C++ 方法前会被自动加上 <code>_</code> 前缀作为方法符号（这一点可以在分析 Link Map 或者 Mach-O 时证明），因此这里第一个本质就是 <code>_objc_init</code>。</p>
 
-<p><img src="/img/2019/+load_in_iOS/1.png" alt="" /></p>
+<p><img src="/img/2019/+load_in_ios/1.png" alt="1" /></p>
 </blockquote>
 
 <p>为了证明上述结论，我们可以在 objc4 的源码中，从 Obj-C 运行时初始化的入口着手，即 <code>_objc_init</code>：</p>
@@ -347,7 +347,7 @@ void _objc_init(void)
     static bool initialized = false;
     if (initialized) return;
     initialized = true;
-    
+
     // fixme defer initialization until an objc-using image is found?
     environ_init();
     tls_init();
@@ -414,12 +414,12 @@ bool hasLoadMethods(const headerType *mhdr)
 void prepare_load_methods(const headerType *mhdr)
 {
     size_t count, i;
-    
+
     // 断言 runtimeLock 已锁
     runtimeLock.assertLocked();
 
     // 1. 非懒加载类列表
-    classref_t *classlist = 
+    classref_t *classlist =
         _getObjc2NonlazyClassList(mhdr, &amp;count);
     // 遍历所有类
     for (i = 0; i &lt; count; i++) {
@@ -454,7 +454,7 @@ static Class remapClass(classref_t cls)
 // objc-runtime-new.mm
 /***********************************************************************
 * remapClass
-* Returns the live class pointer for cls, which may be pointing to 
+* Returns the live class pointer for cls, which may be pointing to
 * a class struct that has been reallocated.
 * 为参数 cls 返回可能指向已经重新分配类结构到活类指针。
 * Returns nil if cls is ignored because of weak linking.
@@ -484,7 +484,7 @@ static Class remapClass(Class cls)
 // objc-runtime-new.mm
 /***********************************************************************
 * prepare_load_methods
-* Schedule +load for classes in this image, any un-+load-ed 
+* Schedule +load for classes in this image, any un-+load-ed
 * superclasses in other images, and any categories in this image.
 * 为当前镜像中的类、其它镜像中所有未调用过 +load 的父类、以及该镜像中的所有的分类计划调用 +load。
 **********************************************************************/
@@ -508,7 +508,7 @@ static void schedule_class_load(Class cls)
     // ➡️ 添加类到可加载列表
     add_class_to_loadable_list(cls);
     // 设置本类 +load 已调用过
-    cls-&gt;setInfo(RW_LOADED); 
+    cls-&gt;setInfo(RW_LOADED);
 }
 
 
@@ -530,14 +530,14 @@ void add_class_to_loadable_list(Class cls)
     // ➡️ 获取类 load 方法
     method = cls-&gt;getLoadMethod();
     if (!method) return;  // Don't bother if cls has no +load method 没有 +load 就返回
-    
+
     // Xcode 中 OBJC_PRINT_LOAD_METHODS 环境变量值为 YES 时，将可在控制台打印该信息
     // OPTION(PrintLoading, OBJC_PRINT_LOAD_METHODS, &quot;log calls to class and category +load methods&quot;)
     if (PrintLoading) {
-        _objc_inform(&quot;LOAD: class '%s' scheduled for +load&quot;, 
+        _objc_inform(&quot;LOAD: class '%s' scheduled for +load&quot;,
                      cls-&gt;nameForLogging());
     }
-    
+
     // 如果使用的 == 分配的，需要扩容
     if (loadable_classes_used == loadable_classes_allocated) {
         loadable_classes_allocated = loadable_classes_allocated*2 + 16;
@@ -546,7 +546,7 @@ void add_class_to_loadable_list(Class cls)
                               loadable_classes_allocated *
                               sizeof(struct loadable_class));
     }
-    
+
     // 添加到 loadable_classes（将在 call_class_loads 中实际调用）
     loadable_classes[loadable_classes_used].cls = cls;
     loadable_classes[loadable_classes_used].method = method;
@@ -562,7 +562,7 @@ void add_class_to_loadable_list(Class cls)
 * Locking: runtimeLock must be read- or write-locked by the caller.
 * 锁：runtimeLock 必须由调用者读取或写入锁定。
 **********************************************************************/
-IMP 
+IMP
 objc_class::getLoadMethod()
 {
     runtimeLock.assertLocked();
@@ -603,10 +603,10 @@ objc_class::getLoadMethod()
 void add_category_to_loadable_list(Category cat)
 {
     IMP method;
-    
+
     // 断言 loadMethodLock 已锁
     loadMethodLock.assertLocked();
-    
+
     // ➡️ 获取分类 load 方法
     method = _category_getLoadMethod(cat);
 
@@ -616,10 +616,10 @@ void add_category_to_loadable_list(Category cat)
 
     // OPTION(PrintLoading, OBJC_PRINT_LOAD_METHODS, &quot;log calls to class and category +load methods&quot;)
     if (PrintLoading) {
-        _objc_inform(&quot;LOAD: category '%s(%s)' scheduled for +load&quot;, 
+        _objc_inform(&quot;LOAD: category '%s(%s)' scheduled for +load&quot;,
                      _category_getClassName(cat), _category_getName(cat));
     }
-    
+
     // 如果使用的 == 分配的，需要扩容
     if (loadable_categories_used == loadable_categories_allocated) {
         loadable_categories_allocated = loadable_categories_allocated*2 + 16;
@@ -628,7 +628,7 @@ void add_category_to_loadable_list(Category cat)
                               loadable_categories_allocated *
                               sizeof(struct loadable_category));
     }
-	 
+
 	 // 存入 loadable_categories（将在 call_category_loads 中实际调用）
     loadable_categories[loadable_categories_used].cat = cat;
     loadable_categories[loadable_categories_used].method = method;
@@ -644,7 +644,7 @@ void add_category_to_loadable_list(Category cat)
 * Locking: runtimeLock must be read- or write-locked by the caller
 * 锁：runtimeLock 必须由调用者读取或写入锁定。
 **********************************************************************/
-IMP 
+IMP
 _category_getLoadMethod(Category cat)
 {
     // 断言 loadMethodLock 已锁
@@ -678,20 +678,20 @@ _category_getLoadMethod(Category cat)
 * 类的 +load 方法将先调用父类的。
 * Category +load methods are not called until after the parent class's +load.
 * 分类的 +load 才需要等到其主类的 +load 调用后才调用。
-* 
-* This method must be RE-ENTRANT, because a +load could trigger 
-* more image mapping. In addition, the superclass-first ordering 
-* must be preserved in the face of re-entrant calls. Therefore, 
-* only the OUTERMOST call of this function will do anything, and 
-* that call will handle all loadable classes, even those generated 
+*
+* This method must be RE-ENTRANT, because a +load could trigger
+* more image mapping. In addition, the superclass-first ordering
+* must be preserved in the face of re-entrant calls. Therefore,
+* only the OUTERMOST call of this function will do anything, and
+* that call will handle all loadable classes, even those generated
 * while it was running.
 * 该方法必须是可重入的（线程安全的），因为 +load 可能触发更多镜像映射。
 * 另外，面对可重入调用时，必须保留父类优先排序。
 * 因此，只有当该函数在最后调用才会执行全部操作，且该调用将处理所有可加载的类，甚至是在运行时生成的类。
 *
-* The sequence below preserves +load ordering in the face of 
-* image loading during a +load, and make sure that no 
-* +load method is forgotten because it was added during 
+* The sequence below preserves +load ordering in the face of
+* image loading during a +load, and make sure that no
+* +load method is forgotten because it was added during
 * a +load call.
 * 下面的顺序保留了在面对 +load 中加载镜像的 +load 排序，并且因为它是在一个 +load 调用中被添加的，因此可以保证没有 +load 被遗忘，。
 * Sequence:
@@ -704,11 +704,11 @@ _category_getLoadMethod(Category cat)
 * 3. 执行多次 +load 的情况：
 *    (a) there are more classes to load, OR
 *    (a) 有多个类要加载，或者
-*    (b) there are some potential category +loads that have 
+*    (b) there are some potential category +loads that have
 *        still never been attempted.
 *    (b) 有一些潜在的分类 +load 仍未尝试。
-* Category +loads are only run once to ensure &quot;parent class first&quot; 
-* ordering, even if a category +load triggers a new loadable class 
+* Category +loads are only run once to ensure &quot;parent class first&quot;
+* ordering, even if a category +load triggers a new loadable class
 * and a new loadable category attached to that class.
 * 分类中的 +load 只会被执行一次，并保证「父类优先」排序，尽管一个分类的 +load 触发了一个新的可加载的类以及附加该类的一个新的可加载的分类。
 *
@@ -767,7 +767,7 @@ void call_load_methods(void)
 static void call_class_loads(void)
 {
     int i;
-    
+
     // Detach current loadable list.
     // 分离当前可加载列表。
     struct loadable_class *classes = loadable_classes;
@@ -775,13 +775,13 @@ static void call_class_loads(void)
     loadable_classes = nil;
     loadable_classes_allocated = 0;
     loadable_classes_used = 0;
-    
+
     // Call all +loads for the detached list.
     // 在分离的表中调用所有 +load。
     for (i = 0; i &lt; used; i++) {
         Class cls = classes[i].cls;
         load_method_t load_method = (load_method_t)classes[i].method;
-        if (!cls) continue; 
+        if (!cls) continue;
 
         // OPTION(PrintLoading, OBJC_PRINT_LOAD_METHODS, &quot;log calls to class and category +load methods&quot;)
         if (PrintLoading) {
@@ -790,7 +790,7 @@ static void call_class_loads(void)
         // 💡 调用 +load
         (*load_method)(cls, SEL_load);
     }
-    
+
     // Destroy the detached list.
     // 销毁分离列表
     if (classes) free(classes);
@@ -801,12 +801,12 @@ static void call_class_loads(void)
 * call_category_loads
 * Call some pending category +load methods.
 * 调用一些分类中未调用的 +load 方法。
-* The parent class of the +load-implementing categories has all of 
+* The parent class of the +load-implementing categories has all of
 *   its categories attached, in case some are lazily waiting for +initalize.
 * 实现 +load 分类的父类拥有所有其附加的分类 ，来防止等待 +initialize 懒加载。
 *
 * Don't call +load unless the parent class is connected.
-* If new categories become loadable, +load is NOT called, and they 
+* If new categories become loadable, +load is NOT called, and they
 *   are added to the end of the loadable list, and we return TRUE.
 * Return FALSE if no new categories became loadable.
 * 除非父类已经连接，否则不要调用 +load。
@@ -820,7 +820,7 @@ static bool call_category_loads(void)
 {
     int i, shift;
     bool new_categories_added = NO;
-    
+
     // Detach current loadable list.
     // 分离当前可加载列表。
     struct loadable_category *cats = loadable_categories;
@@ -843,8 +843,8 @@ static bool call_category_loads(void)
         if (cls  &amp;&amp;  cls-&gt;isLoadable()) {
             // OPTION(PrintLoading, OBJC_PRINT_LOAD_METHODS, &quot;log calls to class and category +load methods&quot;)
             if (PrintLoading) {
-                _objc_inform(&quot;LOAD: +[%s(%s) load]\n&quot;, 
-                             cls-&gt;nameForLogging(), 
+                _objc_inform(&quot;LOAD: +[%s(%s) load]\n&quot;,
+                             cls-&gt;nameForLogging(),
                              _category_getName(cat));
             }
             // 💡 调用 +load
@@ -911,7 +911,7 @@ static bool call_category_loads(void)
 
 <p>上面的源码过程比较复杂，其实主要顺序就是先在 <code>prepare_load_methods</code> 中调用 <code>schedule_class_load</code>，先计划类的 +load 方法调用顺序，在其中会递归找到基类，并 <code>add_class_to_loadable_list</code> 将类中 +load 的 <code>IMP</code> 存储在 <code>loadable_classes</code>；之后在 <code>prepare_load_methods</code> 中调用 <code>add_category_to_loadable_list</code>，再将分类中 +load 的 <code>IMP</code> 存储在 <code>loadable_categories</code>；当类和分类的可加载列表确定后，预备（Prepare）工作完成；之后开始 <code>call_load_methods</code>，调用 <code>call_class_loads</code> 将类中的 +load 全部调用完毕，再调用 <code>call_category_loads</code> 将分类中的 +load 全部调用完毕。这也就完全符合了我们上述的结论，至于毫无关系的类之间以及分类相互之间的调用顺序，由于 <code>loadable_classes</code> 和 <code>loadable_categories</code> 的增加都是按顺序追加，即按照编译顺序来决定，先编译先调用。具体的编译顺序可以在 Xcode -「TARGETS」 -「Build Phases」-「Compile Sources」中找到。</p>
 
-<p><img src="/img/2019/+load_in_iOS/2.png" alt="" /></p>
+<p><img src="/img/2019/+load_in_ios/2.png" alt="2" /></p>
 
 <h3 id="imp-与-load">IMP 与 +load</h3>
 
@@ -1206,7 +1206,8 @@ objc[63382]: LOAD: +[Person(Work) load]
 
 <ul>
 <li><a href="https://developer.apple.com/documentation/objectivec/nsobject/1418815-load?language=objc">load - Apple Developer</a></li>
-<li><a href="http://localhost:1313/posts/2019/category_in_ios/">iOS 中的 Category - kingcos</a></li>
+<li><a href="../category_in_ios/">iOS 中的 Category - kingcos</a></li>
+<li><a href="../objc_msgsend/">浅尝 objc_msgSend - kingcos</a></li>
 </ul>
 
     </div>
