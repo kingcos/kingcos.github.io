@@ -1289,7 +1289,29 @@ class FooAware: SelfAware {
 }
 </code></pre>
 
-<h3 id="other-linker-flags">Other Linker Flags</h3>
+<h3 id="other-linker-flags-之-objc">Other Linker Flags 之 <code>-ObjC</code></h3>
+
+<p>在编译型语言中，编译器负责将源代码编译为目标文件，而链接器负责将多个目标文件在 Xcode - Targets - Build Settings 中有一个「Other Linker Flags」的配置项：</p>
+
+<p><img src="/img/2019/+load_in_ios/3.png" alt="3" /></p>
+
+<p>其使得开发者可以在 Xcode 构建项目时自由添加一些链接器参数，关于其完整的参数列表，可以在终端输入 <code>man ld</code> 来获得：</p>
+
+<p><img src="/img/2019/+load_in_ios/4.png" alt="4" /></p>
+
+<p>我们这里主要简单介绍下 <code>-ObjC</code>，根据 <code>man ld</code>：</p>
+
+<blockquote>
+<p><strong>Options that control libraries</strong></p>
+
+<p><strong>-ObjC</strong> Loads all members of static archive libraries that implement an Objective-C class or category.</p>
+
+<p><strong>-ObjC</strong> 加载静态库中实现 Obj-C 类或分类的所有成员。</p>
+</blockquote>
+
+<p>由于 Obj-C 中的方法调用本质属于消息发送，因此链接的符号只有类，而没有方法。分类可以看作是方法的集合，因此使用分类的方法时并不会产生未定义符号，即链接器并不知晓要加载定义分类的目标文件。当我们使用 <code>-ObjC</code> 参数时，将会把<strong>静态库</strong>中所有的分类方法实现加载，但坏处是会使得可执行文件变大，并可能包含不必要的目标文件。</p>
+
+<p>而对于在运行时加载的动态库，我们只要保证代码中引入了库，那么其中的 +load 方法就能够得以执行。</p>
 
 <h2 id="reference">Reference</h2>
 
@@ -1298,6 +1320,7 @@ class FooAware: SelfAware {
 <li><a href="../category_in_ios/">iOS 中的 Category - kingcos</a></li>
 <li><a href="../objc_msgsend/">浅尝 objc_msgSend - kingcos</a></li>
 <li><a href="http://jordansmith.io/handling-the-deprecation-of-initialize/">Handling the Deprecation of initialize() - JORDAN SMITH</a></li>
+<li><a href="https://developer.apple.com/library/archive/qa/qa1490/_index.html">Technical Q&amp;A QA1490 - Building Objective-C static libraries with categories</a></li>
 </ul>
 
     </div>
