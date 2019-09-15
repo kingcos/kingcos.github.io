@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    
+      <title>iOS 中的库与框架 :: iBlog — github.com/kingcos</title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="Date Notes     2019-09-14 首次提交    Preface 随着软件工程的发展，很多我们需要的功能前人都已经很好地实现了，为了提高效率避免重复建设，这些功能实现的代码被封装为代码库，有时也称框架。我们只需要在用到的时候通过依赖管理工具将它们以适当的方式引入即可。本文将简单聊聊 iOS 中的库与框架相关概念。
+基本概念 在切入正题之前，我们先来达成一些共识。
+不管是老派 Obj-C 还是新秀 Swift，它们的本质都是编译型语言。对于编译型语言，源代码会首先经由编译器编译为目标文件，链接器再将多个目标文件链接为可执行文件。针对链接阶段，主要分为静态链接与动态链接。
+静态，即 Static。按照字面意思，静态即一旦确定，就不再容易改变。静态链接，即在链接阶段，直接将多个目标文件链接为一个文件。而静态库就可以理解为共同编译为一个目标文件的源代码集合。
+动态，即 Dynamic。按照字面意思，动态即推迟到运行时动态地决议。动态链接，即在运行时才将各个部分组合形成完整的程序。而动态库就可以理解为支持动态链接方式的源代码集合。
+静态链接的好处是，运行时不再额外需要时间动态链接；坏处则是由于链接的粒度是目标文件，那么可能会链接了没有使用到的函数，会造成可执行文件过大；而且当某一个目标文件的源代码改动时，那么所有依赖该目标文件的静态库都需要重新编译；动态链接则解决了静态链接的空间浪费与重复编译问题，比如在 iOS 中，系统库采用了 dyld_shared_cache 动态链接，这样其它程序就无需再将系统库重复链接，当 iOS 系统更新时也无需将所有 app 重新编译。而在移动端开发中，app 的启动时间与包体积大小将是一个权衡问题，值得我们侧重与考量。
+另外，虽然广义上的库（Library）与框架（Framework）含义是类似的，但在 iOS 开发中，官方将这两个概念进行了区分，因此下文中我们会明确两个词的使用。
+Cocoa Touch Static Library 我们先从 Xcode 中能够直接创建的 Cocoa Touch Static Library 说起：
+Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包含编译后代码的 .a 文件。我们创建一个 oc-static-lib 的静态库，为其默认提供的 oc_static_lib 类添加 foo 方法，并添加一个 NSObject 的分类，实现 &#43;load 和 foo 方法："/>
+<meta name="keywords" content="ios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2019/libraries_in_ios/" />
+
+
+
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+<link rel="shortcut icon" href="/img/favicon.png">
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="iOS 中的库与框架"/>
+<meta name="twitter:description" content="随着软件工程的发展，很多我们需要的功能前人都已经很好地实现了，为了提高效率避免重复建设，这些功能实现的代码被封装为代码库，也称框架。我们只需要在用到的时候通过依赖管理工具将它们以适当的方式引入即可。本文将简单聊聊 iOS 中的库相关概念。"/>
+
+
+
+<meta property="og:title" content="iOS 中的库与框架" />
+<meta property="og:description" content="随着软件工程的发展，很多我们需要的功能前人都已经很好地实现了，为了提高效率避免重复建设，这些功能实现的代码被封装为代码库，也称框架。我们只需要在用到的时候通过依赖管理工具将它们以适当的方式引入即可。本文将简单聊聊 iOS 中的库相关概念。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/2019/libraries_in_ios/" />
+<meta property="article:published_time" content="2019-09-14T00:00:00+00:00" />
+<meta property="article:modified_time" content="2019-09-14T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+
+
+
+
+
+
+  </head>
+  <body class="dark-theme">
+    <div class="container">
+      <header class="header">
+  <span class="header__inner">
+    <a href="/" class="logo" style="text-decoration: none;">
+  
+    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
+  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
+</svg>
+</span>
+    <span class="logo__text">iBlog</span>
+    <span class="logo__cursor"></span>
+  
+</a>
+
+    <span class="header__right">
+      
+        <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+        <span class="menu-trigger">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M0 0h24v24H0z" fill="none"/>
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+          </svg>
+        </span>
+      
+      <span class="theme-toggle">
+        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+
+      </span>
+    </span>
+  </span>
+</header>
+
+
+      <div class="content">
+        
+  <div class="post">
+    <h2 class="post-title"><a href="/posts/2019/libraries_in_ios/">iOS 中的库与框架</a></h2>
+    <div class="post-meta">
+      
+        <span class="post-date">
+            2019-09-14
+        </span>
+      
+      
+      
+        <span class="post-read-time">— 2 min read</span>
+      
+    </div>
+
+    
+      <span class="post-tags">
+        
+          #<a href="/tags/focus/">Focus</a>&nbsp;
+        
+          #<a href="/tags/ios/">iOS</a>&nbsp;
+        
+          #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
+        
+          #<a href="/tags/swift/">Swift</a>&nbsp;
+        
+          #<a href="/tags//">🚧</a>&nbsp;
+        
+      </span>
+    
+
+    
+
+    <div class="post-content">
+      
+
+<table>
+<thead>
+<tr>
+<th align="center">Date</th>
+<th align="center">Notes</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center">2019-09-14</td>
+<td align="center">首次提交</td>
+</tr>
+</tbody>
+</table>
+
+<p><img src="/img/2019/libraries_in_ios/0.png" alt="0" /></p>
+
+<h2 id="preface">Preface</h2>
+
+<p>随着软件工程的发展，很多我们需要的功能前人都已经很好地实现了，为了提高效率避免重复建设，这些功能实现的代码被封装为代码库，有时也称框架。我们只需要在用到的时候通过依赖管理工具将它们以适当的方式引入即可。本文将简单聊聊 iOS 中的库与框架相关概念。</p>
+
+<h2 id="基本概念">基本概念</h2>
+
+<p>在切入正题之前，我们先来达成一些共识。</p>
+
+<p>不管是老派 Obj-C 还是新秀 Swift，它们的本质都是编译型语言。对于编译型语言，源代码会首先经由编译器编译为目标文件，链接器再将多个目标文件链接为可执行文件。针对链接阶段，主要分为静态链接与动态链接。</p>
+
+<p><strong>静态</strong>，即 Static。按照字面意思，静态即一旦确定，就不再容易改变。静态链接，即在链接阶段，直接将多个目标文件链接为一个文件。而静态库就可以理解为共同编译为一个目标文件的源代码集合。</p>
+
+<p><strong>动态</strong>，即 Dynamic。按照字面意思，动态即推迟到运行时动态地决议。动态链接，即在运行时才将各个部分组合形成完整的程序。而动态库就可以理解为支持动态链接方式的源代码集合。</p>
+
+<p>静态链接的好处是，运行时不再额外需要时间动态链接；坏处则是由于链接的粒度是目标文件，那么可能会链接了没有使用到的函数，会造成可执行文件过大；而且当某一个目标文件的源代码改动时，那么所有依赖该目标文件的静态库都需要重新编译；动态链接则解决了静态链接的空间浪费与重复编译问题，比如在 iOS 中，系统库采用了 dyld_shared_cache 动态链接，这样其它程序就无需再将系统库重复链接，当 iOS 系统更新时也无需将所有 app 重新编译。而在移动端开发中，app 的启动时间与包体积大小将是一个权衡问题，值得我们侧重与考量。</p>
+
+<p>另外，虽然广义上的库（Library）与框架（Framework）含义是类似的，但在 iOS 开发中，官方将这两个概念进行了区分，因此下文中我们会明确两个词的使用。</p>
+
+<h2 id="cocoa-touch-static-library">Cocoa Touch Static Library</h2>
+
+<p>我们先从 Xcode 中能够直接创建的 Cocoa Touch Static Library 说起：</p>
+
+<p><img src="/img/2019/libraries_in_ios/1.png" alt="1" /></p>
+
+<p>Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包含编译后代码的 <code>.a</code> 文件。我们创建一个 oc-static-lib 的静态库，为其默认提供的 <code>oc_static_lib</code> 类添加 <code>foo</code> 方法，并添加一个 <code>NSObject</code> 的分类，实现 +load 和 <code>foo</code> 方法：</p>
+
+<pre><code class="language-objectivec">// oc_static_lib.h
+
+#import &lt;Foundation/Foundation.h&gt;
+
+@interface oc_static_lib : NSObject
+
+- (void)foo;
+
+@end
+
+// oc_static_lib.m
+
+#import &quot;oc_static_lib.h&quot;
+
+@implementation oc_static_lib
+
+- (void)foo {
+    NSLog(@&quot;%@ - %@&quot;, NSStringFromClass([self class]), NSStringFromSelector(_cmd));
+}
+
+@end
+
+// NSObject+OC_Static_Lib.h
+
+#import &lt;Foundation/Foundation.h&gt;
+
+NS_ASSUME_NONNULL_BEGIN
+
+@interface NSObject (OC_Static_Lib)
+
+- (void)foo;
+
+@end
+
+NS_ASSUME_NONNULL_END
+
+// NSObject+OC_Static_Lib.m
+
+#import &quot;NSObject+OC_Static_Lib.h&quot;
+
+@implementation NSObject (OC_Static_Lib)
+
++ (void)load {
+    NSLog(@&quot;%@ - %@&quot;, NSStringFromClass([self class]), NSStringFromSelector(_cmd));
+}
+
+- (void)foo {
+    NSLog(@&quot;%@ - %@&quot;, NSStringFromClass([self class]), NSStringFromSelector(_cmd));
+}
+
+@end
+</code></pre>
+
+<p>需要注意的是我们需要将新创建的 <code>.h</code> 加入到 Xcode - Targets - Build Phases - Copy Files 中，这样外界才能通过引入该头文件来访问其中的内容：</p>
+
+<p><img src="/img/2019/libraries_in_ios/2.png" alt="2" /></p>
+
+<blockquote>
+<p>⚠️</p>
+
+<p>这里我们的目标设备选择的是模拟器，所以默认编译后的 <code>.a</code> 文件也将适用于模拟器架构（x86_64），为了能够真机运行和模拟器调试，通常会使用 <code>lipo</code> 命令将多种架构的 <code>.a</code> 文件进行合并为胖二进制（Fat-Binary）文件。</p>
+</blockquote>
+
+<h3 id="obj-c-工程引入-obj-c-静态库">Obj-C 工程引入 Obj-C 静态库</h3>
+
+<p><img src="/img/2019/libraries_in_ios/3.png" alt="3" /></p>
+
+<p>我们将 oc-static-lib 编译后的 <code>.a</code> 与 <code>.h</code> 一起拖入 Obj-C 工程，即可使用 <code>#import &quot;&quot;</code> 来引入并调用（需要注意的是：静态库中如果存在分类，需要添加 <code>-ObjC</code> 作为 Other Linker Flags，详见 <a href="/posts/2019/+load_in_ios/">iOS 中的 +load 方法</a>一文）：</p>
+
+<blockquote>
+<p><strong>Tips</strong></p>
+
+<p>在 C/C++ 中，为了更加清晰化声明与实现，代码需要分别写在 <code>.h</code>（头文件）和 <code>.c</code> / <code>.cpp</code>（实现文件）中。这样的好处是，开发者可以无需额外的访问控制符即可将需要暴露在外界的声明放置在头文件中即可，外界使用时通过 <code>#include</code>。Obj-C/C++ 也延续了这一传统，不同的是实现文件的后缀分别为 <code>.m</code> 和 <code>.mm</code>，并为了避免重复引用推出了 <code>#import</code>。</p>
+
+<p><code>#include</code> 和 <code>#import</code> 后面都可以加 <code>&lt;XXX.h&gt;</code> 或 <code>&quot;XXX.h&quot;</code>。通常来说加 <code>&quot;&quot;</code> 的头文件优先从本地当前文件目录查找，其中也可以包含相对路径，即 <code>#import &quot;oc-static-lib/oc_static_lib.h&quot;</code> / <code>#import &quot;NSObject+OC_Static_Lib.h&quot;</code> 都是支持的；而加 <code>&lt;&gt;</code> 的头文件则会使得编译器优先到系统目录下全局查找。</p>
+</blockquote>
+
+<h3 id="swift-工程引入-swift-静态库">Swift 工程引入 Swift 静态库</h3>
+
+<p>在 Xcode 9 之后，Swift 也支持了静态库。与 Obj-C 不同，Swift 没有头文件的概念，因此我们需要将暴露给外界的类和函数等使用 <code>public</code> 修饰。编译后的 Swift 静态库也是 <code>.a</code> 文件，但不同的是多了 <code>.swiftmodule</code> 以及 <code>.swiftdoc</code>：</p>
+
+<pre><code class="language-shell">➜  Debug-iphonesimulator tree
+.
+├── libswift-static-lib.a
+└── swift_static_lib.swiftmodule
+    ├── x86_64.swiftdoc
+    └── x86_64.swiftmodule
+
+1 directory, 3 files
+</code></pre>
+
+<p>由于 Swift 的 Module 机制，我们需要将 Xcode - Targets - Build Settings - Swift Compiler - Search Paths - Import Paths 中引入：</p>
+
+<p><img src="/img/2019/libraries_in_ios/4.png" alt="4" /></p>
+
+<p>这样我们才能在 Swift 工程中正常使用：</p>
+
+<pre><code class="language-swift">import UIKit
+import swift_static_lib
+
+class ViewController: UIViewController {
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        // Do any additional setup after loading the view.
+
+        swift_static_lib().foo()
+    }
+}
+</code></pre>
+
+<h3 id="obj-c-工程引入-swift-静态库">Obj-C 工程引入 Swift 静态库</h3>
+
+<p>为了「提拔」新秀，Swift 支持与 Obj-C 混编，然而混编下的各种情况就会变得十分特殊。在同一个工程下 Swift 文件与 Obj-C 文件混编时，Xcode 会提示我们创建桥接头文件 <code>&lt;PROJECT_NAME&gt;-Bridging-Header.h</code>，我们可以将需要暴露给 Swift 的 Obj-C 代码在该桥接文件中引入；而 Obj-C 代码中希望使用 Swift 中的相关定义时，可以引入自动生成的 <code>&lt;PROJECT_NAME&gt;-Swift.h</code>。</p>
+
+<h3 id="swift-工程引入-obj-c-静态库">Swift 工程引入 Obj-C 静态库</h3>
+
+<h2 id="cocoa-touch-framework">Cocoa Touch Framework</h2>
+
+<h3 id="universal-framework">Universal Framework</h3>
+
+<h2 id="import">import</h2>
+
+<h3 id="import-include">import &amp; include</h3>
+
+<h3 id="import-foo-foo-h">#import <Foo/foo.h></h3>
+
+<h3 id="import-foo-h">#import &ldquo;foo.h&rdquo;</h3>
+
+<h3 id="import-1">@import</h3>
+
+<h2 id="use-framework">use_framework</h2>
+
+<h2 id="module-map">Module Map</h2>
+
+<h2 id="reference">Reference</h2>
+
+<ul>
+<li><a href="https://book.douban.com/subject/1436811/">Linkers and Loaders</a></li>
+<li><a href="../../2018/dyld_shared_cache/">谈谈 iOS 中的 dyld_shared_cache - kingcos</a></li>
+<li><a href="/posts/2019/+load_in_ios/">iOS 中的 +load 方法 - kingcos</a></li>
+</ul>
+
+    </div>
+    
+      <div class="pagination">
+        <div class="pagination__title">
+          <span class="pagination__title-h">Read other posts</span>
+          <hr />
+        </div>
+        <div class="pagination__buttons">
+          
+          
+            <span class="button next">
+              <a href="/posts/2019/&#43;load_in_ios/">
+                <span class="button__text">iOS 中的 &#43;load 方法</span>
+                <span class="button__icon">→</span>
+              </a>
+            </span>
+          
+        </div>
+      </div>
+    
+
+    
+
+    
+    
+    <div>
+      <div id="github-comment">
+      </div>
+
+      <script type="text/javascript">
+        function getUtterances(isDark) {
+          var utterances = document.createElement('script');
+          utterances.type = 'text/javascript';
+          utterances.async = true;
+          utterances.setAttribute('issue-term', "pathname")
+          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
+          utterances.setAttribute('label', "comments")
+          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
+          utterances.crossorigin = 'anonymous';
+          utterances.src = 'https://utteranc.es/client.js';
+
+          return utterances
+        }
+
+        var themeToggle = document.querySelector(".theme-toggle")
+        themeToggle.addEventListener("click", function () {
+          var getTheme = window.localStorage && window.localStorage.getItem("theme")
+          var divNode = document.getElementById('github-comment')
+          while(divNode.hasChildNodes()) {
+            divNode.removeChild(divNode.firstChild);
+          }
+          
+          
+          
+
+          
+          
+          
+          
+          
+          
+          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
+        })
+
+        var getTheme = window.localStorage && window.localStorage.getItem("theme")
+        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
+      </script>
+    </div>
+    
+
+    </div>
+
+      </div>
+
+      
+        <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright copyright--user">Powered by github.com/kingcos</div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+      
+    </div>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+
+    
+  </body>
+</html>
