@@ -330,6 +330,10 @@ class ViewController: UIViewController {
 
 <p>为了「提拔」新秀，Swift 支持与 Obj-C 混编，然而混编下的各种情况就会变得十分特殊。在同一个工程下 Swift 文件与 Obj-C 文件混编时，Xcode 会提示我们创建桥接头文件 <code>&lt;PROJECT_NAME&gt;-Bridging-Header.h</code>，我们可以将需要暴露给 Swift 的 Obj-C 代码在该桥接文件中引入；而 Obj-C 代码中希望使用 Swift 中的相关定义时，可以引入自动生成但不可见的 <code>&lt;PROJECT_NAME&gt;-Swift.h</code>，另外需要注意的是，暴露给 Obj-C 的类或函数等需要使用 <code>@objc</code> 或 <code>dynamic</code> 修饰，前者不能决定函数最终派发方式，而后者则为动态派发。</p>
 
+<p>那么如果要在 Obj-C 工程引入 Swift 静态库，首先要在工程中引入一个占位 Swift 文件，并创建桥接文件，这样 Xcode 中 Swift 相关的依赖配置才能得以建立：</p>
+
+<p><img src="/img/2019/libraries_in_ios/7.png" alt="7" /></p>
+
 <p>Swift 静态库也可以自动生成 <code>&lt;PROJECT_NAME&gt;-Swift.h</code>，但其并没有和最终产物 <code>.a</code> 放置在一起：</p>
 
 <pre><code class="language-shell">➜  Build tree
@@ -435,6 +439,19 @@ cp ${DERIVED_SOURCES_DIR}/*-Swift.h ${target_dir}
 <p>这样，在 Obj-C 工程中通过 <code>#import &quot;swift_static_lib-Swift.h&quot;</code> 即可使用到 swift_static_lib 中暴露给 Obj-C 的类或函数等了。</p>
 
 <h3 id="swift-工程引入-obj-c-静态库">Swift 工程引入 Obj-C 静态库</h3>
+
+<p>如果想要在 Swift 工程中引入 Obj-C 静态库，则也需要桥接头文件的中介。我们将 oc-static-lib 编译后的 <code>.a</code> 与 <code>.h</code> 一起拖入 Swift 工程，并在工程中建立 Obj-C 类，按 Xcode 提示创建桥接文件；在头文件中引入 Obj-C 静态库头文件即可在 Swift 中使用：</p>
+
+<pre><code class="language-objectivec">// swift-demo-project-Bridging-Header.h
+
+//
+//  Use this file to import your target's public headers that you would like to expose to Swift.
+//
+
+#import &quot;liboc-static-lib/oc_static_lib.h&quot;
+</code></pre>
+
+<p>如果 oc-static-lib 中含有分类，那么也需要添加 <code>-ObjC</code> 作为 Other Linker Flags。</p>
 
 <h2 id="cocoa-touch-framework">Cocoa Touch Framework</h2>
 
