@@ -146,7 +146,7 @@ Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包�
       
       
       
-        <span class="post-read-time">— 4 min read</span>
+        <span class="post-read-time">— 6 min read</span>
       
     </div>
 
@@ -213,7 +213,7 @@ Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包�
 
 <p><img src="/img/2019/libraries_in_ios/1.png" alt="1" /></p>
 
-<p>Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包含编译后代码的 <code>.a</code> 文件。我们创建一个 oc-static-lib 的静态库，为其默认提供的 <code>oc_static_lib</code> 类添加 <code>foo</code> 方法，并添加一个 <code>NSObject</code> 的分类，实现 +load 和 <code>foo</code> 方法：</p>
+<p>Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即<strong>只包含编译后代码的 <code>.a</code> 文件</strong>。我们创建一个 oc-static-lib 的静态库，为其默认提供的 <code>oc_static_lib</code> 类添加 <code>foo</code> 方法，并添加一个 <code>NSObject</code> 的分类，实现 +load 和 <code>foo</code> 方法：</p>
 
 <pre><code class="language-objectivec">// oc_static_lib.h
 
@@ -312,7 +312,17 @@ NS_ASSUME_NONNULL_END
 
 <p>这样我们才能在 Swift 工程中正常使用：</p>
 
-<pre><code class="language-swift">import UIKit
+<pre><code class="language-swift">// swift_static_lib.swift
+import Foundation
+
+@objc public class swift_static_lib: NSObject {
+    @objc public func foo() {
+        print(&quot;swift_static_lib - foo&quot;)
+    }
+}
+
+// ViewController.swift
+import UIKit
 import swift_static_lib
 
 class ViewController: UIViewController {
@@ -440,7 +450,7 @@ cp ${DERIVED_SOURCES_DIR}/*-Swift.h ${target_dir}
 
 <h3 id="swift-工程引入-obj-c-静态库">Swift 工程引入 Obj-C 静态库</h3>
 
-<p>如果想要在 Swift 工程中引入 Obj-C 静态库，则也需要桥接头文件的中介。我们将 oc-static-lib 编译后的 <code>.a</code> 与 <code>.h</code> 一起拖入 Swift 工程，并在工程中建立 Obj-C 类，按 Xcode 提示创建桥接文件；在头文件中引入 Obj-C 静态库头文件即可在 Swift 中使用：</p>
+<p>如果想要在 Swift 工程中引入 Obj-C 静态库（注意如有分类仍需加 <code>-ObjC</code>），则也需要桥接头文件的中介。我们将 oc-static-lib 编译后的 <code>.a</code> 与 <code>.h</code> 一起拖入 Swift 工程，并在工程中建立 Obj-C 类，按 Xcode 提示创建桥接文件；在头文件中引入 Obj-C 静态库头文件即可在 Swift 中使用：</p>
 
 <pre><code class="language-objectivec">// swift-demo-project-Bridging-Header.h
 
@@ -451,9 +461,156 @@ cp ${DERIVED_SOURCES_DIR}/*-Swift.h ${target_dir}
 #import &quot;liboc-static-lib/oc_static_lib.h&quot;
 </code></pre>
 
-<p>如果 oc-static-lib 中含有分类，那么也需要添加 <code>-ObjC</code> 作为 Other Linker Flags。</p>
-
 <h2 id="cocoa-touch-framework">Cocoa Touch Framework</h2>
+
+<p>Cocoa Touch Framework 是 Xcode 中能够创建的另外一种框架（Framework）类型，而非库（Library）。不同于库，iOS 中的框架指的是包含资源（比如图片、本地化文件、Storyboard 等）、头文件、以及编译后的二进制等的集合。框架的后缀名是 <code>.framework</code>，并可以通过 <code>NSBundle</code> API 访问，不同的是框架可以直接导航到其中的目录内容，便于开发者查看：</p>
+
+<pre><code class="language-shell">➜  oc_framework.framework tree
+.
+├── Assets.car ➡️ 工程中的 xcassets 资源将被压缩为 car
+├── Headers
+│   ├── NSObject+OC_Framework.h
+│   ├── OC_Foo.h
+│   ├── PublicHeader.h
+│   └── oc_framework.h
+├── Info.plist
+├── Modules
+│   └── module.modulemap 🌟
+├── _CodeSignature
+│   └── CodeResources
+└── oc_framework
+
+3 directories, 9 files
+
+➜  swift_framework.framework tree
+.
+├── Headers
+│   ├── swift_framework-Swift.h ➡️ 自动生成的 *-Swift.h 便于 Obj-C 工程使用
+│   └── swift_framework.h
+├── Info.plist
+├── Modules
+│   ├── module.modulemap 🌟
+│   └── swift_framework.swiftmodule ➡️ 类似 Swift 静态库
+│       ├── x86_64.swiftdoc
+│       └── x86_64.swiftmodule
+├── _CodeSignature
+│   └── CodeResources
+├── eng.strings ➡️ 工程中的 strings 资源
+└── swift_framework
+
+4 directories, 9 files
+</code></pre>
+
+<p>Framework 中编译后的 Mach-O 可以根据需要作为动态库、静态库（注意如有分类仍需加 <code>-ObjC</code>）、或者可执行文件等：</p>
+
+<p><img src="/img/2019/libraries_in_ios/8.png" alt="8" /></p>
+
+<p>Framework 中需要暴露在外界的头文件，需要在 Xcode - Targets - Build Phases - Headers - Public 中公开（Swift Framework 中的 <code>*-Swift.h</code> 则不需要手动移动）；资源文件则需要加入 Copy Bundle Resources 中（使用时通过 <code>NSBunlde</code> API）：</p>
+
+<p><img src="/img/2019/libraries_in_ios/10.png" alt="10" /></p>
+
+<h3 id="obj-c-工程">Obj-C 工程</h3>
+
+<p>在 Obj-C 工程中，只需要将 Framework 产物拖入并在 Xcode - Targets - General - Embedded Binaries &amp; Links Framework and Libraries 中添加即可：</p>
+
+<p><img src="/img/2019/libraries_in_ios/9.png" alt="9" /></p>
+
+<p>在工程中我们就可以将其引入并使用了：</p>
+
+<ul>
+<li>oc-framework:</li>
+</ul>
+
+<hr />
+
+<pre><code class="language-objectivec">// OC_Foo.m
+
+#import &quot;OC_Foo.h&quot;
+
+@implementation OC_Foo
+
+- (void)foo {
+    NSLog(@&quot;%@ - %@&quot;, NSStringFromClass([self class]), NSStringFromSelector(_cmd));
+}
+
+- (UIImage *)image {
+    // 通过 NSBundle 获取资源
+    NSBundle *bundle = [NSBundle bundleForClass:[self class]];
+    return [UIImage imageNamed:@&quot;icon&quot; inBundle:bundle compatibleWithTraitCollection:nil];
+}
+
+@end
+</code></pre>
+
+<ul>
+<li>swift-framework:</li>
+</ul>
+
+<hr />
+
+<pre><code class="language-swift">// Swift_Foo.swift
+
+import Foundation
+
+@objc public class Swift_Foo : NSObject {
+    @objc public func foo() {
+        print(&quot;Swift_Foo - \(#function)&quot;)
+    }
+
+    @objc public func strings() -&gt; String {
+        let bundle = Bundle(for: Swift_Foo.self)
+        return NSLocalizedString(&quot;demo-string&quot;, bundle: bundle, comment: &quot;A demo string.&quot;)
+    }
+}
+</code></pre>
+
+<ul>
+<li>Obj-C 工程：</li>
+</ul>
+
+<hr />
+
+<pre><code class="language-objectivec">// ViewController.m
+
+#import &quot;ViewController.h&quot;
+@import oc_framework;
+//#import &quot;oc_framework/oc_framework.h&quot;
+//#import &lt;oc_framework/oc_framework.h&gt;
+//#import &lt;oc_framework/PublicHeader.h&gt;
+//#import &lt;oc_framework/OC_Foo.h&gt;
+
+@import swift_framework;
+//#import &quot;swift_framework/swift_framework.h&quot;
+//#import &quot;swift_framework/swift_framework-Swift.h&quot;
+//#import &lt;swift_framework/swift_framework.h&gt;
+//#import &lt;swift_framework/swift_framework-Swift.h&gt;
+
+@interface ViewController ()
+@property (weak, nonatomic) IBOutlet UIImageView *imageView;
+
+@end
+
+@implementation ViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+
+    OC_Foo *foo = [OC_Foo new];
+    [foo foo];
+
+    self.imageView.image = [foo image];
+
+    Swift_Foo *sFoo = [[Swift_Foo alloc] init];
+    [sFoo foo];
+
+    NSLog(@&quot;%@&quot;, [sFoo strings]);
+}
+
+@end
+</code></pre>
+
+<h3 id="swift-工程">Swift 工程</h3>
 
 <ul class="task-list">
 <li>TODO:</li>
@@ -473,6 +630,8 @@ cp ${DERIVED_SOURCES_DIR}/*-Swift.h ${target_dir}
 <li><a href="https://forums.swift.org/t/swift-static-libraries-dont-copy-generated-objective-c-header/19816">Swift static libraries don’t copy generated Objective-C header</a></li>
 <li><a href="https://stackoverflow.com/questions/29580438/use-swift-library-in-objc">Use Swift Library in ObjC - StackOverflow</a></li>
 <li><a href="https://paul-samuels.com/blog/2018/01/14/swift-static-library-in-objective-c/">Swift static library in Objective-C - Paul Samuels</a></li>
+<li><a href="https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPFrameworks/Frameworks.html">Framework Programming Guide - Apple</a></li>
+<li><a href="https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html">Bundle Programming Guide - Apple</a></li>
 </ul>
 
     </div>
