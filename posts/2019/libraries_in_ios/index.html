@@ -6,7 +6,7 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes     2019-09-14 首次提交    Preface 随着软件工程的发展，很多我们需要的功能前人都已经很好地实现了，为了提高效率避免重复建设，这些功能实现的代码被封装为代码库，有时也称框架。我们只需要在用到的时候通过依赖管理工具将它们以适当的方式引入即可。本文将简单聊聊 iOS 中的库与框架相关概念。
+<meta name="description" content="Date Notes     2019-09-14 首次提交，持续更新完善    Preface 随着软件工程的发展，很多我们需要的功能前人都已经很好地实现了，为了提高效率避免重复建设，这些功能实现的代码被封装为代码库，有时也称框架。我们只需要在用到的时候通过依赖管理工具将它们以适当的方式引入即可。本文将简单聊聊 iOS 中的库与框架相关概念。
 基本概念 在切入正题之前，我们先来达成一些共识。
 不管是老派 Obj-C 还是新秀 Swift，它们的本质都是编译型语言。对于编译型语言，源代码会首先经由编译器编译为目标文件，链接器再将多个目标文件链接为可执行文件。针对链接阶段，主要分为静态链接与动态链接。
 静态，即 Static。按照字面意思，静态即一旦确定，就不再容易改变。静态链接，即在链接阶段，直接将多个目标文件链接为一个文件。而静态库就可以理解为共同编译为一个目标文件的源代码集合。
@@ -182,7 +182,7 @@ Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包�
 <tbody>
 <tr>
 <td align="center">2019-09-14</td>
-<td align="center">首次提交</td>
+<td align="center">首次提交，持续更新完善</td>
 </tr>
 </tbody>
 </table>
@@ -220,9 +220,7 @@ Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包�
 #import &lt;Foundation/Foundation.h&gt;
 
 @interface oc_static_lib : NSObject
-
 - (void)foo;
-
 @end
 
 // oc_static_lib.m
@@ -230,11 +228,9 @@ Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包�
 #import &quot;oc_static_lib.h&quot;
 
 @implementation oc_static_lib
-
 - (void)foo {
     NSLog(@&quot;%@ - %@&quot;, NSStringFromClass([self class]), NSStringFromSelector(_cmd));
 }
-
 @end
 
 // NSObject+OC_Static_Lib.h
@@ -242,13 +238,9 @@ Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包�
 #import &lt;Foundation/Foundation.h&gt;
 
 NS_ASSUME_NONNULL_BEGIN
-
 @interface NSObject (OC_Static_Lib)
-
 - (void)foo;
-
 @end
-
 NS_ASSUME_NONNULL_END
 
 // NSObject+OC_Static_Lib.m
@@ -256,15 +248,12 @@ NS_ASSUME_NONNULL_END
 #import &quot;NSObject+OC_Static_Lib.h&quot;
 
 @implementation NSObject (OC_Static_Lib)
-
 + (void)load {
     NSLog(@&quot;%@ - %@&quot;, NSStringFromClass([self class]), NSStringFromSelector(_cmd));
 }
-
 - (void)foo {
     NSLog(@&quot;%@ - %@&quot;, NSStringFromClass([self class]), NSStringFromSelector(_cmd));
 }
-
 @end
 </code></pre>
 
@@ -317,7 +306,7 @@ import Foundation
 
 @objc public class swift_static_lib: NSObject {
     @objc public func foo() {
-        print(&quot;swift_static_lib - foo&quot;)
+        print(&quot;swift_static_lib - \(#function)&quot;)
     }
 }
 
@@ -612,6 +601,36 @@ import Foundation
 
 <h3 id="swift-工程">Swift 工程</h3>
 
+<p>Framework 的引入要比静态库简单许多，我们只需要将其直接引入工程中（注意如有分类仍需加 <code>-ObjC</code>），并在 Swift 通过 <code>import &lt;FRAMEWORK_NAME&gt;</code> 导入即可：</p>
+
+<pre><code class="language-swift">import UIKit
+import oc_framework
+import swift_framework
+
+class ViewController: UIViewController {
+    @IBOutlet weak var imageView: UIImageView!
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        // Do any additional setup after loading the view.
+
+        let foo = OC_Foo()
+        foo.foo()
+        // ⚠️ 注意，比较奇怪的是：
+        // 只有当 Obj-C Framework 的 Mach-O 类型为动态库时，以下的资源才有效
+        imageView.image = foo.image()
+
+        let sFoo = Swift_Foo()
+        sFoo.foo()
+        print(sFoo.strings())
+    }
+}
+</code></pre>
+
+<h3 id="aggregate">Aggregate</h3>
+
+<h2 id="cocoapods">CocoaPods</h2>
+
 <ul class="task-list">
 <li>TODO:</li>
 <li><label><input type="checkbox" disabled class="task-list-item"> @import</label></li>
@@ -621,8 +640,9 @@ import Foundation
 
 <h2 id="reference">Reference</h2>
 
+<!-- - [Linkers and Loaders](https://book.douban.com/subject/1436811/) -->
+
 <ul>
-<li><a href="https://book.douban.com/subject/1436811/">Linkers and Loaders</a></li>
 <li><a href="../../2018/dyld_shared_cache/">谈谈 iOS 中的 dyld_shared_cache - kingcos</a></li>
 <li><a href="/posts/2019/+load_in_ios/">iOS 中的 +load 方法 - kingcos</a></li>
 <li><a href="https://forums.swift.org/t/whats-in-the-file-of-swiftmodule-how-to-open-it/1032">what’s in the file of .swiftmodule?how to open it?</a></li>
