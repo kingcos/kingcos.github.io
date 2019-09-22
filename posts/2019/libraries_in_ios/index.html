@@ -6,15 +6,15 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes     2019-09-14 首次提交，持续更新完善    Preface 随着软件工程的发展，很多我们需要的功能前人都已经很好地实现了，为了提高效率避免重复建设，这些功能实现的代码被封装为代码库，有时也称框架。我们只需要在用到的时候通过依赖管理工具将它们以适当的方式引入即可。本文将简单聊聊 iOS 中的库与框架相关概念。
+<meta name="description" content="Date Notes     2019-09-14 首次提交，持续更新完善   2019-09-22 持续更新完善，适配 Xcode 11    Preface 随着软件工程的发展，很多我们需要的功能前人都已经很好地实现了，为了提高效率避免重复建设，这些功能实现的代码被封装为代码库，有时也称框架。我们只需要在用到的时候通过依赖管理工具将它们以适当的方式引入即可。本文将简单聊聊 iOS 中的库与框架相关概念。
 基本概念 在切入正题之前，我们先来达成一些共识。
 不管是老派 Obj-C 还是新秀 Swift，它们的本质都是编译型语言。对于编译型语言，源代码会首先经由编译器编译为目标文件，链接器再将多个目标文件链接为可执行文件。针对链接阶段，主要分为静态链接与动态链接。
 静态，即 Static。按照字面意思，静态即一旦确定，就不再容易改变。静态链接，即在链接阶段，直接将多个目标文件链接为一个文件。而静态库就可以理解为共同编译为一个目标文件的源代码集合。
 动态，即 Dynamic。按照字面意思，动态即推迟到运行时动态地决议。动态链接，即在运行时才将各个部分组合形成完整的程序。而动态库就可以理解为支持动态链接方式的源代码集合。
 静态链接的好处是，运行时不再额外需要时间动态链接；坏处则是由于链接的粒度是目标文件，那么可能会链接了没有使用到的函数，会造成可执行文件过大；而且当某一个目标文件的源代码改动时，那么所有依赖该目标文件的静态库都需要重新编译；动态链接则解决了静态链接的空间浪费与重复编译问题，比如在 iOS 中，系统库采用了 dyld_shared_cache 动态链接，这样其它程序就无需再将系统库重复链接，当 iOS 系统更新时也无需将所有 app 重新编译。而在移动端开发中，app 的启动时间与包体积大小将是一个权衡问题，值得我们侧重与考量。
 另外，虽然广义上的库（Library）与框架（Framework）含义是类似的，但在 iOS 开发中，官方将这两个概念进行了区分，因此下文中我们会明确两个词的使用。
-Cocoa Touch Static Library 我们先从 Xcode 中能够直接创建的 Cocoa Touch Static Library 说起：
-Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包含编译后代码的 .a 文件。我们创建一个 oc-static-lib 的静态库，为其默认提供的 oc_static_lib 类添加 foo 方法，并添加一个 NSObject 的分类，实现 &#43;load 和 foo 方法："/>
+Cocoa Touch Static Library 我们先从 Xcode 中能够直接创建的 Cocoa Touch Static Library 说起（注意，在 Xcode 11 中，这里已经变成 Framework 与 Library，更加清晰）：
+Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包含编译后代码的 ."/>
 <meta name="keywords" content="ios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2019/libraries_in_ios/" />
@@ -146,7 +146,7 @@ Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包�
       
       
       
-        <span class="post-read-time">— 6 min read</span>
+        <span class="post-read-time">— 9 min read</span>
       
     </div>
 
@@ -184,6 +184,11 @@ Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包�
 <td align="center">2019-09-14</td>
 <td align="center">首次提交，持续更新完善</td>
 </tr>
+
+<tr>
+<td align="center">2019-09-22</td>
+<td align="center">持续更新完善，适配 Xcode 11</td>
+</tr>
 </tbody>
 </table>
 
@@ -209,7 +214,7 @@ Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包�
 
 <h2 id="cocoa-touch-static-library">Cocoa Touch Static Library</h2>
 
-<p>我们先从 Xcode 中能够直接创建的 Cocoa Touch Static Library 说起：</p>
+<p>我们先从 Xcode 中能够直接创建的 Cocoa Touch Static Library 说起（注意，在 Xcode 11 中，这里已经变成 Framework 与 Library，更加清晰）：</p>
 
 <p><img src="/img/2019/libraries_in_ios/1.png" alt="1" /></p>
 
@@ -271,7 +276,7 @@ NS_ASSUME_NONNULL_END
 
 <p><img src="/img/2019/libraries_in_ios/3.png" alt="3" /></p>
 
-<p>我们将 oc-static-lib 编译后的 <code>.a</code> 与 <code>.h</code> 一起拖入 Obj-C 工程，即可使用 <code>#import &quot;&quot;</code> 来引入并调用（需要注意的是：静态库中如果存在分类，需要添加 <code>-ObjC</code> 作为 Other Linker Flags，详见 <a href="/posts/2019/+load_in_ios/">iOS 中的 +load 方法</a>一文）：</p>
+<p>我们将 oc-static-lib 编译后的 <code>.a</code> 与 <code>.h</code> 一起拖入 Obj-C 工程（记得勾选「Add to targets」，这样即可自动将 <code>.a</code> 加入到「Link Binary With Libraries」中），即可使用 <code>#import &quot;&quot;</code> 来引入并调用（需要注意的是：静态库中如果存在分类，需要添加 <code>-ObjC</code> 作为 Other Linker Flags，详见 <a href="/posts/2019/+load_in_ios/">iOS 中的 +load 方法</a>一文）：</p>
 
 <blockquote>
 <p><strong>Tips</strong></p>
@@ -452,7 +457,7 @@ cp ${DERIVED_SOURCES_DIR}/*-Swift.h ${target_dir}
 
 <h2 id="cocoa-touch-framework">Cocoa Touch Framework</h2>
 
-<p>Cocoa Touch Framework 是 Xcode 中能够创建的另外一种框架（Framework）类型，而非库（Library）。不同于库，iOS 中的框架指的是包含资源（比如图片、本地化文件、Storyboard 等）、头文件、以及编译后的二进制等的集合。框架的后缀名是 <code>.framework</code>，并可以通过 <code>NSBundle</code> API 访问，不同的是框架可以直接导航到其中的目录内容，便于开发者查看：</p>
+<p>Cocoa Touch Framework 是 Xcode 中能够创建的另外一种框架（Framework）类型（注意，在 Xcode 11 中，这里已经变成 Framework 与 Library，更加清晰），而非库（Library）。不同于库，iOS 中的框架指的是包含资源（比如图片、本地化文件、Storyboard 等）、头文件、以及编译后的二进制等的集合。框架的后缀名是 <code>.framework</code>，并可以通过 <code>NSBundle</code> API 访问，不同的是框架可以直接导航到其中的目录内容，便于开发者查看：</p>
 
 <pre><code class="language-shell">➜  oc_framework.framework tree
 .
@@ -627,14 +632,175 @@ class ViewController: UIViewController {
 }
 </code></pre>
 
-<h3 id="aggregate">Aggregate</h3>
+<h3 id="aggregate-target">Aggregate Target</h3>
+
+<p><img src="/img/2019/libraries_in_ios/11.png" alt="11" /></p>
+
+<p>关于 Aggregate Target，官方提供的可参考资料很少。老版本的 Xcode 中描述为「This target is used to aggregate other targets together」，即 aggregate 本身具有聚合、总计之意，而 Aggregate Target 正是用于聚合其它 Target，使得可以在 Xcode 中达到一次性构建多个 Target 的目的。</p>
 
 <h2 id="cocoapods">CocoaPods</h2>
+
+<p>CocoaPods 是 iOS/macOS 开发的老牌搭档。</p>
+
+<h3 id="非-use-framework">非 <code>use_framework</code></h3>
+
+<p>CocoaPods 现在默认开启了 <code>use_framework</code> 选项，即使用 Framework 方式集成，我们将其注释，先来看下非 <code>use_framework</code> 的情况。此时我们定义在 Podfile 中的相关依赖将作为类似上文中 Cocoa Touch Static Library 一样的 Target 被 Pods 工程自身依赖：</p>
+
+<p><img src="/img/2019/libraries_in_ios/13.png" alt="13" /></p>
+
+<p>Pods 工程也将作为中介被打包为 <code>.a</code> 被主工程依赖：</p>
+
+<p><img src="/img/2019/libraries_in_ios/12.png" alt="12" /></p>
+
+<p>如前文所述，<code>.a</code> 仅仅包含了编译后的代码，那么它所以依赖的资源文件将如何处理呢？我们可以看到上图中的「[CP] Copy Pods Resoureces」，执行了如下的脚本：</p>
+
+<pre><code class="language-shell">#!/bin/sh
+set -e
+set -u
+set -o pipefail  # 设置
+
+function on_error {
+  echo &quot;$(realpath -mq &quot;${0}&quot;):$1: error: Unexpected failure&quot;
+}
+trap 'on_error $LINENO' ERR
+
+# if [ -z #{STR} ]; 如果 STR 长度为 0 则真
+# UNLOCALIZED_RESOURCES_FOLDER_PATH（app 名）：oc-demo-project.app
+if [ -z ${UNLOCALIZED_RESOURCES_FOLDER_PATH+x} ]; then
+  # If UNLOCALIZED_RESOURCES_FOLDER_PATH is not set, then there's nowhere for us to copy
+  # resources to, so exit 0 (signalling the script phase was successful).
+  exit 0
+fi
+
+# TARGET_BUILD_DIR（目标构建目录）：/Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-fvrppqpxzudpvicewkjnbszgmrll/Build/Products/Debug-iphonesimulator
+# 不管文件夹是否存在，尝试创建
+mkdir -p &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
+
+# RESOURCES_TO_COPY（欲拷贝资源记录，临时文件）：oc-demo-project/Pods/resources-to-copy-oc-demo-project.txt
+RESOURCES_TO_COPY=${PODS_ROOT}/resources-to-copy-${TARGETNAME}.txt
+# 创建该文件
+&gt; &quot;$RESOURCES_TO_COPY&quot;
+
+XCASSET_FILES=()
+
+# 防止多个 target 同时拷贝相同的框架依赖
+# This protects against multiple targets copying the same framework dependency at the same time. The solution
+# was originally proposed here: https://lists.samba.org/archive/rsync/2008-February/020158.html
+RSYNC_PROTECT_TMP_FILES=(--filter &quot;P .*.??????&quot;)
+
+# TARGETED_DEVICE_FAMILY（目标设备家族）：1,2（iPhone &amp; iPad）
+case &quot;${TARGETED_DEVICE_FAMILY:-}&quot; in
+  1,2)
+    TARGET_DEVICE_ARGS=&quot;--target-device ipad --target-device iphone&quot;
+    ;;
+  1)
+    TARGET_DEVICE_ARGS=&quot;--target-device iphone&quot;
+    ;;
+  2)
+    TARGET_DEVICE_ARGS=&quot;--target-device ipad&quot;
+    ;;
+  3)
+    TARGET_DEVICE_ARGS=&quot;--target-device tv&quot;
+    ;;
+  4)
+    TARGET_DEVICE_ARGS=&quot;--target-device watch&quot;
+    ;;
+  *)
+    TARGET_DEVICE_ARGS=&quot;--target-device mac&quot;
+    ;;
+esac
+
+# 安装资源函数
+install_resource()
+{
+  if [[ &quot;$1&quot; = /* ]] ; then
+    RESOURCE_PATH=&quot;$1&quot;
+  else
+    RESOURCE_PATH=&quot;${PODS_ROOT}/$1&quot;
+  fi
+  if [[ ! -e &quot;$RESOURCE_PATH&quot; ]] ; then
+    cat &lt;&lt; EOM
+error: Resource &quot;$RESOURCE_PATH&quot; not found. Run 'pod install' to update the copy resources script.
+EOM
+    exit 1
+  fi
+  case $RESOURCE_PATH in
+    *.storyboard)
+      echo &quot;ibtool --reference-external-strings-file --errors --warnings --notices --minimum-deployment-target ${!DEPLOYMENT_TARGET_SETTING_NAME} --output-format human-readable-text --compile ${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename \&quot;$RESOURCE_PATH\&quot; .storyboard`.storyboardc $RESOURCE_PATH --sdk ${SDKROOT} ${TARGET_DEVICE_ARGS}&quot; || true
+      ibtool --reference-external-strings-file --errors --warnings --notices --minimum-deployment-target ${!DEPLOYMENT_TARGET_SETTING_NAME} --output-format human-readable-text --compile &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename \&quot;$RESOURCE_PATH\&quot; .storyboard`.storyboardc&quot; &quot;$RESOURCE_PATH&quot; --sdk &quot;${SDKROOT}&quot; ${TARGET_DEVICE_ARGS}
+      ;;
+    *.xib)
+      echo &quot;ibtool --reference-external-strings-file --errors --warnings --notices --minimum-deployment-target ${!DEPLOYMENT_TARGET_SETTING_NAME} --output-format human-readable-text --compile ${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename \&quot;$RESOURCE_PATH\&quot; .xib`.nib $RESOURCE_PATH --sdk ${SDKROOT} ${TARGET_DEVICE_ARGS}&quot; || true
+      ibtool --reference-external-strings-file --errors --warnings --notices --minimum-deployment-target ${!DEPLOYMENT_TARGET_SETTING_NAME} --output-format human-readable-text --compile &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename \&quot;$RESOURCE_PATH\&quot; .xib`.nib&quot; &quot;$RESOURCE_PATH&quot; --sdk &quot;${SDKROOT}&quot; ${TARGET_DEVICE_ARGS}
+      ;;
+    *.framework)
+      echo &quot;mkdir -p ${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot; || true
+      mkdir -p &quot;${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot;
+      echo &quot;rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; $RESOURCE_PATH ${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot; || true
+      rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; &quot;$RESOURCE_PATH&quot; &quot;${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot;
+      ;;
+    *.xcdatamodel)
+      echo &quot;xcrun momc \&quot;$RESOURCE_PATH\&quot; \&quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename &quot;$RESOURCE_PATH&quot;`.mom\&quot;&quot; || true
+      xcrun momc &quot;$RESOURCE_PATH&quot; &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename &quot;$RESOURCE_PATH&quot; .xcdatamodel`.mom&quot;
+      ;;
+    *.xcdatamodeld)
+      echo &quot;xcrun momc \&quot;$RESOURCE_PATH\&quot; \&quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename &quot;$RESOURCE_PATH&quot; .xcdatamodeld`.momd\&quot;&quot; || true
+      xcrun momc &quot;$RESOURCE_PATH&quot; &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename &quot;$RESOURCE_PATH&quot; .xcdatamodeld`.momd&quot;
+      ;;
+    *.xcmappingmodel)
+      echo &quot;xcrun mapc \&quot;$RESOURCE_PATH\&quot; \&quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename &quot;$RESOURCE_PATH&quot; .xcmappingmodel`.cdm\&quot;&quot; || true
+      xcrun mapc &quot;$RESOURCE_PATH&quot; &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename &quot;$RESOURCE_PATH&quot; .xcmappingmodel`.cdm&quot;
+      ;;
+    *.xcassets)
+      ABSOLUTE_XCASSET_FILE=&quot;$RESOURCE_PATH&quot;
+      XCASSET_FILES+=(&quot;$ABSOLUTE_XCASSET_FILE&quot;)
+      ;;
+    *)
+      echo &quot;$RESOURCE_PATH&quot; || true
+      echo &quot;$RESOURCE_PATH&quot; &gt;&gt; &quot;$RESOURCES_TO_COPY&quot;
+      ;;
+  esac
+}
+
+# CONFIGURATION：运行的 scheme 配置模式，Debug 或 Release
+if [[ &quot;$CONFIGURATION&quot; == &quot;Debug&quot; ]]; then
+  install_resource &quot;${PODS_ROOT}/MJRefresh/MJRefresh/MJRefresh.bundle&quot;
+fi
+if [[ &quot;$CONFIGURATION&quot; == &quot;Release&quot; ]]; then
+  install_resource &quot;${PODS_ROOT}/MJRefresh/MJRefresh/MJRefresh.bundle&quot;
+fi
+
+mkdir -p &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
+rsync -avr --copy-links --no-relative --exclude '*/.svn/*' --files-from=&quot;$RESOURCES_TO_COPY&quot; / &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
+if [[ &quot;${ACTION}&quot; == &quot;install&quot; ]] &amp;&amp; [[ &quot;${SKIP_INSTALL}&quot; == &quot;NO&quot; ]]; then
+  mkdir -p &quot;${INSTALL_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
+  rsync -avr --copy-links --no-relative --exclude '*/.svn/*' --files-from=&quot;$RESOURCES_TO_COPY&quot; / &quot;${INSTALL_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
+fi
+rm -f &quot;$RESOURCES_TO_COPY&quot;
+
+if [[ -n &quot;${WRAPPER_EXTENSION}&quot; ]] &amp;&amp; [ &quot;`xcrun --find actool`&quot; ] &amp;&amp; [ -n &quot;${XCASSET_FILES:-}&quot; ]
+then
+  # Find all other xcassets (this unfortunately includes those of path pods and other targets).
+  OTHER_XCASSETS=$(find &quot;$PWD&quot; -iname &quot;*.xcassets&quot; -type d)
+  while read line; do
+    if [[ $line != &quot;${PODS_ROOT}*&quot; ]]; then
+      XCASSET_FILES+=(&quot;$line&quot;)
+    fi
+  done &lt;&lt;&lt;&quot;$OTHER_XCASSETS&quot;
+
+  if [ -z ${ASSETCATALOG_COMPILER_APPICON_NAME+x} ]; then
+    printf &quot;%s\0&quot; &quot;${XCASSET_FILES[@]}&quot; | xargs -0 xcrun actool --output-format human-readable-text --notices --warnings --platform &quot;${PLATFORM_NAME}&quot; --minimum-deployment-target &quot;${!DEPLOYMENT_TARGET_SETTING_NAME}&quot; ${TARGET_DEVICE_ARGS} --compress-pngs --compile &quot;${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
+  else
+    printf &quot;%s\0&quot; &quot;${XCASSET_FILES[@]}&quot; | xargs -0 xcrun actool --output-format human-readable-text --notices --warnings --platform &quot;${PLATFORM_NAME}&quot; --minimum-deployment-target &quot;${!DEPLOYMENT_TARGET_SETTING_NAME}&quot; ${TARGET_DEVICE_ARGS} --compress-pngs --compile &quot;${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot; --app-icon &quot;${ASSETCATALOG_COMPILER_APPICON_NAME}&quot; --output-partial-info-plist &quot;${TARGET_TEMP_DIR}/assetcatalog_generated_info_cocoapods.plist&quot;
+  fi
+fi
+</code></pre>
+
+<h3 id="use-framework">use_framework</h3>
 
 <ul class="task-list">
 <li>TODO:</li>
 <li><label><input type="checkbox" disabled class="task-list-item"> @import</label></li>
-<li><label><input type="checkbox" disabled class="task-list-item"> use_framework</label></li>
 <li><label><input type="checkbox" disabled class="task-list-item"> Module Map</label></li>
 </ul>
 
@@ -652,6 +818,8 @@ class ViewController: UIViewController {
 <li><a href="https://paul-samuels.com/blog/2018/01/14/swift-static-library-in-objective-c/">Swift static library in Objective-C - Paul Samuels</a></li>
 <li><a href="https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPFrameworks/Frameworks.html">Framework Programming Guide - Apple</a></li>
 <li><a href="https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html">Bundle Programming Guide - Apple</a></li>
+<li><a href="https://developer.apple.com/library/archive/technotes/tn2435/_index.html">Technical Note TN2435 - Embedding Frameworks In An App - Apple</a></li>
+<li><a href="https://www.raywenderlich.com/2430-how-to-create-a-framework-for-ios">How to Create a Framework for iOS - Ray Wenderlich</a></li>
 </ul>
 
     </div>
