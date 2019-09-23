@@ -146,7 +146,7 @@ Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包�
       
       
       
-        <span class="post-read-time">— 10 min read</span>
+        <span class="post-read-time">— 13 min read</span>
       
     </div>
 
@@ -642,17 +642,105 @@ class ViewController: UIViewController {
 
 <p>CocoaPods 是 iOS/macOS 开发的老牌搭档。</p>
 
-<h3 id="非-use-framework">非 use_framework</h3>
+<h3 id="非-use-frameworks">非 use_frameworks!</h3>
 
-<p>CocoaPods 现在默认开启了 <code>use_framework</code> 选项，即使用 Framework 方式集成，我们将其注释，先来看下非 <code>use_framework</code> 的情况。此时我们定义在 Podfile 中的相关依赖将作为类似上文中 Cocoa Touch Static Library 一样的 Target 被 Pods 工程自身依赖：</p>
+<h4 id="obj-c-工程与-obj-c-pod">Obj-C 工程与 Obj-C Pod</h4>
+
+<p>使用 <code>pod lib create oc-pod</code> 即可以创建我们的私有 Pod，资源文件的管理这里我们尝试使用两种方式：</p>
+
+<pre><code class="language-ruby"># 将通过脚本引入（将直接把文件本身移动到主 Bundle 下）
+s.resources = ['oc-pod/Assets/*.json']
+
+# 将创建 co-pod 的 Bundle（将把 Bundle 移动到主 Bundle 下）
+s.resource_bundles = {
+    'oc-pod' =&gt; ['oc-pod/Assets/*.json']
+}
+</code></pre>
+
+<p>这里我们将放置在与 oc-demo-project 同一父目录下，并将语言选择 Obj-C，随后在 oc-demo-project 目录下，<code>pod init</code> 并以路径指定方式引用刚才创建的 Pod：</p>
+
+<pre><code class="language-ruby">target 'oc-demo-project' do
+  # Comment the next line if you don't want to use dynamic frameworks
+  # use_frameworks!
+  pod 'oc-pod', :path =&gt; '../oc-pod'
+end
+</code></pre>
+
+<p>我们将上文已有代码放在 oc-pod 的 <code>Classes</code> 文件夹下，并将资源放在 <code>Assets</code> 文件夹下：</p>
+
+<pre><code class="language-shell">➜  oc-pod git:(master) ✗ tree
+.
+├── Example
+│   ├── Podfile
+│   ├── Podfile.lock
+│   ├── Pods
+│   │   ├── Headers
+│   │   ├── Local\ Podspecs
+│   │   │   └── oc-pod.podspec.json
+│   │   ├── Manifest.lock
+│   │   ├── Pods.xcodeproj
+│   │   │   ├── project.pbxproj
+│   │   │   └── xcuserdata
+│   │   │       └── kingcos.xcuserdatad
+│   │   │           └── xcschemes
+│   │   │               ├── Pods-oc-pod_Tests.xcscheme
+│   │   │               ├── oc-pod.xcscheme
+│   │   │               └── xcschememanagement.plist
+│   │   └── Target\ Support\ Files
+│   │       ├── Pods-oc-pod_Tests
+│   │       │   ├── Pods-oc-pod_Tests-Info.plist
+│   │       │   ├── Pods-oc-pod_Tests-acknowledgements.markdown
+│   │       │   ├── Pods-oc-pod_Tests-acknowledgements.plist
+│   │       │   ├── Pods-oc-pod_Tests-dummy.m
+│   │       │   ├── Pods-oc-pod_Tests-frameworks.sh ➡️ resources 处理脚本
+│   │       │   ├── Pods-oc-pod_Tests-umbrella.h
+│   │       │   ├── Pods-oc-pod_Tests.debug.xcconfig
+│   │       │   ├── Pods-oc-pod_Tests.modulemap
+│   │       │   └── Pods-oc-pod_Tests.release.xcconfig
+│   │       └── oc-pod
+│   │           ├── oc-pod-Info.plist
+│   │           ├── oc-pod-dummy.m
+│   │           ├── oc-pod-prefix.pch
+│   │           ├── oc-pod-umbrella.h
+│   │           ├── oc-pod.modulemap
+│   │           └── oc-pod.xcconfig
+│   ├── oc-pod.xcodeproj
+│   └── oc-pod.xcworkspace
+├── LICENSE
+├── README.md
+├── _Pods.xcodeproj -&gt; Example/Pods/Pods.xcodeproj
+├── oc-pod
+│   ├── Assets ➡️ 资源
+│   │   └── oc-pod.json
+│   └── Classes ➡️ 源码
+│       ├── ObjC_Foo.h
+│       ├── ObjC_Foo.m
+│       ├── UIViewController+Extension.h
+│       └── UIViewController+Extension.m
+└── oc-pod.podspec
+
+25 directories, 41 files
+</code></pre>
+
+<blockquote>
+<p><strong>Tips</strong></p>
+
+<p>CocoaPods 现在默认开启了 <code>use_frameworks!</code> 选项，即使用 Framework 方式集成，这里我们将先对其进行注释，看下非 <code>use_frameworks!</code> 的情况。</p>
+</blockquote>
+
+<p>此时 Pods 工程将在之后作为单一的静态库以 <code>.a</code> 形式集成到主工程中：</p>
 
 <p><img src="/img/2019/libraries_in_ios/13.png" alt="13" /></p>
 
-<p>Pods 工程也将作为中介被打包为 <code>.a</code> 被主工程依赖：</p>
+<p>而我们定义在 Podfile 中的相关依赖将作为类似上文中 Cocoa Touch Static Library 一样的 Target 又被 Pods 工程自身依赖：</p>
 
 <p><img src="/img/2019/libraries_in_ios/12.png" alt="12" /></p>
 
-<p>如前文所述，<code>.a</code> 仅仅包含了编译后的代码，那么它所以依赖的资源文件将如何处理呢？我们可以看到上图中的「[CP] Copy Pods Resoureces」执行了如下的脚本：</p>
+<p>Resource Bundle 或者 <code>s.dependency</code> 将被相关的 Pod 依赖：</p>
+
+<p><img src="/img/2019/libraries_in_ios/15.png" alt="15" /></p>
+
+<p>如前文所述，<code>.a</code> 仅仅包含了编译后的代码，那么它所以依赖的资源文件将如何处理呢？我们可以看到上上图中的「[CP] Copy Pods Resoureces」执行了如下的脚本：</p>
 
 <pre><code class="language-shell">#!/bin/sh
 set -e
@@ -820,7 +908,7 @@ then
 fi
 </code></pre>
 
-<p>因此最终的 <code>.app</code> 结构如下：</p>
+<p>因此最终的 <code>oc-demo-project.app</code> 结构如下：</p>
 
 <pre><code class="language-shell">➜  oc-demo-project.app tree
 .
@@ -834,41 +922,106 @@ fi
 │       ├── Info.plist
 │       └── UIViewController-BYZ-38-t0r.nib
 ├── Info.plist
-├── MJRefresh.bundle ⬅️ 脚本拷贝
-│   ├── arrow@2x.png
-│   ├── en.lproj
-│   │   └── Localizable.strings
-│   ├── ko.lproj
-│   │   └── Localizable.strings
-│   ├── zh-Hans.lproj
-│   │   └── Localizable.strings
-│   └── zh-Hant.lproj
-│       └── Localizable.strings
 ├── PkgInfo
 ├── _CodeSignature
 │   └── CodeResources
-└── oc-demo-project ⬅️ 可执行 Mach-O 文件
+├── oc-demo-project ➡️ 可执行 Mach-O 文件
+├── oc-pod.bundle ➡️ 脚本拷贝（s.resource_bundles）至此
+│   ├── Info.plist
+│   ├── _CodeSignature
+│   │   ├── CodeDirectory
+│   │   ├── CodeRequirements
+│   │   ├── CodeRequirements-1
+│   │   ├── CodeResources
+│   │   └── CodeSignature
+│   └── oc-pod.json
+└── oc-pod.json ➡️ 脚本拷贝（s.resources）至此
 
-9 directories, 15 files
+6 directories, 18 files
 </code></pre>
 
-<p>资源文件被原封不动地挪动到 <code>.app</code> 下，而第三方和 Pods 中介的 <code>.a</code> 就已经被打入了可执行文件中，我们可以使用 <code>nm</code> 尝试打印其中的符号：</p>
+<p>资源文件 Bundle 以及 JSON 文件被原封不动地挪动到 <code>oc-demo-project.app</code> 下，而第三方和 Pods 中介的 <code>.a</code> 就已经被打入了可执行文件中，我们可以使用 <code>nm</code> 尝试打印其中的符号：</p>
 
-<pre><code class="language-shell">➜  oc-demo-project.app nm oc-demo-project | grep -m 5 MJRefresh
-000000010000b5a0 t +[MJRefreshConfig defaultConfig]
-000000010000b770 t +[MJRefreshFooter footerWithRefreshingBlock:]
-000000010000b820 t +[MJRefreshFooter footerWithRefreshingTarget:refreshingAction:]
-000000010000d030 t +[MJRefreshHeader headerWithRefreshingBlock:]
-000000010000d0e0 t +[MJRefreshHeader headerWithRefreshingTarget:refreshingAction:]
+<pre><code class="language-shell">➜  oc-demo-project.app nm oc-demo-project | grep ObjC_Foo
+0000000100001eb0 t +[ObjC_Foo load]
+0000000100001f10 t -[ObjC_Foo foo]
+00000001000067d0 S _OBJC_CLASS_$_ObjC_Foo
+00000001000067a8 S _OBJC_METACLASS_$_ObjC_Foo
 
-➜  oc-demo-project.app nm oc-demo-project | grep -m 5 Pods
-000000010001cd70 S _OBJC_CLASS_$_PodsDummy_MJRefresh
-000000010001d270 S _OBJC_CLASS_$_PodsDummy_Pods_oc_demo_project
-000000010001cd48 S _OBJC_METACLASS_$_PodsDummy_MJRefresh
-000000010001d248 S _OBJC_METACLASS_$_PodsDummy_Pods_oc_demo_project
+➜  oc-demo-project.app nm oc-demo-project | grep Pods
+0000000100006870 S _OBJC_CLASS_$_PodsDummy_Pods_oc_demo_project
+0000000100006820 S _OBJC_CLASS_$_PodsDummy_oc_pod
+0000000100006848 S _OBJC_METACLASS_$_PodsDummy_Pods_oc_demo_project
+00000001000067f8 S _OBJC_METACLASS_$_PodsDummy_oc_pod
 </code></pre>
 
-<h3 id="use-framework">use_framework</h3>
+<p>虽然资源均被拷贝到了 <code>.app</code> 下，但在代码中相应的获取方式却有一定差别：</p>
+
+<pre><code class="language-objectivec">- (void)foo {
+    // s.resources
+    NSBundle *bundle = [NSBundle bundleForClass:[self class]];
+    NSString *path = [bundle pathForResource:@&quot;oc-pod&quot; ofType:@&quot;json&quot;];
+    NSData *data = [NSData dataWithContentsOfFile:path];
+
+    if (data) {
+        NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
+        NSLog(@&quot;%@ - %@&quot;, dict[@&quot;name&quot;], dict[@&quot;lang&quot;]);
+    }
+
+    // s.resource_bundles
+    NSBundle *bundle2 = [NSBundle bundleWithPath:[[NSBundle mainBundle] pathForResource:@&quot;oc-pod&quot; ofType:@&quot;bundle&quot;]];
+    NSString *path2 = [bundle2 pathForResource:@&quot;oc-pod&quot; ofType:@&quot;json&quot;];
+    NSData *data2 = [NSData dataWithContentsOfFile:path2];
+
+    if (data2) {
+        NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
+        NSLog(@&quot;%@ - %@&quot;, dict[@&quot;name&quot;], dict[@&quot;lang&quot;]);
+    }
+}
+</code></pre>
+
+<h4 id="obj-c-工程与-swift-pod">Obj-C 工程与 Swift Pod</h4>
+
+<p>在 Obj-C 工程下引入 Swift Pod 与 Obj-C Pod 并无太多差别。不过有时可能会遇到下面这个问题：</p>
+
+<pre><code class="language-shell">[!] Unable to determine Swift version for the following pods:
+
+- `Alamofire` does not specify a Swift version and none of the targets (`oc-demo-project`) integrating it have the `SWIFT_VERSION` attribute set. Please contact the author or set the `SWIFT_VERSION` attribute in at least one of the targets that integrate this pod.
+</code></pre>
+
+<p>此时我们可以在主工程中新建一个占位 Swift 文件即可使得 Obj-C 工程获得 Swift 能力：</p>
+
+<p><img src="/img/2019/libraries_in_ios/14.png" alt="14" /></p>
+
+<p>另外需要注意的是，Swift Pod 引入时需要使用 <code>@import</code>，关于其详细介绍将在下文展开：</p>
+
+<pre><code class="language-objectivec">@import swift_pod;
+
+@implementation ViewController
+- (void)viewDidLoad {
+    [super viewDidLoad];
+
+    [[[Swift_Foo alloc] init] foo];
+    NSLog(@&quot;%@&quot;, [[[Swift_Foo alloc] init] strings]);
+}
+@end
+</code></pre>
+
+<p>在其它方面 Swift Pod 与 Obj-C Pod 使用一致。</p>
+
+<h4 id="swift-工程与-obj-c-pod">Swift 工程与 Obj-C Pod</h4>
+
+<h4 id="swift-工程与-swift-pod">Swift 工程与 Swift Pod</h4>
+
+<h3 id="use-frameworks">use_frameworks!</h3>
+
+<h4 id="obj-c-工程与-obj-c-pod-1">Obj-C 工程与 Obj-C Pod</h4>
+
+<h4 id="obj-c-工程与-swift-pod-1">Obj-C 工程与 Swift Pod</h4>
+
+<h4 id="swift-工程与-obj-c-pod-1">Swift 工程与 Obj-C Pod</h4>
+
+<h4 id="swift-工程与-swift-pod-1">Swift 工程与 Swift Pod</h4>
 
 <ul class="task-list">
 <li>TODO:</li>
