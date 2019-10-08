@@ -146,7 +146,7 @@ Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包�
       
       
       
-        <span class="post-read-time">— 13 min read</span>
+        <span class="post-read-time">— 17 min read</span>
       
     </div>
 
@@ -745,7 +745,7 @@ end
 <pre><code class="language-shell">#!/bin/sh
 set -e
 set -u
-set -o pipefail  # 设置
+set -o pipefail # 设置
 
 function on_error {
   echo &quot;$(realpath -mq &quot;${0}&quot;):$1: error: Unexpected failure&quot;
@@ -1016,6 +1016,197 @@ fi
 <h3 id="use-frameworks">use_frameworks!</h3>
 
 <h4 id="obj-c-工程与-obj-c-pod-1">Obj-C 工程与 Obj-C Pod</h4>
+
+<p>将 <code>use_frameworks!</code> 开启时，Pods 工程将以框架方式依赖：</p>
+
+<p><img src="/img/2019/libraries_in_ios/16.png" alt="16" /></p>
+
+<p>「[CP] Copy Pods Resoureces」中执行了如下脚本：</p>
+
+<pre><code class="language-shell">#!/bin/sh
+set -e
+set -u
+set -o pipefail
+
+function on_error {
+  echo &quot;$(realpath -mq &quot;${0}&quot;):$1: error: Unexpected failure&quot;
+}
+trap 'on_error $LINENO' ERR
+
+# FRAMEWORKS_FOLDER_PATH（框架路径）：oc-demo-project.app/Frameworks
+if [ -z ${FRAMEWORKS_FOLDER_PATH+x} ]; then
+  # FRAMEWORKS_FOLDER_PATH 未设置，代表无需复制框架，即退出
+  # If FRAMEWORKS_FOLDER_PATH is not set, then there's nowhere for us to copy
+  # frameworks to, so exit 0 (signalling the script phase was successful).
+  exit 0
+fi
+
+# CONFIGURATION_BUILD_DIR（配置构建目录）：/Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-fvrppqpxzudpvicewkjnbszgmrll/Build/Products/Debug-iphonesimulator
+echo &quot;mkdir -p ${CONFIGURATION_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot;
+mkdir -p &quot;${CONFIGURATION_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot;
+
+COCOAPODS_PARALLEL_CODE_SIGN=&quot;${COCOAPODS_PARALLEL_CODE_SIGN:-false}&quot;
+# DT_TOOLCHAIN_DIR（工具链目录）：/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain
+# PLATFORM_NAME（目标平台名）：iphonesimulator
+SWIFT_STDLIB_PATH=&quot;${DT_TOOLCHAIN_DIR}/usr/lib/swift/${PLATFORM_NAME}&quot;
+
+# Used as a return value for each invocation of `strip_invalid_archs` function.
+STRIP_BINARY_RETVAL=0
+
+# This protects against multiple targets copying the same framework dependency at the same time. The solution
+# was originally proposed here: https://lists.samba.org/archive/rsync/2008-February/020158.html
+RSYNC_PROTECT_TMP_FILES=(--filter &quot;P .*.??????&quot;)
+
+# Copies and strips a vendored framework
+# 拷贝并删除 vendored framework
+install_framework()
+{
+  if [ -r &quot;${BUILT_PRODUCTS_DIR}/$1&quot; ]; then
+    local source=&quot;${BUILT_PRODUCTS_DIR}/$1&quot;
+  elif [ -r &quot;${BUILT_PRODUCTS_DIR}/$(basename &quot;$1&quot;)&quot; ]; then
+    local source=&quot;${BUILT_PRODUCTS_DIR}/$(basename &quot;$1&quot;)&quot;
+  elif [ -r &quot;$1&quot; ]; then
+    local source=&quot;$1&quot;
+  fi
+
+  local destination=&quot;${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot;
+
+  if [ -L &quot;${source}&quot; ]; then
+    echo &quot;Symlinked...&quot;
+    source=&quot;$(readlink &quot;${source}&quot;)&quot;
+  fi
+
+  # Use filter instead of exclude so missing patterns don't throw errors.
+  echo &quot;rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter \&quot;- CVS/\&quot; --filter \&quot;- .svn/\&quot; --filter \&quot;- .git/\&quot; --filter \&quot;- .hg/\&quot; --filter \&quot;- Headers\&quot; --filter \&quot;- PrivateHeaders\&quot; --filter \&quot;- Modules\&quot; \&quot;${source}\&quot; \&quot;${destination}\&quot;&quot;
+  rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter &quot;- CVS/&quot; --filter &quot;- .svn/&quot; --filter &quot;- .git/&quot; --filter &quot;- .hg/&quot; --filter &quot;- Headers&quot; --filter &quot;- PrivateHeaders&quot; --filter &quot;- Modules&quot; &quot;${source}&quot; &quot;${destination}&quot;
+
+  local basename
+  basename=&quot;$(basename -s .framework &quot;$1&quot;)&quot;
+  binary=&quot;${destination}/${basename}.framework/${basename}&quot;
+
+  if ! [ -r &quot;$binary&quot; ]; then
+    binary=&quot;${destination}/${basename}&quot;
+  elif [ -L &quot;${binary}&quot; ]; then
+    echo &quot;Destination binary is symlinked...&quot;
+    dirname=&quot;$(dirname &quot;${binary}&quot;)&quot;
+    binary=&quot;${dirname}/$(readlink &quot;${binary}&quot;)&quot;
+  fi
+
+  # Strip invalid architectures so &quot;fat&quot; simulator / device frameworks work on device
+  if [[ &quot;$(file &quot;$binary&quot;)&quot; == *&quot;dynamically linked shared library&quot;* ]]; then
+    strip_invalid_archs &quot;$binary&quot;
+  fi
+
+  # Resign the code if required by the build settings to avoid unstable apps
+  code_sign_if_enabled &quot;${destination}/$(basename &quot;$1&quot;)&quot;
+
+  # Embed linked Swift runtime libraries. No longer necessary as of Xcode 7.
+  if [ &quot;${XCODE_VERSION_MAJOR}&quot; -lt 7 ]; then
+    local swift_runtime_libs
+    swift_runtime_libs=$(xcrun otool -LX &quot;$binary&quot; | grep --color=never @rpath/libswift | sed -E s/@rpath\\/\(.+dylib\).*/\\1/g | uniq -u)
+    for lib in $swift_runtime_libs; do
+      echo &quot;rsync -auv \&quot;${SWIFT_STDLIB_PATH}/${lib}\&quot; \&quot;${destination}\&quot;&quot;
+      rsync -auv &quot;${SWIFT_STDLIB_PATH}/${lib}&quot; &quot;${destination}&quot;
+      code_sign_if_enabled &quot;${destination}/${lib}&quot;
+    done
+  fi
+}
+
+# Copies and strips a vendored dSYM
+install_dsym() {
+  local source=&quot;$1&quot;
+  if [ -r &quot;$source&quot; ]; then
+    # Copy the dSYM into a the targets temp dir.
+    echo &quot;rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter \&quot;- CVS/\&quot; --filter \&quot;- .svn/\&quot; --filter \&quot;- .git/\&quot; --filter \&quot;- .hg/\&quot; --filter \&quot;- Headers\&quot; --filter \&quot;- PrivateHeaders\&quot; --filter \&quot;- Modules\&quot; \&quot;${source}\&quot; \&quot;${DERIVED_FILES_DIR}\&quot;&quot;
+    rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter &quot;- CVS/&quot; --filter &quot;- .svn/&quot; --filter &quot;- .git/&quot; --filter &quot;- .hg/&quot; --filter &quot;- Headers&quot; --filter &quot;- PrivateHeaders&quot; --filter &quot;- Modules&quot; &quot;${source}&quot; &quot;${DERIVED_FILES_DIR}&quot;
+
+    local basename
+    basename=&quot;$(basename -s .framework.dSYM &quot;$source&quot;)&quot;
+    binary=&quot;${DERIVED_FILES_DIR}/${basename}.framework.dSYM/Contents/Resources/DWARF/${basename}&quot;
+
+    # Strip invalid architectures so &quot;fat&quot; simulator / device frameworks work on device
+    if [[ &quot;$(file &quot;$binary&quot;)&quot; == *&quot;Mach-O &quot;*&quot;dSYM companion&quot;* ]]; then
+      strip_invalid_archs &quot;$binary&quot;
+    fi
+
+    if [[ $STRIP_BINARY_RETVAL == 1 ]]; then
+      # Move the stripped file into its final destination.
+      echo &quot;rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter \&quot;- CVS/\&quot; --filter \&quot;- .svn/\&quot; --filter \&quot;- .git/\&quot; --filter \&quot;- .hg/\&quot; --filter \&quot;- Headers\&quot; --filter \&quot;- PrivateHeaders\&quot; --filter \&quot;- Modules\&quot; \&quot;${DERIVED_FILES_DIR}/${basename}.framework.dSYM\&quot; \&quot;${DWARF_DSYM_FOLDER_PATH}\&quot;&quot;
+      rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter &quot;- CVS/&quot; --filter &quot;- .svn/&quot; --filter &quot;- .git/&quot; --filter &quot;- .hg/&quot; --filter &quot;- Headers&quot; --filter &quot;- PrivateHeaders&quot; --filter &quot;- Modules&quot; &quot;${DERIVED_FILES_DIR}/${basename}.framework.dSYM&quot; &quot;${DWARF_DSYM_FOLDER_PATH}&quot;
+    else
+      # The dSYM was not stripped at all, in this case touch a fake folder so the input/output paths from Xcode do not reexecute this script because the file is missing.
+      touch &quot;${DWARF_DSYM_FOLDER_PATH}/${basename}.framework.dSYM&quot;
+    fi
+  fi
+}
+
+# Copies the bcsymbolmap files of a vendored framework
+install_bcsymbolmap() {
+    local bcsymbolmap_path=&quot;$1&quot;
+    local destination=&quot;${BUILT_PRODUCTS_DIR}&quot;
+    echo &quot;rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter &quot;- CVS/&quot; --filter &quot;- .svn/&quot; --filter &quot;- .git/&quot; --filter &quot;- .hg/&quot; --filter &quot;- Headers&quot; --filter &quot;- PrivateHeaders&quot; --filter &quot;- Modules&quot; &quot;${bcsymbolmap_path}&quot; &quot;${destination}&quot;&quot;
+    rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter &quot;- CVS/&quot; --filter &quot;- .svn/&quot; --filter &quot;- .git/&quot; --filter &quot;- .hg/&quot; --filter &quot;- Headers&quot; --filter &quot;- PrivateHeaders&quot; --filter &quot;- Modules&quot; &quot;${bcsymbolmap_path}&quot; &quot;${destination}&quot;
+}
+
+# Signs a framework with the provided identity
+code_sign_if_enabled() {
+  if [ -n &quot;${EXPANDED_CODE_SIGN_IDENTITY:-}&quot; -a &quot;${CODE_SIGNING_REQUIRED:-}&quot; != &quot;NO&quot; -a &quot;${CODE_SIGNING_ALLOWED}&quot; != &quot;NO&quot; ]; then
+    # Use the current code_sign_identity
+    echo &quot;Code Signing $1 with Identity ${EXPANDED_CODE_SIGN_IDENTITY_NAME}&quot;
+    local code_sign_cmd=&quot;/usr/bin/codesign --force --sign ${EXPANDED_CODE_SIGN_IDENTITY} ${OTHER_CODE_SIGN_FLAGS:-} --preserve-metadata=identifier,entitlements '$1'&quot;
+
+    if [ &quot;${COCOAPODS_PARALLEL_CODE_SIGN}&quot; == &quot;true&quot; ]; then
+      code_sign_cmd=&quot;$code_sign_cmd &amp;&quot;
+    fi
+    echo &quot;$code_sign_cmd&quot;
+    eval &quot;$code_sign_cmd&quot;
+  fi
+}
+
+# Strip invalid architectures
+strip_invalid_archs() {
+  binary=&quot;$1&quot;
+  # Get architectures for current target binary
+  binary_archs=&quot;$(lipo -info &quot;$binary&quot; | rev | cut -d ':' -f1 | awk '{$1=$1;print}' | rev)&quot;
+  # Intersect them with the architectures we are building for
+  intersected_archs=&quot;$(echo ${ARCHS[@]} ${binary_archs[@]} | tr ' ' '\n' | sort | uniq -d)&quot;
+  # If there are no archs supported by this binary then warn the user
+  if [[ -z &quot;$intersected_archs&quot; ]]; then
+    echo &quot;warning: [CP] Vendored binary '$binary' contains architectures ($binary_archs) none of which match the current build architectures ($ARCHS).&quot;
+    STRIP_BINARY_RETVAL=0
+    return
+  fi
+  stripped=&quot;&quot;
+  for arch in $binary_archs; do
+    if ! [[ &quot;${ARCHS}&quot; == *&quot;$arch&quot;* ]]; then
+      # Strip non-valid architectures in-place
+      lipo -remove &quot;$arch&quot; -output &quot;$binary&quot; &quot;$binary&quot;
+      stripped=&quot;$stripped $arch&quot;
+    fi
+  done
+  if [[ &quot;$stripped&quot; ]]; then
+    echo &quot;Stripped $binary of architectures:$stripped&quot;
+  fi
+  STRIP_BINARY_RETVAL=1
+}
+
+
+if [[ &quot;$CONFIGURATION&quot; == &quot;Debug&quot; ]]; then
+  install_framework &quot;${BUILT_PRODUCTS_DIR}/AFNetworking/AFNetworking.framework&quot;
+  install_framework &quot;${BUILT_PRODUCTS_DIR}/Alamofire/Alamofire.framework&quot;
+  install_framework &quot;${BUILT_PRODUCTS_DIR}/oc-pod/oc_pod.framework&quot;
+  install_framework &quot;${BUILT_PRODUCTS_DIR}/swift-pod/swift_pod.framework&quot;
+fi
+if [[ &quot;$CONFIGURATION&quot; == &quot;Release&quot; ]]; then
+  install_framework &quot;${BUILT_PRODUCTS_DIR}/AFNetworking/AFNetworking.framework&quot;
+  install_framework &quot;${BUILT_PRODUCTS_DIR}/Alamofire/Alamofire.framework&quot;
+  install_framework &quot;${BUILT_PRODUCTS_DIR}/oc-pod/oc_pod.framework&quot;
+  install_framework &quot;${BUILT_PRODUCTS_DIR}/swift-pod/swift_pod.framework&quot;
+fi
+if [ &quot;${COCOAPODS_PARALLEL_CODE_SIGN}&quot; == &quot;true&quot; ]; then
+  wait
+fi
+</code></pre>
 
 <h4 id="obj-c-工程与-swift-pod-1">Obj-C 工程与 Swift Pod</h4>
 
