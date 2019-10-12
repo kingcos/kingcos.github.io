@@ -406,8 +406,9 @@ class ViewController: UIViewController {
 
 <p>因此我们可以将以下脚本添加到 Xcode - Targets - Build Phases - New Run Script Phase 中，这样每次构建即可将 <code>&lt;PROJECT_NAME&gt;-Swift.h</code> 一并生成：</p>
 
-<pre><code class="language-shell">// Powered by https://paul-samuels.com/blog/2018/01/14/swift-static-library-in-objective-c/
+<pre><code class="language-shell"># Powered by https://paul-samuels.com/blog/2018/01/14/swift-static-library-in-objective-c/
 
+# BUILT_PRODUCTS_DIR：构建产物目录
 target_dir=${BUILT_PRODUCTS_DIR}/include/${PRODUCT_MODULE_NAME}/
 
 # Ensure the target include path exists
@@ -752,7 +753,7 @@ function on_error {
 }
 trap 'on_error $LINENO' ERR
 
-# if [ -z #{STR} ]; 如果 STR 长度为 0 则真
+# if [ -z STRING ]; 如果字符串 STRING 长度为 0 则真
 # UNLOCALIZED_RESOURCES_FOLDER_PATH（app 名）：oc-demo-project.app
 if [ -z ${UNLOCALIZED_RESOURCES_FOLDER_PATH+x} ]; then
   # If UNLOCALIZED_RESOURCES_FOLDER_PATH is not set, then there's nowhere for us to copy
@@ -1028,6 +1029,7 @@ set -e
 set -u
 set -o pipefail
 
+# 错误处理
 function on_error {
   echo &quot;$(realpath -mq &quot;${0}&quot;):$1: error: Unexpected failure&quot;
 }
@@ -1058,9 +1060,13 @@ STRIP_BINARY_RETVAL=0
 RSYNC_PROTECT_TMP_FILES=(--filter &quot;P .*.??????&quot;)
 
 # Copies and strips a vendored framework
-# 拷贝并删除 vendored framework 函数
+# 拷贝并删除 vendored framework
+
+# 安装框架函数
 install_framework()
 {
+  # BUILT_PRODUCTS_DIR（构建产物目录）：/Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-fvrppqpxzudpvicewkjnbszgmrll/Build/Products/Debug-iphonesimulator
+  # if [ -r FILE ]; 如果文件 FILE 可读（r：read）则真
   if [ -r &quot;${BUILT_PRODUCTS_DIR}/$1&quot; ]; then
     local source=&quot;${BUILT_PRODUCTS_DIR}/$1&quot;
   elif [ -r &quot;${BUILT_PRODUCTS_DIR}/$(basename &quot;$1&quot;)&quot; ]; then
@@ -1071,6 +1077,7 @@ install_framework()
 
   local destination=&quot;${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot;
 
+  # if [ -L FILE ]; 如果文件 FILE 是链接（L：Link）文件则真
   if [ -L &quot;${source}&quot; ]; then
     echo &quot;Symlinked...&quot;
     source=&quot;$(readlink &quot;${source}&quot;)&quot;
