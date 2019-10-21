@@ -6,10 +6,9 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-09-07 完成「缓存、动态方法解析」等部分 Obj-C 中的对象 - kingcos    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
+<meta name="description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-09-07 完成「缓存、动态方法解析」等部分 Obj-C 中的对象 - kingcos   2019-10-21 补充《Effective Objective-C 2.0》相关内容 《编写高质量 iOS 与 OS X 代码的 52 个有效方法》阅读笔记 - kingcos    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
 Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？
-我们创建一个使用 Obj-C 的 iOS 项目，如下在 ViewController 中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
-#import &amp;quot;ViewController.h&amp;quot; @interface Foo : NSObject - (void)bar; @end @implementation Foo - (void)bar {} @end @interface ViewController () @end @implementation ViewController - (IBAction)clickOnButton:(UIButton *)sender { Foo *foo = [[Foo alloc] init]; [foo bar]; // 🔴 Breakpoint } @end  我们将断点打在 [foo bar]; 一行，启动程序并点击按钮。在 Xcode 的控制台多次输入 si（Step Into）即可最终跳转到 objc_msgSend："/>
+我们创建一个使用 Obj-C 的 iOS 项目，如下在 ViewController 中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法："/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2019/objc_msgsend/" />
@@ -38,8 +37,8 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
 <meta property="og:description" content="Obj-C 中方法调用的本质是消息发送机制，即 `[foo bar]` 是向 `foo` 对象发送一条 `bar` 的消息，而消息发送就是通过 `objc_msgSend` 所进行的。那么这次本文就简单窥探一下 `objc_msgSend` 吧。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/posts/2019/objc_msgsend/" />
-<meta property="article:published_time" content="2019-09-07T00:00:00+00:00" />
-<meta property="article:modified_time" content="2019-09-07T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+<meta property="article:published_time" content="2019-10-21T00:00:00+00:00" />
+<meta property="article:modified_time" content="2019-10-21T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
 
 
 
@@ -136,12 +135,12 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
     <div class="post-meta">
       
         <span class="post-date">
-            2019-09-07
+            2019-10-21
         </span>
       
       
       
-        <span class="post-read-time">— 19 min read</span>
+        <span class="post-read-time">— 20 min read</span>
       
     </div>
 
@@ -184,6 +183,12 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
 <td align="center">2019-09-07</td>
 <td align="center">完成「缓存、动态方法解析」等部分</td>
 <td align="center"><a href="../objects_in_obj-c/">Obj-C 中的对象 - kingcos</a></td>
+</tr>
+
+<tr>
+<td align="center">2019-10-21</td>
+<td align="center">补充《Effective Objective-C 2.0》相关内容</td>
+<td align="center"><a href="../effective_obj-c_2.0_notes/">《编写高质量 iOS 与 OS X 代码的 52 个有效方法》阅读笔记 - kingcos</a></td>
 </tr>
 </tbody>
 </table>
@@ -1339,7 +1344,9 @@ Foo *foo = [[Foo alloc] init];
 // +[FooBackup classFoo]
 </code></pre>
 
-<p>如果 <code>forwardingTargetForSelector:</code> 没有转发到目标，消息将尝试从 <code>- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector</code>/<code>+ (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector</code> 获取方法签名，方法签名可以根据方法的类型编码获得；接下来将可以通过 <code>- (void)forwardInvocation:(NSInvocation *)anInvocation</code>/<code>+ (void)forwardInvocation:(NSInvocation *)anInvocation</code> 执行，原来的消息将被封装在 <code>NSInvocation</code> 中：</p>
+<p>正如《Effective Objective-C 2.0》一书中所提到的，通过这种方式我们可以模拟出多重继承（Multiple Inheritance），即在一个对象内部使用一系列其它对象来处理相应的消息。另外需要注意的是，在这一步骤我们无法对消息本身进行更改，我们只能返回处理消息的对象。</p>
+
+<p>如果 <code>forwardingTargetForSelector:</code> 也没有转发到目标，消息将尝试从 <code>- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector</code>/<code>+ (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector</code> 获取方法签名，方法签名可以根据方法的类型编码获得；接下来将可以通过 <code>- (void)forwardInvocation:(NSInvocation *)anInvocation</code>/<code>+ (void)forwardInvocation:(NSInvocation *)anInvocation</code> 执行，原来的消息将被封装在 <code>NSInvocation</code> 中：</p>
 
 <pre><code class="language-objectivec">@interface FooBackup : NSObject
 @end
@@ -1472,6 +1479,26 @@ void *_objc_forward_handler = (void*)objc_defaultForwardHandler;
 <li>如果在 <code>methodSignatureForSelector:</code> 返回了空方法签名，将最终导致「unrecognized selector sent to instance」。</li>
 </ol>
 
+<p>正如《Effective Objective-C 2.0》一书中提到的 <code>CALayer</code> 使用了消息转发来实现兼容 KVC 的容器类：</p>
+
+<pre><code class="language-objectivec">@interface MyLayer : CALayer
+@property (nonatomic, copy) NSString *foo;
+@end
+
+@implementation MyLayer
+@dynamic foo; // 不自动生成 getter &amp; setter
+@end
+
+MyLayer *layer = [[MyLayer alloc] init];
+[layer setFoo:@&quot;kingcos.me&quot;];
+NSLog(@&quot;%@&quot;, [layer foo]);
+NSLog(@&quot;%@&quot;, [layer valueForKey:@&quot;foo&quot;]);
+
+// OUTPUT:
+// 2019-10-21 21:01:48.279725+0800 DemoPod[15140:12923930] kingcos.me
+// 2019-10-21 21:01:48.279898+0800 DemoPod[15140:12923930] kingcos.me
+</code></pre>
+
 <!--
 
 - Obj-C 对象方法查找顺序：本类的类对象方法列表中查找同名方法（分类 Category 中的方法会合并到类的方法列表中，根据后编译更靠前，会被先找到） -> 若没有找到，则根据 `superclass` 指针向父类的类对象方法列表中查找，直到查找基类 `NSObject` 的类对象中也没有则进行消息转发（Message Forwarding）。
@@ -1517,16 +1544,16 @@ void *_objc_forward_handler = (void*)objc_defaultForwardHandler;
         <div class="pagination__buttons">
           
             <span class="button previous">
-              <a href="/posts/2019/&#43;load_in_ios/">
+              <a href="/posts/2019/effective_obj-c_2.0_notes/">
                 <span class="button__icon">←</span>
-                <span class="button__text">iOS 中的 &#43;load 方法</span>
+                <span class="button__text">《编写高质量 iOS 与 OS X 代码的 52 个有效方法》阅读笔记</span>
               </a>
             </span>
           
           
             <span class="button next">
-              <a href="/posts/2019/objects_in_obj-c/">
-                <span class="button__text">Obj-C 中的对象</span>
+              <a href="/posts/2019/coding_with_vs_code/">
+                <span class="button__text">与 Visual Studio Code 共舞</span>
                 <span class="button__icon">→</span>
               </a>
             </span>
