@@ -140,7 +140,7 @@ Obj-C 是 C 的超集；Obj-C 中的对象所占内存总是分配在堆空间�
       
       
       
-        <span class="post-read-time">— 8 min read</span>
+        <span class="post-read-time">— 9 min read</span>
       
     </div>
 
@@ -802,10 +802,90 @@ print(foo is FooSecond)
 
 <h3 id="用-方法调配技术-调试-黑盒方法">用「方法调配技术」调试「黑盒方法」</h3>
 
-<p>「方法调配技术」即 Method Swizzling，现在普遍称之为方法交换：</p>
+<p>「方法调配技术」即 Method Swizzling，现在普遍称之为方法交换。如下，我们可以将 <code>Foo</code> 中的方法在 <code>Foo</code> 的 <code>Swizzle</code> 分类 <code>+load</code> 中进行交换：</p>
 
-<pre><code class="language-objectivec">
+<pre><code class="language-objectivec">#import &lt;objc/runtime.h&gt;
+
+@interface Foo : NSObject
+- (void)foo;
+@end
+
+@implementation Foo
+- (void)foo {
+    NSLog(@&quot;foo&quot;);
+}
+@end
+
+@interface Foo (Swizzle)
+- (void)newFoo;
+@end
+
+@implementation Foo (Swizzle)
++ (void)load {
+    // 保证只交换一次
+    static dispatch_once_t onceToken;
+    dispatch_once(&amp;onceToken, ^{
+        Method m1 = class_getInstanceMethod([self class], @selector(foo));
+        Method m2 = class_getInstanceMethod([self class], @selector(newFoo));
+
+        method_exchangeImplementations(m1, m2);
+    });
+}
+
+- (void)newFoo {
+    NSLog(@&quot;newFoo&quot;);
+}
+@end
+
+[[[Foo alloc] init] foo];
+[[[Foo alloc] init] newFoo];
+
+// OUTPUT:
+// newFoo
+// foo
 </code></pre>
+
+<p>通常，我们并不会交换既有的方法，而是当我们无法修改某些第三方库中的方法时，可以将其交换出，并执行相应的动作再调用回原来的方法。而将要交换的方法通常放在分类中，下面则是一个反例：</p>
+
+<pre><code class="language-objectivec">@interface Foo : NSObject
+- (void)foo;
+@end
+
+@implementation Foo
+- (void)foo {
+    NSLog(@&quot;foo&quot;);
+}
+@end
+
+@interface Bar : NSObject
+- (void)more_foo;
+@end
+
+@implementation Bar
++ (void)load {
+    static dispatch_once_t onceToken;
+    dispatch_once(&amp;onceToken, ^{
+        Method m1 = class_getInstanceMethod([Foo class], @selector(foo));
+        Method m2 = class_getInstanceMethod([Bar class], @selector(more_foo));
+
+        method_exchangeImplementations(m1, m2);
+    });
+}
+
+- (void)more_foo {
+    NSLog(@&quot;Do sth more...&quot;);
+
+//    [self performSelector:@selector(foo)]; // 死循环
+    [self more_foo]; // 崩溃
+}
+@end
+
+[[[Foo alloc] init] foo];
+</code></pre>
+
+<p>假设 <code>Foo</code> 中的 <code>foo</code> 方法我们无法直接对其进行修改，于是选择在 <code>Bar</code> 的 <code>+load</code> 中交换 <code>foo</code> 与 <code>more_foo</code>。因此交换后调用 <code>foo</code> 时，即调用了 <code>more_foo</code>，因此我们理所当然认为调用 <code>more_foo</code> 即调用了 <code>foo</code>，但实际情况是会发生崩溃：<code>-[Foo more_foo]: unrecognized selector sent to instance 0x6000025a4460</code>。这是因为在 <code>more_foo</code> 中的隐含参数 <code>self</code> 本质其实还是 <code>Foo</code> 类型的实例对象，而 <code>more_foo</code> 根本不在 <code>Foo</code> 中；而如果此时执行 <code>foo</code> 则因 <code>IMP</code> 交换则会一直陷入 <code>more_foo</code> 中而死循环。而我们将交换的方法定义在分类中时，<code>self</code> 能够同时调用到本类和分类中的方法。</p>
+
+<h3 id="理解-类对象-的用意">理解「类对象」的用意</h3>
 
 <h2 id="reference">Reference</h2>
 
