@@ -6,7 +6,7 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Book ISBN Notes     《编写高质量 iOS 与 OS X 代码的 52 个有效方法》 9787111451297 《Effective Objective-C 2.0》   Date Num. Xcode   2019-05 1-3 10.2.1   2019-06 4 10.2.1   2019-07 5-12 10.2.1   2019-10 13-17 11.1    熟悉 Objective-C 了解 Objective-C 语言的起源 消息结构（Message Structure）的语言，运行时执行的代码由运行环境决定；函数调用（Function Calling）的语言，运行时所执行的代码由编译器决定，对于多态，则按照虚函数表（Virtual Method Table）寻找。
+<meta name="description" content="Book ISBN Notes     《编写高质量 iOS 与 OS X 代码的 52 个有效方法》 9787111451297 《Effective Objective-C 2.0》   Date Num. Xcode   2019-05 1-3 10.2.1   2019-06 4 10.2.1   2019-07 5-12 10.2.1   2019-10 13-30 11.1    熟悉 Objective-C 了解 Objective-C 语言的起源 消息结构（Message Structure）的语言，运行时执行的代码由运行环境决定；函数调用（Function Calling）的语言，运行时所执行的代码由编译器决定，对于多态，则按照虚函数表（Virtual Method Table）寻找。
 运行时组件（Runtime Component） 本质上是一种与开发者所编写代码相链接的「动态库（Dynamic Library），这样的好处是只需要更新运行时组件（无需重新编译）即可提升程序性能。
 Obj-C 是 C 的超集；Obj-C 中的对象所占内存总是分配在堆空间（Heap Space）；而指向对象的指针所占内存总是分配在栈帧（Stack Frame）中；堆中的内存需要程序员自己管理，栈中的内存会在其栈帧弹出（Pop）时自动清理；创建对象相比创建结构体（C 结构体）需要额外开销，例如分配和释放堆内存等。"/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
@@ -205,7 +205,7 @@ Obj-C 是 C 的超集；Obj-C 中的对象所占内存总是分配在堆空间�
 
 <tr>
 <td align="center">2019-10</td>
-<td align="center">13-17</td>
+<td align="center">13-30</td>
 <td align="center">11.1</td>
 </tr>
 </tbody>
@@ -975,35 +975,9 @@ print(foo is FooSecond)
 
 <p>NSObject 子类可以重写 <code>description</code> 方法来描述实例，在打印（<code>NSLog</code>）实例信息时即可输出；也可重写 <code>debugDescription</code> 用来在控制台使用 LLDB <code>po</code> 命令输出：</p>
 
-<pre><code class="language-objectivec">@interface Rectangle : NSObject
-@property (nonatomic, assign, readonly) double width;
-@property (nonatomic, assign, readonly) double height;
-
-- (instancetype)initWithWidth:(double)width height:(double)height;
-@end
-
+<pre><code class="language-objectivec">// ...
 @implementation Rectangle
-- (instancetype)initWithWidth:(double)width height:(double)height {
-    self = [super init];
-    if (self) {
-        _width = width;
-        _height = height;
-    }
-    return self;
-}
-
-- (instancetype)init {
-    return [self initWithWidth:0.0 height:0.0];
-}
-
-- (instancetype)initWithCoder:(NSCoder *)coder {
-    self = [super init];
-    if (self) {
-        _width = [coder decodeDoubleForKey:@&quot;width&quot;];
-        _height = [coder decodeDoubleForKey:@&quot;height&quot;];
-    }
-    return self;
-}
+// ...
 
 - (NSString *)description {
     return [NSString stringWithFormat:@&quot;&lt;%lf, %lf&gt;&quot;, _width, _height];
@@ -1024,6 +998,73 @@ NSLog(@&quot;%@&quot;, rect);
 </code></pre>
 
 <h3 id="尽量使用不可变对象">尽量使用不可变对象</h3>
+
+<p>尽量将外界不能改变的属性对外声明为 <code>readonly</code>，此时将只存在 getter 而不存在 setter。我们可以在实现文件中直接通过访问成员变量来更改，也可将属性再次声明在类扩展中以通过 setter 更改。</p>
+
+<p>由于内存管理语义仅针对 setter，因此声明为 <code>readonly</code> 时也可使用默认的内存管理语义。<code>readonly</code> 并非是完全安全的，外部仍然可以通过 KVC、或者根据内存布局的偏移量直接访问修改。对于集合类型，我们可以将不可变属性本身作为 <code>readonly</code> 暴露在外，并通过额外方法使得外界可以添加或删除等操作集合；在内部则通过另外的可变类型属性作为具体实现，从而避免从底层直接修改对象中的数据：</p>
+
+<pre><code class="language-objectivec">@interface Rectangle : NSObject
+@property (nonatomic, assign, readonly) double width;
+@property (nonatomic, readonly) double height;
+@property (nonatomic, strong, readonly) NSArray&lt;Rectangle *&gt; *array;
+
+- (void)addElement:(Rectangle *)element;
+- (void)removeElement:(Rectangle *)element;
+@end
+
+@interface Rectangle ()
+@property (nonatomic, assign, readwrite) double width;
+@property (nonatomic, assign) double height;
+@end
+
+@implementation Rectangle {
+    NSMutableArray *_mutableArray;
+}
+
+- (NSArray *)array {
+    return [_mutableArray copy];
+}
+
+- (void)addElement:(Rectangle *)element {
+    [_mutableArray addObject:element];
+}
+
+- (void)removeElement:(Rectangle *)element {
+    [_mutableArray removeObject:element];
+}
+
+- (instancetype)initWithWidth:(double)width height:(double)height {
+    self = [super init];
+    if (self) {
+        _width = width;
+        _height = height;
+        _mutableArray = [NSMutableArray new];
+    }
+    return self;
+}
+@end
+
+Rectangle *rect1 = [[Rectangle alloc] initWithWidth:10 height:20];
+Rectangle *rect2 = [[Rectangle alloc] initWithWidth:10 height:20];
+[rect1 addElement:rect2];
+</code></pre>
+
+<h3 id="使用清晰而协调的命名方式">使用清晰而协调的命名方式</h3>
+
+<p>一些 Obj-C 的方法名十分冗长，但却语义化更加，这点 Swift 也继承了其优点，并适当精简方法名。方法的命名规则：</p>
+
+<ul>
+<li>若返回值是新创建的，那么方法名应当以返回值类型开始，也可加入对其修饰；</li>
+<li>表示参数类型的名词应当置于参数之前；</li>
+<li>方法内的行为要操作当前对象，那么应当包含动词；若执行时需要参数，则应当在动词之后加上一个或多个名词；</li>
+<li>使用 <code>string</code> 全称而非 <code>str</code> 简称；</li>
+<li><code>Boolean</code> 属性应当加 <code>is</code> 前缀；根据功能将返回 <code>Boolean</code> 类型的方法名选择 <code>has</code> 或 <code>is</code> 前缀；</li>
+<li>使用输出参数（Out Parameter）保存返回值的方法可以使用 <code>get</code> 前缀。</li>
+</ul>
+
+<p>类与协议的名称尽量要加上前缀，以避免命名空间冲突。命名第一要务是确保其风格与代码框架相符合。</p>
+
+<h3 id="为私有方法名加前缀">为私有方法名加前缀</h3>
 
 <h2 id="reference">Reference</h2>
 
