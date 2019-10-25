@@ -140,7 +140,7 @@ Obj-C 是 C 的超集；Obj-C 中的对象所占内存总是分配在堆空间�
       
       
       
-        <span class="post-read-time">— 11 min read</span>
+        <span class="post-read-time">— 12 min read</span>
       
     </div>
 
@@ -1065,6 +1065,83 @@ Rectangle *rect2 = [[Rectangle alloc] initWithWidth:10 height:20];
 <p>类与协议的名称尽量要加上前缀，以避免命名空间冲突。命名第一要务是确保其风格与代码框架相符合。</p>
 
 <h3 id="为私有方法名加前缀">为私有方法名加前缀</h3>
+
+<p>私有方法除了不应对外声明，也应加上前缀与以区分。但不推荐单用一个下划线 <code>_</code> 作为前缀，因为系统库中有很多私有方法即是以 <code>_</code> 为前缀的。</p>
+
+<h3 id="理解-objective-c-错误模型">理解 Objective-C 错误模型</h3>
+
+<p>异常（Exception）与错误（Error）在计算机中代表着完全不同的两种意义。</p>
+
+<p>异常安全（Exception Safe）指的是当抛出异常时，需要释放的资源或对象也能得到安全地释放。自动引用计数默认是非异常安全的，但可以通过 <code>-fobjc-arc-exceptions</code> 设置编译器以达到异常安全。由于异常安全很难得到保证，因此推荐只在必要时（如重大错误）抛出异常，并终止程序，而不再考虑异常安全。</p>
+
+<pre><code class="language-objectivec">@throw [NSException exceptionWithName:NSInternalInconsistencyException reason:@&quot;Some reason.&quot; userInfo:nil];
+</code></pre>
+
+<p>非致命错误（Non-fatal Error）可以令方法返回 <code>nil</code> / <code>0</code> 或 <code>NSError</code>，以表明有错误发生。对于 NSError：</p>
+
+<ul>
+<li>Error Domain（<code>NSErrorDomain</code> 本质为 <code>NSString</code>）：错误范围表明了错误根源，eg. <code>NSURLErrorDomain</code>、<code>NSCocoaErrorDomain</code> 等；</li>
+<li>Error Code（<code>NSInteger</code>）：错误代码表明了具体的独有错误，可使用枚举定义；</li>
+<li>User Info（<code>NSDictionary&lt;NSErrorUserInfoKey,id&gt;</code>，<code>NSErrorUserInfoKey</code> 本质为 <code>NSString</code>）：用户信息表明了关于错误的额外信息，比如本地化的错误描述。</li>
+</ul>
+
+<p><code>NSError</code> 常见用法</p>
+
+<ol>
+<li>通过代理协议（Delegate Protocols）传递。当错误发生时，将通过调用代理对象的某个协议方法来告知代理本身；</li>
+
+<li><p>通过方法的输出参数返回给调用者。</p>
+
+<pre><code class="language-objectivec">// NSURLConnection.h
+@protocol NSURLConnectionDelegate &lt;NSObject&gt;
+@optional
+- (void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error;
+@end
+
+// ❌ 错误发生
+[self.delegate connection:someConnection didFailWithError:someError];
+
+// ---
+
+extern NSString *const VErrorDomain;
+
+typedef NS_ENUM(NSUInteger, VError) {
+VErrorUnknown = -1,
+VErrorFirst   = 100,
+VErrorSecond  = 200
+};
+
+NSString *const VErrorDomain = @&quot;VErrorDomain&quot;;
+
+- (BOOL)doSomething:(NSError **)error {
+// ...
+
+// 如果错误发生
+if (errorOccured) {
+    // 如果外界关心错误
+    if (error) {
+        // 解引用（Dereference）前要保证 error 不为 nil
+        // 否则对空指针解引用会导致段错误（Segmentation Fault）并崩溃（EXC_BAD_ACCESS）
+        *error = [NSError errorWithDomain:VErrorDomain code:VErrorFirst userInfo:nil];
+    }
+
+    return NO;
+} else {
+    return YES;
+}
+}
+// ❌ 错误发生
+NSError *error = nil;
+BOOL result = [obj doSomething:&amp;error];
+if (error) {
+NSLog(@&quot;Error occurred!&quot;);
+}
+</code></pre></li>
+</ol>
+
+<p>ARC 下，编译器将把第二种方法签名中的 <code>NSError **</code> 转换为 <code>NSError *__autoreleasing *</code>，即指针所指向的对象将在方法执行完毕后自动释放，因为该方法不能保证调用者将其中创建的 <code>NSError</code> 释放，由此保证与大部分方法（除 <code>new</code> / <code>alloc</code> / <code>copy</code> / <code>mutableCopy</code> 开头的方法）返回值所具备的语义相同。</p>
+
+<!-- - [隐藏\_\_autoreleasing 属性变量(NSError \*\*)引起的 EXC_BAD_ACCESS 崩溃](https://www.jianshu.com/p/b16f36e98baf) -->
 
 <h2 id="reference">Reference</h2>
 
