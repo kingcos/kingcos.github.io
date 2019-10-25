@@ -1085,12 +1085,7 @@ Rectangle *rect2 = [[Rectangle alloc] initWithWidth:10 height:20];
 <li>User Info（<code>NSDictionary&lt;NSErrorUserInfoKey,id&gt;</code>，<code>NSErrorUserInfoKey</code> 本质为 <code>NSString</code>）：用户信息表明了关于错误的额外信息，比如本地化的错误描述。</li>
 </ul>
 
-<p><code>NSError</code> 常见用法</p>
-
-<ol>
-<li>通过代理协议（Delegate Protocols）传递。当错误发生时，将通过调用代理对象的某个协议方法来告知代理本身；</li>
-
-<li><p>通过方法的输出参数返回给调用者。</p>
+<p><code>NSError</code> 常见用法一是通过代理协议（Delegate Protocols）传递。当错误发生时，将通过调用代理对象的某个协议方法来告知代理本身；二是通过方法的输出参数返回给调用者。</p>
 
 <pre><code class="language-objectivec">// NSURLConnection.h
 @protocol NSURLConnectionDelegate &lt;NSObject&gt;
@@ -1106,38 +1101,37 @@ Rectangle *rect2 = [[Rectangle alloc] initWithWidth:10 height:20];
 extern NSString *const VErrorDomain;
 
 typedef NS_ENUM(NSUInteger, VError) {
-VErrorUnknown = -1,
-VErrorFirst   = 100,
-VErrorSecond  = 200
+    VErrorUnknown = -1,
+    VErrorFirst   = 100,
+    VErrorSecond  = 200
 };
 
 NSString *const VErrorDomain = @&quot;VErrorDomain&quot;;
 
 - (BOOL)doSomething:(NSError **)error {
-// ...
+    // ...
 
-// 如果错误发生
-if (errorOccured) {
-    // 如果外界关心错误
-    if (error) {
-        // 解引用（Dereference）前要保证 error 不为 nil
-        // 否则对空指针解引用会导致段错误（Segmentation Fault）并崩溃（EXC_BAD_ACCESS）
-        *error = [NSError errorWithDomain:VErrorDomain code:VErrorFirst userInfo:nil];
+    // 如果错误发生
+    if (errorOccured) {
+        // 如果外界关心错误
+        if (error) {
+            // 解引用（Dereference）前要保证 error 不为 nil
+            // 否则对空指针解引用会导致段错误（Segmentation Fault）并崩溃（EXC_BAD_ACCESS）
+            *error = [NSError errorWithDomain:VErrorDomain code:VErrorFirst userInfo:nil];
+        }
+
+        return NO;
+    } else {
+        return YES;
     }
-
-    return NO;
-} else {
-    return YES;
-}
 }
 // ❌ 错误发生
 NSError *error = nil;
 BOOL result = [obj doSomething:&amp;error];
 if (error) {
-NSLog(@&quot;Error occurred!&quot;);
+    NSLog(@&quot;Error occurred!&quot;);
 }
-</code></pre></li>
-</ol>
+</code></pre>
 
 <p>ARC 下，编译器将把第二种方法签名中的 <code>NSError **</code> 转换为 <code>NSError *__autoreleasing *</code>，即指针所指向的对象将在方法执行完毕后自动释放，因为该方法不能保证调用者将其中创建的 <code>NSError</code> 释放，由此保证与大部分方法（除 <code>new</code> / <code>alloc</code> / <code>copy</code> / <code>mutableCopy</code> 开头的方法）返回值所具备的语义相同。</p>
 
