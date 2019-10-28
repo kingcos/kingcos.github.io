@@ -140,7 +140,7 @@ Obj-C 是 C 的超集；Obj-C 中的对象所占内存总是分配在堆空间�
       
       
       
-        <span class="post-read-time">— 12 min read</span>
+        <span class="post-read-time">— 13 min read</span>
       
     </div>
 
@@ -1139,6 +1139,97 @@ if (error) {
 
 <h3 id="理解-nscopying-协议">理解 NSCopying 协议</h3>
 
+<pre><code class="language-objectivec">@protocol NSCopying
+- (id)copyWithZone:(nullable NSZone *)zone;
+@end
+
+@protocol NSMutableCopying
+- (id)mutableCopyWithZone:(nullable NSZone *)zone;
+@end
+</code></pre>
+
+<p>当我们调用一个对象的 <code>copy</code> / <code>mutableCopy</code> 方法时，该类必须实现 <code>NSCopying</code> / <code>NSMutableCopying</code> 协议中的唯一方法，指定该类实例对象的拷贝逻辑，而 <code>copy</code> / <code>mutableCopy</code> 本身由 <code>NSObject</code> 实现。这里的 <code>NSZone</code> 官方解释是「A type used to identify and manage memory zones」，即用来识别和管理内存区域的类型，但目前已经基本废弃，无需关心（Zones are ignored on iOS and 64-bit runtime in macOS. You should not use zones in current development. - Apple Developer）。为了保持和系统提供类行为一致，约定 <code>copy</code> 将总是返回不可变版本，而 <code>mutableCopy</code> 总是返回可变版本，与调用者的类型无关（或者可提供一个 <code>immutableCopy</code> 的方法区分）。</p>
+
+<!-- http://cocoadev.com/wiki/NSZone -->
+
+<p>浅拷贝（Shallow Copy）和深拷贝（Deep Copy）针对于使用指针或地址指向的类型，前者仅仅拷贝指向地址，而后者则是将指向的数据也拷贝一份至新的内存地址。<code>Foundation</code> 中的集合类型默认执行浅拷贝（因为集合类型内部的属性并不一定都能拷贝），因此自定义类中我们也默认是浅拷贝，必要时定义类似 <code>deepCoby</code> 方法。</p>
+
+<pre><code class="language-objectivec">@interface Rectangle : NSObject
+@property (nonatomic, assign, readonly) double width;
+@property (nonatomic, readonly) double height;
+@property (nonatomic, strong, readonly) NSArray&lt;Rectangle *&gt; *array;
+
+- (void)addElement:(Rectangle *)element;
+- (void)removeElement:(Rectangle *)element;
+@end
+
+@interface Rectangle ()
+@property (nonatomic, assign, readwrite) double width;
+@property (nonatomic, assign) double height;
+@property (nonatomic, strong) NSString *rect;
+@end
+
+@implementation Rectangle {
+    NSMutableArray *_mutableArray;
+}
+
+- (NSArray *)array {
+    return [_mutableArray copy];
+}
+
+- (void)addElement:(Rectangle *)element {
+    [_mutableArray addObject:element];
+}
+
+- (void)removeElement:(Rectangle *)element {
+    [_mutableArray removeObject:element];
+}
+
+- (instancetype)initWithWidth:(double)width height:(double)height {
+    self = [super init];
+    if (self) {
+        _width = width;
+        _height = height;
+        _mutableArray = [NSMutableArray new];
+    }
+    return self;
+}
+
+- (id)copyWithZone:(nullable NSZone *)zone {
+    Rectangle *rect = [[Rectangle allocWithZone:zone] initWithWidth:_width height:_height];
+    rect-&gt;_mutableArray = [[NSMutableArray alloc] initWithArray:_mutableArray copyItems:YES];
+//    rect-&gt;_mutableArray = [_mutableArray mutableCopy];
+    return rect;
+}
+@end
+
+Rectangle *rect = [[Rectangle alloc] initWithWidth:5.0 height:5.0];
+Rectangle *rect1 = [[Rectangle alloc] initWithWidth:10.0 height:10.0];
+
+[rect1 addElement:rect];
+
+Rectangle *rect2 = [rect1 copy];
+
+NSLog(@&quot;%@&quot;, [rect1 array]);
+NSLog(@&quot;%@&quot;, [rect2 array]);
+
+// OUTPUT:
+// 深拷贝
+// (
+//     &quot;&lt;Rectangle: 0x6000022f9c20&gt;&quot;
+// )
+// (
+//     &quot;&lt;Rectangle: 0x6000022f9ad0&gt;&quot;
+// )
+// 浅拷贝
+// (
+//     &quot;&lt;Rectangle: 0x600000328ff0&gt;&quot;
+// )
+// (
+//     &quot;&lt;Rectangle: 0x600000328ff0&gt;&quot;
+// )
+</code></pre>
+
 <h2 id="reference">Reference</h2>
 
 <ul>
@@ -1147,6 +1238,7 @@ if (error) {
 <li><a href="../objc_msgsend">浅尝 objc_msgSend - kingcos</a></li>
 <li><a href="../objects_in_obj-c/">Obj-C 中的对象 - kingcos</a></li>
 <li><a href="../type_introspection_and_reflection/">Obj-C &amp; Swift 的类型内省与反射 - kingcos</a></li>
+<li><a href="https://developer.apple.com/documentation/foundation/nszone?language=objc">NSZone - Apple Developer</a></li>
 </ul>
 
     </div>
