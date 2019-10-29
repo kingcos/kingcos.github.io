@@ -42,8 +42,8 @@ Cocoa Touch Static Library 我们先从 Xcode 中能够直接创建的 Cocoa Tou
 <meta property="og:description" content="随着软件工程的发展，很多我们需要的功能前人都已经很好地实现了，为了提高效率避免重复建设，这些功能实现的代码被封装为代码库，有时也称框架。我们只需要在用到的时候通过依赖管理工具将它们以适当的方式引入即可。本文将简单聊聊 iOS 中的库与框架相关概念。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/posts/2019/libraries_in_ios/" />
-<meta property="article:published_time" content="2019-09-22T00:00:00+00:00" />
-<meta property="article:modified_time" content="2019-09-22T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+<meta property="article:published_time" content="2019-10-29T00:00:00+00:00" />
+<meta property="article:modified_time" content="2019-10-29T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
 
 
 
@@ -140,7 +140,7 @@ Cocoa Touch Static Library 我们先从 Xcode 中能够直接创建的 Cocoa Tou
     <div class="post-meta">
       
         <span class="post-date">
-            2019-09-22
+            2019-10-29
         </span>
       
       
@@ -311,6 +311,7 @@ NS_ASSUME_NONNULL_END
 <p>这样我们才能在 Swift 工程中正常使用：</p>
 
 <pre><code class="language-swift">// swift_static_lib.swift
+
 import Foundation
 
 @objc public class swift_static_lib: NSObject {
@@ -320,6 +321,7 @@ import Foundation
 }
 
 // ViewController.swift
+
 import UIKit
 import swift_static_lib
 
@@ -358,7 +360,7 @@ class ViewController: UIViewController {
 17 directories, 41 files
 </code></pre>
 
-<p>因此我们可以将以下脚本添加到 Xcode - Targets - Build Phases - New Run Script Phase 中，这样每次构建即可将 <code>&lt;PROJECT_NAME&gt;-Swift.h</code> 一并生成：</p>
+<p>因此我们可以将以下脚本添加到 Xcode - Targets - Build Phases - New Run Script Phase 中，这样每次构建即可将 <code>&lt;PROJECT_NAME&gt;-Swift.h</code> 一并拷贝到产物目录：</p>
 
 <pre><code class="language-shell"># Powered by https://paul-samuels.com/blog/2018/01/14/swift-static-library-in-objective-c/
 
@@ -370,11 +372,11 @@ target_dir=${BUILT_PRODUCTS_DIR}/include/${PRODUCT_MODULE_NAME}/
 mkdir -p ${target_dir}
 
 # Copy any file that looks like a Swift generated header to the include path
-# 复制到与 .a 同级目录
+# 复制到产物路径
 cp ${DERIVED_SOURCES_DIR}/*-Swift.h ${target_dir}
 </code></pre>
 
-<p>之后我们需要将生成的产物放 swift_static_lib 文件中一起拖到 Obj-C 工程中（这里可以反选「Add to targets」选项）：</p>
+<p>之后我们需要将生成的产物放 swift_static_lib 文件中一起拖到 Obj-C 工程中（勾选「Add to targets」添加至目标 Target，或者手动将 <code>.a</code> 加入到「Link Binary With Libraries」中）：</p>
 
 <pre><code class="language-shell">➜  swift_static_lib tree
 .
@@ -389,23 +391,49 @@ cp ${DERIVED_SOURCES_DIR}/*-Swift.h ${target_dir}
 3 directories, 4 files
 </code></pre>
 
-<p>之后我们将 <code>.a</code> 拖拽到 Xcode - Targets - Build Phases - Link Binary With Libraries（或 Xcode - General - Link Binary With Libraries）中：</p>
+<!-- 最后再在 Xcode - Targets - Build Settings - Header Search Paths & Library Search Paths 中添加上 `.a` 的父级路径 `$(PROJECT_DIR)/oc-demo-project/swift_static_lib` 即可（比较神奇的是，在 Xcode 11 中即使不手动指定，也可正常编译通过运行）：
 
-<p><img src="/img/2019/libraries_in_ios/5.png" alt="5" /></p>
+![6](/img/2019/libraries_in_ios/6.png) -->
 
-<p>最后再在 Xcode - Targets - Build Settings - Header Search Paths &amp; Library Search Paths 中添加上 <code>.a</code> 的父级路径 <code>$(PROJECT_DIR)/oc-demo-project/swift_static_lib</code> 即可（比较神奇的是，在 Xcode 11 中即使不手动指定，也可正常编译通过运行）：</p>
+<p>这样，在 Obj-C 工程中通过 <code>#import &quot;swift_static_lib-Swift.h&quot;</code> 即可使用：</p>
 
-<p><img src="/img/2019/libraries_in_ios/6.png" alt="6" /></p>
+<pre><code class="language-objectivec">// ViewController.m
 
-<p>这样，在 Obj-C 工程中通过 <code>#import &quot;swift_static_lib-Swift.h&quot;</code> 即可使用。</p>
+//#import &quot;swift-static-lib/include/swift_static_lib/swift_static_lib-Swift.h&quot;
+#import &quot;swift_static_lib-Swift.h&quot;
+
+@implementation ViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+
+    [[swift_static_lib new] foo];
+}
+</code></pre>
 
 <h3 id="swift-工程引入-obj-c-静态库">Swift 工程引入 Obj-C 静态库</h3>
 
-<p>如果想要在 Swift 工程中引入 Obj-C 静态库（注意如有分类仍需加 <code>-ObjC</code>），则也需要桥接头文件作为中介。我们将 oc-static-lib 编译后的 <code>.a</code> 与 <code>.h</code> 一起拖入 Swift 工程，并在工程中建立 Obj-C 类，按 Xcode 提示创建桥接文件；接着在头文件中引入 Obj-C 静态库头文件即可在 Swift 中使用：</p>
+<p>如果想要在 Swift 工程中引入 Obj-C 静态库（注意如有分类仍需加 <code>-ObjC</code>），则也需要桥接头文件作为中介。我们在工程中新建一个占位 Obj-C 文件，按 Xcode 提示创建桥接文件；将 oc-static-lib 编译后的产物一起拖入 Swift 工程，并在桥接文件中引入 Obj-C 静态库中的相关头文件：</p>
 
 <pre><code class="language-objectivec">// swift-demo-project-Bridging-Header.h
 
-#import &quot;liboc-static-lib/oc_static_lib.h&quot;
+//#import &quot;liboc-static-lib/include/oc-static-lib/oc_static_lib.h&quot;
+#import &quot;oc_static_lib.h&quot;
+</code></pre>
+
+<p>之后即可直接在 Swift 中使用：</p>
+
+<pre><code class="language-swift">// ViewController.swift
+
+import UIKit
+
+class ViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        oc_static_lib().foo()
+    }
+}
 </code></pre>
 
 <h2 id="cocoa-touch-framework">Cocoa Touch Framework</h2>
@@ -1191,17 +1219,10 @@ fi
         </div>
         <div class="pagination__buttons">
           
-            <span class="button previous">
-              <a href="/posts/2019/coding_with_vs_code/">
-                <span class="button__icon">←</span>
-                <span class="button__text">与 Visual Studio Code 共舞</span>
-              </a>
-            </span>
-          
           
             <span class="button next">
-              <a href="/posts/2019/ios_test_automation/">
-                <span class="button__text">iOS 自动化测试之 WDA &amp; Appium</span>
+              <a href="/posts/2019/shopping_1111/">
+                <span class="button__text">双 11 买买买 - 开启种草计划 📦</span>
                 <span class="button__icon">→</span>
               </a>
             </span>
