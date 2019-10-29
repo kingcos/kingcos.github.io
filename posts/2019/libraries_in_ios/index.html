@@ -6,15 +6,14 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes     2019-09-14 首次提交，持续更新完善   2019-09-22 适配 Xcode 11，持续更新完善    Preface 随着软件工程的发展，很多我们需要的功能前人都已经很好地实现了，为了提高效率避免重复建设，这些功能实现的代码被封装为代码库，有时也称框架。我们只需要在用到的时候通过依赖管理工具将它们以适当的方式引入即可。本文将简单聊聊 iOS 中的库与框架相关概念。
+<meta name="description" content="Date Notes     2019-09-14 首次提交，持续更新完善   2019-09-22 适配 Xcode 11，持续更新完善   2019-10-29 添加 Demo：libraries_in_ios-demo    Preface 随着软件工程的发展，很多我们需要的功能前人都已经很好地实现了，为了提高效率避免重复建设，这些功能实现的代码被封装为代码库，有时也称框架。我们只需要在用到的时候通过依赖管理工具将它们以适当的方式引入即可。本文将简单聊聊 iOS 中的库与框架相关概念。
 基本概念 在切入正题之前，我们先来达成一些共识。
 不管是老派 Obj-C 还是新秀 Swift，它们的本质都是编译型语言。对于编译型语言，源代码会首先经由编译器编译为目标文件，链接器再将多个目标文件链接为可执行文件。针对链接阶段，主要分为静态链接与动态链接。
 静态，即 Static。按照字面意思，静态即一旦确定，就不再容易改变。静态链接，即在链接阶段，直接将多个目标文件链接为一个文件。而静态库就可以理解为共同编译为一个目标文件的源代码集合。
 动态，即 Dynamic。按照字面意思，动态即推迟到运行时动态地决议。动态链接，即在运行时才将各个部分组合形成完整的程序。而动态库就可以理解为支持动态链接方式的源代码集合。
 静态链接的好处是，运行时不再额外需要时间动态链接；坏处则是由于链接的粒度是目标文件，那么可能会链接了没有使用到的函数，会造成可执行文件过大；而且当某一个目标文件的源代码改动时，那么所有依赖该目标文件的静态库都需要重新编译；动态链接则解决了静态链接的空间浪费与重复编译问题，比如在 iOS 中，系统库采用了 dyld_shared_cache 动态链接，这样其它程序就无需再将系统库重复链接，当 iOS 系统更新时也无需将所有 app 重新编译。而在移动端开发中，app 的启动时间与包体积大小将是一个权衡问题，值得我们侧重与考量。
 另外，虽然广义上的库（Library）与框架（Framework）含义是类似的，但在 iOS 开发中，官方将这两个概念进行了区分，因此下文中我们会明确两个词的使用。
-Cocoa Touch Static Library 我们先从 Xcode 中能够直接创建的 Cocoa Touch Static Library 说起（注意，在 Xcode 11 中，这里已经变成 Framework 与 Library，更加清晰）：
-Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包含编译后代码的 ."/>
+Cocoa Touch Static Library 我们先从 Xcode 中能够直接创建的 Cocoa Touch Static Library 说起（注意，在 Xcode 11 中，这里已经变成 Framework 与 Library，更加清晰）："/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2019/libraries_in_ios/" />
@@ -146,7 +145,7 @@ Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包�
       
       
       
-        <span class="post-read-time">— 17 min read</span>
+        <span class="post-read-time">— 16 min read</span>
       
     </div>
 
@@ -188,6 +187,11 @@ Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即只包�
 <tr>
 <td align="center">2019-09-22</td>
 <td align="center">适配 Xcode 11，持续更新完善</td>
+</tr>
+
+<tr>
+<td align="center">2019-10-29</td>
+<td align="center">添加 Demo：<a href="https://github.com/kingcos/libraries_in_ios-demo">libraries_in_ios-demo</a></td>
 </tr>
 </tbody>
 </table>
@@ -276,12 +280,12 @@ NS_ASSUME_NONNULL_END
 
 <p><img src="/img/2019/libraries_in_ios/3.png" alt="3" /></p>
 
-<p>我们将 oc-static-lib 编译后的 <code>.a</code> 与 <code>.h</code> 一起拖入 Obj-C 工程（记得勾选「Add to targets」，这样即可自动将 <code>.a</code> 加入到「Link Binary With Libraries」中），即可使用 <code>#import &quot;&quot;</code> 来引入并调用（需要注意的是：静态库中如果存在分类，需要添加 <code>-ObjC</code> 作为 Other Linker Flags，可详见<a href="/posts/2019/+load_in_ios/">《iOS 中的 +load 方法》</a>一文）：</p>
+<p>我们将 oc-static-lib 编译后的 <code>.a</code> 与 <code>.h</code> 一起拖入 Obj-C 工程（勾选「Add to targets」添加至目标 Target，或者手动将 <code>.a</code> 加入到「Link Binary With Libraries」中），即可使用 <code>#import &quot;&quot;</code> 来引入并调用（需要注意的是：静态库中如果存在分类，需要添加 <code>-ObjC</code> 作为 Other Linker Flags，具体可详见<a href="/posts/2019/+load_in_ios/">《iOS 中的 +load 方法》</a>一文）：</p>
 
 <blockquote>
 <p><strong>Tips</strong></p>
 
-<p>在 C/C++ 中，为了更加清晰化声明与实现，代码需要分别写在 <code>.h</code>（头文件）和 <code>.c</code> / <code>.cpp</code>（实现文件）中。这样的好处是，开发者可以无需额外的访问控制符即可将需要暴露在外界的声明放置在头文件中即可，外界使用时通过 <code>#include</code>。Obj-C/C++ 也延续了这一传统，不同的是实现文件的后缀分别为 <code>.m</code> 和 <code>.mm</code>，并为了避免重复引用推出了 <code>#import</code>。</p>
+<p>在 C/C++ 中，为了更加清晰化声明与实现，声明和实现需要分别写在 <code>.h</code>（头文件）和 <code>.c</code> / <code>.cpp</code>（实现文件）中。这样的好处是，开发者可以无需额外的访问控制符即可将需要暴露在外界的声明放置在头文件中，外界使用时通过 <code>#include</code> 引用头文件即可。Obj-C/C++ 也延续了这一传统，不同的是实现文件的后缀分别为 <code>.m</code> 和 <code>.mm</code>，并为了避免重复引用新推出了 <code>#import</code>。</p>
 
 <p><code>#include</code> 和 <code>#import</code> 后面都可以加 <code>&lt;XXX.h&gt;</code> 或 <code>&quot;XXX.h&quot;</code>。通常来说加 <code>&quot;&quot;</code> 的头文件优先从本地当前文件目录查找，其中也可以包含相对路径，即 <code>#import &quot;oc-static-lib/oc_static_lib.h&quot;</code> / <code>#import &quot;NSObject+OC_Static_Lib.h&quot;</code> 都是支持的；而加 <code>&lt;&gt;</code> 的头文件则会使得编译器优先到系统目录下全局查找。</p>
 </blockquote>
@@ -300,7 +304,7 @@ NS_ASSUME_NONNULL_END
 1 directory, 3 files
 </code></pre>
 
-<p><code>.swiftmodule</code> 包含了序列化过的 AST（抽象语法树，Abstract Syntax Tree），可能也包含 SIL（Swift 中间语言，Swift Intermediate Language），我们可以将其理解为类似 C 语言库或框架中头文件的二进制格式文件；<code>.swiftdoc</code> 则是 Swift 文档注释生成的二进制文件，由 <code>Serialization::writeDocToStream()</code> 生成，因此并非是必要的。由于 Swift 的 Module 机制，我们需要将 Xcode - Targets - Build Settings - Swift Compiler - Search Paths - Import Paths 中引入：</p>
+<p><code>.swiftmodule</code> 包含了序列化过的 AST（抽象语法树，Abstract Syntax Tree），可能也包含 SIL（Swift 中间语言，Swift Intermediate Language），我们可以将其理解为类似 C 语言库或框架中头文件的二进制格式文件；<code>.swiftdoc</code> 则是 Swift 文档注释生成的二进制文件，由 <code>Serialization::writeDocToStream()</code> 生成，因此并非是必要的。由于 Swift 的 Module 机制，我们需要在 Xcode - Targets - Build Settings - Swift Compiler - Search Paths - Import Paths 中引入：</p>
 
 <p><img src="/img/2019/libraries_in_ios/4.png" alt="4" /></p>
 
@@ -320,11 +324,8 @@ import UIKit
 import swift_static_lib
 
 class ViewController: UIViewController {
-
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
-
         swift_static_lib().foo()
     }
 }
@@ -332,7 +333,7 @@ class ViewController: UIViewController {
 
 <h3 id="obj-c-工程引入-swift-静态库">Obj-C 工程引入 Swift 静态库</h3>
 
-<p>为了「提拔」新秀，Swift 支持与 Obj-C 混编，然而混编下的各种情况就会变得十分特殊。在同一个工程下 Swift 文件与 Obj-C 文件混编时，Xcode 会提示我们创建桥接头文件 <code>&lt;PROJECT_NAME&gt;-Bridging-Header.h</code>，我们可以将需要暴露给 Swift 的 Obj-C 代码在该桥接文件中引入；而 Obj-C 代码中希望使用 Swift 中的相关定义时，可以引入自动生成但不可见的 <code>&lt;PROJECT_NAME&gt;-Swift.h</code>，另外需要注意的是，暴露给 Obj-C 的类或函数等需要使用 <code>@objc</code> 或 <code>dynamic</code> 修饰，前者不能决定函数最终派发方式，而后者则为动态派发。</p>
+<p>为了「提拔」新秀，Swift 支持与 Obj-C 混编，然而混编下的各种情况就会变得十分特殊。在同一个工程下 Swift 文件与 Obj-C 文件混编时，Xcode 会提示我们创建桥接头文件 <code>&lt;PROJECT_NAME&gt;-Bridging-Header.h</code>，我们可以将需要暴露给 Swift 的 Obj-C 代码在该桥接文件中引入；而 Obj-C 代码中希望使用 Swift 中的相关定义时，可以引入自动生成但不可见的 <code>&lt;PROJECT_NAME&gt;-Swift.h</code>，另外需要注意的是，暴露给 Obj-C 的类或函数等需要使用 <code>@objc</code> 或 <code>dynamic</code> 修饰，<strong>但前者不能决定函数最终派发方式，而后者则为动态派发</strong>。</p>
 
 <p>那么如果要在 Obj-C 工程引入 Swift 静态库，首先要在工程中引入一个占位 Swift 文件，并创建桥接文件，这样 Xcode 中 Swift 相关的依赖配置才能得以建立：</p>
 
@@ -344,62 +345,15 @@ class ViewController: UIViewController {
 .
 ├── Intermediates.noindex
 │   ├── XCBuildData
-│   │   ├── BuildDescriptionCacheIndex-039e2a7cd1451855448cd617c2c79f0d
-│   │   ├── PIFCache
-│   │   │   ├── project
-│   │   │   │   ├── PROJECT@v8_mod=1568563268_hash=b6565d7e8bfe8171a813e95698ec414f-json
-│   │   │   │   └── PROJECT@v8_mod=1568563366_hash=b6565d7e8bfe8171a813e95698ec414f-json
-│   │   │   ├── target
-│   │   │   │   ├── TARGET@v8_hash=9ED714DD9D72F2357197BC1BE00B9838-json
-│   │   │   │   └── TARGET@v8_hash=B7634C70FA7FEB002C1D5B331F68AC57-json
-│   │   │   └── workspace
-│   │   │       ├── WORKSPACE@v8_mod=1568563268_hash=039e2a7cd1451855448cd617c2c79f0d_subobjects=359C431B6A9412A0DAB608A7B5E1B797-json
-│   │   │       └── WORKSPACE@v8_mod=1568563268_hash=039e2a7cd1451855448cd617c2c79f0d_subobjects=FD7A1155808C379D6684AA719075DE4E-json
-│   │   ├── a9f77306ac684b2857e1d38ab0444728-desc.xcbuild
-│   │   ├── a9f77306ac684b2857e1d38ab0444728-manifest.xcbuild
-│   │   ├── b87f53f8de8d4ad786bada5baea76917-desc.xcbuild
-│   │   ├── b87f53f8de8d4ad786bada5baea76917-manifest.xcbuild
-│   │   └── build.db
+│   │   └── ...
 │   └── swift_static_lib.build
 │       └── Debug-iphonesimulator
 │           └── swift_static_lib.build
 │               ├── DerivedSources
 │               │   └── swift_static_lib-Swift.h ⬅️
-│               ├── Objects-normal
-│               │   └── x86_64
-│               │       ├── swift_static_lib-OutputFileMap.json
-│               │       ├── swift_static_lib-Swift.h
-│               │       ├── swift_static_lib-master.swiftdeps
-│               │       ├── swift_static_lib-master.swiftdeps~
-│               │       ├── swift_static_lib-master.swiftdeps~moduleonly
-│               │       ├── swift_static_lib.LinkFileList
-│               │       ├── swift_static_lib.d
-│               │       ├── swift_static_lib.dia
-│               │       ├── swift_static_lib.o
-│               │       ├── swift_static_lib.swiftdeps
-│               │       ├── swift_static_lib.swiftdeps~
-│               │       ├── swift_static_lib.swiftdoc
-│               │       ├── swift_static_lib.swiftmodule
-│               │       ├── swift_static_lib~partial.swiftdoc
-│               │       └── swift_static_lib~partial.swiftmodule
-│               ├── Script-841C800C232E981E007DF25D.sh
-│               ├── all-product-headers.yaml
-│               ├── swift_static_lib-all-non-framework-target-headers.hmap
-│               ├── swift_static_lib-all-target-headers.hmap
-│               ├── swift_static_lib-generated-files.hmap
-│               ├── swift_static_lib-own-target-headers.hmap
-│               ├── swift_static_lib-project-headers.hmap
-│               └── swift_static_lib.hmap
+│               └── ...
 └── Products
-    └── Debug-iphonesimulator
-        ├── include
-        │   └── swift_static_lib
-        │       ├── module.modulemap
-        │       └── swift_static_lib-Swift.h
-        ├── libswift_static_lib.a
-        └── swift_static_lib.swiftmodule
-            ├── x86_64.swiftdoc
-            └── x86_64.swiftmodule
+    └── ...
 
 17 directories, 41 files
 </code></pre>
@@ -408,13 +362,15 @@ class ViewController: UIViewController {
 
 <pre><code class="language-shell"># Powered by https://paul-samuels.com/blog/2018/01/14/swift-static-library-in-objective-c/
 
-# BUILT_PRODUCTS_DIR：构建产物目录
+# BUILT_PRODUCTS_DIR：构建产物目录；PRODUCT_MODULE_NAME：产物名称
 target_dir=${BUILT_PRODUCTS_DIR}/include/${PRODUCT_MODULE_NAME}/
 
 # Ensure the target include path exists
+# 递归创建文件夹
 mkdir -p ${target_dir}
 
 # Copy any file that looks like a Swift generated header to the include path
+# 复制到与 .a 同级目录
 cp ${DERIVED_SOURCES_DIR}/*-Swift.h ${target_dir}
 </code></pre>
 
@@ -433,25 +389,21 @@ cp ${DERIVED_SOURCES_DIR}/*-Swift.h ${target_dir}
 3 directories, 4 files
 </code></pre>
 
-<p>之后我们将 <code>.a</code> 拖拽到 Xcode - General - Link Binary With Libraries（或 Xcode - Targets - Build Phases - Link Binary With Libraries）中：</p>
+<p>之后我们将 <code>.a</code> 拖拽到 Xcode - Targets - Build Phases - Link Binary With Libraries（或 Xcode - General - Link Binary With Libraries）中：</p>
 
 <p><img src="/img/2019/libraries_in_ios/5.png" alt="5" /></p>
 
-<p>最后再将 Xcode - Targets - Build Settings - Header Search Paths &amp; Library Search Paths 添加上 <code>.a</code> 的父级路径 <code>$(PROJECT_DIR)/oc-demo-project/swift_static_lib</code> 即可：</p>
+<p>最后再在 Xcode - Targets - Build Settings - Header Search Paths &amp; Library Search Paths 中添加上 <code>.a</code> 的父级路径 <code>$(PROJECT_DIR)/oc-demo-project/swift_static_lib</code> 即可（比较神奇的是，在 Xcode 11 中即使不手动指定，也可正常编译通过运行）：</p>
 
 <p><img src="/img/2019/libraries_in_ios/6.png" alt="6" /></p>
 
-<p>这样，在 Obj-C 工程中通过 <code>#import &quot;swift_static_lib-Swift.h&quot;</code> 即可使用到 swift_static_lib 中暴露给 Obj-C 的类或函数等了。</p>
+<p>这样，在 Obj-C 工程中通过 <code>#import &quot;swift_static_lib-Swift.h&quot;</code> 即可使用。</p>
 
 <h3 id="swift-工程引入-obj-c-静态库">Swift 工程引入 Obj-C 静态库</h3>
 
-<p>如果想要在 Swift 工程中引入 Obj-C 静态库（注意如有分类仍需加 <code>-ObjC</code>），则也需要桥接头文件的中介。我们将 oc-static-lib 编译后的 <code>.a</code> 与 <code>.h</code> 一起拖入 Swift 工程，并在工程中建立 Obj-C 类，按 Xcode 提示创建桥接文件；在头文件中引入 Obj-C 静态库头文件即可在 Swift 中使用：</p>
+<p>如果想要在 Swift 工程中引入 Obj-C 静态库（注意如有分类仍需加 <code>-ObjC</code>），则也需要桥接头文件作为中介。我们将 oc-static-lib 编译后的 <code>.a</code> 与 <code>.h</code> 一起拖入 Swift 工程，并在工程中建立 Obj-C 类，按 Xcode 提示创建桥接文件；接着在头文件中引入 Obj-C 静态库头文件即可在 Swift 中使用：</p>
 
 <pre><code class="language-objectivec">// swift-demo-project-Bridging-Header.h
-
-//
-//  Use this file to import your target's public headers that you would like to expose to Swift.
-//
 
 #import &quot;liboc-static-lib/oc_static_lib.h&quot;
 </code></pre>
@@ -512,11 +464,7 @@ cp ${DERIVED_SOURCES_DIR}/*-Swift.h ${target_dir}
 
 <p>在工程中我们就可以将其引入并使用了：</p>
 
-<ul>
-<li>oc-framework:</li>
-</ul>
-
-<hr />
+<p><strong>oc-framework:</strong></p>
 
 <pre><code class="language-objectivec">// OC_Foo.m
 
@@ -537,11 +485,7 @@ cp ${DERIVED_SOURCES_DIR}/*-Swift.h ${target_dir}
 @end
 </code></pre>
 
-<ul>
-<li>swift-framework:</li>
-</ul>
-
-<hr />
+<p><strong>swift-framework:</strong></p>
 
 <pre><code class="language-swift">// Swift_Foo.swift
 
@@ -559,11 +503,7 @@ import Foundation
 }
 </code></pre>
 
-<ul>
-<li>Obj-C 工程：</li>
-</ul>
-
-<hr />
+<p><strong>Obj-C 工程：</strong></p>
 
 <pre><code class="language-objectivec">// ViewController.m
 
@@ -582,14 +522,12 @@ import Foundation
 
 @interface ViewController ()
 @property (weak, nonatomic) IBOutlet UIImageView *imageView;
-
 @end
 
 @implementation ViewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    // Do any additional setup after loading the view.
 
     OC_Foo *foo = [OC_Foo new];
     [foo foo];
@@ -618,7 +556,6 @@ class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
 
         let foo = OC_Foo()
         foo.foo()
