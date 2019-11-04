@@ -145,7 +145,7 @@ Cocoa Touch Static Library 我们先从 Xcode 中能够直接创建的 Cocoa Tou
       
       
       
-        <span class="post-read-time">— 16 min read</span>
+        <span class="post-read-time">— 17 min read</span>
       
     </div>
 
@@ -619,7 +619,7 @@ class ViewController: UIViewController {
 <pre><code class="language-ruby"># 将通过脚本引入（将直接把文件本身移动到主 Bundle 下）
 s.resources = ['oc-pod/Assets/info.json']
 
-# 将创建 oc-pod 的 Bundle（将把 Bundle 移动到主 Bundle 下）
+# 将创建 oc-pod 的 Bundle（将把 Bundle 移动到主 Bundle 下），等同于 s.resources = ['oc-pod/Assets/oc-pod.bundle']
 s.resource_bundles = {
     'oc-pod' =&gt; ['oc-pod/Assets/info-bundle.json']
 }
@@ -881,9 +881,9 @@ then
 fi
 </code></pre>
 
-<p>因此最终的 <code>oc-demo-project.app</code> 结构如下：</p>
+<p>因此最终的 <code>oc-demo-project-pod.app</code> 结构如下：</p>
 
-<pre><code class="language-shell">➜  oc-demo-project-pod.app tree                                         10:54:56
+<pre><code class="language-shell">➜  oc-demo-project-pod.app tree
 .
 ├── Base.lproj
 │   ├── LaunchScreen.storyboardc
@@ -914,7 +914,7 @@ fi
 6 directories, 19 files
 </code></pre>
 
-<p>资源文件 Bundle 以及 JSON 文件被原封不动地挪动到 <code>oc-demo-project.app</code> 下，而第三方和 Pods 中介的 <code>.a</code> 就已经被打入了可执行文件中，我们可以使用 <code>nm</code> 尝试打印其中的符号：</p>
+<p>资源文件 Bundle 以及 JSON 文件被原封不动地挪动到 <code>oc-demo-project-pod.app</code> 下，而第三方和 Pods 中介的 <code>.a</code> 就已经被打入了可执行文件中，我们可以使用 <code>nm</code> 尝试打印其中的符号：</p>
 
 <pre><code class="language-shell">➜  oc-demo-project-pod.app nm oc-demo-project-pod | grep ObjC_Foo
 0000000100038a50 t -[ObjC_Foo foo]
@@ -1033,7 +1033,7 @@ class ViewController: UIViewController {
 
 <p><img src="/img/2019/libraries_in_ios/16.png" alt="16" /></p>
 
-<p>「[CP] Copy Pods Resoureces」中执行了如下脚本：</p>
+<p>对于资源文件，「[CP] Copy Pods Resoureces」中执行了如下脚本：</p>
 
 <pre><code class="language-shell">#!/bin/sh
 set -e
@@ -1226,11 +1226,52 @@ if [ &quot;${COCOAPODS_PARALLEL_CODE_SIGN}&quot; == &quot;true&quot; ]; then
 fi
 </code></pre>
 
-<h4 id="obj-c-工程与-swift-pod-1">Obj-C 工程与 Swift Pod</h4>
+<p>使用 <code>use_frameworks!</code> 依赖的 Pod 库即可在 Obj-C 工程中使用 <code>@import</code> 引入，或者将共有头文件引入。需要注意的是，不同于上述非 <code>use_frameworks!</code> 情况，<code>#import</code> 是引入相对于 Framework 的头文件位置。对于 Swift Pod 则无不同：</p>
 
-<h4 id="swift-工程与-obj-c-pod-1">Swift 工程与 Obj-C Pod</h4>
+<pre><code class="language-objectivec">#import &quot;ViewController.h&quot;
 
-<h4 id="swift-工程与-swift-pod-1">Swift 工程与 Swift Pod</h4>
+//#import &lt;oc-pod/ObjC_Foo.h&gt; ❌，仅在非 `use_frameworks!` 下以文件夹相对路径引入而支持 `-`
+#import &lt;oc_pod/ObjC_Foo.h&gt;
+//#import &lt;ObjC_Foo.h&gt;
+//#import &quot;ObjC_Foo.h&quot;
+//@import oc_pod;
+
+@import swift_pod;
+
+@interface ViewController ()
+@end
+
+@implementation ViewController
+- (void)viewDidLoad {
+    [super viewDidLoad];
+
+    [[[ObjC_Foo alloc] init] foo];
+
+    [[[Swift_Foo alloc] init] foo];
+    NSLog(@&quot;%@&quot;, [[[Swift_Foo alloc] init] strings]);
+}
+@end
+</code></pre>
+
+<h4 id="swift-工程-1">Swift 工程</h4>
+
+<p>Swift 工程下也是类似的，我们可以在桥接文件中使用 <code>@import</code> 引入，或者将共有头文件引入，但其实此时桥接文件本身即是多余的，我们只需要在 Swift 工程中直接使用 <code>import</code> 即可：</p>
+
+<pre><code class="language-swift">import UIKit
+import swift_pod
+import oc_pod
+
+class ViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        ObjC_Foo().foo()
+
+//        Swift_Foo().foo()
+        print(Swift_Foo().strings())
+    }
+}
+</code></pre>
 
 <ul class="task-list">
 <li>TODO:</li>
