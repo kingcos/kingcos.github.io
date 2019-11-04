@@ -642,7 +642,7 @@ end
 
 <p>我们将上文已有代码放在 oc-pod 的 <code>Classes</code> 文件夹下，并将资源放在 <code>Assets</code> 文件夹下：</p>
 
-<pre><code class="language-shell">➜  oc-pod git:(master) ✗ tree                                           15:01:44
+<pre><code class="language-shell">➜  oc-pod git:(master) ✗ tree
 .
 ├── oc-pod
 │   ├── Assets  ➡️ 资源
@@ -710,26 +710,28 @@ end
 <pre><code class="language-shell">#!/bin/sh
 set -e
 set -u
-set -o pipefail # 设置
+set -o pipefail # 一些设置
 
+# 错误处理
 function on_error {
   echo &quot;$(realpath -mq &quot;${0}&quot;):$1: error: Unexpected failure&quot;
 }
 trap 'on_error $LINENO' ERR
 
-# if [ -z STRING ]; 如果字符串 STRING 长度为 0 则真
-# UNLOCALIZED_RESOURCES_FOLDER_PATH（app 名）：oc-demo-project.app
+# if [ -z STRING ]; 如果字符串 STRING 长度为 0 则为真
+# UNLOCALIZED_RESOURCES_FOLDER_PATH（未本地化资源路径，app 包）：oc-demo-project-pod.app
 if [ -z ${UNLOCALIZED_RESOURCES_FOLDER_PATH+x} ]; then
   # If UNLOCALIZED_RESOURCES_FOLDER_PATH is not set, then there's nowhere for us to copy
   # resources to, so exit 0 (signalling the script phase was successful).
+  # 若 UNLOCALIZED_RESOURCES_FOLDER_PATH 未设置，则无法拷贝资源，退出
   exit 0
 fi
 
-# TARGET_BUILD_DIR（目标构建目录）：/Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-fvrppqpxzudpvicewkjnbszgmrll/Build/Products/Debug-iphonesimulator
-# 不管文件夹是否存在，尝试创建
+# TARGET_BUILD_DIR（目标构建目录）：/Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-fvrppqpxzudpvicewkjnbszgmrll/Build/Products/Debug-iphonesimulator
+# 递归创建 .app 文件夹
 mkdir -p &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
 
-# RESOURCES_TO_COPY（欲拷贝资源记录临时文件）：oc-demo-project/Pods/resources-to-copy-oc-demo-project.txt
+# RESOURCES_TO_COPY（欲拷贝资源记录临时文件）：oc-demo-project-pod/Pods/resources-to-copy-oc-demo-project-pod.txt
 RESOURCES_TO_COPY=${PODS_ROOT}/resources-to-copy-${TARGETNAME}.txt
 # 创建该文件
 &gt; &quot;$RESOURCES_TO_COPY&quot;
@@ -739,6 +741,7 @@ XCASSET_FILES=()
 # 防止多个 target 同时拷贝相同的框架依赖
 # This protects against multiple targets copying the same framework dependency at the same time. The solution
 # was originally proposed here: https://lists.samba.org/archive/rsync/2008-February/020158.html
+# RSYNC_PROTECT_TMP_FILES --filter
 RSYNC_PROTECT_TMP_FILES=(--filter &quot;P .*.??????&quot;)
 
 # TARGETED_DEVICE_FAMILY（目标设备家族）：1,2（iPhone &amp; iPad）
@@ -773,8 +776,11 @@ install_resource()
   else
     RESOURCE_PATH=&quot;${PODS_ROOT}/$1&quot;
   fi
-  # RESOURCE_PATH（资源路径）：/Users/kingcos/Desktop/oc-demo-project/Pods/MJRefresh.bundle
 
+  # RESOURCE_PATH（资源路径）
+  # /Users/kingcos/Documents/gh/libraries_in_ios-demo/oc-demo-project-pod/Pods/../../oc-pod/oc-pod/Assets/info.json
+  # /Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-aaokquikwvguhaglfagfimosuecy/Build/Products/Debug-iphonesimulator/oc-pod/oc-pod.bundle
+  # /Users/kingcos/Documents/gh/libraries_in_ios-demo/oc-demo-project-pod/Pods/../../swift-pod/swift-pod/Assets/Localizable.strings
   # 若资源路径不存在则提示并退出
   if [[ ! -e &quot;$RESOURCE_PATH&quot; ]] ; then
     cat &lt;&lt; EOM
@@ -782,7 +788,6 @@ error: Resource &quot;$RESOURCE_PATH&quot; not found. Run 'pod install' to updat
 EOM
     exit 1
   fi
-
   case $RESOURCE_PATH in
     # storyboard 资源：编译为 storyboardc
     *.storyboard)
@@ -816,7 +821,7 @@ EOM
       ABSOLUTE_XCASSET_FILE=&quot;$RESOURCE_PATH&quot;
       XCASSET_FILES+=(&quot;$ABSOLUTE_XCASSET_FILE&quot;)
       ;;
-    # 其它，比如 bundle
+    # 其它，比如 bundle / json
     *)
       echo &quot;$RESOURCE_PATH&quot; || true
       # 将资源路径写入欲拷贝资源记录临时文件中
@@ -824,17 +829,20 @@ EOM
       ;;
   esac
 }
-
 # CONFIGURATION：运行的 scheme 配置模式，Debug 或 Release
-# 并安装资源
+# 目前 Debug 和 Release 模式处理一致
 if [[ &quot;$CONFIGURATION&quot; == &quot;Debug&quot; ]]; then
-  install_resource &quot;${PODS_ROOT}/MJRefresh/MJRefresh/MJRefresh.bundle&quot;
+  install_resource &quot;${PODS_ROOT}/../../oc-pod/oc-pod/Assets/info.json&quot;
+  install_resource &quot;${PODS_CONFIGURATION_BUILD_DIR}/oc-pod/oc-pod.bundle&quot;
+  install_resource &quot;${PODS_ROOT}/../../swift-pod/swift-pod/Assets/Localizable.strings&quot;
 fi
 if [[ &quot;$CONFIGURATION&quot; == &quot;Release&quot; ]]; then
-  install_resource &quot;${PODS_ROOT}/MJRefresh/MJRefresh/MJRefresh.bundle&quot;
+  install_resource &quot;${PODS_ROOT}/../../oc-pod/oc-pod/Assets/info.json&quot;
+  install_resource &quot;${PODS_CONFIGURATION_BUILD_DIR}/oc-pod/oc-pod.bundle&quot;
+  install_resource &quot;${PODS_ROOT}/../../swift-pod/swift-pod/Assets/Localizable.strings&quot;
 fi
 
-# 再次尝试创建同一文件夹
+# 再次尝试确保同一文件夹创建
 mkdir -p &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
 
 # rsync：快速、多功能、远程（和本地）文件复制工具，-a：保留所有；-v：输出信息；-r：递归；
@@ -846,7 +854,7 @@ mkdir -p &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
 rsync -avr --copy-links --no-relative --exclude '*/.svn/*' --files-from=&quot;$RESOURCES_TO_COPY&quot; / &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
 
 # ACTION（行为）：构建即 build，不太清楚何时为 install
-# SKIP_INSTALL（跳过安装）：否 NO
+# SKIP_INSTALL（是否跳过安装）：否为 NO
 if [[ &quot;${ACTION}&quot; == &quot;install&quot; ]] &amp;&amp; [[ &quot;${SKIP_INSTALL}&quot; == &quot;NO&quot; ]]; then
   mkdir -p &quot;${INSTALL_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
   rsync -avr --copy-links --no-relative --exclude '*/.svn/*' --files-from=&quot;$RESOURCES_TO_COPY&quot; / &quot;${INSTALL_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
@@ -875,7 +883,7 @@ fi
 
 <p>因此最终的 <code>oc-demo-project.app</code> 结构如下：</p>
 
-<pre><code class="language-shell">➜  oc-demo-project.app tree
+<pre><code class="language-shell">➜  oc-demo-project-pod.app tree                                         10:54:56
 .
 ├── Base.lproj
 │   ├── LaunchScreen.storyboardc
@@ -890,47 +898,50 @@ fi
 ├── PkgInfo
 ├── _CodeSignature
 │   └── CodeResources
-├── oc-demo-project ➡️ 可执行 Mach-O 文件
-├── oc-pod.bundle ➡️ 脚本拷贝（s.resource_bundles）至此
-│   ├── Info.plist
-│   ├── _CodeSignature
-│   │   ├── CodeDirectory
-│   │   ├── CodeRequirements
-│   │   ├── CodeRequirements-1
-│   │   ├── CodeResources
-│   │   └── CodeSignature
-│   └── oc-pod.json
-└── oc-pod.json ➡️ 脚本拷贝（s.resources）至此
+├── info.json  ➡️ 脚本拷贝（s.resources）至此
+├── oc-demo-project-pod ➡️ 可执行 Mach-O 文件
+└── oc-pod.bundle ➡️ 脚本拷贝（s.resource_bundles）至此
+    ├── Info.plist
+    ├── _CodeSignature
+    │   ├── CodeDirectory
+    │   ├── CodeRequirements
+    │   ├── CodeRequirements-1
+    │   ├── CodeResources
+    │   └── CodeSignature
+    ├── info-bundle.json
+    └── oc-pod.json
 
-6 directories, 18 files
+6 directories, 19 files
 </code></pre>
 
 <p>资源文件 Bundle 以及 JSON 文件被原封不动地挪动到 <code>oc-demo-project.app</code> 下，而第三方和 Pods 中介的 <code>.a</code> 就已经被打入了可执行文件中，我们可以使用 <code>nm</code> 尝试打印其中的符号：</p>
 
-<pre><code class="language-shell">➜  oc-demo-project.app nm oc-demo-project | grep ObjC_Foo
-0000000100001eb0 t +[ObjC_Foo load]
-0000000100001f10 t -[ObjC_Foo foo]
-00000001000067d0 S _OBJC_CLASS_$_ObjC_Foo
-00000001000067a8 S _OBJC_METACLASS_$_ObjC_Foo
+<pre><code class="language-shell">➜  oc-demo-project-pod.app nm oc-demo-project-pod | grep ObjC_Foo
+0000000100038a50 t -[ObjC_Foo foo]
+0000000100038b00 t -[ObjC_Foo resources]
+0000000100053220 S _OBJC_CLASS_$_ObjC_Foo
+00000001000531f8 S _OBJC_METACLASS_$_ObjC_Foo
 
-➜  oc-demo-project.app nm oc-demo-project | grep Pods
-0000000100006870 S _OBJC_CLASS_$_PodsDummy_Pods_oc_demo_project
-0000000100006820 S _OBJC_CLASS_$_PodsDummy_oc_pod
-0000000100006848 S _OBJC_METACLASS_$_PodsDummy_Pods_oc_demo_project
-00000001000067f8 S _OBJC_METACLASS_$_PodsDummy_oc_pod
+➜  oc-demo-project-pod.app nm oc-demo-project-pod | grep Pods
+0000000100052b90 S _OBJC_CLASS_$_PodsDummy_AFNetworking
+00000001000532c0 S _OBJC_CLASS_$_PodsDummy_Pods_oc_demo_project_pod
+0000000100053270 S _OBJC_CLASS_$_PodsDummy_oc_pod
+0000000100052b68 S _OBJC_METACLASS_$_PodsDummy_AFNetworking
+0000000100053298 S _OBJC_METACLASS_$_PodsDummy_Pods_oc_demo_project_pod
+0000000100053248 S _OBJC_METACLASS_$_PodsDummy_oc_pod
 </code></pre>
 
 <p>虽然资源均被拷贝到了 <code>.app</code> 下，但在代码中相应的获取方式却有一定差别：</p>
 
-<pre><code class="language-objectivec">- (void)foo {
+<pre><code class="language-objectivec">- (void)resources {
     // s.resources
     NSBundle *bundle = [NSBundle bundleForClass:[self class]];
-    NSString *path = [bundle pathForResource:@&quot;oc-pod&quot; ofType:@&quot;json&quot;];
+    NSString *path = [bundle pathForResource:@&quot;info&quot; ofType:@&quot;json&quot;];
     NSData *data = [NSData dataWithContentsOfFile:path];
 
     if (data) {
         NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
-        NSLog(@&quot;%@ - %@&quot;, dict[@&quot;name&quot;], dict[@&quot;lang&quot;]);
+        NSLog(@&quot;%@ - %@&quot;, dict[@&quot;blog&quot;], dict[@&quot;github&quot;]);
     }
 
     // s.resource_bundles
@@ -940,25 +951,25 @@ fi
 
     if (data2) {
         NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
-        NSLog(@&quot;%@ - %@&quot;, dict[@&quot;name&quot;], dict[@&quot;lang&quot;]);
+        NSLog(@&quot;%@ - %@&quot;, dict[@&quot;blog&quot;], dict[@&quot;github&quot;]);
     }
 }
 </code></pre>
 
 <h4 id="obj-c-工程与-swift-pod">Obj-C 工程与 Swift Pod</h4>
 
-<p>在 Obj-C 工程下引入 Swift Pod 与 Obj-C Pod 并无太多差别。不过有时可能会遇到下面这个问题：</p>
+<p>在 Obj-C 工程下引入 Swift Pod 与 Obj-C Pod 并无太多差别。不过有时可能会遇到 CocoaPods 提示下面这个问题，或者在编译时提示找不到许多 Swift 相关的符号：</p>
 
 <pre><code class="language-shell">[!] Unable to determine Swift version for the following pods:
 
-- `Alamofire` does not specify a Swift version and none of the targets (`oc-demo-project`) integrating it have the `SWIFT_VERSION` attribute set. Please contact the author or set the `SWIFT_VERSION` attribute in at least one of the targets that integrate this pod.
+- `swift-pod` does not specify a Swift version and none of the targets (`oc-demo-project-pod`) integrating it have the `SWIFT_VERSION` attribute set. Please contact the author or set the `SWIFT_VERSION` attribute in at least one of the targets that integrate this pod.
 </code></pre>
 
-<p>此时我们可以在主工程中新建一个占位 Swift 文件即可使得 Obj-C 工程获得 Swift 能力：</p>
+<p>此时我们可以在 Obj-C 工程中新建一个占位 Swift 文件即可使其获得 Swift 能力：</p>
 
 <p><img src="/img/2019/libraries_in_ios/14.png" alt="14" /></p>
 
-<p>另外需要注意的是，Swift Pod 引入时需要使用 <code>@import</code>，关于其详细介绍将在下文展开：</p>
+<p>另外需要注意的是，Swift Pod 引入时需要使用 <code>@import</code>：</p>
 
 <pre><code class="language-objectivec">@import swift_pod;
 
@@ -972,11 +983,47 @@ fi
 @end
 </code></pre>
 
-<p>在其它方面 Swift Pod 与 Obj-C Pod 使用一致。</p>
-
 <h4 id="swift-工程与-obj-c-pod">Swift 工程与 Obj-C Pod</h4>
 
+<p>Swift 工程依赖 Obj-C Pod 的方式与 Obj-C 工程一致。但需要注意的是，我们无法直接在 Swift 代码中 <code>import</code> Obj-C Pod。这里也需要桥接文件来引入，我们可以创建 Obj-C 类型的占位文件，并创建桥接文件，在其中引入暴露给 Swift 工程的头文件：</p>
+
+<pre><code class="language-objectivec">//
+//  Use this file to import your target's public headers that you would like to expose to Swift.
+//
+
+#import &lt;oc-pod/ObjC_Foo.h&gt;
+</code></pre>
+
+<p>这样即可在 Swift 工程中使用：</p>
+
+<pre><code class="language-swift">import UIKit
+
+class ViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        ObjC_Foo().foo()
+    }
+}
+</code></pre>
+
+<p>对于同样未开启 <code>use_frameworks</code> 的 Swift 工程来说，CocoaPods 处理资源的脚本和逻辑是一致的。</p>
+
 <h4 id="swift-工程与-swift-pod">Swift 工程与 Swift Pod</h4>
+
+<p>Swift 工程依赖 Swift Pod 的方式则更加简单，只需要使用 <code>import</code> 引入 Pod 即可：</p>
+
+<pre><code class="language-swift">import swift_pod
+
+class ViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        Swift_Foo().foo()
+        print(Swift_Foo().strings())
+    }
+}
+</code></pre>
 
 <h3 id="use-frameworks">use_frameworks!</h3>
 
