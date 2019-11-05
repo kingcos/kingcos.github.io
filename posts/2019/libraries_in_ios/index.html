@@ -721,12 +721,12 @@ trap 'on_error $LINENO' ERR
 if [ -z ${UNLOCALIZED_RESOURCES_FOLDER_PATH+x} ]; then
   # If UNLOCALIZED_RESOURCES_FOLDER_PATH is not set, then there's nowhere for us to copy
   # resources to, so exit 0 (signalling the script phase was successful).
-  # 若 UNLOCALIZED_RESOURCES_FOLDER_PATH 未设置，则无法拷贝资源，退出
+  # 若 UNLOCALIZED_RESOURCES_FOLDER_PATH 未设置，则无需拷贝资源并退出
   exit 0
 fi
 
 # TARGET_BUILD_DIR（目标构建目录）：/Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-fvrppqpxzudpvicewkjnbszgmrll/Build/Products/Debug-iphonesimulator
-# 递归创建 .app 文件夹
+# 递归创建 .app 路径
 mkdir -p &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
 
 # RESOURCES_TO_COPY（欲拷贝资源记录临时文件）：oc-demo-project-pod/Pods/resources-to-copy-oc-demo-project-pod.txt
@@ -776,9 +776,9 @@ install_resource()
   fi
 
   # RESOURCE_PATH（资源路径）
-  # /Users/kingcos/Documents/gh/libraries_in_ios-demo/oc-demo-project-pod/Pods/../../oc-pod/oc-pod/Assets/info.json
+  # PATH/TO/libraries_in_ios-demo/oc-demo-project-pod/Pods/../../oc-pod/oc-pod/Assets/info.json
   # /Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-aaokquikwvguhaglfagfimosuecy/Build/Products/Debug-iphonesimulator/oc-pod/oc-pod.bundle
-  # /Users/kingcos/Documents/gh/libraries_in_ios-demo/oc-demo-project-pod/Pods/../../swift-pod/swift-pod/Assets/Localizable.strings
+  # PATH/TO/libraries_in_ios-demo/oc-demo-project-pod/Pods/../../swift-pod/swift-pod/Assets/Localizable.strings
   # 若资源路径不存在则提示并退出
   if [[ ! -e &quot;$RESOURCE_PATH&quot; ]] ; then
     cat &lt;&lt; EOM
@@ -827,6 +827,7 @@ EOM
       ;;
   esac
 }
+
 # CONFIGURATION：运行的 scheme 配置模式，Debug 或 Release
 # 目前 Debug 和 Release 模式处理一致
 if [[ &quot;$CONFIGURATION&quot; == &quot;Debug&quot; ]]; then
@@ -861,9 +862,11 @@ fi
 # 删除存储资源路径的临时文件
 rm -f &quot;$RESOURCES_TO_COPY&quot;
 
+# WRAPPER_EXTENSION（扩展）：app
 if [[ -n &quot;${WRAPPER_EXTENSION}&quot; ]] &amp;&amp; [ &quot;`xcrun --find actool`&quot; ] &amp;&amp; [ -n &quot;${XCASSET_FILES:-}&quot; ]
 then
   # Find all other xcassets (this unfortunately includes those of path pods and other targets).
+  # 查找其他所有 xcassets
   OTHER_XCASSETS=$(find &quot;$PWD&quot; -iname &quot;*.xcassets&quot; -type d)
   while read line; do
     if [[ $line != &quot;${PODS_ROOT}*&quot; ]]; then
@@ -1025,18 +1028,18 @@ class ViewController: UIViewController {
 
 <h3 id="use-frameworks">use_frameworks!</h3>
 
-<h4 id="obj-c-工程与-obj-c-pod-1">Obj-C 工程与 Obj-C Pod</h4>
+<h4 id="obj-c-工程-1">Obj-C 工程</h4>
 
 <p>将 <code>use_frameworks!</code> 开启时，Pods 工程将以框架方式依赖：</p>
 
 <p><img src="/img/2019/libraries_in_ios/16.png" alt="16" /></p>
 
-<p>对于资源文件，「[CP] Copy Pods Resoureces」中执行了如下脚本：</p>
+<p>在上面我们了解过 Framework，其中聚合了可执行文件以及资源等文件，因此其一般不再需要单独的脚本来处理资源，而是需要「[CP] Embed Pods Frameworks」来针对 Framework 进行操作：</p>
 
 <pre><code class="language-shell">#!/bin/sh
 set -e
 set -u
-set -o pipefail
+set -o pipefail # 一些设置
 
 # 错误处理
 function on_error {
@@ -1044,38 +1047,42 @@ function on_error {
 }
 trap 'on_error $LINENO' ERR
 
-# FRAMEWORKS_FOLDER_PATH（框架路径）：oc-demo-project.app/Frameworks
+# FRAMEWORKS_FOLDER_PATH（框架文件夹路径）：oc-demo-project-pod.app/Frameworks
 if [ -z ${FRAMEWORKS_FOLDER_PATH+x} ]; then
-  # FRAMEWORKS_FOLDER_PATH 未设置，代表无需复制框架，即退出
   # If FRAMEWORKS_FOLDER_PATH is not set, then there's nowhere for us to copy
   # frameworks to, so exit 0 (signalling the script phase was successful).
+  # FRAMEWORKS_FOLDER_PATH 未设置，则无需拷贝资源并退出
   exit 0
 fi
 
-# CONFIGURATION_BUILD_DIR（配置构建目录）：/Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-fvrppqpxzudpvicewkjnbszgmrll/Build/Products/Debug-iphonesimulator
+# CONFIGURATION_BUILD_DIR（配置构建目录）：/Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator
+# 递归创建框架路径
 echo &quot;mkdir -p ${CONFIGURATION_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot;
 mkdir -p &quot;${CONFIGURATION_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot;
 
+# COCOAPODS_PARALLEL_CODE_SIGN（CocoaPods 并行签名）：false（默认）
 COCOAPODS_PARALLEL_CODE_SIGN=&quot;${COCOAPODS_PARALLEL_CODE_SIGN:-false}&quot;
+
 # DT_TOOLCHAIN_DIR（工具链目录）：/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain
 # PLATFORM_NAME（目标平台名）：iphonesimulator
+# SWIFT_STDLIB_PATH（Swift 标准库路径）：/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator
 SWIFT_STDLIB_PATH=&quot;${DT_TOOLCHAIN_DIR}/usr/lib/swift/${PLATFORM_NAME}&quot;
 
 # Used as a return value for each invocation of `strip_invalid_archs` function.
+# 作为每次调用 strip_invalid_archs 函数的返回值
 STRIP_BINARY_RETVAL=0
 
+# 防止多个 target 同时拷贝相同的框架依赖
 # This protects against multiple targets copying the same framework dependency at the same time. The solution
 # was originally proposed here: https://lists.samba.org/archive/rsync/2008-February/020158.html
 RSYNC_PROTECT_TMP_FILES=(--filter &quot;P .*.??????&quot;)
 
 # Copies and strips a vendored framework
-# 拷贝并删除 vendored framework
-
-# 安装框架函数
+# 拷贝并删除 vendored 框架
 install_framework()
 {
-  # BUILT_PRODUCTS_DIR（构建产物目录）：/Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-fvrppqpxzudpvicewkjnbszgmrll/Build/Products/Debug-iphonesimulator
-  # if [ -r FILE ]; 如果文件 FILE 可读（r：read）则真
+  # BUILT_PRODUCTS_DIR（构建产物目录）：/Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator
+  # if [ -r FILE ]; 如果文件 FILE 可读（r：read）则为真
   if [ -r &quot;${BUILT_PRODUCTS_DIR}/$1&quot; ]; then
     local source=&quot;${BUILT_PRODUCTS_DIR}/$1&quot;
   elif [ -r &quot;${BUILT_PRODUCTS_DIR}/$(basename &quot;$1&quot;)&quot; ]; then
@@ -1086,9 +1093,10 @@ install_framework()
 
   local destination=&quot;${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot;
 
-  # if [ -L FILE ]; 如果文件 FILE 是链接（L：Link）文件则真
+  # if [ -L FILE ]; 如果文件 FILE 是链接（L：Link）文件则为真
   if [ -L &quot;${source}&quot; ]; then
     echo &quot;Symlinked...&quot;
+    # 读取链接的真实文件
     source=&quot;$(readlink &quot;${source}&quot;)&quot;
   fi
 
@@ -1097,6 +1105,8 @@ install_framework()
   rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter &quot;- CVS/&quot; --filter &quot;- .svn/&quot; --filter &quot;- .git/&quot; --filter &quot;- .hg/&quot; --filter &quot;- Headers&quot; --filter &quot;- PrivateHeaders&quot; --filter &quot;- Modules&quot; &quot;${source}&quot; &quot;${destination}&quot;
 
   local basename
+  # basename（基本名）：AFNetworking / oc_pod / swift_pod
+  # binary（二进制路径）
   basename=&quot;$(basename -s .framework &quot;$1&quot;)&quot;
   binary=&quot;${destination}/${basename}.framework/${basename}&quot;
 
@@ -1108,15 +1118,19 @@ install_framework()
     binary=&quot;${dirname}/$(readlink &quot;${binary}&quot;)&quot;
   fi
 
+  # /Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator/oc-demo-project-pod.app/Frameworks/AFNetworking.framework/AFNetworking: Mach-O 64-bit dynamically linked shared library x86_64
   # Strip invalid architectures so &quot;fat&quot; simulator / device frameworks work on device
   if [[ &quot;$(file &quot;$binary&quot;)&quot; == *&quot;dynamically linked shared library&quot;* ]]; then
+    # 若为动态链接共享库，则删除无效架构
     strip_invalid_archs &quot;$binary&quot;
   fi
 
   # Resign the code if required by the build settings to avoid unstable apps
+  # 重签名 Build Settings 里设置为必须的代码，以避免造成 app 不稳定
   code_sign_if_enabled &quot;${destination}/$(basename &quot;$1&quot;)&quot;
 
   # Embed linked Swift runtime libraries. No longer necessary as of Xcode 7.
+  # 嵌入 Swift 运行时库，Xcode 7 之后不再需要。
   if [ &quot;${XCODE_VERSION_MAJOR}&quot; -lt 7 ]; then
     local swift_runtime_libs
     swift_runtime_libs=$(xcrun otool -LX &quot;$binary&quot; | grep --color=never @rpath/libswift | sed -E s/@rpath\\/\(.+dylib\).*/\\1/g | uniq -u)
@@ -1129,6 +1143,7 @@ install_framework()
 }
 
 # Copies and strips a vendored dSYM
+# 拷贝并删除 vendored dSYM
 install_dsym() {
   local source=&quot;$1&quot;
   if [ -r &quot;$source&quot; ]; then
@@ -1157,6 +1172,7 @@ install_dsym() {
 }
 
 # Copies the bcsymbolmap files of a vendored framework
+# 复制 vendored 框架的 bcsymbolmap 文件
 install_bcsymbolmap() {
     local bcsymbolmap_path=&quot;$1&quot;
     local destination=&quot;${BUILT_PRODUCTS_DIR}&quot;
@@ -1165,6 +1181,7 @@ install_bcsymbolmap() {
 }
 
 # Signs a framework with the provided identity
+# 使用提供的证明签名框架
 code_sign_if_enabled() {
   if [ -n &quot;${EXPANDED_CODE_SIGN_IDENTITY:-}&quot; -a &quot;${CODE_SIGNING_REQUIRED:-}&quot; != &quot;NO&quot; -a &quot;${CODE_SIGNING_ALLOWED}&quot; != &quot;NO&quot; ]; then
     # Use the current code_sign_identity
@@ -1180,13 +1197,21 @@ code_sign_if_enabled() {
 }
 
 # Strip invalid architectures
+# 删除无效架构函数
 strip_invalid_archs() {
   binary=&quot;$1&quot;
   # Get architectures for current target binary
+  # 获取当前二进制架构，x86_64 模拟器
   binary_archs=&quot;$(lipo -info &quot;$binary&quot; | rev | cut -d ':' -f1 | awk '{$1=$1;print}' | rev)&quot;
+  echo &quot;-------&quot;
+  echo &quot;$binary_archs&quot;
+  echo &quot;-------&quot;
+
   # Intersect them with the architectures we are building for
+  # 与目标架构取交集
   intersected_archs=&quot;$(echo ${ARCHS[@]} ${binary_archs[@]} | tr ' ' '\n' | sort | uniq -d)&quot;
   # If there are no archs supported by this binary then warn the user
+  # 如果交集为空，即没有支持的架构，则警告用户
   if [[ -z &quot;$intersected_archs&quot; ]]; then
     echo &quot;warning: [CP] Vendored binary '$binary' contains architectures ($binary_archs) none of which match the current build architectures ($ARCHS).&quot;
     STRIP_BINARY_RETVAL=0
@@ -1196,6 +1221,7 @@ strip_invalid_archs() {
   for arch in $binary_archs; do
     if ! [[ &quot;${ARCHS}&quot; == *&quot;$arch&quot;* ]]; then
       # Strip non-valid architectures in-place
+      # 删除无效架构
       lipo -remove &quot;$arch&quot; -output &quot;$binary&quot; &quot;$binary&quot;
       stripped=&quot;$stripped $arch&quot;
     fi
@@ -1206,16 +1232,19 @@ strip_invalid_archs() {
   STRIP_BINARY_RETVAL=1
 }
 
+# CONFIGURATION：运行的 scheme 配置模式，Debug 或 Release
+# 目前 Debug 和 Release 模式处理一致
+# /Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator/AFNetworking/AFNetworking.framework
 
+# /Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator/oc-pod/oc_pod.framework
+# /Users/maiming/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator/swift-pod/swift_pod.framework
 if [[ &quot;$CONFIGURATION&quot; == &quot;Debug&quot; ]]; then
   install_framework &quot;${BUILT_PRODUCTS_DIR}/AFNetworking/AFNetworking.framework&quot;
-  install_framework &quot;${BUILT_PRODUCTS_DIR}/Alamofire/Alamofire.framework&quot;
   install_framework &quot;${BUILT_PRODUCTS_DIR}/oc-pod/oc_pod.framework&quot;
   install_framework &quot;${BUILT_PRODUCTS_DIR}/swift-pod/swift_pod.framework&quot;
 fi
 if [[ &quot;$CONFIGURATION&quot; == &quot;Release&quot; ]]; then
   install_framework &quot;${BUILT_PRODUCTS_DIR}/AFNetworking/AFNetworking.framework&quot;
-  install_framework &quot;${BUILT_PRODUCTS_DIR}/Alamofire/Alamofire.framework&quot;
   install_framework &quot;${BUILT_PRODUCTS_DIR}/oc-pod/oc_pod.framework&quot;
   install_framework &quot;${BUILT_PRODUCTS_DIR}/swift-pod/swift_pod.framework&quot;
 fi
