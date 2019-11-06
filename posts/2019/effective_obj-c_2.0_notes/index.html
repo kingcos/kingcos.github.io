@@ -140,7 +140,7 @@ Obj-C 是 C 的超集；Obj-C 中的对象所占内存总是分配在堆空间�
       
       
       
-        <span class="post-read-time">— 13 min read</span>
+        <span class="post-read-time">— 15 min read</span>
       
     </div>
 
@@ -1234,10 +1234,117 @@ NSLog(@&quot;%@&quot;, [rect2 array]);
 
 <h3 id="通过委托与数据源协议进行对象间通信">通过委托与数据源协议进行对象间通信</h3>
 
-<p>为了避免循环引用（Retain Cycle），代理（Delegate）的内存管理语义需设置为 <code>weak</code> 或 <code>unsafe_unretained</code> 而非 <code>strong</code>。代理协议通常只会在类内部使用，因此在 Class-Continuation 分类（Class-Continuation Category）声明。代理协议中的方法通常使用 <code>@optional</code> 标记为可选，因为被代理者并非一定关心其中的所有方法，而在调用回代理上的方法时一定要先使用类型信息查询方法进行确认。代理协议中的方法通常将代理对象本身作为参数传回，以便根据不同的实例执行不同的逻辑。</p>
+<p>为了避免循环引用（Retain Cycle），代理（Delegate）的内存管理语义需设置为 <code>weak</code> 或 <code>unsafe_unretained</code>（关于两者区别详见「理解「属性」这一概念」一节），而非 <code>strong</code>。代理协议通常只会在类内部使用，因此在 Class-Continuation 分类（Class-Continuation Category）声明遵守即可。代理协议中的方法通常使用 <code>@optional</code> 标记为可选，因为被代理者并非一定关心其中的所有方法，而在调用回代理上的方法时一定要先使用类型信息查询方法进行确认，为了避免重复性调用查询方法，可使用位域来缓存结果，可详见<a href="../bit_field_union_in_cpp/">《C/C++ 中的位域与共用体》</a>一文。代理协议中的方法通常将代理对象本身作为参数传回，以便根据不同的代理遵守实例执行不同的逻辑。数据源（DataSource）中，数据从代理对象中流向类；而代理（Delegate）中，数据从类中流出至代理对象：</p>
 
-<pre><code class="language-objectivec">
+<pre><code class="language-objectivec">#import &quot;ViewController.h&quot;
+
+@class Foo;
+@protocol FooDelegate &lt;NSObject&gt;
+
+@optional
+- (void)foo:(Foo *)foo willLog:(NSString *)content;
+- (void)foo:(Foo *)foo didLog:(NSString *)content;
+@end
+
+@protocol FooDataSource &lt;NSObject&gt;
+@required
+- (NSString *)logContent;
+@end
+
+
+@interface Foo : NSObject {
+    // 位域
+    struct {
+        unsigned int willLog :1;
+        unsigned int didLog  :1;
+    } _delegateFlags;
+}
+// 声明为 weak
+@property (nonatomic, weak) id &lt;FooDelegate&gt; delegate;
+@property (nonatomic, weak) id &lt;FooDataSource&gt; dataSource;
+
+- (void)refresh;
+@end
+
+@implementation Foo
+- (void)setDelegate:(id&lt;FooDelegate&gt;)delegate {
+    _delegate = delegate;
+
+    // 避免多次调用 respondsToSelector:
+    _delegateFlags.willLog = [_delegate respondsToSelector:@selector(foo:willLog:)];
+    _delegateFlags.didLog = [_delegate respondsToSelector:@selector(foo:didLog:)];
+}
+
+- (void)refresh {
+    // 数据源（DataSource）：数据 -&gt; 类
+    NSString *content = [self.dataSource logContent];
+
+    // 检查代理是否实现可选协议
+    if ([_delegate respondsToSelector:@selector(foo:willLog:)]) {
+        // 代理（Delegate）：数据 -&gt; 代理
+        [_delegate foo:self willLog:content];
+    }
+
+    NSLog(@&quot;--------------------&quot;);
+    NSLog(@&quot;%@&quot;, content);
+    NSLog(@&quot;--------------------&quot;);
+
+    if (_delegateFlags.didLog) {
+        [_delegate foo:self didLog:content];
+    }
+}
+@end
+
+@interface ViewController () &lt;FooDelegate, FooDataSource&gt;
+@property (nonatomic, strong) Foo *foo;
+@property (nonatomic, strong) Foo *foo2;
+@end
+
+@implementation ViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+
+    self.foo = [[Foo alloc] init];
+    self.foo2 = [[Foo alloc] init];
+
+    self.foo.delegate = self;
+    self.foo.dataSource = self;
+
+    self.foo2.delegate = self;
+    self.foo2.dataSource = self;
+
+    [self.foo refresh];
+}
+
+- (void)foo:(Foo *)foo willLog:(NSString *)content {
+    if (foo == _foo) {
+        NSLog(@&quot;foo - willLog - [%@]&quot;, content);
+    } else if (foo == _foo2) {
+        NSLog(@&quot;foo2 - willLog - [%@]&quot;, content);
+    }
+}
+
+- (void)foo:(Foo *)foo didLog:(NSString *)content {
+    NSLog(@&quot;willLog - [%@]&quot;, content);
+}
+
+- (NSString *)logContent {
+    return @&quot;https://kingcos.me&quot;;
+}
+
+@end
+
+// OUTPUT:
+// foo - willLog - [https://kingcos.me]
+// --------------------
+// https://kingcos.me
+// --------------------
+// willLog - [https://kingcos.me]
 </code></pre>
+
+<h3 id="将类的实现代码分散到便于管理的数个分类之中">将类的实现代码分散到便于管理的数个分类之中</h3>
 
 <h2 id="reference">Reference</h2>
 
