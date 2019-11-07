@@ -244,7 +244,7 @@ NSObject *obj2 = obj1;
 
 <p>将引入头文件的时机尽量延后，只有在确定有需要时才引入，否则会增加耦合度、拉长编译时间、产生相互依赖等问题。</p>
 
-<p>继承父类和遵循协议则不能使用向前声明，必须引入相应的头文件，因此协议最好声明在单独的头文件中；由于代理协议（Delegate Protocol）和遵守协议代理的类声明在一起时才有意义，最好在实现文件中声明类遵守了该代理协议，并将实现代码放在 Class-Continuation 分类（Class-Continuation Category）中；因此只需要在实现文件中引入包含代理协议的头文件即可，而不需要将其放在公共头文件（Public Header File）中。</p>
+<p>继承父类和遵循协议则不能使用向前声明，必须引入相应的头文件，因此协议最好声明在单独的头文件中；由于代理协议（Delegate Protocol）和遵守协议代理的类声明在一起时才有意义，最好在实现文件中声明类遵守了该代理协议，并将实现代码放在类扩展中；因此只需要在实现文件中引入包含代理协议的头文件即可，而不需要将其放在公共头文件（Public Header File）中。</p>
 
 <h3 id="多用字面量语法-少用与之等价的方法">多用字面量语法，少用与之等价的方法</h3>
 
@@ -1234,7 +1234,7 @@ NSLog(@&quot;%@&quot;, [rect2 array]);
 
 <h3 id="通过委托与数据源协议进行对象间通信">通过委托与数据源协议进行对象间通信</h3>
 
-<p>为了避免循环引用（Retain Cycle），遵守代理（Delegate）协议对象的内存管理语义需设置为 <code>weak</code> 或 <code>unsafe_unretained</code>（关于两者区别详见本文《理解「属性」这一概念》一节），而非 <code>strong</code>。代理协议中的方法通常只会在类内部使用，因此可以在 Class-Continuation 分类（Class-Continuation Category）声明实现即可。代理协议中的方法通常使用 <code>@optional</code> 标记为可选，因为遵守代理协议的对象并非一定关心其中所有的方法，所以在调用回代理上的方法时一定要先使用类型信息查询方法进行确认，为了避免重复性调用查询方法，可使用位域来缓存结果，关于位域可详见<a href="../bit_field_union_in_cpp/">《C/C++ 中的位域与共用体》</a>一文。代理协议中的方法通常将调用者本身作为参数传回，以便根据不同的调用者执行不同的逻辑。数据源（DataSource）中，数据从代理对象中流向类；而调用者中，数据从调用者中流出至代理对象：</p>
+<p>为了避免循环引用（Retain Cycle），遵守代理（Delegate）协议对象的内存管理语义需设置为 <code>weak</code> 或 <code>unsafe_unretained</code>（关于两者区别详见本文《理解「属性」这一概念》一节），而非 <code>strong</code>。代理协议中的方法通常只会在类内部使用，因此可以在类扩展（注：本文中称之为 Class-Continuation Category）中声明实现即可。代理协议中的方法通常使用 <code>@optional</code> 标记为可选，因为遵守代理协议的对象并非一定关心其中所有的方法，所以在调用回代理上的方法时一定要先使用类型信息查询方法进行确认，为了避免重复性调用查询方法，可使用位域来缓存结果，关于位域可详见<a href="../bit_field_union_in_cpp/">《C/C++ 中的位域与共用体》</a>一文。代理协议中的方法通常将调用者本身作为参数传回，以便根据不同的调用者执行不同的逻辑。数据源（DataSource）中，数据从代理对象中流向类；而调用者中，数据从调用者中流出至代理对象：</p>
 
 <pre><code class="language-objectivec">#import &quot;ViewController.h&quot;
 
@@ -1350,6 +1350,95 @@ NSLog(@&quot;%@&quot;, [rect2 array]);
 
 <h3 id="总是为第三方的分类名称加前缀">总是为第三方的分类名称加前缀</h3>
 
+<p>向第三方分类中添加分类时，应为分类名称加上特有前缀以区分；分类中的方法也要加上特有前缀以区分。关于分类（Category），可详见<a href="../category_in_ios/">《iOS 中的 Category》</a>一文。</p>
+
+<h3 id="勿在分类中声明属性">勿在分类中声明属性</h3>
+
+<p>分类中可以定义属性，但并不会生成成员变量以及 getter &amp; setter 的实现，因此建议在主接口或类扩展中封装所需的所有属性。</p>
+
+<h3 id="使用-class-continuation-分类-隐藏实现细节">使用「class-continuation 分类」隐藏实现细节</h3>
+
+<p>class-continuation 分类现在通常称之为类扩展。类扩展中之所以可以定义方法和实例变量，这是由于 ABI 稳固的机制。利用类扩展可以将一些接口声明在实现文件中，以对外隐藏。其中比较一个比较特别的用例是将所需的 C++ 类等使用声明在类扩展中，这样无需声明在头文件中，可以避免其他引入的类必须使用 Objective C++ 语法（即 <code>.mm</code> 文件）：</p>
+
+<pre><code class="language-cpp">// CPPClass.hpp
+#ifndef CPPClass_hpp
+#define CPPClass_hpp
+
+#include &lt;stdio.h&gt;
+
+class CPPClass {
+    int foo;
+
+public:
+    CPPClass(int foo);
+};
+
+#endif /* CPPClass_hpp */
+
+// CPPClass.cpp
+#include &quot;CPPClass.hpp&quot;
+
+CPPClass::CPPClass(int foo) {
+    this-&gt;foo = foo;
+}
+</code></pre>
+
+<pre><code class="language-objectivec">// ObjCPPClass.h
+#import &lt;Foundation/Foundation.h&gt;
+
+// 直接引入 CPPClass 的声明
+//#import &quot;CPPClass.h&quot;
+
+NS_ASSUME_NONNULL_BEGIN
+
+// 向前声明，class 仍是 C++ 的关键字
+//class CPPClass;
+
+@interface ObjCPPClass : NSObject
+//{
+//@private
+//    CPPClass *_obj;
+//}
+
+@end
+
+NS_ASSUME_NONNULL_END
+
+// ObjCPPClass.mm
+#import &quot;ObjCPPClass.h&quot;
+#import &quot;CPPClass.hpp&quot;
+
+// 使用类扩展将 C++ 类引入并声明使用
+@interface ObjCPPClass () {
+    CPPClass *_obj;
+}
+@end
+
+@implementation ObjCPPClass
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        _obj = new CPPClass(100);
+        if (!_obj) self = nil;
+    }
+    return self;
+}
+
+- (void)dealloc
+{
+    // 手动销毁 _obj
+    delete _obj;
+}
+
+@end
+</code></pre>
+
+<p>类扩展也可以将头文件中声明为 <code>readonly</code> 的属性重新使用 <code>readwrite</code> 声明，以在类内部使用；类扩展通常也用来声明遵循外界无需知晓的协议。</p>
+
+<h3 id="通过协议提供匿名对象">通过协议提供匿名对象</h3>
+
 <h2 id="reference">Reference</h2>
 
 <ul>
@@ -1360,6 +1449,7 @@ NSLog(@&quot;%@&quot;, [rect2 array]);
 <li><a href="../type_introspection_and_reflection/">Obj-C &amp; Swift 的类型内省与反射 - kingcos</a></li>
 <li><a href="https://developer.apple.com/documentation/foundation/nszone?language=objc">NSZone - Apple Developer</a></li>
 <li><a href="../bit_field_union_in_cpp/">C/C++ 中的位域与共用体 - kingcos</a></li>
+<li><a href="../category_in_ios/">iOS 中的 Category - kingcos</a></li>
 </ul>
 
     </div>
