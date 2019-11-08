@@ -140,7 +140,7 @@ Obj-C 是 C 的超集；Obj-C 中的对象所占内存总是分配在堆空间�
       
       
       
-        <span class="post-read-time">— 15 min read</span>
+        <span class="post-read-time">— 16 min read</span>
       
     </div>
 
@@ -1446,6 +1446,71 @@ NS_ASSUME_NONNULL_END
 <h2 id="内存管理">内存管理</h2>
 
 <h3 id="理解引用计数">理解引用计数</h3>
+
+<p>Mac OS X 10.8 开始，垃圾回收（Garbage Collector）已经正式废弃，而 iOS 从未支持垃圾回收，一直使用引用计数（Reference Count，又称 Retain Count，保留计数）管理内存。在 MRC 下，<code>NSObject</code> 协议中的 <code>retain</code>、<code>release</code> 以及 <code>autorelease</code> 方法用来操作计数。当引用计数归零，系统将把对象占用的内存标记为可重用的。需要注意的是，这并不代表对象所占用的内存地址一定会被覆写，因此在引用计数降为 0 再调用时只是「可能」而非「一定」会崩溃。因此通常在 <code>release</code> 后将对象置为 <code>nil</code> 而避免悬挂指针（Dangling Pointer）：</p>
+
+<pre><code class="language-objectivec">Foo *foo = [[Foo alloc] init];
+[foo release];
+foo = nil; // 将内存区域置为 nil，避免悬挂指针
+</code></pre>
+
+<p>属性存取方法中也需要注意引用计数相关：</p>
+
+<pre><code class="language-objectivec">// MRC
+- (void)setFoo:(id)foo {
+    // 注意顺序：
+    // 当参数 foo 与成员变量 _foo 是同一对象时
+    [foo retain];   // 要先 retain 使得引用计数 +1
+    [_foo release]; // 防止对象提前释放导致实例变量将成为悬挂指针
+    _foo = foo;
+}
+</code></pre>
+
+<p>为了防止系统回收对象，但又要能在合适的时机释放，那么可以使用自动释放池延长对象生命周期：</p>
+
+<pre><code class="language-objectivec">// MRC
+- (Foo *)newFoo {
+    Foo *foo = [[Foo alloc] init];
+    // autorelease 使得超过方法边界依然可以存活一段时间
+    return [foo autorelease];
+}
+
+// foo 可以存活
+Foo *foo = [self newFoo];
+// 但若要持有此对象，仍需手动保留、释放
+_foo = [[self newFoo] retain];
+// ...
+[_foo release];
+</code></pre>
+
+<p>引用计数的概念应当理解为所执行的操作对于计数本身是增加了还是消减了，而非刻意追求为某个值。另外需要注意的是，查询引用计数的方法 <code>retainCount</code> 不推荐使用。</p>
+
+<h2 id="以-arc-简化引用计数">以 ARC 简化引用计数</h2>
+
+<p>ARC 下调用 <code>retain</code>、<code>release</code>、<code>autorelease</code>、<code>dealloc</code> 方法时并不通过 Obj-C 的消息发送机制，而是直接调用其底层的 C 语言版本，因而性能更好。在 Obj-C 中，以 <code>alloc</code>、<code>new</code>、<code>copy</code> 和 <code>mutableCopy</code> 开头的方法返回的对象归调用者所有，即调用这些方法的代码同样要负责释放；反之则不归调用者所有，需要在内部自己处理，因此返回的对象会自动释放，但外界希望保活则需要调用者再次保留：</p>
+
+<pre><code class="language-objectivec">// ARC
++ (Foo *)newFoo {
+    Foo *foo = [[Foo alloc] init];
+    return foo; // new 开头，本质即返回 foo
+}
+
++ (Foo *)someFoo {
+    Foo *foo = [[Foo alloc] init];
+    return foo; // 非特定开头，返回 [foo autorelease]
+}
+
+- (void)bar {
+    Foo *foo1 = [Foo newFoo];
+    Foo *foo2 = [Foo someFoo];
+
+    // 超过特定作用域下，变量将进行释放
+    // foo1 由 newFoo 创造，因此需要手动 [foo1 release];
+    // foo2 由 someFoo 创造，无需手动 release
+}
+</code></pre>
+
+<p>ARC 会自动将同一个对象上的多次 <code>retain</code> 和 <code>release</code> 操作成对移除。</p>
 
 <h2 id="reference">Reference</h2>
 
