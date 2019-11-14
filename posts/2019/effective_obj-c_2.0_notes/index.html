@@ -294,12 +294,12 @@ NSDictionary *dictWithNilObject2 = [NSDictionary dictionaryWithObjectsAndKeys:@&
 
 // 类型常量
 // const 决定了其为常量，不可被再次改变
-// static 决定了其作用域，即当前文件（因此如果将其定义在 *.h 中，其他引入该头文件的文件也可以访问到）
+// static 决定了其作用域，即当前文件（因此如果将其定义在 *.h 中，其它引入该头文件的文件也可以访问到）
 static const NSTimeInterval kAnimationDuration = 0.3;
 
 // 如果不使用 static 修饰，编译器会创建一个外部符号（External Symbols）
 const NSTimeInterval SomeAnimationDuration = 0.3;
-// 此时如果在其他文件内声明同名常量，则会报错「duplicate symbol」
+// 此时如果在其它文件内声明同名常量，则会报错「duplicate symbol」
 // Another.m
 const NSTimeInterval SomeAnimationDuration = 0.5;
 
@@ -416,7 +416,7 @@ NSString * const SomeConstant = @&quot;SomeConstant&quot;;
 <p>对于选择 <code>extern</code> 还是以上 <code>SOME_EXTERN</code>，得出以下的结论：</p>
 
 <ul>
-<li>对于这些固定前缀的 <code>extern</code> 应当在其范围下使用，即 <code>FOUNDATION_*</code> 在 Foundation 框架内部使用，<code>UIKIT_*</code> 在 <code>UIKit</code> 内部使用，在我们自己的库内应当推荐自定义 <code>SOME_*</code> 来使用，而不是直接套用其他库内的宏定义；</li>
+<li>对于这些固定前缀的 <code>extern</code> 应当在其范围下使用，即 <code>FOUNDATION_*</code> 在 Foundation 框架内部使用，<code>UIKIT_*</code> 在 <code>UIKit</code> 内部使用，在我们自己的库内应当推荐自定义 <code>SOME_*</code> 来使用，而不是直接套用其它库内的宏定义；</li>
 <li>默认的 <code>extern</code> 由于可能不兼容 C++，那么在库中需要兼容 C++ 时应当使用 <code>extern &quot;C&quot;</code>。</li>
 </ul>
 
@@ -452,7 +452,7 @@ enum NetworkType: NSInteger;
 
 <p>枚举中使用按位或操作符（Bitwise OR Operator）可以使得枚举的每个选项均可启用或禁用：</p>
 
-<pre><code class="language-objectivec">// UIViewAutoresizingNone 是无法与其他项目同时存在，因此为 0
+<pre><code class="language-objectivec">// UIViewAutoresizingNone 是无法与其它项目同时存在，因此为 0
 
 // UIView.h
 typedef NS_OPTIONS(NSUInteger, UIViewAutoresizing) {
@@ -1362,7 +1362,7 @@ NSLog(@&quot;%@&quot;, [rect2 array]);
 
 <h3 id="使用-class-continuation-分类-隐藏实现细节">使用「class-continuation 分类」隐藏实现细节</h3>
 
-<p>class-continuation 分类现在通常称之为类扩展。类扩展中之所以可以定义方法和实例变量，这是由于 ABI 稳固的机制。利用类扩展可以将一些接口声明在实现文件中，以对外隐藏。其中比较一个比较特别的用例是将所需的 C++ 类等使用声明在类扩展中，这样无需声明在头文件中，可以避免其他引入的类必须使用 Obj-C++ 语法（即 <code>.mm</code> 文件）：</p>
+<p>class-continuation 分类现在通常称之为类扩展。类扩展中之所以可以定义方法和实例变量，这是由于 ABI 稳固的机制。利用类扩展可以将一些接口声明在实现文件中，以对外隐藏。其中比较一个比较特别的用例是将所需的 C++ 类等使用声明在类扩展中，这样无需声明在头文件中，可以避免其它引入的类必须使用 Obj-C++ 语法（即 <code>.mm</code> 文件）：</p>
 
 <pre><code class="language-cpp">// CPPClass.hpp
 #ifndef CPPClass_hpp
@@ -1590,7 +1590,21 @@ id objc_retainAutoreleasedReturnValue(id object) {
 }
 </code></pre>
 
-<p>MRC 下为了实现单例将 <code>release</code> 方法替换为空操作；但在 ARC 不可，因为其将干扰 ARC 本身。</p>
+<p>MRC 下为了实现单例可以将 <code>release</code> 方法替换为空操作即可；但在 ARC 不可这样操作，因为这将干扰 ARC 本身。</p>
+
+<h3 id="在-dealloc-方法中只释放引用并解除监听">在 dealloc 方法中只释放引用并解除监听</h3>
+
+<p>上一节中也提到了一些在 <code>dealloc</code> 方法中所应执行的操作，本节不再赘述。另外还要在其中将当前对象的 <code>NSNotificationCenter</code> 观察者移除，否则在其它地方发送通知时，接收者却已经销毁，将引发崩溃。</p>
+
+<p>需要注意的是，<code>dealloc</code> 中并不建议释放开销较大的资源，因为其调用的具体时机我们无法把握，从而容易导致出现内存泄漏。而建议是将释放方法独立，并由开发者保证在不使用资源时释放资源。但为了防止开发者忘记释放资源，我们仍可以在 <code>dealloc</code> 中根据是否释放过而去兜底释放资源，也可抛出异常。另外系统也不能保证每个对象的 <code>dealloc</code> 方法最终都会被调用，即程序终止时某些对象的 <code>dealloc</code> 方法系统可能就不再去调用了，因此当需要在程序终止时清理某些对象时，可以在 <code>AppDelegate</code> 中的相关方法中操作。</p>
+
+<p><code>dealloc</code> 方法调用时，对象的生命周期已经接近尾声，此时不应随便调用其它方法，尤其是异步方法、特定线程方法、属性 getter &amp; setter：</p>
+
+<ol>
+<li>异步方法：当异步方法执行完毕时，系统已经将待回收对象彻底销毁，这将可能导致很多问题；</li>
+<li>特定线程方法：调用 <code>dealloc</code> 方法的所在线程将执行最终的释放操作，令对象的引用计数归零；而某些方法必须在特定的线程里（比如主线程里）调用，但此时已经无法保证其会在正确的线程上正确运行，因为对象已经处于正在回收的状态；为指明此状况，运行时系统已经改动了对象的内部数据结构；</li>
+<li>属性 getter &amp; setter：getter &amp; setter 有可能会被重写，其中可能会做一些不受控制的操作；另外如果对象的属性处于 KVO 下，此时的改变将使用到即将回收的对象，这将可能导致很多问题。</li>
+</ol>
 
 <h3 id="编写-异常安全代码时-留意内存管理问题">编写「异常安全代码时」留意内存管理问题</h3>
 
