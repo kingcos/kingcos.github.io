@@ -1758,7 +1758,7 @@ for (int i = 0; i &lt; 10000000; i ++) {
 
 <p>僵尸类是从名为 <code>_NSZombie_</code> 的模版类里复制出来的，伪代码如下：</p>
 
-<pre><code class="language-objectivec">//
+<pre><code class="language-objectivec">// 运行时发现 NSZombieEnabled 环境变量已经设置，将对 dealloc 方法进行方法调换（Method Swizzle）
 - (void)zombieDealloc {
     // 获取将要释放的对象的类对象
     Class cls = object_getClass(self);
@@ -1770,15 +1770,34 @@ for (int i = 0; i &lt; 10000000; i ++) {
     Class zombieCls = objc_lookUpClass(zombieClsName);
     // 若不存在则需创建
     if (!zombieCls) {
-        // 获取僵尸基类
+        // 获取僵尸基类（使得后续可得知对象所属的类）
         Class baseZombieCls = objc_lookUpClass(&quot;_NSZombie_&quot;);
-        // 复制僵尸基类为新类名
+        // 复制僵尸基类为新类名即修改 isa 指针（拷贝而非创建子类的效率更高）
         zombieCls = objc_duplicateClass(baseZombieCls, zombieClsName, 0)
     }
     // 执行正常的销毁操作
     objc_destructInstance(self);
     // 将要销毁的对象的类型设置为僵尸类
     objc_setClass(self, zombieCls);
+
+    // 对象本身并未被释放（free()），仅仅在 Debug 模式下可以理解
+}
+</code></pre>
+
+<p><code>___forwarding___</code> 是消息转发的核心方法，</p>
+
+<pre><code class="language-objectivec">// 获取将要释放的对象的类对象
+Class cls = object_getClass(self);
+// 获取类名
+const char *clsName = class_getName(cls);
+// 确定是否为僵尸类型
+if (string_has_prefix(clsName, &quot;_NSZombie_&quot;)) {
+    // 截取原始类名
+    const char *originalClsName = substring_from(clsName, 10);
+    const char *selectorName = sel_getName(_cmd);
+
+    // 杀死 app
+    abort();
 }
 </code></pre>
 
