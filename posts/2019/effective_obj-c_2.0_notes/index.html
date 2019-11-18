@@ -138,7 +138,7 @@
       
       
       
-        <span class="post-read-time">— 18 min read</span>
+        <span class="post-read-time">— 20 min read</span>
       
     </div>
 
@@ -1665,6 +1665,128 @@ ExceptionMaker *maker;
 <p><code>weak</code> 弱引用可以自动清空，也可不自动清空。自动清空（Autonilling）是随着 ARC 引入的新特性，由运行时实现。</p>
 
 <h3 id="以-自动释放池块-降低内存峰值">以「自动释放池块」降低内存峰值</h3>
+
+<p>自动释放池（Autorelease Pool）用于存放那些需要在稍后某个时刻释放的对象，清空自动释放池时，系统会向其中的对象发送 <code>release</code> 消息。GCD 机制中的线程默认都有自动释放池，每次执行事件循环（Event Loop）时，就会将其清空，因此这里我们不需要自己创建；通常只有在程序的 <code>main</code> 函数入口创建：</p>
+
+<pre><code class="language-objectivec">// main.m
+
+// Xcode 11 前
+int main(int argc, char * argv[]) {
+    @autoreleasepool {
+        return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
+    }
+    // 自动释放池的末尾即程序的终止处，此时操作系统会把程序所占的所有内存释放；
+    // 若不写明则 UIApplicationMain 函数中所需自动释放的对象就没有自动释放池容纳了，系统将有警告来提示；
+    // 这个池可以理解成最外围全部自动释放对象所用的池。
+}
+
+// Xcode 11
+int main(int argc, char * argv[]) {
+    NSString * appDelegateClassName;
+    @autoreleasepool {
+        // Setup code that might create autoreleased objects goes here.
+        appDelegateClassName = NSStringFromClass([AppDelegate class]);
+    }
+    return UIApplicationMain(argc, argv, nil, appDelegateClassName);
+}
+</code></pre>
+
+<p>自动释放池可以嵌套：</p>
+
+<pre><code class="language-objectivec">@autoreleasepool { // A
+    NSString *string = [NSString stringWithFormat:@&quot;kingcos.me&quot;];
+    @autoreleasepool { // B
+        NSNumber *number = [NSNumber numberWithInt:1];
+    } // B Pool 自动清空，number 收到 release 消息
+} // A Pool 自动清空，string 收到 release 消息
+</code></pre>
+
+<p>自动释放池可以用来降低内存峰值（High-Memory Waterline）：</p>
+
+<pre><code class="language-objectivec">NSMutableArray *arr = [NSMutableArray new];
+for (int i = 0; i &lt; 10000000; i ++) {
+    @autoreleasepool { // 内部自动释放的对象将放在该池中，而非线程的主池中
+        Foo *foo = [self generate]; // 若不加 @autoreleasepool 将在 for 循环结束后释放，内存占用将持续上涨
+        [arr addObject:foo];
+    }
+}
+
+// MRC 下的 NSAutoreleasePool
+NSMutableArray *arr = [NSMutableArray new];
+NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+for (int i = 0; i &lt; 10000000; i ++) {
+    Foo *foo = [self do];
+    [arr addObject:foo];
+
+    // 每隔 10 次释放一次
+    if (i % 10 == 0) {
+        [pool drain];
+    }
+}
+// 防止未释放，再手动释放一次
+[pool drain];
+
+// @autoreleasepool 语法较于 NSAutoreleasePool 更好的是范围的缺点，避免了在自动释放池清空后再次使用相关对象
+
+- (Foo *)generate {
+    Foo *foo = [[Foo alloc] init];
+    // 放入自动释放池中
+    return [foo autorelease];
+}
+</code></pre>
+
+<p>自动释放池机制类似栈，内部需要放入自动释放池的对象将入栈，而清空自动释放池则相当于将其出栈。自动释放池的建立会带来一定开销，具体是否用来优化效率，需取决于具体情况。</p>
+
+<h3 id="用-僵尸对象-调试内存管理问题">用「僵尸对象」调试内存管理问题</h3>
+
+<p>「僵尸对象」功能指的是在运行时系统会将所有已回收的对象转化为僵尸对象，当其再次收到消息时将抛出异常。我们可以在 Xcode - Edit Schemes - Memory Management - Zombie Objects 来开启该功能：</p>
+
+<p><img src="/img/2019/effective_obj-c_2.0_notes/2.png" alt="2" /></p>
+
+<pre><code class="language-objectivec">Bar *bar = [[Bar alloc] init];
+// 1: Bar *
+[bar release];
+// 2: _NSZombie_Bar *
+
+// LLDB:
+// (lldb) p bar
+// (Bar *) $0 = 0x00006000009dc040
+// (lldb) p bar
+// (_NSZombie_Bar *) $1 = 0x00006000009dc040
+// (lldb)
+</code></pre>
+
+<p>僵尸类是从名为 <code>_NSZombie_</code> 的模版类里复制出来的，伪代码如下：</p>
+
+<pre><code class="language-objectivec">//
+- (void)zombieDealloc {
+    // 获取将要释放的对象的类对象
+    Class cls = object_getClass(self);
+    // 获取类名
+    const char *clsName = class_getName(cls);
+    // 生成新类名
+    const char *zombieClsName = &quot;_NSZombie_&quot; + clsName;
+    // 查找是否存在该僵尸类
+    Class zombieCls = objc_lookUpClass(zombieClsName);
+    // 若不存在则需创建
+    if (!zombieCls) {
+        // 获取僵尸基类
+        Class baseZombieCls = objc_lookUpClass(&quot;_NSZombie_&quot;);
+        // 复制僵尸基类为新类名
+        zombieCls = objc_duplicateClass(baseZombieCls, zombieClsName, 0)
+    }
+    // 执行正常的销毁操作
+    objc_destructInstance(self);
+    // 将要销毁的对象的类型设置为僵尸类
+    objc_setClass(self, zombieCls);
+}
+</code></pre>
+
+<h3 id="不要使用-retaincount">不要使用 retainCount</h3>
+
+<h2 id="块与大中枢派发">块与大中枢派发</h2>
+
+<h3 id="理解-块-这一概念">理解「块」这一概念</h3>
 
 <h2 id="reference">Reference</h2>
 
