@@ -9,7 +9,7 @@
 <meta name="description" content="Date Notes Notes     2019-07-27 首次提交 -    Preface Obj-C 中的 Block，即闭包，其相关知识点非常多，那么本文就来仔细谈谈其中的概念与原理。
  ⚠️
 文中代码块中如明确标示 // MRC 即表明该处代码块运行环境是 MRC，需要关闭 ARC（Automatic Reference Counting，自动引用计数）。ARC 的开关可以参照下图设置（No: MRC, Yes: ARC）：
- 本质 // main.m #import &amp;lt;Foundation/Foundation.h&amp;gt; int main(int argc, const char * argv[]) { @autoreleasepool { ^{ NSLog(@&amp;quot;Hello, World!&amp;quot;); }(); } return 0; } // OUTPUT: // Hello, World!  在 main 函数中声明一个最简单的 Block，其中只有一句打印 Hello, World!"/>
+ 本质 // main.m #import &amp;lt;Foundation/Foundation.h&amp;gt; int main(int argc, const char * argv[]) { @autoreleasepool { ^{ NSLog(@&amp;quot;Hello, World!&amp;quot;); }(); } return 0; } // OUTPUT: // Hello, World!  在 main 函数中声明一个最简单的 Block，其中只有打印 Hello, World!"/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2019/block_in_obj-c/" />
@@ -212,7 +212,7 @@ int main(int argc, const char * argv[]) {
 // Hello, World!
 </code></pre>
 
-<p>在 <code>main</code> 函数中声明一个最简单的 Block，其中只有一句打印 <code>Hello, World!</code> 的语句。为了看清 Block 的结构，我们尝试使用 <code>xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m -o main.cpp</code> 命令将「main.m」翻译为 C/C++ 代码来分析：</p>
+<p>在 <code>main</code> 函数中声明一个最简单的 Block，其中只有打印 <code>Hello, World!</code> 的语句。为了看清 Block 的结构，我们尝试使用 <code>xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m -o main.cpp</code> 命令将「main.m」翻译为 C/C++ 代码来分析：</p>
 
 <pre><code class="language-cpp">struct __block_impl {
   void *isa;     // isa 指针
@@ -226,9 +226,10 @@ static struct __main_block_desc_0 {
   size_t Block_size; // Block 大小，sizeof 整个 Block 结构体
 } __main_block_desc_0_DATA = { 0, sizeof(struct __main_block_impl_0)};
 
+// ➡️ Block：
 struct __main_block_impl_0 {
-  struct __block_impl impl;         // 实现，注意非指针
-  struct __main_block_desc_0* Desc; // 描述信息的引用
+  struct __block_impl impl;         // 实现（非指针）
+  struct __main_block_desc_0* Desc; // 描述信息的指针
   // 构造函数
   __main_block_impl_0(void *fp, struct __main_block_desc_0 *desc, int flags=0) {
     impl.isa = &amp;_NSConcreteStackBlock;
@@ -244,7 +245,7 @@ static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
             NSLog((NSString *)&amp;__NSConstantStringImpl__var_folders_ps_0m9gnvtj0893vpf1cr595djh0000gn_T_main_429af3_mi_0);
         }
 
-// 声明 block 变量（_指向 _main_block_impl_0 的指针）
+// 声明 block 变量（指向 _main_block_impl_0 的指针）
 // void (*block)(void) = &amp;__main_block_impl_0(__main_block_func_0, &amp;__main_block_desc_0_DATA));
 void (*block)(void) = ((void (*)())&amp;__main_block_impl_0((void *)__main_block_func_0, &amp;__main_block_desc_0_DATA));
 
@@ -254,11 +255,11 @@ void (*block)(void) = ((void (*)())&amp;__main_block_impl_0((void *)__main_block
 ((void (*)(__block_impl *))((__block_impl *)block)-&gt;FuncPtr)((__block_impl *)block);
 </code></pre>
 
-<p>当我们声明 Block 后，其中的代码会被封装到 <code>__main_block_func_0</code> 静态函数中（后缀 <code>0</code> 代表序号），用来和 <code>__main_block_desc_0_DATA</code> 构造 <code>__main_block_impl_0</code>，并在该构造函数中将函数名（即函数指针）赋值给 <code>FuncPtr</code>；最终在 Block 真正调用时，通过 <code>block-&gt;FuncPtr(block)</code> 执行 Block 代码块。</p>
+<p>如上，当我们声明 Block 后，其中的代码块会被封装到 <code>__main_block_func_0</code> 静态函数中（后缀 <code>0</code> 代表序号，后同），用来和 <code>__main_block_desc_0_DATA</code> 一起构造 <code>__main_block_impl_0</code>，并在其构造函数中将函数指针赋值给 <code>FuncPtr</code>；最终在 Block 真正调用时，通过 <code>block-&gt;FuncPtr(block)</code> 执行代码块。</p>
 
 <p><img src="/img/2019/block_in_obj-c/1.png" alt="1" /></p>
 
-<p>将如上结构图形化，Obj-C 的 Block 的本质是 <code>__main_block_impl_0</code> 结构体。该结构体中又直接包含了 <code>__block_impl</code> 结构体，以及指向 <code>__main_block_desc_0</code> 结构体的指针。在 <code>__block_impl</code> 结构体中，<code>isa</code> 暗示了其本质是 Obj-C 对象的事实，而 <code>FuncPtr</code> 函数指针则指向封装了 Block 中要执行的代码块的静态函数。所以总的来说 Block 本质即<strong>封装了函数调用以及函数调用环境的 Obj-C 对象</strong>。</p>
+<p>将如上结构图形化，Obj-C 的 Block 的本质即是 <code>__main_block_impl_0</code> 结构体。该结构体中又直接包含了 <code>__block_impl</code> 结构体，以及指向 <code>__main_block_desc_0</code> 结构体的指针。在 <code>__block_impl</code> 结构体中，<code>isa</code> 暗示了其本质是 Obj-C 对象的事实，而 <code>FuncPtr</code> 函数指针则指向将要执行的代码块的静态函数。所以总的来说 Block 本质即<strong>封装了函数调用以及函数调用环境的 Obj-C 对象</strong>。</p>
 
 <h2 id="变量捕获">变量捕获</h2>
 
@@ -420,7 +421,7 @@ int main(int argc, const char * argv[]) {
 // a == 10
 </code></pre>
 
-<p>由于静态局部变量的生命周期随程序退出而结束，Block 只需要将局部静态变量的<strong>地址</strong>进行捕获（即引用传递），这样即使超过函数体的作用域 Block 中仍然可以访问到。而正因为捕获的是地址，因此当外界在 Block 执行前改变了局部静态变量的值，那么执行时也将获取到最新的值。</p>
+<p>由于静态局部变量的生命周期随程序退出而结束，Block 只需要将局部静态变量的<strong>地址</strong>进行捕获（即按引用传递），这样即使超过函数体的作用域 Block 中仍然可以访问到。而正因为捕获的是地址，因此当外界在 Block 执行前改变了局部静态变量的值，那么执行时也将获取到最新的值。</p>
 
 <pre><code class="language-cpp">struct __main_block_impl_0 {
   struct __block_impl impl;
