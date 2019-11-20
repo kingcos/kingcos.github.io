@@ -6,9 +6,9 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Notes     2019-07-27 首次提交 -    Preface Obj-C 中的 Block，即闭包，其相关知识点非常多，那么本文就来仔细谈谈其中的概念与原理。
+<meta name="description" content="Date Notes Notes     2019-07-27 首次提交 -   2019-11-20 更新内容 -    Preface Obj-C 中的 Block，即闭包，其相关知识点非常多，那么本文就来仔细谈谈其中的概念与原理。
  ⚠️
-文中代码块中如明确标示 // MRC 即表明该处代码块运行环境是 MRC，需要关闭 ARC（Automatic Reference Counting，自动引用计数）。ARC 的开关可以参照下图设置（No: MRC, Yes: ARC）：
+文中代码块中如明确标示 // MRC 即表明该处代码块运行环境开启了手动引用计数，需要关闭 Automatic Reference Counting（自动引用计数），可参照如下设置（No - MRC，Yes - ARC）：
  本质 // main.m #import &amp;lt;Foundation/Foundation.h&amp;gt; int main(int argc, const char * argv[]) { @autoreleasepool { ^{ NSLog(@&amp;quot;Hello, World!&amp;quot;); }(); } return 0; } // OUTPUT: // Hello, World!  在 main 函数中声明一个最简单的 Block，其中只有打印 Hello, World!"/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
@@ -177,6 +177,12 @@
 <td align="center">首次提交</td>
 <td align="center">-</td>
 </tr>
+
+<tr>
+<td align="center">2019-11-20</td>
+<td align="center">更新内容</td>
+<td align="center">-</td>
+</tr>
 </tbody>
 </table>
 
@@ -189,7 +195,7 @@
 <blockquote>
 <p>⚠️</p>
 
-<p>文中代码块中如明确标示 <code>// MRC</code> 即表明该处代码块运行环境是 MRC，需要关闭 ARC（Automatic Reference Counting，自动引用计数）。ARC 的开关可以参照下图设置（No: MRC, Yes: ARC）：</p>
+<p>文中代码块中如明确标示 <code>// MRC</code> 即表明该处代码块运行环境开启了手动引用计数，需要关闭 Automatic Reference Counting（自动引用计数），可参照如下设置（No - MRC，Yes - ARC）：</p>
 
 <p><img src="/img/2019/block_in_obj-c/3.png" alt="3" /></p>
 </blockquote>
@@ -197,6 +203,7 @@
 <h2 id="本质">本质</h2>
 
 <pre><code class="language-objectivec">// main.m
+
 #import &lt;Foundation/Foundation.h&gt;
 
 int main(int argc, const char * argv[]) {
@@ -267,9 +274,10 @@ void (*block)(void) = ((void (*)())&amp;__main_block_impl_0((void *)__main_block
 
 <h4 id="自动变量">自动变量</h4>
 
-<p>自动变量（Automatic Variable）即局部作用域变量，具体指在代码块中声明的变量（离开作用域会自动销毁），也可以使用 <code>auto</code> 关键字来显式声明。</p>
+<p>自动变量（Automatic Variable）即局部作用域变量，具体指在代码块中声明的变量（离开作用域会自动销毁），也可以使用 <code>auto</code> 关键字来显式声明：</p>
 
 <pre><code class="language-objectivec">// main.m
+
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
         // auto int a = 1;
@@ -279,13 +287,13 @@ int main(int argc, const char * argv[]) {
             NSLog(@&quot;a == %d&quot;, a);
         };
 
-        block(); // a == 10
+        block(); // a == 1
     }
     return 0;
 }
 </code></pre>
 
-<p>对于自动变量，由于其生命周期可能小于 Block 本身，因此 Block 会将自动变量捕获到结构体内部（即值传递），因此即使后续更改原有的变量值也不会影响已经被捕获的变量值。</p>
+<p>对于自动变量，由于其生命周期可能小于 Block 本身，因此 Block 会将自动变量捕获到结构体内部（即按值传递），这样即使后续更改原有的变量值也不会影响已经被捕获的变量值：</p>
 
 <pre><code class="language-cpp">struct __main_block_impl_0 {
   struct __block_impl impl;
@@ -307,14 +315,14 @@ static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
 }
 
 int a = 1;
-// 传入 a 本身作为参数
-// 去掉类型转换：void (*block)(void) = &amp;__main_block_impl_0(__main_block_func_0, &amp;__main_block_desc_0_DATA, a));
+// a 作为参数传入
+// 忽略类型转换：void (*block)(void) = &amp;__main_block_impl_0(__main_block_func_0, &amp;__main_block_desc_0_DATA, a));
 void (*block)(void) = ((void (*)())&amp;__main_block_impl_0((void *)__main_block_func_0, &amp;__main_block_desc_0_DATA, a));
-// 去掉类型转换：block-&gt;FuncPtr(block);
+// 忽略类型转换：block-&gt;FuncPtr(block);
 ((void (*)(__block_impl *))((__block_impl *)block)-&gt;FuncPtr)((__block_impl *)block);
 </code></pre>
 
-<p>刚才我们分析了 Block 对于不同类型的局部变量捕获区别，那么 <code>self</code> 呢？</p>
+<p>上面我们分析了 Block 对于不同类型局部变量捕获的区别，那么 <code>self</code> 呢？</p>
 
 <pre><code class="language-objectivec">#import &quot;A.h&quot;
 
@@ -331,7 +339,7 @@ void (*block)(void) = ((void (*)())&amp;__main_block_impl_0((void *)__main_block
 @end
 </code></pre>
 
-<p>Obj-C 中的方法默认都会带有两个参数，即当前对象 <code>self</code> 和当前方法 <code>_cmd</code>。函数参数的作用域又在函数体内，属于自动变量，因此 Block 也会对其本身直接进行捕获：</p>
+<p>我们知道 Obj-C 中的方法至少都会带有两个默认参数，即当前对象 <code>self</code> 和当前方法名 <code>_cmd</code>。而函数参数的作用域又在函数体内，本质属于自动变量，因此 Block 也会对 <code>self</code> 进行捕获：</p>
 
 <pre><code class="language-cpp">// - (void)objectFunc
 static void _I_A_objectFunc(A * self, SEL _cmd) {
@@ -377,7 +385,7 @@ static void __A__block_block_func_0(struct __A__block_block_impl_0 *__cself) {
 @end
 </code></pre>
 
-<p>同理如果 Block 中引入了成员变量，本质其实是通过 <code>self</code> 进行访问，也会对 <code>self</code> 本身进行捕获：</p>
+<p>同理如果 Block 中引入了成员变量，本质其实是通过 <code>self</code> 进行访问，最终也会对 <code>self</code> 本身进行捕获：</p>
 
 <pre><code class="language-cpp">struct __A__objectFunc_block_impl_0 {
   struct __block_impl impl;
@@ -403,6 +411,7 @@ static void __A__objectFunc_block_func_0(struct __A__objectFunc_block_impl_0 *__
 <p>局部静态变量指定义在函数体（代码块）内的静态变量，其作用域在函数体内，但并不会随函数返回而销毁。</p>
 
 <pre><code class="language-objectivec">// main.m
+
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
         static int a = 1;
@@ -417,11 +426,11 @@ int main(int argc, const char * argv[]) {
     return 0;
 }
 
-// OUTOUT:
+// OUTPUT:
 // a == 10
 </code></pre>
 
-<p>由于静态局部变量的生命周期随程序退出而结束，Block 只需要将局部静态变量的<strong>地址</strong>进行捕获（即按引用传递），这样即使超过函数体的作用域 Block 中仍然可以访问到。而正因为捕获的是地址，因此当外界在 Block 执行前改变了局部静态变量的值，那么执行时也将获取到最新的值。</p>
+<p>由于静态局部变量的生命周期随程序退出而结束，Block 只需要将局部静态变量的<strong>地址</strong>进行捕获（即按引用传递），这样即使超过函数体的作用域但 Block 中仍然可以访问到。而正因为捕获的是地址，当外界在 Block 执行前改变了局部静态变量的值，那么执行时也将获取到最新的值。</p>
 
 <pre><code class="language-cpp">struct __main_block_impl_0 {
   struct __block_impl impl;
@@ -443,8 +452,8 @@ static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
 }
 
 static int a = 1;
-// 传入 &amp;a 即 a 的地址作为参数
-// 去掉类型转换：void (*block)(void) = &amp;__main_block_impl_0(__main_block_func_0, &amp;__main_block_desc_0_DATA, &amp;a);
+// &amp;a 即 a 的地址作为参数传入
+// 忽略类型转换：void (*block)(void) = &amp;__main_block_impl_0(__main_block_func_0, &amp;__main_block_desc_0_DATA, &amp;a);
 void (*block)(void) = ((void (*)())&amp;__main_block_impl_0((void *)__main_block_func_0, &amp;__main_block_desc_0_DATA, &amp;a));
 
 // a 的值被改变
@@ -455,9 +464,10 @@ a = 10;
 
 <h3 id="全局变量">全局变量</h3>
 
-<p>全局变量即定义在所有函数体外的变量，其生命周期结束语程序退出：</p>
+<p>全局变量即定义在所有函数体外的变量，当程序退出时其生命周期结束：</p>
 
 <pre><code class="language-objectivec">// main.m
+
 // 全局变量：
 int a = 1;
 static int b = 2;
@@ -545,14 +555,15 @@ static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
 <blockquote>
 <p>⚠️</p>
 
-<p>在上一节中，我们可以从翻译的 C++ 代码中看到 Block 内部的 <code>isa</code> 指针指向了 <code>&amp;_NSConcreteStackBlock</code>，但其实在 Xcode 中并不存在「翻译」的步骤，因此这里我们最好使用运行时的方法来真正确定 Block 的类型。</p>
+<p>在上一节中，我们可以从翻译的 C++ 代码中看到 Block 内部的 <code>isa</code> 指针指向了 <code>&amp;_NSConcreteStackBlock</code>，但其实在 Xcode 中并不存在「翻译」这一步骤，因此我们最好使用运行时的方法来真正确定 Block 的具体类型。</p>
 </blockquote>
 
 <h3 id="nsglobalblock"><code>__NSGlobalBlock__</code></h3>
 
-<p>Block 内没有访问外界<strong>自动</strong>变量的 Block 均属于 <code>__NSGlobalBlock__</code>，其存储在内存的数据区（Data 段），该区域通常也会存放全局变量。</p>
+<p>Block 内没有访问外界<strong>自动</strong>变量的 Block 均属于 <code>__NSGlobalBlock__</code>，其存储在内存的数据区（Data 段），该区域通常也会存放全局变量：</p>
 
 <pre><code class="language-objectivec">// main.m
+
 int a = 1;
 
 int main(int argc, const char * argv[]) {
@@ -667,7 +678,7 @@ int main(int argc, const char * argv[]) {
         NSLog(@&quot;mallocBlock is a %@.&quot;, [mallocBlock class]);
     }
 }
-
+　
 // OUTPUT:
 // c == 10.
 // mallocBlock is a __NSMallocBlock__.
@@ -694,7 +705,8 @@ int main(int argc, const char * argv[]) {
 </ul>
 </blockquote>
 
-<pre><code class="language-objectivec">typedef void(^StackBlock)(void);
+<pre><code class="language-objectivec">// 使用 typedef 定义 Block 的类型，可以使得 API 更加简单友好
+typedef void(^StackBlock)(void);
 
 StackBlock returnStackBlock() {
     auto int autoVar = 10;
