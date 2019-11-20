@@ -138,7 +138,7 @@
       
       
       
-        <span class="post-read-time">— 20 min read</span>
+        <span class="post-read-time">— 21 min read</span>
       
     </div>
 
@@ -244,7 +244,35 @@ NSObject *obj2 = obj1;
 
 <h3 id="在类的头文件中尽量少引入其他头文件">在类的头文件中尽量少引入其他头文件</h3>
 
-<p>当需要知道有一个类的存在时，而不关心其内部细节时，可以使用向前声明（Forward Declaring）告知编译器，即可以在 .h（头文件）中 <code>@class SomeClass</code>；而在 .m（实现文件）中引入实际的 .h；当在两个头文件中互相引入对方，则会导致「循环引用（Chicken-Egg Situation）」，无法通过编译。</p>
+<p>当需要知道有一个类的存在时，而不关心其内部细节时，可以使用向前声明（Forward Declaring）告知编译器，即可以在 .h（头文件）中 <code>@class SomeClass</code>；而在 .m（实现文件）中引入实际的 .h；当在两个头文件中互相引入对方，则会导致「循环 引用（Chicken-Egg Situation，又称交叉引用）」，无法通过编译：</p>
+
+<pre><code class="language-objectivec">// A.h
+
+#import &lt;Foundation/Foundation.h&gt;
+#import &quot;B.h&quot; // -&gt; @class B;
+
+NS_ASSUME_NONNULL_BEGIN
+
+@interface A : NSObject
+
+@end
+
+NS_ASSUME_NONNULL_END
+
+// B.h
+
+#import &lt;Foundation/Foundation.h&gt;
+#import &quot;A.h&quot;
+
+NS_ASSUME_NONNULL_BEGIN
+
+// ERORR: Cannot find interface declaration for 'A', superclass of 'B'
+@interface B : A
+
+@end
+
+NS_ASSUME_NONNULL_END
+</code></pre>
 
 <p>将引入头文件的时机尽量延后，只有在确定有需要时才引入，否则会增加耦合度、拉长编译时间、产生相互依赖等问题。</p>
 
@@ -1807,6 +1835,43 @@ if (string_has_prefix(clsName, &quot;_NSZombie_&quot;)) {
 </code></pre>
 
 <h3 id="不要使用-retaincount">不要使用 retainCount</h3>
+
+<p><code>retainCount</code> 是 MRC 下的方法，用来获取对象的引用计数，但其实引用计数的具体值开发者不应特别关心。</p>
+
+<pre><code class="language-objectivec">// MRC
+while ([obj retainCount]) {
+    [obj release];
+}
+</code></pre>
+
+<p>以上的写法是错误的：</p>
+
+<ol>
+<li><code>retainCount</code> 方法并不会考虑到 <code>autorelease</code> 的情况，因此当跳出循环时引用计数确实归 0，但此时若自动释放池再次进行释放时将导致程序崩溃；</li>
+<li><code>retainCount</code> 方法可能永远不返回 <code>0</code>，系统有时会优化对象的释放行为（即使引用计数为 1 时就可能被回收），如果对象已经被回收，但仍然进入循环进行释放，将同样导致程序崩溃。</li>
+</ol>
+
+<p>因此，释放对象不应当通过引用计数来判断，而是应该找清楚哪里仍对对象进行了持有，通过内存管理解决问题。</p>
+
+<pre><code class="language-objectivec">// 64 bit macOS
+
+// 单例对象（编译期常量，编译器将该数据直接放在可执行文件中即可无需创建对象）引用计数不会变
+NSString *str1 = @&quot;kingcos.me&quot;;
+// 18446744073709551615
+NSLog(@&quot;%lu&quot;, (unsigned long)[str1 retainCount]);
+
+// 单例对象（标签指针，运行时在消息派发期间检测并执行相应操作）
+NSNumber *num1 = @1;
+// 9223372036854775807
+NSLog(@&quot;%lu&quot;, (unsigned long)[num1 retainCount]);
+
+// NSNumber 浮点数没有此类优化
+NSNumber *num2 = @3.14;
+// 1
+NSLog(@&quot;%lu&quot;, (unsigned long)[num2 retainCount]);
+</code></pre>
+
+<p>综上不建议使用 <code>retainCount</code> 方法。</p>
 
 <h2 id="块与大中枢派发">块与大中枢派发</h2>
 
