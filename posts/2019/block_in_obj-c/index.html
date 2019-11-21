@@ -568,40 +568,35 @@ int a = 1;
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
-        // 没有访问任何外界变量
         void (^gloablBlock)(void) = ^{
+            // 没有访问任何外界变量
             NSLog(@&quot;This is a __NSGlobalBlock__.&quot;);
         };
-        gloablBlock();
 
         NSLog(@&quot;%@&quot;, [gloablBlock class]);
 
         static int b = 1;
 
-        // 访问了全局变量或局部静态变量
         gloablBlock = ^{
+            // 访问了全局变量或局部静态变量
             NSLog(@&quot;a == %d, b == %d.&quot;, a, b);
         };
-        gloablBlock();
 
         NSLog(@&quot;%@&quot;, [gloablBlock class]);
     }
 }
 
 // OUTPUT:
-//  This is a __NSGlobalBlock__.
 // __NSGlobalBlock__
-// a == 1, b == 1.
 // __NSGlobalBlock__
 </code></pre>
 
 <h3 id="nsstackblock"><code>__NSStackBlock__</code></h3>
 
-<p><code>__NSStackBlock__</code> 类型的 Block 存储在内存的栈区，而栈区内存是不需要开发者来管理的，超过作用域的栈区内存将会被自动回收：</p>
+<p><code>__NSStackBlock__</code> 类型的 Block 存储在内存的栈区，而栈区内存不需要开发者手动管理，超过作用域的栈区内存将会被自动回收：</p>
 
-<pre><code class="language-objectivec">// MRC
+<pre><code class="language-objectivec">// MRC - main.m
 
-// main.m
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
         int c = 1;
@@ -609,22 +604,19 @@ int main(int argc, const char * argv[]) {
         void (^stackBlock)(void) = ^{
             NSLog(@&quot;c == %d.&quot;, c);
         };
-        stackBlock();
 
         NSLog(@&quot;%@&quot;, [stackBlock class]);
     }
 }
 
 // OUTPUT:
-// c == 1.
 //  __NSStackBlock__
 </code></pre>
 
 <p>内部访问了外界<strong>自动</strong>变量的 Block 在 MRC 下属于 <code>__NSStackBlock__</code>（自动变量被分配在了栈区），所以即使 Block 内部捕获了自动变量，但这个 Block 本身和捕获的变量也仍然在栈区，会随着其作用域而释放：</p>
 
-<pre><code class="language-objectivec">// MRC
+<pre><code class="language-objectivec">// MRC - main.m
 
-// main.m
 void (^stackBlock)(void);
 
 void initBlock() {
@@ -641,8 +633,7 @@ int main(int argc, const char * argv[]) {
         // 执行 stackBlock Block
         stackBlock();
 
-        // EXC_BAD_ACCESS
-        // NSLog(@&quot;stackBlock is a %@.&quot;, [stackBlock class]);
+        NSLog(@&quot;stackBlock is a %@.&quot;, [stackBlock class]); // EXC_BAD_ACCESS
     }
 }
 
@@ -654,11 +645,10 @@ int main(int argc, const char * argv[]) {
 
 <h3 id="nsmallocblock"><code>__NSMallocBlock__</code></h3>
 
-<p><code>__NSMallocBlock__</code> 类型的 Block 存储在内存的堆区，堆区通常用作动态分配（Malloc）的内存。在 MRC 下，对于 <code>__NSStackBlock__</code> 类型的 Block 只要再对其发送 <code>copy</code> 消息即可将栈上的内存拷贝到堆上：</p>
+<p><code>__NSMallocBlock__</code> 类型的 Block 存储在内存的堆区，堆区是通常用作动态分配（Malloc）的内存。在 MRC 下，对于 <code>__NSStackBlock__</code> 类型的 Block 只要再对其发送 <code>copy</code> 消息即可将栈上的内存拷贝到堆上：</p>
 
-<pre><code class="language-objectivec">// MRC
+<pre><code class="language-objectivec">// MRC - main.m
 
-// main.m
 void (^mallocBlock)(void);
 
 void initBlock() {
@@ -690,17 +680,17 @@ int main(int argc, const char * argv[]) {
 <ol>
 <li>对于 <code>[__NSGlobalBlock__ copy]</code>，仍将返回 <code>__NSGlobalBlock__</code>；</li>
 <li>对于 <code>[__NSStackBlock__ copy]</code>，将从栈拷贝到堆区，返回 <code>__NSMallocBlock__</code>；</li>
-<li>对于 <code>[__NSMallocBlock__ copy]</code>，引用计数会增加（相当于 <code>ratain</code>）。（TODO？？如何证明？？）</li>
+<li>对于 <code>[__NSMallocBlock__ copy]</code>，引用计数会增加（相当于 <code>ratain</code>）。</li>
 </ol>
 
 <ul>
-<li>在 ARC 下，编译器会根据情况将栈上的 Block（<code>__NSStackBlock__</code>）拷贝（<code>copy</code>）到堆上：
+<li>在 ARC 下，编译器会根据情况将栈上的 Block（<code>__NSStackBlock__</code>）自动拷贝（<code>copy</code>）到堆上：
 
 <ul>
 <li>Block 作为函数返回值时；</li>
 <li>将 Block 赋值给 <code>__strong</code> 指针时；</li>
 <li>Block 作为 Cocoa API 中方法名含有 <code>usingBlock</code> 的参数时（eg. <code>- (void)enumerateObjectsUsingBlock:(void (NS_NOESCAPE ^)(ObjectType obj, NSUInteger idx, BOOL *stop))block</code>）；</li>
-<li>Block 作为 GCD API 时。</li>
+<li>Block 作为 GCD API 参数时。</li>
 </ul></li>
 </ul>
 </blockquote>
@@ -715,10 +705,10 @@ StackBlock returnStackBlock() {
         NSLog(@&quot;%d&quot;, autoVar);
     } class]);
 
-    // Block 作为函数返回值 -&gt; copy（ARC）
+    // ARC 下 Block 作为函数返回值会被自动拷贝为 __NSMallocBlock__
     // 此处代码若在 MRC 下会编译报错「Returning block that lives on the local stack」
     // 即编译器已经发现返回的 Block 是在栈上，一旦函数体走完，Block 就会被销毁，因此在 MRC 下需要手动 copy：
-    // return [^{ NSLog(@&quot;%d&quot;, autoVar); } copy]; // MRC
+    // return [^{ NSLog(@&quot;%d&quot;, autoVar); } copy];
     return ^{
         NSLog(@&quot;%d&quot;, autoVar);
     };
@@ -733,14 +723,14 @@ int main(int argc, const char * argv[]) {
 
         auto int autoVar = 10;
 
-        // block 强指针指向了 StackBlock，因此 ARC 下编译器自动为其 copy 为 __NSMallocBlock__
+        // block 强指针指向了 StackBlock，因此 ARC 下编译器自动为其拷贝为 __NSMallocBlock__
         StackBlock block = ^{
             NSLog(@&quot;%d&quot;, autoVar);
         };
 
         NSLog(@&quot;block is a %@.&quot;, [block class]);
 
-        // 弱引用则不会 copy，即仍然是 __NSStackBlock__
+        // 弱引用则不会自动拷贝   ，即仍然是 __NSStackBlock__
         __weak StackBlock block2 = ^{
             NSLog(@&quot;%d&quot;, autoVar);
         };
