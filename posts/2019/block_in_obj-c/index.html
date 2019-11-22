@@ -9,8 +9,7 @@
 <meta name="description" content="Date Notes Notes     2019-07-27 首次提交 -   2019-11-21 整理部分细节 -    Preface Obj-C 中的 Block，即闭包，使得我们能够将代码块封装为变量，可以作为参数在方法中传递。当我们需要做一些异步行为时，总是希望能够在异步动作完成时可以在回调中执行额外的动作，那么此时我们就可以选择使用 Block 来作为 handler，其相较于 Delegate 更加简洁。那么本文就将着眼于 Obj-C 中 Block，谈谈其中的原理。
 对于设计 handler API，可参考《编写高质量 iOS 与 OS X 代码的 52 个有效方法》一书中所提到的，通常我们可以将成功与失败情况放在同一个 handler 中处理；另外我们可以仿照 NSNotificationCenter API，通过增加一个参数来让外界决定 handler 执行的队列。
  ⚠️
-在 Obj-C 中我们可以使用 __has_feature(objc_arc) 宏来区分 ARC 和 MRC 下可以编译的代码，MRC 可以通过关闭 Automatic Reference Counting（自动引用计数）开启，具体情况参照如下设置（No - MRC，Yes - ARC）：
- What 在 main 函数中声明并执行一个简单的 Block："/>
+在 Obj-C 中我们可以使用 __has_feature(objc_arc) 宏来区分 ARC（Automatic Reference Counting）和 MRC（Mannul Reference Counting）下可以编译的代码。目前 Xcode 中默认开启了 ARC，切换为 MRC 可以通过 Xcode - Build Settings - Automatic Reference Counting（自动引用计数）- No 来设置，具体可参照下图："/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2019/block_in_obj-c/" />
@@ -198,7 +197,7 @@
 <blockquote>
 <p>⚠️</p>
 
-<p>在 Obj-C 中我们可以使用 <code>__has_feature(objc_arc)</code> 宏来区分 ARC 和 MRC 下可以编译的代码，MRC 可以通过关闭 Automatic Reference Counting（自动引用计数）开启，具体情况参照如下设置（No - MRC，Yes - ARC）：</p>
+<p>在 Obj-C 中我们可以使用 <code>__has_feature(objc_arc)</code> 宏来区分 ARC（Automatic Reference Counting）和 MRC（Mannul Reference Counting）下可以编译的代码。目前 Xcode 中默认开启了 ARC，切换为 MRC 可以通过 Xcode - Build Settings - Automatic Reference Counting（自动引用计数）- No 来设置，具体可参照下图：</p>
 
 <p><img src="/img/2019/block_in_obj-c/3.png" alt="3" /></p>
 </blockquote>
@@ -222,7 +221,7 @@ int main(int argc, const char * argv[]) {
 // Hello, World!
 </code></pre>
 
-<p>为了窥探 Block 的结构，使用 <code>xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m -o main.cpp</code> 命令将以上代码翻译为 C/C++ 代码来分析：</p>
+<p>为了窥探 Block 的结构，可以尝试使用 <code>xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m -o main.cpp</code> 命令将以上代码翻译为 C/C++ 代码来分析：</p>
 
 <pre><code class="language-cpp">struct __block_impl {
   void *isa;     // isa 指针
@@ -267,7 +266,7 @@ void (*block)(void) = ((void (*)())&amp;__main_block_impl_0((void *)__main_block
 
 <p>如上，当声明 Block 后，其中的代码块会被封装到 <code>__main_block_func_0</code> 静态函数中（后缀 <code>0</code> 代表序号，后同），用来和 <code>__main_block_desc_0_DATA</code> 一起构造 <code>__main_block_impl_0</code>，并在其构造函数中将函数指针赋值给 <code>FuncPtr</code>；最终在 Block 真正调用时，通过 <code>block-&gt;FuncPtr(block)</code> 执行代码块。</p>
 
-<p>所以 Obj-C 的 Block 即是 <code>__main_block_impl_0</code> 结构体。该结构体中又直接包含了 <code>__block_impl</code> 结构体，以及指向 <code>__main_block_desc_0</code> 结构体的指针。在 <code>__block_impl</code> 结构体中，<code>isa</code> 暗示了其本质是 Obj-C 对象的事实，而 <code>FuncPtr</code> 函数指针则指向将要执行的代码块的静态函数：</p>
+<p>所以 Obj-C 的 Block 即是 <code>__main_block_impl_0</code> 结构体。该结构体中又直接包含了 <code>__block_impl</code> 结构体，以及指向 <code>__main_block_desc_0</code> 结构体的指针。在 <code>__block_impl</code> 结构体中，<code>isa</code> 暗示了其本质是 Obj-C 对象的事实，而 <code>FuncPtr</code> 函数指针则指向将要执行的静态函数：</p>
 
 <p><img src="/img/2019/block_in_obj-c/1.png" alt="1" /></p>
 
@@ -301,7 +300,7 @@ int main(int argc, const char * argv[]) {
 // a == 1, b = 2
 </code></pre>
 
-<p>由于 Block 可以被代码块外声明的变量持有，因此自动变量的生命周期可能早于 Block 本身结束。所以 Block 会将自动变量捕获到结构体内部（即按值传递），这样即使在声明后更改了原有的变量值或者自动变量的生命周期结束，也不会影响已经被捕获的那个变量：</p>
+<p>由于 Block 可以被代码块外声明的变量持有，因此自动变量的生命周期可能早于 Block 本身结束。所以 Block 会将自动变量捕获到结构体内部（即按值传递），这样即使在 Block 声明后更改了原有的变量值或者自动变量的生命周期结束，也不会影响已经被捕获的那个变量：</p>
 
 <pre><code class="language-cpp">struct __main_block_impl_0 {
   struct __block_impl impl;
@@ -330,7 +329,7 @@ void (*block)(void) = ((void (*)())&amp;__main_block_impl_0((void *)__main_block
 ((void (*)(__block_impl *))((__block_impl *)block)-&gt;FuncPtr)((__block_impl *)block);
 </code></pre>
 
-<p>Obj-C 中的方法都会带有两个默认参数，即 <code>self</code> 和 <code>_cmd</code>。而函数参数的作用域仅在函数体内，也属于自动变量，因此 Block 也会对 <code>self</code> 进行捕获：</p>
+<p>Obj-C 中方法的两个默认参数 <code>self</code> 和 <code>_cmd</code> 的作用域仅在函数体内，也属于自动变量，因此 Block 内如果使用到 <code>self</code> 也会对其进行捕获：</p>
 
 <pre><code class="language-cpp">// - (void)objectFunc
 static void _I_A_objectFunc(A * self, SEL _cmd) {
@@ -357,7 +356,7 @@ static void __A__block_block_func_0(struct __A__block_block_impl_0 *__cself) {
     }
 </code></pre>
 
-<p>而如果 Block 中引入了成员变量，本质其实也是通过 <code>self</code> 进行访问的，因此同理也会对 <code>self</code> 本身进行捕获：</p>
+<p>而如果 Block 中引入了成员变量，本质其实是通过 <code>self</code> 进行访问的，因此同理也会对 <code>self</code> 本身进行捕获：</p>
 
 <pre><code class="language-cpp">struct __A__objectFunc_block_impl_0 {
   struct __block_impl impl;
@@ -380,7 +379,7 @@ static void __A__objectFunc_block_func_0(struct __A__objectFunc_block_impl_0 *__
 
 <h4 id="局部静态变量">局部静态变量</h4>
 
-<p>局部静态变量指定义在代码块内的静态变量，其作用域是在代码块内，但其生命周期并不会随代码块结束而销毁：</p>
+<p>局部静态变量指定义在代码块内的静态变量，其作用域是在代码块内，但其生命周期并不会随代码块结束：</p>
 
 <pre><code class="language-objectivec">// main.m
 
@@ -402,7 +401,7 @@ int main(int argc, const char * argv[]) {
 // a == 10
 </code></pre>
 
-<p>由于静态局部变量的生命周期随程序退出而结束，Block 只需要将局部静态变量的<strong>地址</strong>进行捕获即可（即按引用传递）。这样即使超过静态局部变量的作用域但 Block 中仍然可以访问到，且当外界在 Block 执行前如果改变了局部静态变量的值，那么执行时也将获取到最新的值：</p>
+<p>由于静态局部变量的生命周期随程序退出而结束，Block 只需要将局部静态变量的<strong>地址</strong>进行捕获即可（即按引用传递）。这样即使超过静态局部变量的作用域但 Block 中仍然可以访问到，且当 Block 执行前如果改变了局部静态变量的值，那么执行时也将根据地址获取到最新值：</p>
 
 <pre><code class="language-cpp">struct __main_block_impl_0 {
   struct __block_impl impl;
@@ -558,11 +557,13 @@ int main(int argc, const char * argv[]) {
 // __NSGlobalBlock__
 </code></pre>
 
+<p>对 <code>__NSGlobalBlock__</code> 类型的 Block 执行 <code>copy</code> 操作仍将返回 <code>__NSGlobalBlock__</code>。</p>
+
 <h3 id="nsstackblock"><code>__NSStackBlock__</code></h3>
 
 <h4 id="what-1">What</h4>
 
-<p><code>__NSStackBlock__</code> 类型的 Block 存储在内存的栈区，而栈区内存不需要开发者手动管理，作用域结束的栈区内存将会被自动回收：</p>
+<p>自动变量存储在内存的栈区，当 Block 内访问了外界的自动变量时会对其进行捕获，此时 Block 本身也被分配在栈区，即为 <code>__NSStackBlock__</code> 类型：</p>
 
 <pre><code class="language-objectivec">#if !__has_feature(objc_arc)
 int c = 1;
@@ -578,37 +579,110 @@ NSLog(@&quot;%@&quot;, [stackBlock class]);
 //  __NSStackBlock__
 </code></pre>
 
-<p>内部访问了外界<strong>自动变量</strong>的 Block 在 MRC 下默认属于 <code>__NSStackBlock__</code>（自动变量默认被分配在了栈区），所以即使 Block 内部捕获了自动变量，但这个 Block 本身和捕获的变量也仍然在栈区，会随着其作用域而释放：</p>
+<p>栈区的内存不需要开发者手动管理，当作用域结束时栈区内存将会被自动回收。所以即使 <code>__NSStackBlock__</code> 类型的 Block 内部捕获了自动变量，但 Block 本身和捕获的变量也仍然存储在栈区，会随着其作用域结束而释放：</p>
 
 <pre><code class="language-objectivec">// main.m
 
 #if !__has_feature(objc_arc)
-void (^stackBlock)(void);
+@interface Person : NSObject
+@end
+
+@implementation Person
+- (void)dealloc
+{
+#if !__has_feature(objc_arc)
+    [super dealloc];
+#endif
+    NSLog(@&quot;dealloc&quot;);
+}
+@end
+
+void (^stackBlock1)(void);
+void (^stackBlock2)(void);
 
 void initBlock() {
+#if !__has_feature(objc_arc)
     int c = 10;
-    stackBlock = ^{
-        NSLog(@&quot;c == %d.&quot;, c);
+
+    stackBlock1 = ^{
+        NSLog(@&quot;c == %d&quot;, c);
     };
+
+    // -----
+
+    Person *p = [[Person alloc] init];
+
+    NSLog(@&quot;%ld&quot;, [p retainCount]);
+
+    stackBlock2 = ^{
+       NSLog(@&quot;p == %@&quot;, p);
+    };
+
+    NSLog(@&quot;%ld&quot;, [p retainCount]);
+
+    [p release];
+#else
+    Person *strongP = [[Person alloc] init];
+
+    NSLog(@&quot;%ld&quot;, CFGetRetainCount((__bridge CFTypeRef)(strongP)));
+
+    __weak Person *weakP = strongP;
+
+    NSLog(@&quot;%ld&quot;, CFGetRetainCount((__bridge CFTypeRef)(strongP)));
+
+    // __NSStackBlock__
+    ^{
+        NSLog(@&quot;%@&quot;, strongP);
+        NSLog(@&quot;%@&quot;, weakP);
+    };
+
+    NSLog(@&quot;%ld&quot;, CFGetRetainCount((__bridge CFTypeRef)(strongP)));
+#endif
 }
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
         // 初始化 stackBlock
         initBlock();
-        // 执行 stackBlock Block
-        stackBlock();
+        NSLog(@&quot;---&quot;);
+#if !__has_feature(objc_arc)
+        // 执行 stackBlock1
+        stackBlock1(); // c == -272632744
+        // 执行 stackBlock2
+        stackBlock2(); // CRASH: objc[59614]: Attempt to use unknown class 0x7ffeefbff428.
 
-        NSLog(@&quot;stackBlock is a %@.&quot;, [stackBlock class]); // Crash: EXC_BAD_ACCESS
+        NSLog(@&quot;stackBlock is a %@.&quot;, [stackBlock1 class]); // CRASH: EXC_BAD_ACCESS
+#endif
     }
 }
-#endif
 
-// OUTPUT:
-// c == -272632648.
+// MRC OUTPUT:
+// 1
+// 1
+// dealloc
+// ---
+
+// ARC OUTPUT:
+// 1
+// 1
+// 2
+// dealloc
+// ---
 </code></pre>
 
-<p>此时 <code>c</code> 变成了一个脏数据，同理访问 Block 也出现了 <code>EXC_BAD_ACCESS</code> 崩溃。为了避免这种问题，我们需要将其分配在堆上（即 <code>__NSMallocBlock__</code>），这是因为堆区的内存由开发者自己管理，可以避免被自动回收。</p>
+<ul>
+<li>MRC 下，<code>__NSStackBlock__</code> 类型的 Block 捕获对象类型的自动变量但并不会改变其引用计数，即不会进行 <code>retain</code> 持有操作。而 <code>main</code> 函数中的执行到 Block 时自动变量 <code>c</code> 和 <code>p</code> 其实已经被释放，因此访问时出现了脏数据，访问 Block 本身也出现了 <code>EXC_BAD_ACCESS</code> 崩溃。为了避免这种问题，我们需要将其分配在堆上（即 <code>__NSMallocBlock__</code>），这是因为堆区的内存由开发者自己管理，可以避免被自动回收；</li>
+
+<li><p>ARC 下，<code>__NSStackBlock__</code> 类型的 Block 中捕获了 <code>strongP</code> 和 <code>weakP</code>（可以通过为翻译 Obj-C 代码的命令额外添加 <code>-fobjc-arc -fobjc-runtime=ios-13.0.0</code> 参数强制使用 ARC 并指定运行时平台和版本，这样即可输出带有部分运行时关键字的 C/C++ 代码，如下），虽然强引用会导致其引用计数增加，但 Block 本身仍会随作用域超出而销毁，而自动变量也会被销毁。</p>
+
+<pre><code class="language-cpp">struct __initBlock_block_impl_0 {
+// ...
+Person *__strong strongP; // ⚠️ 强引用
+Person *__weak weakP;     // ⚠️ 弱引用
+// ...
+};
+</code></pre></li>
+</ul>
 
 <h3 id="nsmallocblock"><code>__NSMallocBlock__</code></h3>
 
@@ -632,7 +706,7 @@ int main(int argc, const char * argv[]) {
     @autoreleasepool {
         // 初始化 mallocBlock
         initBlock();
-        // 执行 mallocBlock Block
+        // 执行 mallocBlock
         mallocBlock();
 
         NSLog(@&quot;mallocBlock is a %@.&quot;, [mallocBlock class]);
@@ -645,15 +719,9 @@ int main(int argc, const char * argv[]) {
 // mallocBlock is a __NSMallocBlock__.
 </code></pre>
 
+<p>对 <code>__NSMallocBlock__</code> 类型的 Block 再次执行 <code>copy</code> 操作将导致引用计数增加（相当于 <code>ratain</code>）。</p>
+
 <blockquote>
-<p>⚠️</p>
-
-<ol>
-<li>对于 <code>[__NSGlobalBlock__ copy]</code>，仍将返回 <code>__NSGlobalBlock__</code>；</li>
-<li>对于 <code>[__NSStackBlock__ copy]</code>，将从栈拷贝到堆区，返回 <code>__NSMallocBlock__</code>；</li>
-<li>对于 <code>[__NSMallocBlock__ copy]</code>，引用计数会增加（相当于 <code>ratain</code>）。</li>
-</ol>
-
 <ul>
 <li>在 ARC 下，编译器会根据情况将栈上的 Block（<code>__NSStackBlock__</code>）自动拷贝（<code>copy</code>）到堆上：
 
@@ -735,90 +803,6 @@ int main(int argc, const char * argv[]) {
 #endif
 </code></pre>
 
-<h3 id="对象类型的自动变量">对象类型的自动变量</h3>
-
-<p>创建一个 <code>Person</code> 类型和一个 <code>SomeBlock</code> 类型，便于下面举例：</p>
-
-<pre><code class="language-objectivec">@interface Person : NSObject
-@property (nonatomic, assign) NSUInteger age;
-@end
-
-@implementation Person
-- (void)dealloc
-{
-#if !__has_feature(objc_arc)
-    [super dealloc];
-#endif
-    NSLog(@&quot;dealloc&quot;);
-}
-@end
-
-typedef void(^SomeBlock)(void);
-</code></pre>
-
-<h4 id="nsstackblock-1"><code>__NSStackBlock__</code></h4>
-
-<p>ARC 下，<code>__NSStackBlock__</code> 捕获的自动变量无论被强引用还是弱引用，其本身仍会随作用域超出而销毁：</p>
-
-<pre><code class="language-objectivec">{
-    Person *p = [[Person alloc] init];
-    p.age = 20;
-
-    NSLog(@&quot;%ld&quot;, CFGetRetainCount((__bridge CFTypeRef)(p)));
-
-    __weak Person *weakP = p;
-
-    NSLog(@&quot;%ld&quot;, CFGetRetainCount((__bridge CFTypeRef)(p)));
-
-    // __NSStackBlock__
-    ^{
-        NSLog(@&quot;%lu&quot;, (unsigned long)p.age);
-        NSLog(@&quot;%lu&quot;, (unsigned long)weakP.age);
-    };
-
-    NSLog(@&quot;%ld&quot;, CFGetRetainCount((__bridge CFTypeRef)(p)));
-};
-
-NSLog(@&quot;---&quot;);
-
-// OUTPUT:
-// 1
-// 1
-// 2
-// dealloc
-// ---
-</code></pre>
-
-<p>MRC 下，<code>__NSStackBlock__</code> 不会对捕获的变量本身进行强引用或持有（Retain）操作，因此超出 <code>p</code> 本身的作用域，即使 Block 本身没有被销毁，其捕获的对象同样也会被销毁：</p>
-
-<pre><code class="language-objectivec">#if !__has_feature(objc_arc)
-SomeBlock block;
-{
-    Person *p = [[Person alloc] init];
-    p.age = 20;
-
-    NSLog(@&quot;%ld&quot;, [p retainCount]);
-
-    // __NSStackBlock__
-    block = ^{
-        NSLog(@&quot;%lu&quot;, (unsigned long)p.age);
-    };
-
-    NSLog(@&quot;%ld&quot;, [p retainCount]);
-
-    [p release];
-};
-
-NSLog(@&quot;---&quot;);
-#endif
-
-// OUTPUT:
-// 1
-// 1
-// dealloc
-// ---
-</code></pre>
-
 <h4 id="nsmallocblock-1"><code>__NSMallocBlock__</code></h4>
 
 <p>ARC 下 <code>__NSMallocBlock__</code> 捕获进去的 <code>p</code> 将被 Block 强引用还是弱引用呢？</p>
@@ -840,7 +824,7 @@ NSLog(@&quot;---&quot;);
 // dealloc
 </code></pre>
 
-<p>我们可以为翻译 Obj-C 代码的命令额外添加 <code>-fobjc-arc -fobjc-runtime=ios-8.0.0</code> 参数强制使用 ARC 并指定运行时平台和版本，这样即可输出带有部分运行时关键字的 C/C++ 代码：</p>
+<p>我们可以为翻译 Obj-C 代码的命令额外添加 <code>-fobjc-arc -fobjc-runtime=ios-13.0.0</code> 参数强制使用 ARC 并指定运行时平台和版本，这样即可输出带有部分运行时关键字的 C/C++ 代码：</p>
 
 <pre><code class="language-cpp">struct __main_block_impl_0 {
   // ...
