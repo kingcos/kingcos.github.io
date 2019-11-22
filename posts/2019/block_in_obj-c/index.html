@@ -141,7 +141,7 @@
       
       
       
-        <span class="post-read-time">— 17 min read</span>
+        <span class="post-read-time">— 16 min read</span>
       
     </div>
 
@@ -790,6 +790,8 @@ int main(int argc, const char * argv[]) {
         [mallocBlock1 release];
         [mallocBlock2 release];
 #endif
+    }
+}
 
 // MRC OUTPUT:
 // mallocBlock1 is __NSMallocBlock__
@@ -807,6 +809,7 @@ int main(int argc, const char * argv[]) {
 // c == 10
 // &lt;Person: 0x1007712c0&gt;
 // &lt;Person: 0x1007712c0&gt;
+// ⚠️：此处 mallocBlock1 &amp; mallocBlock2 全局变量还没有释放，因而持有的 strongP 也没有被释放
 </code></pre>
 
 <ul>
@@ -814,10 +817,10 @@ int main(int argc, const char * argv[]) {
 <li>ARC 下，编译器会根据情况将 <code>__NSStackBlock__</code> 类型的 Block 自动 <code>copy</code> 到堆上：
 
 <ol>
-<li>强指针指向的 Block 会被自动拷贝</li>
-<li>Block 作为函数返回值会被自动拷贝</li>
-<li>Block 作为 Cocoa API 中方法名含有 <code>usingBlock</code> 的参数时会被自动拷贝（较难证明）</li>
-<li>Block 作为 GCD API 参数时会被自动拷贝（较难证明）</li>
+<li>强指针指向的 Block 会被自动拷贝；</li>
+<li>Block 作为函数返回值会被自动拷贝；</li>
+<li>Block 作为 Cocoa API 中方法名含有 <code>usingBlock</code> 的参数时会被自动拷贝（较难证明）；</li>
+<li>Block 作为 GCD API 参数时会被自动拷贝（较难证明）。</li>
 </ol></li>
 </ul>
 
@@ -1240,11 +1243,7 @@ static void __Block_byref_id_object_dispose_131(void *src) {
 }
 </code></pre>
 
-<blockquote>
-<p>特殊情况</p>
-
-<p>MRC 下 <code>__Block_byref_xxx</code> 对于变量将总是弱引用（即不会进行 Retain），这也可被用来破解循环引用：</p>
-</blockquote>
+<p>需要注意的是，MRC 下的 <code>__Block_byref_xxx</code> 对于变量将不会进行持有操作，这也可被用来破解循环引用：</p>
 
 <pre><code class="language-objectivec">int main(int argc, const char * argv[]) {
     @autoreleasepool {
@@ -1270,7 +1269,7 @@ static void __Block_byref_id_object_dispose_131(void *src) {
 
 <h2 id="循环引用">循环引用</h2>
 
-<p>我们知道，Obj-C 是根据引用计数来管理对象的内存的，但其中的一个问题便是循环引用，即两个对象以强引用互相指向对方，引用计数无法减少，对象无法释放，很容易导致内存泄漏：</p>
+<p>我们知道，Obj-C 是根据引用计数来管理对象的内存的，但其中的一个问题便是循环引用，即两个对象以强引用互相指向对方，引用计数无法减少，对象无法释放，导致内存泄漏：</p>
 
 <pre><code class="language-objectivec">typedef void(^SomeBlock)(void);
 
@@ -1280,20 +1279,18 @@ static void __Block_byref_id_object_dispose_131(void *src) {
 @end
 
 @implementation Person
-
 - (void)dealloc
 {
     NSLog(@&quot;dealloc&quot;);
 }
 
 - (void)foo {
-    // ➡️ Block 捕获了 self，self 中强引用 Block，导致双方都无法释放
+    // Block 捕获了 self，其强引用了 Block，导致双方都无法释放
     self.block = ^{
         NSLog(@&quot;%lu&quot;, (unsigned long)self.age);
-        NSLog(@&quot;%lu&quot;, (unsigned long)_age); // self._age
+        NSLog(@&quot;%lu&quot;, (unsigned long)_age); // self-&gt;_age
     };
 }
-
 @end
 
 int main(int argc, const char * argv[]) {
@@ -1302,8 +1299,8 @@ int main(int argc, const char * argv[]) {
         p.age = 20;
 
         p.block = ^{
-            // ➡️ Block 捕获了 p，p 中强引用 Block，导致双方都无法释放（如下图）
-            // Capturing 'p' strongly in this block is likely to lead to a retain cycle
+            // Block 捕获了 p，其强引用了 Block，导致双方都无法释放
+            // WARNING: Capturing 'p' strongly in this block is likely to lead to a retain cycle
             NSLog(@&quot;%lu&quot;, (unsigned long)p.age);
         };
 
@@ -1327,7 +1324,7 @@ int main(int argc, const char * argv[]) {
 <p>想要打破循环引用，我们需要一个不增加引用计数的指向。那么到底更改哪个引用呢？我们仍以上图为例：</p>
 
 <ul>
-<li>1⃣️ 处的强引用是我们在初始化时 <code>Person *p = [[Person alloc] init];</code> 所赋予的，栈上的 <code>p</code> 指针存储了堆上的 对象的内存地址；</li>
+<li>1⃣️ 处的强引用是我们在初始化时 <code>Person *p = [[Person alloc] init];</code> 所赋予的，栈上的 <code>p</code> 指针存储了堆上的对象的内存地址；</li>
 <li>2⃣️ 处的强引用是 Block 结构体（<code>__main_block_impl_0</code>）对自身捕获到内部的对象的强引用，其引用是根据外界即 1⃣️ 处声明时的强弱来决定的；</li>
 <li>3⃣️ 处的强引用是根据我们在 <code>Person</code> 类中声明的属性修饰 <code>@property (nonatomic, copy) SomeBlock block;</code> 所决定的。</li>
 </ul>
@@ -1335,6 +1332,7 @@ int main(int argc, const char * argv[]) {
 <p>而我们需要 Block 应当随 <code>Person</code> 对象销毁而销毁，如果将 3⃣️ 处改为弱引用或 <code>__unsafe_unretained</code>，则可能出现 Block 的提前释放。因此综上，我们可以将 1⃣️ 的引用改为弱引用或 <code>__unsafe_unretained</code>：</p>
 
 <pre><code class="language-objectivec">// Person.m
+
 - (void)foo {
     __weak typeof(self) weakSelf = self;
     self.block = ^{
@@ -1380,32 +1378,20 @@ int main(int argc, const char * argv[]) {
 
 <p><code>__block</code> 的变量由于可以在 Block 内修改，因此其也可以用来解除循环引用：</p>
 
-<pre><code class="language-objectivec">int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-        __block Person *p = [[Person alloc] init];
-        p.age = 20;
+<pre><code class="language-objectivec">__block Person *p = [[Person alloc] init];
 
-        p.block = ^{
-            NSLog(@&quot;%lu&quot;, (unsigned long)p.age);
+p.block = ^{
+    NSLog(@&quot;%@&quot;, p);
 
-            p = nil;
-        };
+    p = nil; // 将 __Block_byref_p_0 中的 p 置为 nil，打破循环
+};
 
-        p.block();
+p.block();
 
-        p.block = ^{
-            NSLog(@&quot;%lu&quot;, (unsigned long)p.age);
-
-            // 将 __Block_byref_p_0 中的 p 置为 nil，打破循环
-            p = nil;
-        };
-
-        // p.block();
-    }
-}
+p.block(); // CRASH: EXC_BAD_ACCESS
 
 // OUTPUT:
-// 20
+// &lt;Person: 0x1007b9070&gt;
 // dealloc
 </code></pre>
 
@@ -1414,91 +1400,63 @@ int main(int argc, const char * argv[]) {
 <p>但需要注意：</p>
 
 <ol>
-<li>Block 必须执行才可以置为 <code>nil</code>，破解循环引用；</li>
-<li><code>p = nil;</code> 被首次执行时就会释放，因此如果后续再次执行 Block 将出现 <code>EXC_BAD_ACCESS</code> 错误。</li>
+<li>Block 必须执行，才可以将强引用的自动变量置为 <code>nil</code>，从而破解循环引用；</li>
+<li>循环引用破解后，Block 和 <code>p</code> 均释放，因此如果后续再次执行 Block 将出现 <code>EXC_BAD_ACCESS</code> 崩溃。</li>
 </ol>
 
 <h3 id="mrc">MRC</h3>
 
-<p>MRC 下，我们需要手动将栈上的 Block 复制到堆上，并在结束使用时手动释放（Release），但循环引用出现时即使手动释放对象也无法销毁：</p>
+<p>MRC 下，我们需要手动将栈上的 Block 复制到堆上，并在结束使用时 <code>release</code>，但循环引用出现时即使手动释放对象也无法销毁：</p>
 
-<pre><code class="language-objectivec">@interface Person : NSObject
-@property (nonatomic, assign) NSUInteger age;
-@property (nonatomic, copy) SomeBlock block;
-@end
+<pre><code class="language-objectivec">Person *p = [[Person alloc] init];
 
-@implementation Person
-- (void)dealloc
-{
-    [super dealloc];
-    NSLog(@&quot;dealloc&quot;);
-}
-@end
+p.block = [^{
+    NSLog(@&quot;%@&quot;, p);
+} copy];
 
-int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-        Person *p = [[Person alloc] init];
-        p.age = 20;
+p.block();
 
-        p.block = [^{
-            NSLog(@&quot;%lu&quot;, (unsigned long)p.age);
-        } copy];
-
-        p.block();
-
-        [p release];
-
-        // Never dealloc
-    }
-}
+[p release]; // But never dealloc
 
 // OUTPUT:
-// 20
+// &lt;Person: 0x1007b8f70&gt;
 </code></pre>
 
-<p>由于 MRC 没有强弱引用的概念，因从破解循环引用只能使用 <code>__unsafe_unretained</code>，其使得 Block 内部不会对捕获的对象持有（Retain）：</p>
+<p>由于 MRC 没有强弱引用的概念，因从破解循环引用只能使用 <code>__unsafe_unretained</code>，其使得 Block 内部不再会对捕获的对象持有：</p>
 
-<pre><code class="language-objectivec">int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-        __unsafe_unretained Person *p = [[Person alloc] init];
-        p.age = 20;
+<pre><code class="language-objectivec">__unsafe_unretained Person *p = [[Person alloc] init];
 
-        p.block = [^{
-            NSLog(@&quot;%lu&quot;, (unsigned long)p.age);
-        } copy];
+p.block = [^{
+    NSLog(@&quot;%@&quot;, p);
+} copy];
 
-        p.block();
+p.block();
 
-        [p release];
-    }
-}
+[p release];
 
 // OUTPUT:
-// 20
+// &lt;Person: 0x1007a8290&gt;
 // dealloc
 </code></pre>
 
-<p>当然，正如 <code>__block</code> 一节中所述，其也可以用来破解 MRC 下的循环引用，因为 <code>__block</code> 修饰的变量在 MRC 下，<code>__Block_byref_xxx</code> 将不会对捕获的变量持有（Retain）。</p>
+<p><code>__block</code> 其实也可以用来破解 MRC 下的循环引用，因为 <code>__block</code> 修饰的变量在 MRC 下，<code>__Block_byref_xxx</code> 将不会对捕获的变量持有：</p>
 
-<pre><code class="language-objectivec">int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-        __block Person *p = [[Person alloc] init];
-        p.age = 20;
+<pre><code class="language-objectivec">__block Person *p = [[Person alloc] init];
 
-        p.block = [^{
-            NSLog(@&quot;%lu&quot;, (unsigned long)p.age);
-        } copy];
+p.block = [^{
+    NSLog(@&quot;%@&quot;, p);
+} copy];
 
-        p.block();
+p.block();
 
-        [p release];
-    }
-}
+[p release];
 
 // OUTPUT:
-// 20
+// &lt;Person: 0x100747970&gt;
 // dealloc
 </code></pre>
+
+<h3 id="weakify-strongify"><code>@weakify</code> &amp; <code>@strongify</code></h3>
 
     </div>
     
