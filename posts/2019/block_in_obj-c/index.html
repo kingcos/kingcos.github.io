@@ -688,70 +688,89 @@ Person *__weak weakP;     // ⚠️ 弱引用
 
 <h4 id="what-2">What</h4>
 
-<p><code>__NSMallocBlock__</code> 类型的 Block 存储在内存的堆区，堆区是通常用作动态分配（Malloc）的内存。在 MRC 下，对于 <code>__NSStackBlock__</code> 类型的 Block 只要再对其发送 <code>copy</code> 消息即可将栈上的内存拷贝到堆上：</p>
+<p><code>__NSMallocBlock__</code> 类型的 Block 存储在内存的堆区，堆区是通常用作动态分配（Malloc）的内存。</p>
 
 <pre><code class="language-objectivec">// main.m
 
+@interface Person : NSObject
+@end
+
+@implementation Person
+- (void)dealloc
+{
 #if !__has_feature(objc_arc)
-void (^mallocBlock)(void);
+    [super dealloc];
+#endif
+    NSLog(@&quot;dealloc&quot;);
+}
+@end
+
+// 使用 typedef 定义 Block 的类型，可以使得 API 更加简单友好
+typedef void(^SomeBlock)(void);
+
+void (^mallocBlock1)(void);
+void (^mallocBlock2)(void);
 
 void initBlock() {
+#if !__has_feature(objc_arc)
     int c = 10;
-    mallocBlock = [^{
-        NSLog(@&quot;c == %d.&quot;, c);
+
+    mallocBlock1 = [^{
+        NSLog(@&quot;c == %d&quot;, c);
     } copy];
-}
 
-int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-        // 初始化 mallocBlock
-        initBlock();
-        // 执行 mallocBlock
-        mallocBlock();
+    // ---
 
-        NSLog(@&quot;mallocBlock is a %@.&quot;, [mallocBlock class]);
-    }
-}
+    Person *p = [[Person alloc] init];
+
+    mallocBlock2 = [^{
+        NSLog(@&quot;%@&quot;, p);
+    } copy];
+
+    [p release];
+#else
+    int c = 10;
+
+    mallocBlock1 = ^{
+        NSLog(@&quot;c == %d&quot;, c);
+    };
+
+    // ---
+
+    Person *strongP = [[Person alloc] init];
+    __weak Person *weakP = strongP;
+
+    // 1⃣️ ARC 下强指针 mallocBlock2 指向的 Block 会被自动拷贝为 __NSMallocBlock__
+    mallocBlock2 = ^{
+        NSLog(@&quot;%@&quot;, strongP);
+        NSLog(@&quot;%@&quot;, weakP);
+    };
+
+    // 使用弱引用指针指向的 Block，将仍然是 __NSStackBlock__，编译将提示以下警告
+    // WARNING: Assigning block literal to a weak variable; object will be released after assignment
+    __weak SomeBlock weakStackBlock = ^{
+        NSLog(@&quot;%@&quot;, strongP);
+        NSLog(@&quot;%@&quot;, weakP);
+    };
+
+    NSLog(@&quot;weakStackBlock is %@&quot;, weakStackBlock);
+
+    // 3⃣️ Block 作为 Cocoa API 中方法名含有 `usingBlock` 的参数时会被自动拷贝为 __NSMallocBlock__（较难证明）
+    // 4⃣️ Block 作为 GCD API 参数时会被自动拷贝为 __NSMallocBlock__（较难证明）
 #endif
+}
 
-// OUTPUT:
-// c == 10.
-// mallocBlock is a __NSMallocBlock__.
-</code></pre>
-
-<p>对 <code>__NSMallocBlock__</code> 类型的 Block 再次执行 <code>copy</code> 操作将导致引用计数增加（相当于 <code>ratain</code>）。</p>
-
-<blockquote>
-<ul>
-<li>在 ARC 下，编译器会根据情况将栈上的 Block（<code>__NSStackBlock__</code>）自动拷贝（<code>copy</code>）到堆上：
-
-<ul>
-<li>Block 作为函数返回值时；</li>
-<li>将 Block 赋值给 <code>__strong</code> 指针时；</li>
-<li>Block 作为 Cocoa API 中方法名含有 <code>usingBlock</code> 的参数时（eg. <code>- (void)enumerateObjectsUsingBlock:(void (NS_NOESCAPE ^)(ObjectType obj, NSUInteger idx, BOOL *stop))block</code>）；</li>
-<li>Block 作为 GCD API 参数时。</li>
-</ul></li>
-</ul>
-</blockquote>
-
-<pre><code class="language-objectivec">// 使用 typedef 定义 Block 的类型，可以使得 API 更加简单友好
-typedef void(^StackBlock)(void);
-
-StackBlock returnStackBlock() {
+SomeBlock returnMallocBlock() {
     auto int autoVar = 10;
 
-    NSLog(@&quot;%@&quot;, [^{
-        NSLog(@&quot;%d&quot;, autoVar);
-    } class]);
-
-    // MRC 下将报错「Returning block that lives on the local stack」
-    // 即编译器已经发现返回的 Block 是在栈上，一旦函数体走完，Block 就会被销毁，因此在 MRC 下需要手动 copy：
 #if !__has_feature(objc_arc)
+    // MRC 下如果直接返回 Block，将报错「Returning block that lives on the local stack」
+    // 即编译器已经发现返回的 Block 是在栈上，一旦函数体走完，Block 就会被销毁，因此在 MRC 下需要手动 copy：
     return [^{
         NSLog(@&quot;%d&quot;, autoVar);
     } copy];
 #else
-    // ARC 下 Block 作为函数返回值会被自动拷贝为 __NSMallocBlock__
+    // 2⃣️ ARC 下 Block 作为函数返回值会被自动拷贝为 __NSMallocBlock__
     return ^{
         NSLog(@&quot;%d&quot;, autoVar);
     };
@@ -760,36 +779,51 @@ StackBlock returnStackBlock() {
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
-        StackBlock mallocBlock = returnStackBlock();
-        mallocBlock();
+        initBlock();
 
-        NSLog(@&quot;mallocBlock is a %@.&quot;, [mallocBlock class]);
+        NSLog(@&quot;mallocBlock1 is %@&quot;, [mallocBlock1 class]);
+        NSLog(@&quot;mallocBlock2 is %@&quot;, [mallocBlock2 class]);
+        NSLog(@&quot;returnMallocBlock() is %@&quot;, [returnMallocBlock() class]);
 
-        auto int autoVar = 10;
+        mallocBlock1();
+        mallocBlock2();
 
-        // block 强指针指向了 StackBlock，因此 ARC 下编译器自动为其拷贝为 __NSMallocBlock__
-        StackBlock block = ^{
-            NSLog(@&quot;%d&quot;, autoVar);
-        };
+#if !__has_feature(objc_arc)
+        [mallocBlock1 release];
+        [mallocBlock2 release];
+#endif
 
-        NSLog(@&quot;block is a %@.&quot;, [block class]);
+// MRC OUTPUT:
+// mallocBlock1 is __NSMallocBlock__
+// mallocBlock2 is __NSMallocBlock__
+// returnMallocBlock() is __NSMallocBlock__
+// c == 10
+// &lt;Person: 0x102a08970&gt;
+// dealloc
 
-        // 弱引用则不会自动拷贝   ，即仍然是 __NSStackBlock__
-        __weak StackBlock block2 = ^{
-            NSLog(@&quot;%d&quot;, autoVar);
-        };
-
-        NSLog(@&quot;block2 is a %@.&quot;, [block2 class]);
-    }
-}
-
-// OUTPUT:
-//  __NSStackBlock__
-// 10
-// mallocBlock is a __NSMallocBlock__.
-// block is a __NSMallocBlock__.
-// block2 is a __NSStackBlock__.
+// ARC OUTPUT:
+// weakStackBlock is &lt;__NSStackBlock__: 0x7ffeefbff3d0&gt;
+// mallocBlock1 is __NSMallocBlock__
+// mallocBlock2 is __NSMallocBlock__
+// returnMallocBlock() is __NSMallocBlock__
+// c == 10
+// &lt;Person: 0x1007712c0&gt;
+// &lt;Person: 0x1007712c0&gt;
 </code></pre>
+
+<ul>
+<li>MRC 下，对于 <code>__NSStackBlock__</code> 类型的 Block，我们只要再对执行 <code>copy</code> 操作即可从栈区拷贝到堆区。堆区内存由我们来负责管理，Block 和其中捕获的自动变量均在堆区，在我们主动释放前，均可以访问到；</li>
+<li>ARC 下，编译器会根据情况将 <code>__NSStackBlock__</code> 类型的 Block 自动 <code>copy</code> 到堆上：
+
+<ol>
+<li>强指针指向的 Block 会被自动拷贝</li>
+<li>Block 作为函数返回值会被自动拷贝</li>
+<li>Block 作为 Cocoa API 中方法名含有 <code>usingBlock</code> 的参数时会被自动拷贝（较难证明）</li>
+<li>Block 作为 GCD API 参数时会被自动拷贝（较难证明）</li>
+</ol></li>
+</ul>
+
+<!-- 对 `__NSMallocBlock__` 类型的 Block 再次执行 `copy` 操作将导致引用计数增加（相当于 `ratain`）。 -->
 
 <p>因此，Block 作为属性时应当使用 <code>copy</code> 或 <code>strong</code> 修饰：</p>
 
@@ -803,95 +837,9 @@ int main(int argc, const char * argv[]) {
 #endif
 </code></pre>
 
-<h4 id="nsmallocblock-1"><code>__NSMallocBlock__</code></h4>
-
-<p>ARC 下 <code>__NSMallocBlock__</code> 捕获进去的 <code>p</code> 将被 Block 强引用还是弱引用呢？</p>
-
-<pre><code class="language-objectivec">SomeBlock block;
-{
-    Person *p = [[Person alloc] init];
-    p.age = 20;
-
-    // __NSMallocBlock__
-    block = ^{
-        NSLog(@&quot;%lu&quot;, (unsigned long)p.age);
-    };
-};
-NSLog(@&quot;---&quot;);
-
-// OUTPUT:
-// ---
-// dealloc
-</code></pre>
-
-<p>我们可以为翻译 Obj-C 代码的命令额外添加 <code>-fobjc-arc -fobjc-runtime=ios-13.0.0</code> 参数强制使用 ARC 并指定运行时平台和版本，这样即可输出带有部分运行时关键字的 C/C++ 代码：</p>
-
-<pre><code class="language-cpp">struct __main_block_impl_0 {
-  // ...
-  Person *__strong p;
-  // ...
-};
-</code></pre>
-
-<p>如上，此时外界强引用的 <code>p</code> 被捕获后也仍是强引用，因此在超出指针本身作用域时并不会被释放，只有当 <code>block</code> 也被销毁时才会销毁。</p>
-
-<p>MRC 下对 <code>__NSStackBlock__</code> 进行 <code>copy</code> 将把 Block 拷贝到堆上，变为 <code>__NSMallocBlock__</code>。此时 <code>block</code> 将对 <code>p</code> 指向的对象持有，引用计数加一，因此在超出 <code>p</code> 作用域时也不会将对象销毁。</p>
-
-<pre><code class="language-objectivec">#if !__has_feature(objc_arc)
-SomeBlock block;
-{
-    Person *p = [[Person alloc] init];
-    p.age = 20;
-
-    // __NSMallocBlock__
-    block = [^{
-        NSLog(@&quot;%lu&quot;, (unsigned long)p.age);
-    } copy];
-
-    [p release];
-};
-NSLog(@&quot;---&quot;);
-
-[block release];
-#endif
-
-// OUTPUT:
-// ---
-// dealloc
-</code></pre>
-
-<p>ARC 下，外界使用 <code>__weak</code> 声明的指针在 Block 中也不会被强引用，不改变引用计数，此时超出指针的作用域后对象即被销毁：</p>
-
-<pre><code class="language-objectivec">SomeBlock block;
-{
-    Person *p = [[Person alloc] init];
-    p.age = 20;
-
-    __weak Person *weakP = p;
-
-    block = ^{
-        NSLog(@&quot;%lu&quot;, (unsigned long)weakP.age);
-    };
-};
-NSLog(@&quot;---&quot;);
-
-// OUTPUT:
-// dealloc
-// ---
-</code></pre>
-
-<p>捕获的 <code>weakP</code>：</p>
-
-<pre><code class="language-cpp">struct __main_block_impl_0 {
-  // ...
-  Person *__weak weakP;
-  // ...
-};
-</code></pre>
-
 <h4 id="nsstackblock-拷贝到堆上的细节"><code>__NSStackBlock__</code> 拷贝到堆上的细节</h4>
 
-<p>上节提到，ARC 下当 <code>__NSStackBlock__</code> 被强指针指向时会被拷贝到堆上，那么在「拷贝」时会发生什么呢？</p>
+<p>ARC 下，当 <code>__NSStackBlock__</code> 被强指针指向时会被拷贝到堆上，那么在「拷贝」时会发生什么呢？</p>
 
 <pre><code class="language-objectivec">SomeBlock block;
 {
@@ -913,7 +861,7 @@ NSLog(@&quot;---&quot;);
 // dealloc
 </code></pre>
 
-<p>我们将以上代码使用 <code>xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m -fobjc-arc -fobjc-runtime=ios-8.0.0 -o main.cpp</code> 翻译为 C/C++：</p>
+<p>我们将以上代码使用 <code>xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m -fobjc-arc -fobjc-runtime=ios-8.0.0 -o main.cpp</code> 翻译为 C/C++ 代码：</p>
 
 <pre><code class="language-cpp">struct __main_block_impl_0 {
   struct __block_impl impl;
