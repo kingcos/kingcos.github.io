@@ -670,19 +670,17 @@ int main(int argc, const char * argv[]) {
 // ---
 </code></pre>
 
-<ul>
-<li>MRC 下，<code>__NSStackBlock__</code> 类型的 Block 捕获对象类型的自动变量但并不会改变其引用计数，即不会进行 <code>retain</code> 持有操作。而 <code>main</code> 函数中的执行到 Block 时自动变量 <code>c</code> 和 <code>p</code> 其实已经被释放，因此访问时出现了脏数据，访问 Block 本身也出现了 <code>EXC_BAD_ACCESS</code> 崩溃。为了避免这种问题，我们需要将其分配在堆上（即 <code>__NSMallocBlock__</code>），这是因为堆区的内存由开发者自己管理，可以避免被自动回收；</li>
+<p>MRC 下，<code>__NSStackBlock__</code> 类型的 Block 捕获对象类型的自动变量但并不会改变其引用计数，即不会进行 <code>retain</code> 持有操作。而 <code>main</code> 函数中的执行到 Block 时自动变量 <code>c</code> 和 <code>p</code> 其实已经被释放，因此访问时出现了脏数据，访问 Block 本身也出现了 <code>EXC_BAD_ACCESS</code> 崩溃。为了避免这种问题，我们需要将其分配在堆上（即 <code>__NSMallocBlock__</code>），这是因为堆区的内存由开发者自己管理，可以避免被自动回收。</p>
 
-<li><p>ARC 下，<code>__NSStackBlock__</code> 类型的 Block 中捕获了 <code>strongP</code> 和 <code>weakP</code>（可以通过为翻译 Obj-C 代码的命令额外添加 <code>-fobjc-arc -fobjc-runtime=ios-13.0.0</code> 参数强制使用 ARC 并指定运行时平台和版本，这样即可输出带有部分运行时关键字的 C/C++ 代码，如下），虽然强引用会导致其引用计数增加，但 Block 本身仍会随作用域超出而销毁，而自动变量也会被销毁。</p>
+<p>ARC 下，<code>__NSStackBlock__</code> 类型的 Block 中捕获了 <code>strongP</code> 和 <code>weakP</code>（可以通过为翻译 Obj-C 代码的命令额外添加 <code>-fobjc-arc -fobjc-runtime=ios-13.0.0</code> 参数强制使用 ARC 并指定运行时平台和版本，这样即可输出带有部分运行时关键字的 C/C++ 代码，如下），虽然强引用会导致其引用计数增加，但 Block 本身仍会随作用域超出而销毁，而自动变量也会被销毁。</p>
 
 <pre><code class="language-cpp">struct __initBlock_block_impl_0 {
-// ...
-Person *__strong strongP; // ⚠️ 强引用
-Person *__weak weakP;     // ⚠️ 弱引用
-// ...
+  // ...
+  Person *__strong strongP; // ⚠️ 强引用
+  Person *__weak weakP;     // ⚠️ 弱引用
+  // ...
 };
-</code></pre></li>
-</ul>
+</code></pre>
 
 <h3 id="nsmallocblock"><code>__NSMallocBlock__</code></h3>
 
