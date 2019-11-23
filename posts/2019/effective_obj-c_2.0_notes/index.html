@@ -138,7 +138,7 @@
       
       
       
-        <span class="post-read-time">— 22 min read</span>
+        <span class="post-read-time">— 24 min read</span>
       
     </div>
 
@@ -1995,6 +1995,115 @@ https://www.jianshu.com/p/2ec49d525871 -->
 </ul>
 
 <h3 id="对自定义其内存管理语义的-collection-使用无缝桥接">对自定义其内存管理语义的 collection 使用无缝桥接</h3>
+
+<p>无缝桥接（Toll-Free Bridging）使得 <code>Foundation</code> 框架中的 Obj-C 类型可以与 <code>CoreFoundation</code> 框架里的 C 语言数据结构之间可以平滑转换。</p>
+
+<pre><code class="language-objectivec">NSArray *arr = @[@&quot;A&quot;, @&quot;kingcos.me&quot;, @&quot;github.com/kingcos&quot;];
+
+CFArrayRef cfArray1 = (__bridge CFArrayRef)arr;
+NSLog(@&quot;%li&quot;, CFArrayGetCount(cfArray1));
+
+CFArrayRef cfArray2 = (__bridge_retained CFArrayRef)arr;
+NSLog(@&quot;%li&quot;, CFArrayGetCount(cfArray2));
+CFRelease(cfArray2); // 释放
+
+CFArrayRef cfArray3 = (__bridge_retained CFArrayRef)arr;
+NSLog(@&quot;%li&quot;, CFArrayGetCount(cfArray3));
+arr = (__bridge_transfer NSArray *)cfArray3;
+
+// OUTPUT:
+// 3
+// 3
+// 3
+</code></pre>
+
+<ul>
+<li>桥式转换（Bridged Cast）
+
+<ul>
+<li><code>__bridge</code>：仅桥接，ARC 仍拥有 Obj-C 对象所有权；</li>
+<li><code>__bridge_retained</code>：桥接且持有，ARC 不再拥有对象所有权，交由 <code>CoreFoundation</code> 处理；</li>
+<li><code>__bridge_transfer</code>：桥接且转换，ARC 再次拥有对象所有权。</li>
+</ul></li>
+</ul>
+
+<p><code>Foundation</code> 框架与 <code>CoreFoundation</code> 框架的某些功能可以互相补足。</p>
+
+<pre><code class="language-objectivec">// CFDictionary.h
+CFMutableDictionaryRef CFDictionaryCreateMutable(CFAllocatorRef allocator, // 内存分配器，传 NULL 为默认实现
+                                                 CFIndex capacity,         // 初始容量
+                                                 const CFDictionaryKeyCallBacks *keyCallBacks, // 指向结构体的指针
+                                                 const CFDictionaryValueCallBacks *valueCallBacks); // 同上
+
+typedef struct {
+    CFIndex                version;           // 版本号，通常设置为 0
+    CFDictionaryRetainCallBack        retain; // 当事件发送，通过函数指针调用，下同
+    CFDictionaryReleaseCallBack        release;
+    CFDictionaryCopyDescriptionCallBack    copyDescription;
+    CFDictionaryEqualCallBack        equal;
+    CFDictionaryHashCallBack        hash;
+} CFDictionaryKeyCallBacks;
+
+typedef struct {
+    CFIndex                version;
+    CFDictionaryRetainCallBack        retain;
+    CFDictionaryReleaseCallBack        release;
+    CFDictionaryCopyDescriptionCallBack    copyDescription;
+    CFDictionaryEqualCallBack        equal;
+} CFDictionaryValueCallBacks;
+
+typedef const void *    (*CFDictionaryRetainCallBack)(CFAllocatorRef allocator, const void *value);
+typedef void        (*CFDictionaryReleaseCallBack)(CFAllocatorRef allocator, const void *value);
+typedef CFStringRef    (*CFDictionaryCopyDescriptionCallBack)(const void *value);
+typedef Boolean        (*CFDictionaryEqualCallBack)(const void *value1, const void *value2);
+typedef CFHashCode    (*CFDictionaryHashCallBack)(const void *value);
+</code></pre>
+
+<p>比如 <code>Foundation</code> 中的字典对象的键内存管理语义为拷贝，值内存管理语义为保留，那么在键如果是自定义对象则需要遵守 <code>NSCopying</code> 协议。但我们可以在 <code>CoreFoundation</code> 层创建并修改内存管理语义：</p>
+
+<pre><code class="language-objectivec">const void * DictRetainCallBack(CFAllocatorRef allocator, const void *value) {
+    return CFRetain(value);
+}
+
+void DictReleaseCallBack(CFAllocatorRef allocator, const void *value) {
+    CFRelease(value);
+}
+
+int main(int argc, const char * argv[]) {
+    @autoreleasepool {
+        CFDictionaryKeyCallBacks keyCallbacks = {
+            0,                   // version
+            DictRetainCallBack,  // retain
+            DictReleaseCallBack, // release
+            NULL,                // copyDescription，传 NULL 为默认实现
+            CFEqual,             // equal，CFEqual 与默认实现相同，最终调用 NSObject 的 isEqual:
+            CFHash               // hash，CFHash 与默认实现相同，最终调用 NSObject 的 hash
+        };
+
+        CFDictionaryValueCallBacks valueCallbacks = {
+            0,                   // version
+            DictRetainCallBack,  // retain
+            DictReleaseCallBack, // release
+            NULL,                // copyDescription
+            CFEqual,             // equal
+        };
+
+        CFMutableDictionaryRef cfDict = CFDictionaryCreateMutable(NULL, 0, &amp;keyCallbacks, &amp;valueCallbacks);
+        NSMutableDictionary *dict = (__bridge_transfer NSMutableDictionary *)cfDict;
+
+        Foo *foo = [[Foo alloc] init];
+        // dict[foo] = @&quot;foo&quot;; // CRASH: '-[Foo copyWithZone:]: unrecognized selector sent to instance 0x100500670'
+        CFDictionaryAddValue(cfDict, (__bridge const void *)(foo), CFSTR(&quot;foo&quot;));
+
+        NSLog(@&quot;%@&quot;, dict);
+    }
+}
+
+// OUTPUT:
+// {
+//    &quot;&lt;Foo: 0x10059b3c0&gt;&quot; = foo;
+// }
+</code></pre>
 
 <h3 id="构建缓存时选用-nscache-而非-nsdictionary">构建缓存时选用 NSCache 而非 NSDictionary</h3>
 
