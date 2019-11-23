@@ -138,7 +138,7 @@
       
       
       
-        <span class="post-read-time">— 24 min read</span>
+        <span class="post-read-time">— 27 min read</span>
       
     </div>
 
@@ -2107,11 +2107,325 @@ int main(int argc, const char * argv[]) {
 
 <h3 id="构建缓存时选用-nscache-而非-nsdictionary">构建缓存时选用 NSCache 而非 NSDictionary</h3>
 
+<p>当网络数据过大或者其它某些情况，我们可能需要使用到数据结构来做缓存以优化用户体验，此时 <code>NSCache</code> 要比 <code>NSDictionary</code> 好，首先当系统资源即将耗尽时，前者可以按最久未使用（Lease Recently Used，LRU）算法自动删减缓存；其次 <code>NSCache</code> 对键不会做类似 <code>NSDictionary</code> 默认的拷贝操作，而是保留操作；而且 <code>NSCache</code> 是线程安全的，<code>NSDictionary</code> 则无此优势。</p>
+
+<p>开发者可以控制缓存删减其内容的时机，其中有两个尺度可供调整，其一是缓存中的对象总数，其二是所有对象的总开销。缓存的使用目的即是为了更快地响应用户操作，而如果开销值计算是耗时操作就显得本末倒置了，除非是已知数据大小的 <code>NSData</code> 对象。另外控制尺度并非完全严格，其仅对 <code>NSCache</code> 起指导作用。</p>
+
+<pre><code class="language-objectivec">typedef void(^HandlerBlock)(NSData *data);
+
+@interface Foo : NSObject
+- (instancetype)initWithURL:(NSURL *)url;
+
+@end
+
+@implementation Foo {
+    NSURL *_url;
+}
+
+- (instancetype)initWithURL:(NSURL *)url {
+    self = [super init];
+    if (self) {
+        _url = url;
+    }
+    return self;
+}
+
+- (void)doWithHandler:(HandlerBlock)handler {
+    NSData *data = [_url.absoluteString dataUsingEncoding:NSUTF8StringEncoding];
+    handler(data);
+}
+
+- (void)dealloc
+{
+    NSLog(@&quot;dealloc&quot;);
+}
+
+@end
+
+@interface Bar : NSObject
+@end
+
+@implementation Bar {
+    NSCache *_cache;
+}
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        _cache = [NSCache new];
+
+        // 缓存对象总数上限
+        _cache.countLimit = 10;
+        // 缓存总开销上限（单位为字节 B）
+        _cache.totalCostLimit = 1024;
+    }
+    return self;
+}
+
+- (void)fetchFromURL:(NSURL *)url {
+    NSData *cachedData = [_cache objectForKey:url];
+    if (cachedData) {
+        NSLog(@&quot;命中缓存&quot;);
+
+        [self dealWithData:cachedData];
+    } else {
+        NSLog(@&quot;未命中缓存&quot;);
+
+        Foo *foo = [[Foo alloc] initWithURL:url];
+
+        __weak typeof(self) weakSelf = self;
+        [foo doWithHandler:^(NSData *data) {
+            // 防止循环引用
+            __strong typeof(weakSelf) strongSelf = weakSelf;
+
+            // 缓存（NSData 长度读取不耗时）
+            [strongSelf-&gt;_cache setObject:data forKey:url cost:data.length];
+
+            [strongSelf dealWithData:data];
+        }];
+    }
+}
+
+- (void)fetchFromURL_2:(NSURL *)url {
+    // NSPurgeableData 继承自 NSMutableData 且实现了 NSDiscardableContent 协议
+    // 当系统资源紧张时，可以把保存 NSPurgeableData 对象的那块内存释放
+    // NSDiscardableContent 协议：
+    // - isContentDiscarded：可用来查询相关内存是否已经释放
+    // - beginContentAccess：可用来告知此时不应丢弃占据的内存（类似某个计数 + 1）
+    // - endContentAccess：可用来告知必要时可以丢弃占据的内存（类似某个计数 - 1，只有为 0 时才可丢弃）
+    // NSPurgeableData 对象若加入了 NSCache，那么若其内存被系统丢弃，默认也会自动缓存中移除
+    // NSCache 中的 evictsObjectsWithDiscardedContent 用来控制此功能开关
+    NSPurgeableData *cachedData = [_cache objectForKey:url];
+    if (cachedData) {
+        NSLog(@&quot;命中缓存&quot;);
+
+        // 后面要使用，此时 + 1
+        [cachedData beginContentAccess];
+
+        [self dealWithData:cachedData];
+
+        // 使用完毕，此时 - 1
+        [cachedData endContentAccess];
+    } else {
+        NSLog(@&quot;未命中缓存&quot;);
+
+        Foo *foo = [[Foo alloc] initWithURL:url];
+
+        __weak typeof(self) weakSelf = self;
+        [foo doWithHandler:^(NSData *data) {
+            // 防止循环引用
+            __strong typeof(weakSelf) strongSelf = weakSelf;
+
+            // 根据 NSData 获取 NSPurgeableData 对象（创建时无需 beginContentAccess 计数会默认 + 1）
+            NSPurgeableData *purgeableData = [NSPurgeableData dataWithData:data];
+
+            // 缓存 NSPurgeableData 对象
+            [strongSelf-&gt;_cache setObject:purgeableData forKey:url cost:purgeableData.length];
+
+            [strongSelf dealWithData:data];
+
+            // 标记 NSPurgeableData 对象可丢弃（计数 - 1）
+            [purgeableData endContentAccess];
+        }];
+    }
+}
+
+- (void)dealWithData:(NSData *)data {
+
+    NSLog(@&quot;%@&quot;, [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
+}
+
+@end
+
+
+int main(int argc, const char * argv[]) {
+    @autoreleasepool {
+        Bar *bar = [[Bar alloc] init];
+
+        [bar fetchFromURL:[NSURL URLWithString:@&quot;https://kingcos.me&quot;]];
+        [bar fetchFromURL:[NSURL URLWithString:@&quot;https://github.com/kingcos&quot;]];
+        [bar fetchFromURL:[NSURL URLWithString:@&quot;https://kingcos.me&quot;]];
+
+        NSLog(@&quot;---&quot;);
+
+        // ⚠️ URL 不要和上面完全一致，否则缓存和实际类型有出入
+        [bar fetchFromURL_2:[NSURL URLWithString:@&quot;https://kingcos.me/&quot;]];
+        [bar fetchFromURL_2:[NSURL URLWithString:@&quot;https://github.com/kingcos/&quot;]];
+        [bar fetchFromURL_2:[NSURL URLWithString:@&quot;https://kingcos.me/&quot;]];
+    }
+}
+
+// 1024 B = 1 KB 缓存 &amp;&amp; countLimit 为 100 时：
+// 未命中缓存
+// https://kingcos.me
+// dealloc
+// 未命中缓存
+// https://github.com/kingcos
+// dealloc
+// 命中缓存
+// https://kingcos.me
+
+// 1 B 缓存 || countLimit 为 1 时：
+// 未命中缓存
+// https://kingcos.me
+// dealloc
+// 未命中缓存
+// https://github.com/kingcos
+// dealloc
+// 未命中缓存
+// https://kingcos.me
+// dealloc
+
+// NSPurgeableData（1024 B = 1 KB 缓存 &amp;&amp; countLimit 为 100 时）：
+// ---
+// 未命中缓存
+// https://kingcos.me/
+// dealloc
+// 未命中缓存
+// https://github.com/kingcos/
+// dealloc
+// 命中缓存
+// https://kingcos.me/
+</code></pre>
+
+<!-- https://github.com/AFNetworking/AFNetworking/issues/268 -->
+
 <h3 id="精简-initialize-与-load-实现代码">精简 initialize 与 load 实现代码</h3>
 
 <p>略；关于 +load，可详见《<a href="../block_in_obj-c">iOS 中的 +load 方法</a>》一文；关于 +initialize，可详见《<a href="../block_in_obj-c">iOS 中的 +initialize 方法</a>》一文。</p>
 
 <h3 id="别忘了-nsimer-会保留其目标对象">别忘了 NSimer 会保留其目标对象</h3>
+
+<pre><code class="language-objectivec">@interface NSTimer (BlockCategory)
++ (NSTimer *)bc_scheduledTimerWithTimeInterval:(NSTimeInterval)interval
+                                       repeats:(BOOL)repeats
+                                         block:(void(^)(void))block;
+@end
+
+@implementation NSTimer (BlockCategory)
++ (NSTimer *)bc_scheduledTimerWithTimeInterval:(NSTimeInterval)interval
+                                       repeats:(BOOL)repeats
+                                         block:(void (^)(void))block {
+    return [self scheduledTimerWithTimeInterval:interval
+                                         target:self // target 为 self，而这里的 self 是类对象，但类对象本身即不需要释放
+                                       selector:@selector(bc_timerBlockInvoked:)
+                                       userInfo:[block copy] // 将 Block 拷贝到堆，并保存在 userInfo 中
+                                        repeats:repeats];
+}
+
++ (void)bc_timerBlockInvoked:(NSTimer *)timer {
+    void (^block)(void) = timer.userInfo;
+    if (block) {
+        block();
+    }
+}
+
+@end
+
+@interface Foo : NSObject
+- (void)start:(NSUInteger)index;
+- (void)stop;
+@end
+
+@implementation Foo {
+    // 当前对象强引用 _timer
+    NSTimer *_timer0;
+    NSTimer *_timer1;
+    NSTimer *_timer2;
+
+    NSUInteger _currentIndex;
+}
+
+- (instancetype)init
+{
+    return [super init];
+}
+
+- (void)dealloc
+{
+    [_timer0 invalidate];
+    [_timer1 invalidate];
+    [_timer2 invalidate];
+
+    NSLog(@&quot;Timer %lu dealloc&quot;, _currentIndex);
+}
+
+- (void)start:(NSUInteger)index {
+    _currentIndex = index;
+
+    switch (index) {
+        case 0: {
+            // _timer 的 target 为 self，因而强引用 self，产生了循环引用
+            _timer0 = [NSTimer scheduledTimerWithTimeInterval:5.0
+                                                       target:self
+                                                     selector:@selector(timerInvoked)
+                                                     userInfo:nil
+                                                      repeats:YES];
+        }
+
+            break;
+
+        case 1: {
+            __weak typeof(self) weakSelf = self;
+            _timer1 = [NSTimer bc_scheduledTimerWithTimeInterval:5.0
+                                                         repeats:YES
+                                                           block:^{
+                __strong typeof(weakSelf) strongSelf = weakSelf;
+
+                NSLog(@&quot;--- kingcos.me ---&quot;);
+                NSLog(@&quot;%@&quot;, strongSelf);
+            } ];
+        }
+
+            break;
+
+        case 2: {
+            __weak typeof(self) weakSelf = self;
+            _timer2 = [NSTimer scheduledTimerWithTimeInterval:5.0
+                                                      repeats:YES
+                                                        block:^(NSTimer * _Nonnull timer) {
+                __strong typeof(weakSelf) strongSelf = weakSelf;
+
+                NSLog(@&quot;--- kingcos.me ---&quot;);
+                NSLog(@&quot;%@&quot;, strongSelf);
+            }];
+        }
+
+            break;
+
+        default:
+            break;
+    }
+}
+
+- (void)timerInvoked {
+    NSLog(@&quot;--- kingcos.me ---&quot;);
+}
+
+- (void)stop {
+    [_timer0 invalidate]; // 此时 _timer1 才打破引用循环
+    [_timer1 invalidate];
+    [_timer2 invalidate];
+
+    _timer0 = nil;
+    _timer1 = nil;
+    _timer2 = nil;
+}
+
+@end
+
+int main(int argc, const char * argv[]) {
+    @autoreleasepool {
+        [[[Foo alloc] init] start:0]; // 若不调用 stop，_timer1 则发生循环引用
+        [[[Foo alloc] init] start:1]; // 通过自己加分类处理
+        [[[Foo alloc] init] start:2]; // iOS 10 之后可用
+    }
+}
+
+// OUTPUT:
+// Timer 1 dealloc
+// Timer 2 dealloc
+</code></pre>
 
 <h2 id="reference">Reference</h2>
 
