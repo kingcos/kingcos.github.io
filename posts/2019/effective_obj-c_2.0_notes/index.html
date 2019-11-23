@@ -138,7 +138,7 @@
       
       
       
-        <span class="post-read-time">— 21 min read</span>
+        <span class="post-read-time">— 22 min read</span>
       
     </div>
 
@@ -1907,9 +1907,94 @@ NSLog(@&quot;%lu&quot;, (unsigned long)[num2 retainCount]);
 
 <h3 id="熟悉系统框架">熟悉系统框架</h3>
 
-<h3 id="多用块枚举-少爷-for-循环">多用块枚举，少爷 for 循环</h3>
+<p>略。</p>
 
-<h3 id="对自定义起内存管理语义的-collection-使用无缝桥接">对自定义起内存管理语义的 collection 使用无缝桥接</h3>
+<h3 id="多用块枚举-少用-for-循环">多用块枚举，少用 for 循环</h3>
+
+<p>遍历集合的方式有如下四种，之后可能会将此部分单独总结，此处不再赘述：</p>
+
+<pre><code class="language-objectivec">// 1⃣️ FOR-LOOP
+NSDictionary *dict = @{@&quot;A&quot;:@&quot;a&quot;, @&quot;B&quot;:@&quot;b&quot;, @&quot;C&quot;:@&quot;c&quot;, @&quot;kingcos.me&quot;:@&quot;github.com/kingcos&quot;,};
+NSArray *allKeys = [dict allKeys]; // ⚠️：NSDictionary &amp; NSSet 的元素是无序的
+for (int i = 0; i &lt; allKeys.count; i ++) {
+    NSLog(@&quot;&lt;%@, %@&gt;&quot;, allKeys[i], dict[allKeys[i]]);
+}
+
+// - 倒序
+NSArray *arr = @[@&quot;A&quot;, @&quot;kingcos.me&quot;, @&quot;github.com/kingcos&quot;];
+for (int i = (int)arr.count - 1; i &gt;= 0; i --) {
+    NSLog(@&quot;&lt;%@&gt;&quot;, arr[i]);
+}
+
+// 2⃣️ ENUMERATOR
+NSEnumerator *dictEnumerator = [dict keyEnumerator];
+id dictNextObj;
+while ((dictNextObj = [dictEnumerator nextObject]) != nil) {
+    NSLog(@&quot;&lt;%@, %@&gt;&quot;, dictNextObj, dict[dictNextObj]);
+}
+
+// - 倒序
+NSEnumerator *arrReversedEnumerator = [arr reverseObjectEnumerator];
+id arrNextObj;
+while ((arrNextObj = [arrReversedEnumerator nextObject]) != nil) {
+    NSLog(@&quot;&lt;%@&gt;&quot;, arrNextObj);
+}
+
+// 3⃣️ FAST-ENUMERATION
+for (id obj in arr) {
+    NSLog(@&quot;&lt;%@&gt;&quot;, obj);
+}
+
+for (id obj in [arr reverseObjectEnumerator]) {
+    NSLog(@&quot;&lt;%@&gt;&quot;, obj);
+}
+
+// - 自定义类型也可支持快速遍历：
+//   1. 继承 NSEnumerator 抽象基类，并实现 allObjects &amp; nextObject
+//   2. 遵守 NSFastEnumeration 协议，并实现 countByEnumeratingWithState:objects:count:
+
+// 4⃣️ 基于 Block
+// 字典键值同时读取；id 类型使得可以修改方法签名，避免类型转换
+[dict enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key,
+                                          NSString * _Nonnull obj,
+                                          BOOL * _Nonnull stop) {
+    NSLog(@&quot;&lt;%@, %@&gt;&quot;, key, obj);
+
+    if ([obj isEqualToString:@&quot;github.com/kingcos&quot;]) {
+        // 可在内部终止
+        *stop = YES;
+    }
+}];
+
+// NSEnumerationOptions 是枚举
+// typedef NS_OPTIONS(NSUInteger, NSEnumerationOptions) {
+//     NSEnumerationConcurrent = (1UL &lt;&lt; 0), // Block 可以并行执行
+//     NSEnumerationReverse = (1UL &lt;&lt; 1),    // 倒序（仅支持有序的集合结构）
+// };
+
+[arr enumerateObjectsWithOptions:NSEnumerationReverse
+                      usingBlock:^(NSString * _Nonnull obj,
+                                   NSUInteger idx,
+                                   BOOL * _Nonnull stop) {
+    NSLog(@&quot;&lt;%@&gt;&quot;, obj);
+}];
+</code></pre>
+
+<!-- https://www.cnblogs.com/zenny-chen/p/3593106.html
+
+http://blog.leichunfeng.com/blog/2016/06/20/objective-c-fast-enumeration-implementation-principle/
+
+https://zhuanlan.zhihu.com/p/25837870
+
+https://www.jianshu.com/p/2ec49d525871 -->
+
+<ul>
+<li><a href="https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/Collections/Articles/Enumerators.html">Enumeration: Traversing a Collection’s Elements - Collections Programming Topics</a></li>
+<li><a href="https://www.mikeash.com/pyblog/friday-qa-2010-04-09-comparison-of-objective-c-enumeration-techniques.html">Friday Q&amp;A 2010-04-09: Comparison of Objective-C Enumeration Techniques - Mike Ash</a></li>
+<li><a href="https://www.mikeash.com/pyblog/friday-qa-2010-04-16-implementing-fast-enumeration.html">Friday Q&amp;A 2010-04-16: Implementing Fast Enumeration - Mike Ash</a></li>
+</ul>
+
+<h3 id="对自定义其内存管理语义的-collection-使用无缝桥接">对自定义其内存管理语义的 collection 使用无缝桥接</h3>
 
 <h3 id="构建缓存时选用-nscache-而非-nsdictionary">构建缓存时选用 NSCache 而非 NSDictionary</h3>
 
