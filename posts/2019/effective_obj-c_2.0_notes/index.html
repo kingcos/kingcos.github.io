@@ -1184,7 +1184,7 @@ if (error) {
 
 <!-- http://cocoadev.com/wiki/NSZone -->
 
-<p>浅拷贝（Shallow Copy）和深拷贝（Deep Copy）针对于使用指针或地址指向的类型，前者仅仅拷贝指向地址，而后者则是将指向的数据也拷贝一份至新的内存地址。<code>Foundation</code> 中的集合类型默认执行浅拷贝（因为集合类型内部的属性并不一定都能拷贝），因此自定义类中我们也默认是浅拷贝，必要时定义类似 <code>deepCoby</code> 方法。</p>
+<p>无论是浅拷贝（Shallow Copy）还是深拷贝（Deep Copy），对象本身都会重新创建，其中的标量也会直接复制，而针对于使用对象中的指针或地址指向的类型，前者仅仅拷贝指向地址，而后者则是将指向的数据也拷贝一份至新的内存地址。<code>Foundation</code> 中的集合类型默认执行浅拷贝（因为集合类型内部的属性并不一定都能拷贝），因此自定义类中我们也默认是浅拷贝，必要时定义类似 <code>deepCoby</code> 方法。</p>
 
 <pre><code class="language-objectivec">@interface Rectangle : NSObject
 @property (nonatomic, assign, readonly) double width;
@@ -1198,7 +1198,6 @@ if (error) {
 @interface Rectangle ()
 @property (nonatomic, assign, readwrite) double width;
 @property (nonatomic, assign) double height;
-@property (nonatomic, strong) NSString *rect;
 @end
 
 @implementation Rectangle {
@@ -1229,8 +1228,8 @@ if (error) {
 
 - (id)copyWithZone:(nullable NSZone *)zone {
     Rectangle *rect = [[Rectangle allocWithZone:zone] initWithWidth:_width height:_height];
-    rect-&gt;_mutableArray = [[NSMutableArray alloc] initWithArray:_mutableArray copyItems:YES];
-//    rect-&gt;_mutableArray = [_mutableArray mutableCopy];
+    rect-&gt;_mutableArray = [[NSMutableArray alloc] initWithArray:_mutableArray copyItems:YES]; // 深拷贝
+//    rect-&gt;_mutableArray = [_mutableArray mutableCopy]; // 浅拷贝
     return rect;
 }
 @end
@@ -1240,27 +1239,36 @@ Rectangle *rect1 = [[Rectangle alloc] initWithWidth:10.0 height:10.0];
 
 [rect1 addElement:rect];
 
+rect1.height = 100;
 Rectangle *rect2 = [rect1 copy];
+rect1.height = 200;
 
-NSLog(@&quot;%@&quot;, [rect1 array]);
-NSLog(@&quot;%@&quot;, [rect2 array]);
+NSLog(@&quot;rect1.array - %@, rect2.array - %@&quot;, [rect1 array], [rect2 array]);
+NSLog(@&quot;rect1.height - %f, rect2.height - %f&quot;, rect1.height, rect2.height);
+NSLog(@&quot;rect1 - %@, rect2 - %@&quot;, rect1, rect2);
 
 // OUTPUT:
-// 深拷贝（集合内部元素为新元素）
-// (
-//     &quot;&lt;Rectangle: 0x6000022f9c20&gt;&quot;
+// 深拷贝（集合是新的集合，且集合内部元素为新元素）
+// rect1.array - (
+//     &quot;&lt;Rectangle: 0x101125d40&gt;&quot;
+// ), rect2.array - (
+//     &quot;&lt;Rectangle: 0x101126250&gt;&quot;
 // )
-// (
-//     &quot;&lt;Rectangle: 0x6000022f9ad0&gt;&quot;
+// rect1.height - 200.000000, rect2.height - 100.000000
+// rect1 - &lt;Rectangle: 0x101125e80&gt;, rect2 - &lt;Rectangle: 0x101125f70&gt;
+// 浅拷贝（集合是新的集合，但集合内部元素仍为原集合）
+// rect1.array - (
+//     &quot;&lt;Rectangle: 0x102a04010&gt;&quot;
+// ), rect2.array - (
+//     &quot;&lt;Rectangle: 0x102a04010&gt;&quot;
 // )
-// 浅拷贝（集合内部元素仍为原集合）
-// (
-//     &quot;&lt;Rectangle: 0x600000328ff0&gt;&quot;
-// )
-// (
-//     &quot;&lt;Rectangle: 0x600000328ff0&gt;&quot;
-// )
+// rect1.height - 200.000000, rect2.height - 100.000000
+// rect1 - &lt;Rectangle: 0x102a04150&gt;, rect2 - &lt;Rectangle: 0x102a04240&gt;
 </code></pre>
+
+<p><img src="/img/2019/effective_obj-c_2.0_notes/3.png" alt="3" /></p>
+
+<p>上图取自苹果官方文档中 <a href="https://developer.apple.com/library/archive/documentation/General/Conceptual/DevPedia-CocoaCore/ObjectCopying.html">Object copying - Cocoa Core Competencies</a> 一节。</p>
 
 <h2 id="协议与分类">协议与分类</h2>
 
