@@ -7,10 +7,21 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
     <copyright>All rights reserved by kingcos.me</copyright>
-    <lastBuildDate>Tue, 29 Oct 2019 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 24 Nov 2019 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/tags/focus/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Obj-C 中的 Block</title>
+      <link>/posts/2019/block_in_obj-c/</link>
+      <pubDate>Sun, 24 Nov 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2019/block_in_obj-c/</guid>
+      <description>Date Notes Notes     2019-07-27 首次提交 -   2019-11-24 重新整理部分内容；补充《Effective Objective-C 2.0》&amp;amp;《Objective-C 高级编程》相关内容 Demo - Block_in_Obj-C    Preface 从 OS X Snow Leopard 和 iOS 4 开始，Apple 引入了 Block 的概念。Obj-C 中的 Block 即通常意义上的匿名函数，而之所以引入是因为 C 语言中并不支持匿名函数。这使得 Block 在 Obj-C 中可以称为是一类公民（First-Class Citizen），既可以作为类的属性，也可以作为函数参数或返回值来传递。那么本文就将着眼于此谈谈 Obj-C 中的 Block。
+Prerequisites 匿名函数与 Block 匿名函数顾名思义，即不带名称的函数，C 语言中即使是函数指针也仍然需要通过函数名来获得其地址：
+// C 语言函数 int cFunc(int arg) { return arg; } int main_1(int argc, const char * argv[]) { int result1 = cFunc(10); // C 语言中的函数指针需要通过函数名来获得其地址 int (*cFuncPtr)(int) = &amp;amp;cFunc; int result2 = (*cFuncPtr)(10); printf(&amp;quot;result1 = %d, result2 = %d\n&amp;quot;, result1, result2); return 0; } // OUTPUT: // result1 = 10, result2 = 10  Obj-C 中的匿名函数被称为 Block，中文有译作块、闭包（Closure），其实很多语言都有类似的机制，比如 Swift 中的 Closure，Java / Python / C++ 11 中的 Lambda（λ）表达式，JavaScript 中的匿名函数等。</description>
+    </item>
     
     <item>
       <title>iOS 中的库与框架</title>
@@ -106,18 +117,6 @@ Where // NSObject.h @interface NSObject &amp;lt;NSObject&amp;gt; { #pragma clang
       <description>Date Notes Xcode Swift     2019-04-01 首次提交 10.1 -   2019-04-16 增加 Swift 项目 10.1 4.2   2019-07-28 增加目录导图，折叠过长内容 - -    Preface Link Map File，译作链接映射文件（下文将称 Link Map 文件）。Xcode 在构建可执行文件之前，需要先编译为目标文件（Object File），并链接所需要的其他库，那么 Link Map 文件就记录了链接器（Linker）在链接过程中产生的一些信息，本文将谈谈这个文件的构成。
 What Xcode 中默认是不会将 Link Map 文件在构建时暴露出来的，需要我们手动在「Build Settings」-「Write Link Map File」-「Yes」打开该写入该文件的设置。这样当我们再次编译项目，默认就可以在 ~/Library/Developer/Xcode/DerivedData/&amp;lt;TARGET_NAME&amp;gt;-&amp;lt;Random_ID&amp;gt;/Build/Intermediates.noindex/&amp;lt;TARGET_NAME&amp;gt;.build/Debug-&amp;lt;Device_Type&amp;gt;/&amp;lt;TARGET_NAME&amp;gt;.build/&amp;lt;TARGET_NAME&amp;gt;-LinkMap-normal-&amp;lt;Arch&amp;gt;.txt 中找到。如有更改 Link Map 文件路径的需求也可以在「Path to Link Map File」中更改。
 举个例子，我的 DemoiOS 项目（Obj-C）中 Link Map 文件的完整路径为：/Users/kingcos/Library/Developer/Xcode/DerivedData/DemoiOS-hifhuapijabsaxgpelrpiwhbzlqv/Build/Intermediates.noindex/DemoiOS.build/Debug-iphonesimulator/DemoiOS.build/DemoiOS-LinkMap-normal-x86_64.txt。</description>
-    </item>
-    
-    <item>
-      <title>Obj-C 中的 Block</title>
-      <link>/posts/2019/block_in_obj-c/</link>
-      <pubDate>Sat, 27 Jul 2019 00:00:00 +0000</pubDate>
-      
-      <guid>/posts/2019/block_in_obj-c/</guid>
-      <description>Date Notes Notes     2019-07-27 首次提交 -   2019-11-21 重新整理部分内容；补充《Effective Objective-C 2.0》&amp;amp;《Objective-C 高级编程》相关内容 -    Preface Obj-C 中的 Block，即闭包，使得我们能够将代码块封装为变量，可以作为参数在方法中传递。当我们需要做一些异步行为时，总是希望能够在异步动作完成时可以在回调中执行额外的动作，那么此时我们就可以选择使用 Block 来作为 handler，其相较于 Delegate 更加简洁。那么本文就将着眼于 Obj-C 中 Block，谈谈其中的原理。
-对于设计 handler API，可参考《编写高质量 iOS 与 OS X 代码的 52 个有效方法》一书中所提到的，通常我们可以将成功与失败情况放在同一个 handler 中处理；另外我们可以仿照 NSNotificationCenter API，通过增加一个参数来让外界决定 handler 执行的队列。
- ⚠️
-在 Obj-C 中我们可以使用 __has_feature(objc_arc) 宏来区分 ARC（Automatic Reference Counting）和 MRC（Mannul Reference Counting）下可以编译的代码。目前 Xcode 中默认开启了 ARC，切换为 MRC 可以通过 Xcode - Build Settings - Automatic Reference Counting（自动引用计数）- No 来设置，具体可参照下图：</description>
     </item>
     
     <item>

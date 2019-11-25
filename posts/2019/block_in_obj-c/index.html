@@ -6,10 +6,9 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Notes     2019-07-27 首次提交 -   2019-11-21 重新整理部分内容；补充《Effective Objective-C 2.0》&amp;amp;《Objective-C 高级编程》相关内容 -    Preface Obj-C 中的 Block，即闭包，使得我们能够将代码块封装为变量，可以作为参数在方法中传递。当我们需要做一些异步行为时，总是希望能够在异步动作完成时可以在回调中执行额外的动作，那么此时我们就可以选择使用 Block 来作为 handler，其相较于 Delegate 更加简洁。那么本文就将着眼于 Obj-C 中 Block，谈谈其中的原理。
-对于设计 handler API，可参考《编写高质量 iOS 与 OS X 代码的 52 个有效方法》一书中所提到的，通常我们可以将成功与失败情况放在同一个 handler 中处理；另外我们可以仿照 NSNotificationCenter API，通过增加一个参数来让外界决定 handler 执行的队列。
- ⚠️
-在 Obj-C 中我们可以使用 __has_feature(objc_arc) 宏来区分 ARC（Automatic Reference Counting）和 MRC（Mannul Reference Counting）下可以编译的代码。目前 Xcode 中默认开启了 ARC，切换为 MRC 可以通过 Xcode - Build Settings - Automatic Reference Counting（自动引用计数）- No 来设置，具体可参照下图："/>
+<meta name="description" content="Date Notes Notes     2019-07-27 首次提交 -   2019-11-24 重新整理部分内容；补充《Effective Objective-C 2.0》&amp;amp;《Objective-C 高级编程》相关内容 Demo - Block_in_Obj-C    Preface 从 OS X Snow Leopard 和 iOS 4 开始，Apple 引入了 Block 的概念。Obj-C 中的 Block 即通常意义上的匿名函数，而之所以引入是因为 C 语言中并不支持匿名函数。这使得 Block 在 Obj-C 中可以称为是一类公民（First-Class Citizen），既可以作为类的属性，也可以作为函数参数或返回值来传递。那么本文就将着眼于此谈谈 Obj-C 中的 Block。
+Prerequisites 匿名函数与 Block 匿名函数顾名思义，即不带名称的函数，C 语言中即使是函数指针也仍然需要通过函数名来获得其地址：
+// C 语言函数 int cFunc(int arg) { return arg; } int main_1(int argc, const char * argv[]) { int result1 = cFunc(10); // C 语言中的函数指针需要通过函数名来获得其地址 int (*cFuncPtr)(int) = &amp;amp;cFunc; int result2 = (*cFuncPtr)(10); printf(&amp;quot;result1 = %d, result2 = %d\n&amp;quot;, result1, result2); return 0; } // OUTPUT: // result1 = 10, result2 = 10  Obj-C 中的匿名函数被称为 Block，中文有译作块、闭包（Closure），其实很多语言都有类似的机制，比如 Swift 中的 Closure，Java / Python / C&#43;&#43; 11 中的 Lambda（λ）表达式，JavaScript 中的匿名函数等。"/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2019/block_in_obj-c/" />
@@ -30,16 +29,16 @@
 
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Obj-C 中的 Block"/>
-<meta name="twitter:description" content="Obj-C 中的 Block，即闭包，使得我们能够将代码块封装为变量，可以作为参数在方法中传递。当我们需要做一些异步行为时，总是希望能够在异步动作完成时可以在回调中执行额外的动作，那么此时我们就可以选择使用 Block 来作为 handler，其相较于 Delegate 更加简洁。那么本文就将着眼于 Obj-C 中 Block，谈谈其中的原理。"/>
+<meta name="twitter:description" content="从 OS X Snow Leopard 和 iOS 4 开始，Apple 引入了 Block 的概念。Obj-C 中的 Block 即通常意义上的匿名函数，而之所以引入是因为 C 语言中并不支持匿名函数。这使得 Block 在 Obj-C 中可以称为是一类公民，既可以作为类的属性，也可以作为函数参数或返回值来传递。那么本文就将着眼于此谈谈 Obj-C 中的 Block。"/>
 
 
 
 <meta property="og:title" content="Obj-C 中的 Block" />
-<meta property="og:description" content="Obj-C 中的 Block，即闭包，使得我们能够将代码块封装为变量，可以作为参数在方法中传递。当我们需要做一些异步行为时，总是希望能够在异步动作完成时可以在回调中执行额外的动作，那么此时我们就可以选择使用 Block 来作为 handler，其相较于 Delegate 更加简洁。那么本文就将着眼于 Obj-C 中 Block，谈谈其中的原理。" />
+<meta property="og:description" content="从 OS X Snow Leopard 和 iOS 4 开始，Apple 引入了 Block 的概念。Obj-C 中的 Block 即通常意义上的匿名函数，而之所以引入是因为 C 语言中并不支持匿名函数。这使得 Block 在 Obj-C 中可以称为是一类公民，既可以作为类的属性，也可以作为函数参数或返回值来传递。那么本文就将着眼于此谈谈 Obj-C 中的 Block。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/posts/2019/block_in_obj-c/" />
-<meta property="article:published_time" content="2019-07-27T00:00:00+00:00" />
-<meta property="article:modified_time" content="2019-07-27T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+<meta property="article:published_time" content="2019-11-24T00:00:00+00:00" />
+<meta property="article:modified_time" content="2019-11-24T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
 
 
 
@@ -136,12 +135,12 @@
     <div class="post-meta">
       
         <span class="post-date">
-            2019-07-27
+            2019-11-24
         </span>
       
       
       
-        <span class="post-read-time">— 16 min read</span>
+        <span class="post-read-time">— 19 min read</span>
       
     </div>
 
@@ -179,9 +178,9 @@
 </tr>
 
 <tr>
-<td align="center">2019-11-21</td>
+<td align="center">2019-11-24</td>
 <td align="center">重新整理部分内容；补充《Effective Objective-C 2.0》&amp;《Objective-C 高级编程》相关内容</td>
-<td align="center">-</td>
+<td align="center">Demo - <a href="https://github.com/kingcos/Perspective/tree/writing/Posts/Focus/block_in_obj-c/Block_in_Obj-C">Block_in_Obj-C</a></td>
 </tr>
 </tbody>
 </table>
@@ -190,30 +189,168 @@
 
 <h2 id="preface">Preface</h2>
 
-<p>Obj-C 中的 Block，即闭包，使得我们能够将代码块封装为变量，可以作为参数在方法中传递。当我们需要做一些异步行为时，总是希望能够在异步动作完成时可以在回调中执行额外的动作，那么此时我们就可以选择使用 Block 来作为 handler，其相较于 Delegate 更加简洁。那么本文就将着眼于 Obj-C 中 Block，谈谈其中的原理。</p>
+<p>从 OS X Snow Leopard 和 iOS 4 开始，Apple 引入了 Block 的概念。Obj-C 中的 Block 即通常意义上的匿名函数，而之所以引入是因为 C 语言中并不支持匿名函数。这使得 Block 在 Obj-C 中可以称为是一类公民（First-Class Citizen），既可以作为类的属性，也可以作为函数参数或返回值来传递。那么本文就将着眼于此谈谈 Obj-C 中的 Block。</p>
 
-<p>对于设计 handler API，可参考《编写高质量 iOS 与 OS X 代码的 52 个有效方法》一书中所提到的，通常我们可以将成功与失败情况放在同一个 handler 中处理；另外我们可以仿照 <code>NSNotificationCenter</code> API，通过增加一个参数来让外界决定 handler 执行的队列。</p>
+<!-- 当我们需要做一些异步行为时，总是希望能够在异步动作完成时可以在回调中执行额外的动作，那么此时我们就可以选择使用 Block 来作为 handler，其相较于 Delegate 更加简洁。
 
-<blockquote>
-<p>⚠️</p>
+对于设计 handler API，可参考《编写高质量 iOS 与 OS X 代码的 52 个有效方法》一书中所提到的，通常我们可以将成功与失败情况放在同一个 handler 中处理；另外我们可以仿照 `NSNotificationCenter` API，通过增加一个参数来让外界决定 handler 执行的队列。 -->
 
-<p>在 Obj-C 中我们可以使用 <code>__has_feature(objc_arc)</code> 宏来区分 ARC（Automatic Reference Counting）和 MRC（Mannul Reference Counting）下可以编译的代码。目前 Xcode 中默认开启了 ARC，切换为 MRC 可以通过 Xcode - Build Settings - Automatic Reference Counting（自动引用计数）- No 来设置，具体可参照下图：</p>
+<h2 id="prerequisites">Prerequisites</h2>
+
+<h3 id="匿名函数与-block">匿名函数与 Block</h3>
+
+<p>匿名函数顾名思义，即不带名称的函数，C 语言中即使是函数指针也仍然需要通过函数名来获得其地址：</p>
+
+<pre><code class="language-c">// C 语言函数
+int cFunc(int arg) {
+    return arg;
+}
+
+int main_1(int argc, const char * argv[]) {
+    int result1 = cFunc(10);
+
+    // C 语言中的函数指针需要通过函数名来获得其地址
+    int (*cFuncPtr)(int) = &amp;cFunc;
+    int result2 = (*cFuncPtr)(10);
+
+    printf(&quot;result1 = %d, result2 = %d\n&quot;, result1, result2);
+
+    return 0;
+}
+
+// OUTPUT:
+// result1 = 10, result2 = 10
+</code></pre>
+
+<p>Obj-C 中的匿名函数被称为 Block，中文有译作块、闭包（Closure），其实很多语言都有类似的机制，比如 Swift 中的 Closure，Java / Python / C++ 11 中的 Lambda（λ）表达式，JavaScript 中的匿名函数等。</p>
+
+<h3 id="arc-mrc">ARC &amp; MRC</h3>
+
+<p>Obj-C 作为使用引用计数来进行内存管理语言，虽然 ARC（Automatic Reference Counting，自动引用计数）已经引入多年，但有时仍然需要通过 MRC（Mannul Reference Counting，手动引用计数）了解更加底层的细节与区别。在 Obj-C 中我们可以使用 <code>__has_feature(objc_arc)</code> 宏来区分 ARC 和 MRC 下可以编译的代码。</p>
+
+<p>目前 Xcode 中默认为 ARC，切换为 MRC 可以通过 Xcode - Build Settings - Automatic Reference Counting - No 来设置：</p>
 
 <p><img src="/img/2019/block_in_obj-c/3.png" alt="3" /></p>
-</blockquote>
 
 <h2 id="what">What</h2>
+
+<h3 id="语法">语法</h3>
+
+<p>Obj-C 中的 Block 令人十分诟病的一个问题是其语法的繁杂。笔者也时常在 <a href="http://fuckingblocksyntax.com">fuckingblocksyntax.com</a> 查询相应的语法。</p>
+
+<p>声明一个参数为 <code>int</code> 没有返回值的 Block：</p>
+
+<pre><code class="language-objectivec">// 省略返回值的 void
+^(int arg) {
+    printf(&quot;%d\n&quot;, arg);
+};
+
+// 完整写法
+^void (int arg) {
+    printf(&quot;%d\n&quot;, arg);
+};
+</code></pre>
+
+<p>在语法上，与 C 语言函数不同的是：Block 没有函数名以及 <code>^</code> 记号，后者作为特殊记号将便于查找。BNF（Backus Normal Form，又 Backus-Naur Form，译作巴科斯范式，又巴科斯-诺尔范式）是一种用来描述计算机编程语言语法符号集的规范，通过这个规范在识别每一条编程语言语句时即可构建抽象语法树，进而帮助编译，未来笔者将在编译原理相关内容中深入探究。Block 声明语法的 BNF 如下：</p>
+
+<pre><code>Block_literal_expression ::= ^ block_decl compound_statement_body
+block_decl ::=
+block_decl ::= parameter_list
+block_decl ::= type_expression
+</code></pre>
+
+<p>因此通过上述 BNF 就能清晰的知道 Block 的几种声明语法：</p>
+
+<pre><code class="language-objectivec">// 省略返回值 &amp; 参数
+^{ /* compound_statement_body */ };
+// 省略返回值
+^(int arg){ /* compound_statement_body */ };
+// 省略参数
+^int{ /* compound_statement_body */ return 0; };
+</code></pre>
+
+<p>Obj-C 中的 Block 与其它类型类似，可以作为属性或者变量，也可以在函数中作为参数或者返回值。但由于 Block 的语法繁杂，我们可以用 <code>typedef</code> 定义 Block 的类型，使得 API 更加简洁明了：</p>
+
+<pre><code class="language-objectivec">typedef int (^BlockType)(int);
+
+@interface Foo_1 : NSObject
+@property (nonatomic, strong) BlockType block;
+@end
+
+@implementation Foo_1
+// 作为对象方法参数
+- (void)blockAsArg_1:(int(^)(int))block {
+    block(10);
+}
+// 使用 typedef 作为对象方法参数
+- (void)blockAsArg_2:(BlockType)block {
+    block(10);
+}
+// 作为对象方法返回值
+- (int(^)(int))blockAsReturnValue_1 {
+    return ^(int arg) { return arg; };
+}
+// 使用 typedef 作为对象方法返回值
+- (BlockType)blockAsReturnValue_2 {
+    return ^(int arg) { return arg; };
+}
+@end
+
+// Block 作为 C 语言函数参数
+void blockAsArg_1(int (^block)(int)) {
+    block(10);
+}
+// 使用 typedef 作为 C 语言函数参数
+void blockAsArg_2(BlockType block) {
+    block(10);
+}
+
+// 《Objective-C 高级编程》中教授的如下方法，目前会报错，且尚未找到相应的解决方法：
+// Block pointer to non-function type is invalid
+// Returning 'int (^)(int)' from a function with incompatible result type 'int (int)'
+// int (^blockAsReturnValue()(int)) {
+//     return ^(int arg) { return arg; };
+// }
+
+BlockType blockAsReturnValue() {
+    return ^(int arg) { return arg; };
+}
+
+int main_2(int argc, const char * argv[]) {
+    // 声明 Block 类型的变量
+    int (^block1)(int);
+    // 声明并赋值 Block（省略返回值类型）
+    int(^block2)(int) = ^(int arg) { return arg; };
+    block2 = ^int(int arg) { return arg; };
+    // Block 类型的变量之间赋值
+    int (^block3)(int) = block2;
+
+    block1 = block2;
+
+    // 使用 typedef
+    BlockType block4;
+    BlockType block5 = ^(int arg) { return arg; };
+    block5 = ^int(int arg) { return arg; };
+    BlockType block6 = block5;
+    block4 = block5;
+
+    return 0;
+}
+</code></pre>
+
+<h3 id="结构">结构</h3>
 
 <p>在 <code>main</code> 函数中声明并执行一个简单的 Block：</p>
 
 <pre><code class="language-objectivec">// main.m
 
-int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-        ^{
-            NSLog(@&quot;Hello, World!&quot;);
-        }();
-    }
+int main_3(int argc, const char * argv[]) {
+    void(^block)(void) = ^{
+        NSLog(@&quot;Hello, World!&quot;);
+    };
+
+    block();
+
     return 0;
 }
 
@@ -223,24 +360,19 @@ int main(int argc, const char * argv[]) {
 
 <p>为了窥探 Block 的结构，可以尝试使用 <code>xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m -o main.cpp</code> 命令将以上代码翻译为 C/C++ 代码来分析：</p>
 
-<pre><code class="language-cpp">struct __block_impl {
+<pre><code class="language-cpp">// Block 实现的结构体
+struct __block_impl {
   void *isa;     // isa 指针
   int Flags;     // 标记，默认会被初始化为 0
-  int Reserved;  // 保留域
+  int Reserved;  // 保留域（ABI 兼容）
   void *FuncPtr; // Block 代码块的函数指针
 };
-
-static struct __main_block_desc_0 {
-  size_t reserved;   // 保留域，默认 0
-  size_t Block_size; // Block 大小，sizeof 整个 Block 结构体
-} __main_block_desc_0_DATA = { 0, sizeof(struct __main_block_impl_0)};
-
-// ➡️ Block：
-struct __main_block_impl_0 {
-  struct __block_impl impl;         // 实现（非指针）
-  struct __main_block_desc_0* Desc; // 描述信息的指针
+// ➡️ Block 结构体
+struct __main_3_block_impl_0 {
+  struct __block_impl impl;           // 实现（非指针）
+  struct __main_3_block_desc_0* Desc; // 描述信息（指针）
   // 构造函数
-  __main_block_impl_0(void *fp, struct __main_block_desc_0 *desc, int flags=0) {
+  __main_3_block_impl_0(void *fp, struct __main_3_block_desc_0 *desc, int flags=0) {
     impl.isa = &amp;_NSConcreteStackBlock;
     impl.Flags = flags;
     impl.FuncPtr = fp;
@@ -248,35 +380,47 @@ struct __main_block_impl_0 {
   }
 };
 
-// 静态函数封装 Block 内代码块
-static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
+// Block 内代码块封装在该 C 语言静态函数中，函数命名规则：__CALLER_METHOD_NAME_block_func_NUMBER
+// 类似 self，但 __cself 为指向 Block 值的变量
+static void __main_3_block_func_0(struct __main_3_block_impl_0 *__cself) {
 
-            NSLog((NSString *)&amp;__NSConstantStringImpl__var_folders_ps_0m9gnvtj0893vpf1cr595djh0000gn_T_main_429af3_mi_0);
-        }
+        NSLog((NSString *)&amp;__NSConstantStringImpl__var_folders_ps_0m9gnvtj0893vpf1cr595djh0000gn_T_main_b9596e_mi_0);
+    }
 
-// 声明 block 变量（指向 _main_block_impl_0 的指针）
-// void (*block)(void) = &amp;__main_block_impl_0(__main_block_func_0, &amp;__main_block_desc_0_DATA));
-void (*block)(void) = ((void (*)())&amp;__main_block_impl_0((void *)__main_block_func_0, &amp;__main_block_desc_0_DATA));
+// Block 描述信息的结构体
+static struct __main_3_block_desc_0 {
+  size_t reserved;   // 保留域，默认 0
+  size_t Block_size; // Block 大小，sizeof 整个 Block 结构体 ⬇️
+} __main_3_block_desc_0_DATA = { 0, sizeof(struct __main_3_block_impl_0)};
 
-// 执行 Block 内部代码
-// 在 __main_block_impl_0 结构体中，impl 是第一个变量，因此其与结构体本身的首地址一致，因此可以强转
-// block-&gt;FuncPtr(block);
-((void (*)(__block_impl *))((__block_impl *)block)-&gt;FuncPtr)((__block_impl *)block);
+// 主函数
+int main_3(int argc, const char * argv[]) {
+    // 通过 __main_3_block_impl_0 结构体的构造函数初始化，参数为静态函数和描述信息结构体的地址，将地址存储在 block 变量中
+    // 忽略类型转换：block = &amp;__main_3_block_impl_0(__main_3_block_func_0, &amp;__main_3_block_desc_0_DATA));
+    void(*block)(void) = ((void (*)())&amp;__main_3_block_impl_0((void *)__main_3_block_func_0, &amp;__main_3_block_desc_0_DATA));
+
+    // 执行 Block
+    // 忽略类型转换：block-&gt;FuncPtr(block);
+    // 在 __main_block_impl_0 结构体中，impl 是第一个变量，因此其与结构体本身的首地址一致，因此可以强转
+    ((void (*)(__block_impl *))((__block_impl *)block)-&gt;FuncPtr)((__block_impl *)block);
+
+    return 0;
+}
 </code></pre>
 
-<p>如上，当声明 Block 后，其中的代码块会被封装到 <code>__main_block_func_0</code> 静态函数中（后缀 <code>0</code> 代表序号，后同），用来和 <code>__main_block_desc_0_DATA</code> 一起构造 <code>__main_block_impl_0</code>，并在其构造函数中将函数指针赋值给 <code>FuncPtr</code>；最终在 Block 真正调用时，通过 <code>block-&gt;FuncPtr(block)</code> 执行代码块。</p>
+<p>当声明一个 Block，其中的代码块会被封装到 <code>__main_3_block_func_0</code> 静态函数中（后缀 <code>0</code> 代表序号，后同），用来和 Block 描述信息 <code>__main_3_block_desc_0_DATA</code> 的地址一起构造 Block 结构体 <code>__main_3_block_impl_0</code>；并在其构造函数中将代码块封装的函数指针赋值给 <code>FuncPtr</code>，描述信息以引用方式保存在 <code>desc</code> 指针中；最终在 Block 真正执行时，通过 <code>block-&gt;FuncPtr(block)</code> 找静态函数去调用。</p>
 
-<p>所以 Obj-C 的 Block 即是 <code>__main_block_impl_0</code> 结构体。该结构体中又直接包含了 <code>__block_impl</code> 结构体，以及指向 <code>__main_block_desc_0</code> 结构体的指针。在 <code>__block_impl</code> 结构体中，<code>isa</code> 暗示了其本质是 Obj-C 对象的事实，而 <code>FuncPtr</code> 函数指针则指向将要执行的静态函数：</p>
+<p>所以 Obj-C 的 Block 即是 <code>__main_3_block_impl_0</code> 结构体。该结构体中又直接包含了含有实现相关 <code>__block_impl</code> 结构体，以及含有描述信息指向 <code>__main_3_block_desc_0</code> 结构体的指针。在 <code>__block_impl</code> 结构体中，<code>isa</code> 的存在印证了 Block 的本质其实也是属于 Obj-C 中的对象，而 <code>FuncPtr</code> 函数指针则指向封装好的静态函数：</p>
 
 <p><img src="/img/2019/block_in_obj-c/1.png" alt="1" /></p>
 
-<p>总之，Block 是<strong>封装了函数调用以及函数调用环境的 Obj-C 对象</strong>。</p>
+<blockquote>
+<p>注：由于上图原始文件丢失，为保证和上文源码对照，特此说明：上图中 <code>__main_block_impl_0</code> 为上文中的 <code>__main_3_block_impl_0</code>，<code>__main_block_desc_0</code> 为上文中的 <code>__main_3_block_desc_0</code>，<code>__main_block_func_0</code> 为上文中的 <code>__main_3_block_func_0</code>。</p>
+</blockquote>
 
 <h2 id="变量捕获">变量捕获</h2>
 
-<h3 id="局部变量">局部变量</h3>
-
-<h4 id="自动变量">自动变量</h4>
+<h3 id="自动变量">自动变量</h3>
 
 <p>自动变量（Automatic Variable）即局部作用域变量，指在代码块中声明的变量，离开作用域时会被自动销毁，声明时也可以显式使用 <code>auto</code> 关键字：</p>
 
@@ -377,7 +521,7 @@ static void __A__objectFunc_block_func_0(struct __A__objectFunc_block_impl_0 *__
     }
 </code></pre>
 
-<h4 id="局部静态变量">局部静态变量</h4>
+<h3 id="局部静态变量">局部静态变量</h3>
 
 <p>局部静态变量指定义在代码块内的静态变量，其作用域是在代码块内，但其生命周期并不会随代码块结束：</p>
 
@@ -480,6 +624,28 @@ static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
 
             NSLog((NSString *)&amp;__NSConstantStringImpl__var_folders_ps_0m9gnvtj0893vpf1cr595djh0000gn_T_main_437bca_mi_0, a, b);
         }
+</code></pre>
+
+<h3 id="c-语言数组">C 语言数组</h3>
+
+<p>Block 并不会去捕获 C 语言数组，而指针可以解决问题：</p>
+
+<pre><code class="language-objectivec">int main_6(int argc, const char * argv[]) {
+    const char cLocalArr[] = &quot;kingcos.me&quot;;
+    const char *cLocalString = &quot;kingcos.me&quot;;
+
+    ^{
+        // Block 不会对 C 语言数组进行捕获，而可以使用指针
+        // ERROR: Cannot refer to declaration with an array type inside block
+        // printf(&quot;%c\n&quot;, cLocalArr[7]);
+
+        printf(&quot;%c\n&quot;, cLocalString[7]);
+    }();
+
+    return 0;
+}
+// OUTPUT:
+// .
 </code></pre>
 
 <h2 id="类型">类型</h2>
@@ -703,7 +869,6 @@ int main(int argc, const char * argv[]) {
 }
 @end
 
-// 使用 typedef 定义 Block 的类型，可以使得 API 更加简单友好
 typedef void(^SomeBlock)(void);
 
 void (^mallocBlock1)(void);
@@ -914,37 +1079,51 @@ static struct __main_block_desc_0 {
 
 <h3 id="本质">本质</h3>
 
-<p>上面的 Demo 中，Block 只是访问了外界的变量，但没有进行过修改，接下来我们尝试下：</p>
+<p>上面的 Demo 中 Block 内部只是访问了外界的变量，接下来我们将尝试下在 Block 内修改变量值：</p>
 
 <pre><code class="language-objectivec">static int staticGlobalVar = 0;
 
-int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-        int autoVar = 0;
-        static int staticVar = 0;
+int main_4(int argc, const char * argv[]) {
+    int autoVar = 0;
+    static int staticVar = 0;
 
-        ^{
-            // Error: Variable is not assignable (missing __block type specifier)
-            // autoVar = 10;
+    auto NSMutableArray *autoArray = [[NSMutableArray alloc] init];
 
-            staticVar = 10;
-            staticGlobalVar = 10;
-        }();
-    }
+    ^{
+        // ERROR: Variable is not assignable (missing __block type specifier)
+        // autoVar = 10;
+
+        staticVar = 10;
+        staticGlobalVar = 10;
+
+        [autoArray addObject:@&quot;kingcos.me&quot;];
+        // ERROR: Variable is not assignable (missing __block type specifier)
+        // autoArray = [[NSMutableArray alloc] init];
+    }();
+
+    return 0;
 }
 </code></pre>
 
-<p>Block 中按引用捕获静态局部变量，以及不捕获全局静态变量，可以直接修改这些变量的值。而对于自动变量，由于其是值传递，内部的 <code>autoVar</code> 与外界已无关系，所以此时不能在内部修改，编译器将提示 <code>Variable is not assignable (missing __block type specifier)</code>，那么这里的 <code>__block</code> 是什么呢？</p>
+<p>对于静态局部变量和全局静态变量，Block 内可以直接修改这些变量的值。而对于自动变量编译器则会报错 <code>Variable is not assignable (missing __block type specifier)</code>（变量未分配（丢失 <code>__block</code> 类型限定符）），那么这里的 <code>__block</code> 是什么呢？</p>
 
-<pre><code class="language-obejctivec">int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-        __block int autoVar = 0;
+<pre><code class="language-obejctivec">int main_5(int argc, const char * argv[]) {
+    __block int autoVar = 0;
+    __block auto NSMutableArray *autoArray = [[NSMutableArray alloc] init];
 
-        ^{
-            autoVar = 10;
-        }();
-    }
+    // 使用 __block 修饰的自动变量，在 Block 内部确实可以修改
+    ^{
+        autoVar = 10;
+        autoArray = [[NSMutableArray alloc] init];
+    };
+
+    NSLog(@&quot;autoVar = %d&quot;, autoVar);
+
+    return 0;
 }
+
+// OUTPUT:
+// autoVar = 0
 </code></pre>
 
 <p>我们尝试将以上代码翻译为 C++：</p>
@@ -1458,6 +1637,12 @@ p.block();
 
 <h3 id="weakify-strongify"><code>@weakify</code> &amp; <code>@strongify</code></h3>
 
+<h2 id="reference">Reference</h2>
+
+<ul>
+<li><a href="https://zh.wikipedia.org/wiki/巴科斯范式">巴科斯范式 - 维基百科</a></li>
+</ul>
+
     </div>
     
       <div class="pagination">
@@ -1467,17 +1652,10 @@ p.block();
         </div>
         <div class="pagination__buttons">
           
-            <span class="button previous">
-              <a href="/posts/2019/link_map_file_in_xcode/">
-                <span class="button__icon">←</span>
-                <span class="button__text">Xcode 中的 Link Map 文件</span>
-              </a>
-            </span>
-          
           
             <span class="button next">
-              <a href="/posts/2019/const_static_extern_in_cpp/">
-                <span class="button__text">C/C&#43;&#43; 中的 const、static &amp; extern</span>
+              <a href="/posts/2019/effective_obj-c_2.0_notes/">
+                <span class="button__text">《编写高质量 iOS 与 OS X 代码的 52 个有效方法》阅读笔记</span>
                 <span class="button__icon">→</span>
               </a>
             </span>
