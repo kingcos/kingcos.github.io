@@ -140,7 +140,7 @@ Prerequisites 匿名函数与 Block 匿名函数顾名思义，即不带名称�
       
       
       
-        <span class="post-read-time">— 19 min read</span>
+        <span class="post-read-time">— 20 min read</span>
       
     </div>
 
@@ -342,9 +342,7 @@ int main_2(int argc, const char * argv[]) {
 
 <p>在 <code>main</code> 函数中声明并执行一个简单的 Block：</p>
 
-<pre><code class="language-objectivec">// main.m
-
-int main_3(int argc, const char * argv[]) {
+<pre><code class="language-objectivec">int main_3(int argc, const char * argv[]) {
     void(^block)(void) = ^{
         NSLog(@&quot;Hello, World!&quot;);
     };
@@ -362,9 +360,9 @@ int main_3(int argc, const char * argv[]) {
 
 <pre><code class="language-cpp">// Block 实现的结构体
 struct __block_impl {
-  void *isa;     // isa 指针
+  void *isa;     // isa 指针，即 Block 也是 id 类型，即 Obj-C 对象
   int Flags;     // 标记，默认会被初始化为 0
-  int Reserved;  // 保留域（ABI 兼容）
+  int Reserved;  // 保留域（ABI 兼容），默认 0
   void *FuncPtr; // Block 代码块的函数指针
 };
 // ➡️ Block 结构体
@@ -373,7 +371,7 @@ struct __main_3_block_impl_0 {
   struct __main_3_block_desc_0* Desc; // 描述信息（指针）
   // 构造函数
   __main_3_block_impl_0(void *fp, struct __main_3_block_desc_0 *desc, int flags=0) {
-    impl.isa = &amp;_NSConcreteStackBlock;
+    impl.isa = &amp;_NSConcreteStackBlock; // Block 作为 Obj-C 对象，那么 isa 将指向其类对象，即 _NSConcreteStackBlock
     impl.Flags = flags;
     impl.FuncPtr = fp;
     Desc = desc;
@@ -381,7 +379,7 @@ struct __main_3_block_impl_0 {
 };
 
 // Block 内代码块封装在该 C 语言静态函数中，函数命名规则：__CALLER_METHOD_NAME_block_func_NUMBER
-// 类似 self，但 __cself 为指向 Block 值的变量
+// 类似 Obj-C 实例方法参数 self 或 C++ 实例方法参数 this，__cself 为指向 Block 结构体的变量
 static void __main_3_block_func_0(struct __main_3_block_impl_0 *__cself) {
 
         NSLog((NSString *)&amp;__NSConstantStringImpl__var_folders_ps_0m9gnvtj0893vpf1cr595djh0000gn_T_main_b9596e_mi_0);
@@ -399,7 +397,7 @@ int main_3(int argc, const char * argv[]) {
     // 忽略类型转换：block = &amp;__main_3_block_impl_0(__main_3_block_func_0, &amp;__main_3_block_desc_0_DATA));
     void(*block)(void) = ((void (*)())&amp;__main_3_block_impl_0((void *)__main_3_block_func_0, &amp;__main_3_block_desc_0_DATA));
 
-    // 执行 Block
+    // 执行 Block（参数 block 即静态函数中的参数 __cself）
     // 忽略类型转换：block-&gt;FuncPtr(block);
     // 在 __main_block_impl_0 结构体中，impl 是第一个变量，因此其与结构体本身的首地址一致，因此可以强转
     ((void (*)(__block_impl *))((__block_impl *)block)-&gt;FuncPtr)((__block_impl *)block);
@@ -422,35 +420,33 @@ int main_3(int argc, const char * argv[]) {
 
 <h3 id="自动变量">自动变量</h3>
 
-<p>自动变量（Automatic Variable）即局部作用域变量，指在代码块中声明的变量，离开作用域时会被自动销毁，声明时也可以显式使用 <code>auto</code> 关键字：</p>
+<p>自动变量（Automatic Variable）即局部作用域变量，指在代码块中声明的变量，离开作用域时会被自动销毁，也可以显式使用 <code>auto</code> 关键字声明：</p>
 
-<pre><code class="language-objectivec">// main.m
+<pre><code class="language-objectivec">int main_7(int argc, const char * argv[]) {
+    auto int a = 1;
+    const char *b = &quot;kingcos.me&quot;;
 
-int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-        auto int a = 1;
-        int b = 2;
+    void (^block)(void) = ^() {
+        NSLog(@&quot;a == %d, b == %s&quot;, a, b);
+    };
 
-        void (^block)(void) = ^() {
-            NSLog(@&quot;a == %d, b == %d&quot;, a, b);
-        };
+    block();
 
-        block();
-    }
     return 0;
 }
 
 // OUTPUT:
-// a == 1, b = 2
+// a == 1, b == kingcos.me
 </code></pre>
 
-<p>由于 Block 可以被代码块外声明的变量持有，因此自动变量的生命周期可能早于 Block 本身结束。所以 Block 会将自动变量捕获到结构体内部（即按值传递），这样即使在 Block 声明后更改了原有的变量值或者自动变量的生命周期结束，也不会影响已经被捕获的那个变量：</p>
+<p>由于 Block 可以被代码块外声明的变量持有，因此自动变量的生命周期可能早于 Block 本身结束。所以 Block 会将其内部使用到的自动变量捕获到结构体内部（按值传递），这样即使在 Block 声明后更改了原有的变量值或者自动变量的生命周期提前结束，也不会影响 Block 中已经被捕获的那个变量：</p>
 
-<pre><code class="language-cpp">struct __main_block_impl_0 {
+<pre><code class="language-cpp">struct __main_7_block_impl_0 {
   struct __block_impl impl;
-  struct __main_block_desc_0* Desc;
-  int a; // ⚠️ 捕获的变量
-  __main_block_impl_0(void *fp, struct __main_block_desc_0 *desc, int _a, int flags=0) : a(_a) {
+  struct __main_7_block_desc_0* Desc;
+  int a;         // 捕获的自动变量 a
+  const char *b; // 注意捕获的变量类型与外界声明完全相同
+  __main_7_block_impl_0(void *fp, struct __main_7_block_desc_0 *desc, int _a, const char *_b, int flags=0) : a(_a), b(_b) { // 构造函数保存外部自动变量
     impl.isa = &amp;_NSConcreteStackBlock;
     impl.Flags = flags;
     impl.FuncPtr = fp;
@@ -458,22 +454,34 @@ int main(int argc, const char * argv[]) {
   }
 };
 
-static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
-  // a：取值
+static void __main_7_block_func_0(struct __main_7_block_impl_0 *__cself) {
+  // 从 __celf 取初始化时获得的值
   int a = __cself-&gt;a; // bound by copy
+  const char *b = __cself-&gt;b; // bound by copy
 
-    NSLog((NSString *)&amp;__NSConstantStringImpl__var_folders_ps_0m9gnvtj0893vpf1cr595djh0000gn_T_main_3c9d7c_mi_0, a);
+        NSLog((NSString *)&amp;__NSConstantStringImpl__var_folders_ps_0m9gnvtj0893vpf1cr595djh0000gn_T_main_605531_mi_3, a, b);
+    }
+
+static struct __main_7_block_desc_0 {
+  size_t reserved;
+  size_t Block_size;
+} __main_7_block_desc_0_DATA = { 0, sizeof(struct __main_7_block_impl_0)};
+
+int main_7(int argc, const char * argv[]) {
+    auto int a = 1;
+    const char *b = &quot;kingcos.me&quot;;
+
+    // 忽略类型转换：block = &amp;__main_7_block_impl_0(__main_7_block_func_0, &amp;__main_7_block_desc_0_DATA, a, b));
+    void (*block)(void) = ((void (*)())&amp;__main_7_block_impl_0((void *)__main_7_block_func_0, &amp;__main_7_block_desc_0_DATA, a, b));
+
+    // 忽略类型转换：block-&gt;FuncPtr(block);
+    ((void (*)(__block_impl *))((__block_impl *)block)-&gt;FuncPtr)((__block_impl *)block);
+
+    return 0;
 }
-
-int a = 1;
-// a 作为参数传入
-// 忽略类型转换：void (*block)(void) = &amp;__main_block_impl_0(__main_block_func_0, &amp;__main_block_desc_0_DATA, a));
-void (*block)(void) = ((void (*)())&amp;__main_block_impl_0((void *)__main_block_func_0, &amp;__main_block_desc_0_DATA, a));
-// 忽略类型转换：block-&gt;FuncPtr(block);
-((void (*)(__block_impl *))((__block_impl *)block)-&gt;FuncPtr)((__block_impl *)block);
 </code></pre>
 
-<p>Obj-C 中方法的两个默认参数 <code>self</code> 和 <code>_cmd</code> 的作用域仅在函数体内，也属于自动变量，因此 Block 内如果使用到 <code>self</code> 也会对其进行捕获：</p>
+<p>Obj-C 中方法的两个默认参数 <code>self</code> 和 <code>_cmd</code> 的作用域仅在函数体内，因此 Block 内如果使用到 <code>self</code> 则也会对其进行捕获：</p>
 
 <pre><code class="language-cpp">// - (void)objectFunc
 static void _I_A_objectFunc(A * self, SEL _cmd) {
@@ -525,19 +533,17 @@ static void __A__objectFunc_block_func_0(struct __A__objectFunc_block_impl_0 *__
 
 <p>局部静态变量指定义在代码块内的静态变量，其作用域是在代码块内，但其生命周期并不会随代码块结束：</p>
 
-<pre><code class="language-objectivec">// main.m
+<pre><code class="language-objectivec">int main_8(int argc, const char * argv[]) {
+    static int a = 1;
 
-int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-        static int a = 1;
+    void (^block)(void) = ^() {
+        NSLog(@&quot;a == %d&quot;, a);
+    };
 
-        void (^block)(void) = ^() {
-            NSLog(@&quot;a == %d&quot;, a);
-        };
-        a = 10;
+    a = 10;
 
-        block();
-    }
+    block();
+
     return 0;
 }
 
@@ -545,13 +551,13 @@ int main(int argc, const char * argv[]) {
 // a == 10
 </code></pre>
 
-<p>由于静态局部变量的生命周期随程序退出而结束，Block 只需要将局部静态变量的<strong>地址</strong>进行捕获即可（即按引用传递）。这样即使超过静态局部变量的作用域但 Block 中仍然可以访问到，且当 Block 执行前如果改变了局部静态变量的值，那么执行时也将根据地址获取到最新值：</p>
+<p>由于静态局部变量的生命周期随程序退出才结束，Block 只需要将局部静态变量的<strong>地址</strong>进行捕获即可（按引用传递）。这样即使超过静态局部变量的作用域但 Block 中仍然可以访问到，且当 Block 执行前如果改变了局部静态变量的值，那么执行时也将根据地址获取到最新值：</p>
 
-<pre><code class="language-cpp">struct __main_block_impl_0 {
+<pre><code class="language-cpp">struct __main_8_block_impl_0 {
   struct __block_impl impl;
-  struct __main_block_desc_0* Desc;
-  int *a; // ⚠️ 捕获的变量地址
-  __main_block_impl_0(void *fp, struct __main_block_desc_0 *desc, int *_a, int flags=0) : a(_a) {
+  struct __main_8_block_desc_0* Desc;
+  int *a; // 捕获的变量地址
+  __main_8_block_impl_0(void *fp, struct __main_8_block_desc_0 *desc, int *_a, int flags=0) : a(_a) {
     impl.isa = &amp;_NSConcreteStackBlock;
     impl.Flags = flags;
     impl.FuncPtr = fp;
@@ -559,22 +565,30 @@ int main(int argc, const char * argv[]) {
   }
 };
 
-static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
-  // *a：取地址中存储的值
+static void __main_8_block_func_0(struct __main_8_block_impl_0 *__cself) {
+  // a 将指向 __self 的 a 值（即 &amp;a，a 的地址）
   int *a = __cself-&gt;a; // bound by copy
 
-    NSLog((NSString *)&amp;__NSConstantStringImpl__var_folders_ps_0m9gnvtj0893vpf1cr595djh0000gn_T_main_adf509_mi_0, (*a));
+        NSLog((NSString *)&amp;__NSConstantStringImpl__var_folders_ps_0m9gnvtj0893vpf1cr595djh0000gn_T_main_0fafd0_mi_4, (*a));
+    }
+
+static struct __main_8_block_desc_0 {
+  size_t reserved;
+  size_t Block_size;
+} __main_8_block_desc_0_DATA = { 0, sizeof(struct __main_8_block_impl_0)};
+
+int main_8(int argc, const char * argv[]) {
+    static int a = 1;
+    // 忽略类型转换：block = &amp;__main_8_block_impl_0(__main_8_block_func_0, &amp;__main_8_block_desc_0_DATA, &amp;a);（&amp;a 即 a 的地址作为参数传入）
+    void (*block)(void) = ((void (*)())&amp;__main_8_block_impl_0((void *)__main_8_block_func_0, &amp;__main_8_block_desc_0_DATA, &amp;a));
+
+    // a 的值发生改变
+    a = 10;
+
+    ((void (*)(__block_impl *))((__block_impl *)block)-&gt;FuncPtr)((__block_impl *)block);
+
+    return 0;
 }
-
-static int a = 1;
-// &amp;a 即 a 的地址作为参数传入
-// 忽略类型转换：void (*block)(void) = &amp;__main_block_impl_0(__main_block_func_0, &amp;__main_block_desc_0_DATA, &amp;a);
-void (*block)(void) = ((void (*)())&amp;__main_block_impl_0((void *)__main_block_func_0, &amp;__main_block_desc_0_DATA, &amp;a));
-
-// a 的值被改变
-a = 10;
-
-((void (*)(__block_impl *))((__block_impl *)block)-&gt;FuncPtr)((__block_impl *)block);
 </code></pre>
 
 <h3 id="全局变量">全局变量</h3>
@@ -628,9 +642,20 @@ static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
 
 <h3 id="c-语言数组">C 语言数组</h3>
 
-<p>Block 并不会去捕获 C 语言数组，而指针可以解决问题：</p>
+<p>当 Block 遇到 C 语言中的数组时，其并不会去捕获，而可以使用指针取代。实际上这在 C 语言的函数中也是不支持的，猜测这是因为 Block 遵循了类似 C 语言的规范：</p>
 
-<pre><code class="language-objectivec">int main_6(int argc, const char * argv[]) {
+<pre><code class="language-objectivec">void cFunc_2(char a[10]) {
+    printf(&quot;%d\n&quot;, a[0]);
+}
+
+void cFunc_3(char a[10]) {
+    // C 语言不允许数组类型变量赋值给另外的数组类型变量
+    // ERROR: Array initializer must be an initializer list or string literal
+    // char b[10] = a;
+    // printf(&quot;%d\n&quot;, b[0]);
+}
+
+int main_6(int argc, const char * argv[]) {
     const char cLocalArr[] = &quot;kingcos.me&quot;;
     const char *cLocalString = &quot;kingcos.me&quot;;
 
@@ -642,10 +667,18 @@ static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
         printf(&quot;%c\n&quot;, cLocalString[7]);
     }();
 
+    // Block 遵循了类似 C 语言的规范
+    char a[10] = {2};
+
+    cFunc_2(a);
+    cFunc_3(a);
+
     return 0;
 }
+
 // OUTPUT:
 // .
+// 2
 </code></pre>
 
 <h2 id="类型">类型</h2>
@@ -1079,12 +1112,17 @@ static struct __main_block_desc_0 {
 
 <h3 id="本质">本质</h3>
 
-<p>上面的 Demo 中 Block 内部只是访问了外界的变量，接下来我们将尝试下在 Block 内修改变量值：</p>
+<p>上面的 Demo 中 Block 内部只是访问了外界的变量，接下来我们尝试下在 Block 内修改变量值：</p>
 
-<pre><code class="language-objectivec">static int staticGlobalVar = 0;
+<pre><code class="language-objectivec">// 静态全局变量
+static int staticGlobalVar = 0;
+// 全局变量
+int globalVar = 0;
 
 int main_4(int argc, const char * argv[]) {
+    // 自动变量
     int autoVar = 0;
+    // 静态变量
     static int staticVar = 0;
 
     auto NSMutableArray *autoArray = [[NSMutableArray alloc] init];
@@ -1095,8 +1133,10 @@ int main_4(int argc, const char * argv[]) {
 
         staticVar = 10;
         staticGlobalVar = 10;
+        globalVar = 10;
 
         [autoArray addObject:@&quot;kingcos.me&quot;];
+
         // ERROR: Variable is not assignable (missing __block type specifier)
         // autoArray = [[NSMutableArray alloc] init];
     }();
