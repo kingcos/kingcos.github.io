@@ -163,14 +163,9 @@ import XCTest @testable import TestUnitTest class TestUnitTestTests: XCTestCase 
     
 
     <div class="post-content">
-      
-
-<h2 id="preface">Preface</h2>
-
+      <h2 id="preface">Preface</h2>
 <p><a href="https://github.com/johnsundell/swifttips">SwiftTips</a> 是 <a href="https://github.com/johnsundell">John Sundell</a> 在 GitHub 开源的 Swift 小技巧列表。随着 Swift 5 的发布以及 ABI 稳定，是时候再学习一遍 Swift 啦。本文将是该列表的实践版本，并保证文中代码的<strong>可运行性</strong>，且尽可能做到倒序<del>日更</del>。（But why in reverse? 🤫）</p>
-
 <p>关于本文的代码，都可以在 <a href="https://github.com/kingcos/swift-tips-in-practice">swift-tips-in-practice</a> 下载并实际运行。</p>
-
 <table>
 <thead>
 <tr>
@@ -182,7 +177,6 @@ import XCTest @testable import TestUnitTest class TestUnitTestTests: XCTestCase 
 <th align="center">Update</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td align="center">2019.08.22</td>
@@ -194,232 +188,203 @@ import XCTest @testable import TestUnitTest class TestUnitTestTests: XCTestCase 
 </tr>
 </tbody>
 </table>
-
-<h2 id="102-让异步测试执行更快更稳定">#102 让异步测试执行更快更稳定</h2>
-
+<h2 id="102-">#102 让异步测试执行更快更稳定</h2>
 <p>异步代码似乎总是很难去编写单元测试，因为我们不清楚什么时候请求才能回来。现在在 Swift 中，我们可以使用 <code>expectation</code>（预料）简单设定超时时间，并在 Closure 回调时调用 <code>fulfill()</code> 即可轻松实现。</p>
-
 <p>Talk is cheap, show me the code!</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">XCTest</span>
+@testable <span style="color:#66d9ef">import</span> <span style="color:#a6e22e">TestUnitTest</span>
 
-<pre><code class="language-swift">import XCTest
-@testable import TestUnitTest
-
-class TestUnitTestTests: XCTestCase {
-    func fetchFromNetwork(_ completion: @escaping (String) -&gt; Void) {
-        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 1.5) {
-            let response = &quot;Foo&quot;
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">TestUnitTestTests</span>: XCTestCase {
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">fetchFromNetwork</span>(<span style="color:#66d9ef">_</span> completion: @escaping (String) -&gt; Void) {
+        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() <span style="color:#f92672">+</span> <span style="color:#ae81ff">1.5</span>) {
+            <span style="color:#66d9ef">let</span> response = <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Foo</span><span style="color:#e6db74">&#34;</span>
             completion(response)
         }
     }
 
-    // 🙅 Not good
-    func testAsyncOperationsWithSleep() {
-        fetchFromNetwork { res in
-            XCTAssert(res == &quot;Foo&quot;, &quot;Response should be 'Foo'.&quot;)
+    <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">🙅</span><span style="color:#75715e"> </span><span style="color:#75715e">N</span><span style="color:#75715e">o</span><span style="color:#75715e">t</span><span style="color:#75715e"> </span><span style="color:#75715e">g</span><span style="color:#75715e">o</span><span style="color:#75715e">o</span><span style="color:#75715e">d</span>
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">testAsyncOperationsWithSleep</span>() {
+        fetchFromNetwork { res <span style="color:#66d9ef">in</span>
+            XCTAssert(res == <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Foo</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Response should be &#39;Foo&#39;.</span><span style="color:#e6db74">&#34;</span>)
         }
 
-        sleep(2)
+        sleep(<span style="color:#ae81ff">2</span>)
     }
 
-    // 🚩 Preferred
-    func testAsyncOperationsWithoutSleep() {
-        // 声明 exp
-        let exp = expectation(description: &quot;Async Test&quot;)
+    <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">🚩</span><span style="color:#75715e"> </span><span style="color:#75715e">P</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">f</span><span style="color:#75715e">e</span><span style="color:#75715e">r</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">d</span>
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">testAsyncOperationsWithoutSleep</span>() {
+        <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">声</span><span style="color:#75715e">明</span><span style="color:#75715e"> </span><span style="color:#75715e">e</span><span style="color:#75715e">x</span><span style="color:#75715e">p</span>
+        <span style="color:#66d9ef">let</span> exp = expectation(description: <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Async Test</span><span style="color:#e6db74">&#34;</span>)
 
-        var result = &quot;&quot;
-        fetchFromNetwork { res in
+        <span style="color:#66d9ef">var</span> result = <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>
+        fetchFromNetwork { res <span style="color:#66d9ef">in</span>
             result = res
 
-            // Closure 执行完毕
+            <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">C</span><span style="color:#75715e">l</span><span style="color:#75715e">o</span><span style="color:#75715e">s</span><span style="color:#75715e">u</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e"> </span><span style="color:#75715e">执</span><span style="color:#75715e">行</span><span style="color:#75715e">完</span><span style="color:#75715e">毕</span>
             exp.fulfill()
         }
 
-        // 等待 exp，超时时间 2 秒
-        wait(for: [exp], timeout: 2.0)
-        XCTAssert(result == &quot;Foo&quot;, &quot;Response should be 'Foo'.&quot;)
+        <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">等</span><span style="color:#75715e">待</span><span style="color:#75715e"> </span><span style="color:#75715e">e</span><span style="color:#75715e">x</span><span style="color:#75715e">p</span><span style="color:#75715e">，</span><span style="color:#75715e">超</span><span style="color:#75715e">时</span><span style="color:#75715e">时</span><span style="color:#75715e">间</span><span style="color:#75715e"> </span><span style="color:#75715e">2</span><span style="color:#75715e"> </span><span style="color:#75715e">秒</span>
+        wait(<span style="color:#66d9ef">for</span>: [exp], timeout: <span style="color:#ae81ff">2.0</span>)
+        XCTAssert(result == <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Foo</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Response should be &#39;Foo&#39;.</span><span style="color:#e6db74">&#34;</span>)
     }
 }
-</code></pre>
-
-<p>对于单元测试，在 iOS 项目中使用「<a href="https://github.com/Quick/Quick">Quick</a>」&amp;「<a href="https://github.com/Quick/Nimble">Nimble</a>」、在 Swift Package Management 项目中使用「<a href="https://github.com/kylef/Spectre">Spectre</a>」可以编写更加符合 BDD（Behavior Driven Design 即行为驱动设计）的测试用例。后者我曾在开源项目 <a href="https://github.com/kingcos/WWDCHelper">WWDCHelper</a> 中使用过，配合 CI 即可持续保障代码覆盖率。</p>
-
+</code></pre></div><p>对于单元测试，在 iOS 项目中使用「<a href="https://github.com/Quick/Quick">Quick</a>」&amp;「<a href="https://github.com/Quick/Nimble">Nimble</a>」、在 Swift Package Management 项目中使用「<a href="https://github.com/kylef/Spectre">Spectre</a>」可以编写更加符合 BDD（Behavior Driven Design 即行为驱动设计）的测试用例。后者我曾在开源项目 <a href="https://github.com/kingcos/WWDCHelper">WWDCHelper</a> 中使用过，配合 CI 即可持续保障代码覆盖率。</p>
 <h3 id="reference">Reference</h3>
-
 <ul>
 <li><a href="https://www.swiftbysundell.com/posts/unit-testing-asynchronous-swift-code">Unit testing asynchronous Swift code</a></li>
 </ul>
-
-<h2 id="101-支持-apple-pencil-双击">#101 支持 Apple Pencil 双击</h2>
-
+<h2 id="101--apple-pencil-">#101 支持 Apple Pencil 双击</h2>
 <ul>
 <li>迫于没有设备，跳过该节。</li>
 </ul>
-
-<h2 id="100-函数绑定值">#100 函数绑定值</h2>
-
+<h2 id="100-">#100 函数绑定值</h2>
 <p>将值和函数使用额外的 <code>combine</code> 函数绑定起来，可无需在闭包（Closure）中捕获 <code>self</code>，相当于只将最终需要检查的执行者与参数告知即可。对于 <code>combine</code> 函数是支持泛型的，即其无需关心具体的业务内容，它只负责将参数与闭包组装并执行：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
 
-<pre><code class="language-swift">import UIKit
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">类</span><span style="color:#75715e">型</span><span style="color:#75715e">别</span><span style="color:#75715e">名</span>
+<span style="color:#66d9ef">typealias</span> Handler = () -&gt; Void
 
-// 类型别名
-typealias Handler = () -&gt; Void
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">闭</span><span style="color:#75715e">包</span><span style="color:#75715e">包</span><span style="color:#75715e">裹</span><span style="color:#75715e">器</span><span style="color:#75715e">，</span><span style="color:#75715e">否</span><span style="color:#75715e">则</span><span style="color:#75715e">无</span><span style="color:#75715e">法</span><span style="color:#75715e">存</span><span style="color:#75715e">储</span><span style="color:#75715e">在</span><span style="color:#75715e">关</span><span style="color:#75715e">联</span><span style="color:#75715e">对</span><span style="color:#75715e">象</span><span style="color:#75715e">内</span>
+fileprivate <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ClosureWrapper</span> {
+    <span style="color:#66d9ef">var</span> handler: Handler?
 
-// 闭包包裹器，否则无法存储在关联对象内
-fileprivate class ClosureWrapper {
-    var handler: Handler?
-
-    init(_ closure: Handler?) {
+    <span style="color:#66d9ef">init</span>(<span style="color:#66d9ef">_</span> closure: Handler?) {
         handler = closure
     }
 }
 
-extension UIButton {
-    // 关联键
-    private struct AssociatedKeys {
-        static var touchUpInside = &quot;touchUpInside&quot;
+<span style="color:#66d9ef">extension</span> <span style="color:#a6e22e">UIButton</span> {
+    <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">关</span><span style="color:#75715e">联</span><span style="color:#75715e">键</span>
+    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">AssociatedKeys</span> {
+        <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">var</span> touchUpInside = <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">touchUpInside</span><span style="color:#e6db74">&#34;</span>
     }
 
-    // 处理方法
-    var handler: Handler? {
-        get {
-            if let wrapper = objc_getAssociatedObject(self,
-                                                      &amp;AssociatedKeys.touchUpInside) as? ClosureWrapper,
-                let handler = wrapper.handler {
-                return handler
+    <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">处</span><span style="color:#75715e">理</span><span style="color:#75715e">方</span><span style="color:#75715e">法</span>
+    <span style="color:#66d9ef">var</span> handler: Handler? {
+        <span style="color:#66d9ef">get</span> {
+            <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> wrapper = objc_getAssociatedObject(<span style="color:#66d9ef">self</span>,
+                                                      &amp;AssociatedKeys.touchUpInside) <span style="color:#66d9ef">as</span>? ClosureWrapper,
+                <span style="color:#66d9ef">let</span> handler = wrapper.handler {
+                <span style="color:#66d9ef">return</span> handler
             }
 
-            return nil
+            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
         }
 
-        set {
-            if let newValue = newValue {
-                objc_setAssociatedObject(self,
+        <span style="color:#66d9ef">set</span> {
+            <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> newValue = newValue {
+                objc_setAssociatedObject(<span style="color:#66d9ef">self</span>,
                                          &amp;AssociatedKeys.touchUpInside,
                                          ClosureWrapper(newValue),
                                          .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
 
-                addTarget(self, action: #selector(runHandler), for: .touchUpInside)
-            } else {
-                removeTarget(self, action: #selector(runHandler), for: .touchUpInside)
+                addTarget(<span style="color:#66d9ef">self</span>, action: <span style="color:#66d9ef">#selector</span>(runHandler), <span style="color:#66d9ef">for</span>: .touchUpInside)
+            } <span style="color:#66d9ef">else</span> {
+                removeTarget(<span style="color:#66d9ef">self</span>, action: <span style="color:#66d9ef">#selector</span>(runHandler), <span style="color:#66d9ef">for</span>: .touchUpInside)
             }
         }
     }
 
-    @objc func runHandler() {
+    <span style="color:#66d9ef">@objc</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">runHandler</span>() {
         handler?()
     }
 }
 
 
-struct Product {
-    var bar: Int
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Product</span> {
+    <span style="color:#66d9ef">var</span> bar: Int
 }
 
-struct ProductManager {
-    func startCheckout(for product: Product) {
-        switch product.bar {
-        case 0..&lt;60:
-            print(&quot;不合格&quot;)
-        case 60...100:
-            print(&quot;合格&quot;)
-        default:
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ProductManager</span> {
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">startCheckout</span>(<span style="color:#66d9ef">for</span> product: Product) {
+        <span style="color:#66d9ef">switch</span> product.bar {
+        <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">0.</span>.&lt;<span style="color:#ae81ff">60</span>:
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">不合格</span><span style="color:#e6db74">&#34;</span>)
+        <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">60.</span>..<span style="color:#ae81ff">100</span>:
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">合格</span><span style="color:#e6db74">&#34;</span>)
+        <span style="color:#66d9ef">default</span>:
             fatalError()
         }
     }
 }
 
-// 泛型 A B
-func combine&lt;A, B&gt;(_ value: A,
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">泛</span><span style="color:#75715e">型</span><span style="color:#75715e"> </span><span style="color:#75715e">A</span><span style="color:#75715e"> </span><span style="color:#75715e">B</span>
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">combine</span>&lt;A, B&gt;(<span style="color:#66d9ef">_</span> value: A,
                    with closure: @escaping (A) -&gt; B) -&gt; () -&gt; B {
-    return { closure(value) }
+    <span style="color:#66d9ef">return</span> { closure(value) }
 }
 
-class Demo100ViewController: UIViewController {
-    lazy var fooButton: UIButton! = {
-        let button = UIButton(type: .system)
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Demo100ViewController</span>: UIViewController {
+    <span style="color:#66d9ef">lazy</span> <span style="color:#66d9ef">var</span> fooButton: UIButton! = {
+        <span style="color:#66d9ef">let</span> button = UIButton(type: .system)
 
-        button.frame = CGRect(x: 0.0, y: 100.0, width: 100, height: 50)
-        button.setTitle(&quot;Foo&quot;, for: .normal)
+        button.frame = CGRect(x: <span style="color:#ae81ff">0.0</span>, y: <span style="color:#ae81ff">100.0</span>, width: <span style="color:#ae81ff">100</span>, height: <span style="color:#ae81ff">50</span>)
+        button.setTitle(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Foo</span><span style="color:#e6db74">&#34;</span>, <span style="color:#66d9ef">for</span>: .normal)
 
         view.addSubview(button)
 
-        return button
+        <span style="color:#66d9ef">return</span> button
     }()
 
-    var product = Product(bar: 89)
-    var productManager = ProductManager()
+    <span style="color:#66d9ef">var</span> product = Product(bar: <span style="color:#ae81ff">89</span>)
+    <span style="color:#66d9ef">var</span> productManager = ProductManager()
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">viewDidLoad</span>() {
+        <span style="color:#66d9ef">super</span>.viewDidLoad()
 
-        title = &quot;100&quot;
+        title = <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">100</span><span style="color:#e6db74">&#34;</span>
         view.backgroundColor = .white
 
-        // 🙅‍♂️ Not good
-        fooButton.handler = { [weak self] in
-            guard let self = self else { return }
+        <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">🙅</span><span style="color:#75715e">‍</span><span style="color:#75715e">♂</span><span style="color:#75715e">️</span><span style="color:#75715e"> </span><span style="color:#75715e">N</span><span style="color:#75715e">o</span><span style="color:#75715e">t</span><span style="color:#75715e"> </span><span style="color:#75715e">g</span><span style="color:#75715e">o</span><span style="color:#75715e">o</span><span style="color:#75715e">d</span>
+        fooButton.handler = { [<span style="color:#66d9ef">weak</span> <span style="color:#66d9ef">self</span>] <span style="color:#66d9ef">in</span>
+            <span style="color:#66d9ef">guard</span> <span style="color:#66d9ef">let</span> self = <span style="color:#66d9ef">self</span> <span style="color:#66d9ef">else</span> { <span style="color:#66d9ef">return</span> }
 
-            self.productManager.startCheckout(for: self.product)
+            <span style="color:#66d9ef">self</span>.productManager.startCheckout(<span style="color:#66d9ef">for</span>: <span style="color:#66d9ef">self</span>.product)
         }
 
-        // 🚩 Preferred
-        fooButton.handler = combine(self.product, with: productManager.startCheckout)
+        <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">🚩</span><span style="color:#75715e"> </span><span style="color:#75715e">P</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">f</span><span style="color:#75715e">e</span><span style="color:#75715e">r</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">d</span>
+        fooButton.handler = combine(<span style="color:#66d9ef">self</span>.product, with: productManager.startCheckout)
     }
 }
-</code></pre>
-
-<p>然而在真正实现这一段的 <code>handler</code> 时，却花费了一些周折。<code>UIButton</code> 在官方的设计模式是 Target Action，而我们需要改为闭包回调的形式。由于 Swift 的 <code>extension</code> 并不支持存储属性，类似 Obj-C 的 Category 不支持实例变量，这里仍然使用了关联对象来将闭包关联在对象上。又由于闭包无法直接被关联，仍然需要包裹在类中才得以实现。</p>
-
-<h2 id="99-使用函数进行依赖注入">#99 使用函数进行依赖注入</h2>
-
+</code></pre></div><p>然而在真正实现这一段的 <code>handler</code> 时，却花费了一些周折。<code>UIButton</code> 在官方的设计模式是 Target Action，而我们需要改为闭包回调的形式。由于 Swift 的 <code>extension</code> 并不支持存储属性，类似 Obj-C 的 Category 不支持实例变量，这里仍然使用了关联对象来将闭包关联在对象上。又由于闭包无法直接被关联，仍然需要包裹在类中才得以实现。</p>
+<h2 id="99-">#99 使用函数进行依赖注入</h2>
 <p>在开始前，我们先来认识一下什么是<strong>依赖注入（Dependency Injection）</strong>。</p>
-
 <p>依赖注入又称控制反转（Inversion of Control，IoC）。简单来说，依赖注入的重点在于注入，即将依赖以<strong>注入</strong>的方式引入，而非直接在依赖内创建，以避免耦合。举个简单的例子：</p>
-
-<pre><code class="language-swift">struct Foo {
-    var bar: String
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span> {
+    <span style="color:#66d9ef">var</span> bar: String
 }
 
-struct FooFactory {
-    static func generate(_ bar: String) -&gt; Foo {
-        return Foo(bar: bar)
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">FooFactory</span> {
+    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">generate</span>(<span style="color:#66d9ef">_</span> bar: String) -&gt; Foo {
+        <span style="color:#66d9ef">return</span> Foo(bar: bar)
     }
 }
 
-struct Bar {
-    var foo: Foo
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Bar</span> {
+    <span style="color:#66d9ef">var</span> foo: Foo
 
-    // 🙅 Not good
-    init(_ bar: String) {
+    <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">🙅</span><span style="color:#75715e"> </span><span style="color:#75715e">N</span><span style="color:#75715e">o</span><span style="color:#75715e">t</span><span style="color:#75715e"> </span><span style="color:#75715e">g</span><span style="color:#75715e">o</span><span style="color:#75715e">o</span><span style="color:#75715e">d</span>
+    <span style="color:#66d9ef">init</span>(<span style="color:#66d9ef">_</span> bar: String) {
         foo = Foo(bar: bar)
-        // foo = FooFactory.generate(bar)
+        <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">f</span><span style="color:#75715e">o</span><span style="color:#75715e">o</span><span style="color:#75715e"> </span><span style="color:#75715e">=</span><span style="color:#75715e"> </span><span style="color:#75715e">F</span><span style="color:#75715e">o</span><span style="color:#75715e">o</span><span style="color:#75715e">F</span><span style="color:#75715e">a</span><span style="color:#75715e">c</span><span style="color:#75715e">t</span><span style="color:#75715e">o</span><span style="color:#75715e">r</span><span style="color:#75715e">y</span><span style="color:#75715e">.</span><span style="color:#75715e">g</span><span style="color:#75715e">e</span><span style="color:#75715e">n</span><span style="color:#75715e">e</span><span style="color:#75715e">r</span><span style="color:#75715e">a</span><span style="color:#75715e">t</span><span style="color:#75715e">e</span><span style="color:#75715e">(</span><span style="color:#75715e">b</span><span style="color:#75715e">a</span><span style="color:#75715e">r</span><span style="color:#75715e">)</span>
     }
 
-    // 🚩 Preferred
-    init(_ foo: Foo) {
-        self.foo = foo
+    <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">🚩</span><span style="color:#75715e"> </span><span style="color:#75715e">P</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">f</span><span style="color:#75715e">e</span><span style="color:#75715e">r</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">d</span>
+    <span style="color:#66d9ef">init</span>(<span style="color:#66d9ef">_</span> foo: Foo) {
+        <span style="color:#66d9ef">self</span>.foo = foo
     }
 }
-</code></pre>
-
-<p>设计模式上更加推荐将 <code>foo</code> 直接注入到 <code>Bar</code> 中，显而易见的好处是这样可以便于单元测试，因为我们将 <code>Foo</code> 的构造暴露了在外部，避免增加了 <code>Bar</code> 的耦合度。这也正符合其另一个名称控制反转，即将控制权交由外界，<code>Bar</code> 无需关心 <code>foo</code> 是如何创建的（通过构造器，抑或工厂方法等），其只需要直接使用即可。</p>
-
+</code></pre></div><p>设计模式上更加推荐将 <code>foo</code> 直接注入到 <code>Bar</code> 中，显而易见的好处是这样可以便于单元测试，因为我们将 <code>Foo</code> 的构造暴露了在外部，避免增加了 <code>Bar</code> 的耦合度。这也正符合其另一个名称控制反转，即将控制权交由外界，<code>Bar</code> 无需关心 <code>foo</code> 是如何创建的（通过构造器，抑或工厂方法等），其只需要直接使用即可。</p>
 <p>在 Swift 中，函数是一类公民，即可以作为一种类型。因此函数的注入也使得内部无需关心函数具体的定义，只需要定义好参数和返回值即可。比如在网络请求中，我们可以无需关心网络层到底是通过 <code>URLSession</code> 还是 <code>Alamofire</code> 这样封装好的网络库来构造的：</p>
-
-<pre><code class="language-swift">
-</code></pre>
-
-<h3 id="reference-1">Reference</h3>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift">
+</code></pre></div><h3 id="reference1">Reference</h3>
 <ul>
 <li><a href="https://www.swiftbysundell.com/posts/simple-swift-dependency-injection-with-functions">Simple Swift dependency injection with functions</a></li>
 <li><a href="https://www.swiftbysundell.com/posts/under-the-hood-of-futures-and-promises-in-swift">Under the hood of Futures &amp; Promises in Swift</a></li>
 </ul>
-
-<h2 id="98-使用自定义异常处理器">#98 使用自定义异常处理器</h2>
-
-<hr />
-
+<h2 id="98-">#98 使用自定义异常处理器</h2>
+<hr>
 <p><strong><em>All rights reserved by <a href="https://github.com/johnsundell/swifttips">JohnSundell/SwiftTips</a>.</em></strong></p>
 
     </div>

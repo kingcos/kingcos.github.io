@@ -8,7 +8,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <meta name="description" content="Date Notes Refers.     2019-07-20 首次提交 objc4-750.1   2019-09-07 完成「缓存、动态方法解析」等部分 Obj-C 中的对象 - kingcos   2019-10-21 补充《Effective Objective-C 2.0》相关内容 《〈编写高质量 iOS 与 OS X 代码的 52 个有效方法〉阅读笔记 - kingcos》    Preface Obj-C 中方法调用的本质是消息发送机制，即 [foo bar] 是向 foo 对象发送一条 bar 的消息，而消息发送就是通过 objc_msgSend 所进行的。那么这次本文就简单窥探一下 objc_msgSend 吧。
 Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是 objc_msgSend 呢？
-我们创建一个使用 Obj-C 的 iOS 项目，如下在 ViewController 中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法："/>
+我们创建一个使用 Obj-C 的 iOS 项目，如下在 ViewController 中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：
+#import &amp;#34;ViewController."/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2019/objc_msgsend/" />
@@ -140,7 +141,7 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
       
       
       
-        <span class="post-read-time">— 20 min read</span>
+        <span class="post-read-time">— 19 min read</span>
       
     </div>
 
@@ -161,9 +162,7 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
     
 
     <div class="post-content">
-      
-
-<table>
+      <table>
 <thead>
 <tr>
 <th align="center">Date</th>
@@ -171,20 +170,17 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
 <th align="center">Refers.</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td align="center">2019-07-20</td>
 <td align="center">首次提交</td>
 <td align="center"><a href="https://opensource.apple.com/tarballs/objc4/">objc4-750.1</a></td>
 </tr>
-
 <tr>
 <td align="center">2019-09-07</td>
 <td align="center">完成「缓存、动态方法解析」等部分</td>
 <td align="center"><a href="../objects_in_obj-c/">Obj-C 中的对象 - kingcos</a></td>
 </tr>
-
 <tr>
 <td align="center">2019-10-21</td>
 <td align="center">补充《Effective Objective-C 2.0》相关内容</td>
@@ -192,1328 +188,1204 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
 </tr>
 </tbody>
 </table>
-
-<p><img src="/img/2019/objc_msgsend/0.png" alt="0" /></p>
-
+<p><img src="/img/2019/objc_msgsend/0.png" alt="0"></p>
 <h2 id="preface">Preface</h2>
-
 <p>Obj-C 中方法调用的本质是消息发送机制，即 <code>[foo bar]</code> 是向 <code>foo</code> 对象发送一条 <code>bar</code> 的消息，而消息发送就是通过 <code>objc_msgSend</code> 所进行的。那么这次本文就简单窥探一下 <code>objc_msgSend</code> 吧。</p>
-
 <h2 id="why">Why</h2>
-
 <p>在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是 <code>objc_msgSend</code> 呢？</p>
-
 <p>我们创建一个使用 Obj-C 的 iOS 项目，如下在 <code>ViewController</code> 中添加一个按钮，并在按钮的点击事件中创建一个 Obj-C 对象，再调用其方法：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &#34;ViewController.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo</span> : <span style="color:#a6e22e">NSObject</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">bar</span>;
+<span style="color:#66d9ef">@end</span>
 
-<pre><code class="language-objectivec">#import &quot;ViewController.h&quot;
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">bar</span> {}
+<span style="color:#66d9ef">@end</span>
 
-@interface Foo : NSObject
-- (void)bar;
-@end
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">ViewController</span> ()
+<span style="color:#66d9ef">@end</span>
 
-@implementation Foo
-- (void)bar {}
-@end
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">ViewController</span>
 
-@interface ViewController ()
-@end
+- (<span style="color:#66d9ef">IBAction</span>)<span style="color:#a6e22e">clickOnButton:</span>(UIButton <span style="color:#f92672">*</span>)sender {
+    Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span> [[Foo alloc] init];
 
-@implementation ViewController
+    [foo bar]; <span style="color:#75715e">// 🔴 Breakpoint
+</span><span style="color:#75715e"></span>}
 
-- (IBAction)clickOnButton:(UIButton *)sender {
-    Foo *foo = [[Foo alloc] init];
-
-    [foo bar]; // 🔴 Breakpoint
-}
-
-@end
-</code></pre>
-
-<p>我们将断点打在 <code>[foo bar];</code> 一行，启动程序并点击按钮。在 Xcode 的控制台多次输入 <code>si</code>（Step Into）即可最终跳转到 <code>objc_msgSend</code>：</p>
-
-<p><img src="/img/2019/objc_msgsend/3.png" alt="3" /></p>
-
+<span style="color:#66d9ef">@end</span>
+</code></pre></div><p>我们将断点打在 <code>[foo bar];</code> 一行，启动程序并点击按钮。在 Xcode 的控制台多次输入 <code>si</code>（Step Into）即可最终跳转到 <code>objc_msgSend</code>：</p>
+<p><img src="/img/2019/objc_msgsend/3.png" alt="3"></p>
 <p>或者我们也可以使用 <code>xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc ViewController.m -o foo.cpp</code> 将 Obj-C 代码翻译为 C/C++：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">_I_ViewController_clickOnButton_</span>(ViewController <span style="color:#f92672">*</span> self, <span style="color:#66d9ef">SEL</span> _cmd, UIButton <span style="color:#f92672">*</span>sender) {
+    Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span> ((Foo <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span>)(<span style="color:#66d9ef">id</span>, <span style="color:#66d9ef">SEL</span>))(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)objc_msgSend)((<span style="color:#66d9ef">id</span>)((Foo <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span>)(<span style="color:#66d9ef">id</span>, <span style="color:#66d9ef">SEL</span>))(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)objc_msgSend)((<span style="color:#66d9ef">id</span>)objc_getClass(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Foo</span><span style="color:#e6db74">&#34;</span>), sel_registerName(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">alloc</span><span style="color:#e6db74">&#34;</span>)), sel_registerName(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">init</span><span style="color:#e6db74">&#34;</span>));
 
-<pre><code class="language-objectivec">static void _I_ViewController_clickOnButton_(ViewController * self, SEL _cmd, UIButton *sender) {
-    Foo *foo = ((Foo *(*)(id, SEL))(void *)objc_msgSend)((id)((Foo *(*)(id, SEL))(void *)objc_msgSend)((id)objc_getClass(&quot;Foo&quot;), sel_registerName(&quot;alloc&quot;)), sel_registerName(&quot;init&quot;));
-
-    // objc_msgSend(foo, sel_registerName(&quot;bar&quot;))
-    ((void (*)(id, SEL))(void *)objc_msgSend)((id)foo, sel_registerName(&quot;bar&quot;));
+    <span style="color:#75715e">// objc_msgSend(foo, sel_registerName(&#34;bar&#34;))
+</span><span style="color:#75715e"></span>    ((<span style="color:#66d9ef">void</span> (<span style="color:#f92672">*</span>)(<span style="color:#66d9ef">id</span>, <span style="color:#66d9ef">SEL</span>))(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)objc_msgSend)((<span style="color:#66d9ef">id</span>)foo, sel_registerName(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">bar</span><span style="color:#e6db74">&#34;</span>));
 }
-</code></pre>
-
-<p>综上，我们可以说 Obj-C 中方法调用的本质即是 <code>objc_msgSend</code>。</p>
-
+</code></pre></div><p>综上，我们可以说 Obj-C 中方法调用的本质即是 <code>objc_msgSend</code>。</p>
 <h2 id="steps">Steps</h2>
-
 <p><code>objc_msgSend</code> 总共分为消息发送、动态方法解析、以及消息转发三大部分，下面我们就依次来研究一下。</p>
-
-<h3 id="消息发送">消息发送</h3>
-
+<h3 id="heading">消息发送</h3>
 <p><code>objc_msgSend</code> 中的第一个部分是消息发送，即对消息接收者发送一条方法消息，当接收者可以处理消息时将执行相应的方法，无法处理时则进入下一步骤。</p>
-
-<h4 id="where-why">Where &amp; Why</h4>
-
+<h4 id="where--why">Where &amp; Why</h4>
 <p>在 Apple 开源的 objc4 源码中，我们似乎只能在「message.h」中找到 <code>objc_msgSend</code> 的声明，其将消息接收者（即对象）作为第一个参数，将消息（即方法选择器）作为第二个参数，并将方法的参数追加在参数列表的最后：</p>
-
-<pre><code class="language-c">// message.h
-
-/**
- * Sends a message with a simple return value to an instance of a class.
- * 发送一个带有简易返回值的消息到一个类的实例。
- *
- * @param self A pointer to the instance of the class that is to receive the message.
- *             指向接收消息者实例的指针。
- * @param op The selector of the method that handles the message.
- *           处理消息的选择器。
- * @param ...
- *   A variable argument list containing the arguments to the method.
- *   包含方法参数的可变参数列表。
- *
- * @return The return value of the method.
- *         方法的返回值。
- *
- * @note When it encounters a method call, the compiler generates a call to one of the
- *  functions \c objc_msgSend, \c objc_msgSend_stret, \c objc_msgSendSuper, or \c objc_msgSendSuper_stret.
- *  Messages sent to an object’s superclass (using the \c super keyword) are sent using \c objc_msgSendSuper;
- *  other messages are sent using \c objc_msgSend. Methods that have data structures as return values
- *  are sent using \c objc_msgSendSuper_stret and \c objc_msgSend_stret.
- * 注意：当遇到方法调用时，编译器会生成对 objc_msgSend、objc_msgSend_stret、objc_msgSendSuper、objc_msgSendSuper_stret 四个函数之一的调用。
- * 到达对象父类（使用 super 关键字）的消息通过 objc_msgSendSuper 发送；其它消息则通过 objc_msgSend 发送。
- * 返回值为结构体的消息通过 objc_msgSendSuper_stret 或 objc_msgSend_stret 发送。
- *
- */
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// message.h
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">/**
+</span><span style="color:#75715e"> * Sends a message with a simple return value to an instance of a class.
+</span><span style="color:#75715e"> * 发送一个带有简易返回值的消息到一个类的实例。
+</span><span style="color:#75715e"> *
+</span><span style="color:#75715e"> * @param self A pointer to the instance of the class that is to receive the message.
+</span><span style="color:#75715e"> *             指向接收消息者实例的指针。
+</span><span style="color:#75715e"> * @param op The selector of the method that handles the message.
+</span><span style="color:#75715e"> *           处理消息的选择器。
+</span><span style="color:#75715e"> * @param ...
+</span><span style="color:#75715e"> *   A variable argument list containing the arguments to the method.
+</span><span style="color:#75715e"> *   包含方法参数的可变参数列表。
+</span><span style="color:#75715e"> *
+</span><span style="color:#75715e"> * @return The return value of the method.
+</span><span style="color:#75715e"> *         方法的返回值。
+</span><span style="color:#75715e"> *
+</span><span style="color:#75715e"> * @note When it encounters a method call, the compiler generates a call to one of the
+</span><span style="color:#75715e"> *  functions \c objc_msgSend, \c objc_msgSend_stret, \c objc_msgSendSuper, or \c objc_msgSendSuper_stret.
+</span><span style="color:#75715e"> *  Messages sent to an object’s superclass (using the \c super keyword) are sent using \c objc_msgSendSuper;
+</span><span style="color:#75715e"> *  other messages are sent using \c objc_msgSend. Methods that have data structures as return values
+</span><span style="color:#75715e"> *  are sent using \c objc_msgSendSuper_stret and \c objc_msgSend_stret.
+</span><span style="color:#75715e"> * 注意：当遇到方法调用时，编译器会生成对 objc_msgSend、objc_msgSend_stret、objc_msgSendSuper、objc_msgSendSuper_stret 四个函数之一的调用。
+</span><span style="color:#75715e"> * 到达对象父类（使用 super 关键字）的消息通过 objc_msgSendSuper 发送；其它消息则通过 objc_msgSend 发送。
+</span><span style="color:#75715e"> * 返回值为结构体的消息通过 objc_msgSendSuper_stret 或 objc_msgSend_stret 发送。
+</span><span style="color:#75715e"> *
+</span><span style="color:#75715e"> */</span>
 OBJC_EXPORT id _Nullable
-objc_msgSend(id _Nullable self, SEL _Nonnull op, ...)
-    OBJC_AVAILABLE(10.0, 2.0, 9.0, 1.0, 2.0);
-</code></pre>
-
-<p><img src="/img/2019/objc_msgsend/1.png" alt="1" /></p>
-
+<span style="color:#a6e22e">objc_msgSend</span>(id _Nullable self, SEL _Nonnull op, ...)
+    OBJC_AVAILABLE(<span style="color:#ae81ff">10.0</span>, <span style="color:#ae81ff">2.0</span>, <span style="color:#ae81ff">9.0</span>, <span style="color:#ae81ff">1.0</span>, <span style="color:#ae81ff">2.0</span>);
+</code></pre></div><p><img src="/img/2019/objc_msgsend/1.png" alt="1"></p>
 <p>而 <code>objc_msgSend</code> 的具体实现是由汇编语言编写的，原因有两点：</p>
-
 <ol>
 <li>对性能的极致追求，因为每一条汇编指令都对应一条机器指令，使用汇编可便于针对不同架构的 CPU 优化每一条指令的速度；</li>
 <li>C 语言无法实现一个保存未知参数且支持跳转到任一函数指针处的函数，对于 C 来说没有必要的特性来表示（引自 <a href="https://www.mikeash.com/pyblog/friday-qa-2017-06-30-dissecting-objc_msgsend-on-arm64.html">Dissecting objc_msgSend on ARM64 - Mike Ash</a>）。</li>
 </ol>
-
 <p>由于 <code>objc_msgSend</code> 整个流程比较复杂，下面我将尝试把流程分解为多个用例，逐个分析。</p>
-
-<h4 id="当接收者为-nil-时">当接收者为 <code>nil</code> 时</h4>
-
+<h4 id="-nil-">当接收者为 <code>nil</code> 时</h4>
 <p>当接收者为 <code>nil</code> 时，即 <code>[foo bar]</code> 中的 <code>foo</code> 为 <code>nil</code>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">- (<span style="color:#66d9ef">IBAction</span>)<span style="color:#a6e22e">clickOnButton:</span>(UIButton <span style="color:#f92672">*</span>)sender {
+    Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span> [[Foo alloc] init];
 
-<pre><code class="language-objectivec">- (IBAction)clickOnButton:(UIButton *)sender {
-    Foo *foo = [[Foo alloc] init];
-
-    // 将接收者置为 nil
-    foo = nil;
+    <span style="color:#75715e">// 将接收者置为 nil
+</span><span style="color:#75715e"></span>    foo <span style="color:#f92672">=</span> nil;
     [foo bar];
 }
 
-// LLDB:
-// 进入 objc_msgSend 后可以尝试使用 LLDB 命令读取 x0 寄存器中存储的值
-// (lldb) register read x0
-//       x0 = 0x0000000000000000
-</code></pre>
-
-<p>我们从 <code>ENTRY _objc_msgSend</code> 的第一条语句 <code>cmp p0, #0</code> 开始：</p>
-
-<p><img src="/img/2019/objc_msgsend/4.png" alt="4" /></p>
-
+<span style="color:#75715e">// LLDB:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// 进入 objc_msgSend 后可以尝试使用 LLDB 命令读取 x0 寄存器中存储的值
+</span><span style="color:#75715e"></span><span style="color:#75715e">// (lldb) register read x0
+</span><span style="color:#75715e"></span><span style="color:#75715e">//       x0 = 0x0000000000000000
+</span></code></pre></div><p>我们从 <code>ENTRY _objc_msgSend</code> 的第一条语句 <code>cmp p0, #0</code> 开始：</p>
+<p><img src="/img/2019/objc_msgsend/4.png" alt="4"></p>
 <p>在 Xcode 中 <code>si</code> 执行即可看到具体的汇编代码跳转，也与上图的源码分析一致：</p>
-
-<pre><code class="language-asm">libobjc.A.dylib`objc_msgSend:
-    0x192bd8180 &lt;+0&gt;:   cmp    x0, #0x0                  ; =0x0
-    0x192bd8184 &lt;+4&gt;:   b.le   0x192bd81f8               ; &lt;+120&gt;
-    ; ...
-    0x192bd81f8 &lt;+120&gt;: b.eq   0x192bd8230               ; &lt;+176&gt;
-    ; ...
-    0x192bd8230 &lt;+176&gt;: mov    x1, #0x0
-    0x192bd8234 &lt;+180&gt;: movi   d0, #0000000000000000
-    0x192bd8238 &lt;+184&gt;: movi   d1, #0000000000000000
-    0x192bd823c &lt;+188&gt;: movi   d2, #0000000000000000
-    0x192bd8240 &lt;+192&gt;: movi   d3, #0000000000000000
-    0x192bd8244 &lt;+196&gt;: ret
-</code></pre>
-
-<h4 id="方法缓存">方法缓存</h4>
-
-<pre><code class="language-cpp">struct objc_class : objc_object {
-    // Class ISA;
-    Class superclass;
-    // ⬇️ 方法缓存
-    cache_t cache;             // formerly cache pointer and vtable
-    class_data_bits_t bits;    // class_rw_t * plus custom rr/alloc flags
-};
-</code></pre>
-
-<p>在 <a href="../objects_in_obj-c/">Obj-C 中的对象</a>一文中，我们简单了解了 Obj-C 中类和元类对象的结构，其中的 <code>cache_t cache;</code> 是方法缓存。那么为什么需要缓存呢？</p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#a6e22e">libobjc.A.dylib</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">objc_msgSend</span>:
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x192bd8180</span> <span style="color:#960050;background-color:#1e0010">&lt;</span><span style="color:#960050;background-color:#1e0010">+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">cmp</span>    <span style="color:#66d9ef">x0</span>, <span style="color:#75715e">#0x0                  ; =0x0
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x192bd8184</span> <span style="color:#960050;background-color:#1e0010">&lt;</span><span style="color:#960050;background-color:#1e0010">+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">b.le</span>   <span style="color:#ae81ff">0x192bd81f8</span>               <span style="color:#75715e">; &lt;+120&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; ...
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x192bd81f8</span> <span style="color:#960050;background-color:#1e0010">&lt;</span><span style="color:#960050;background-color:#1e0010">+</span><span style="color:#ae81ff">120</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">b.eq</span>   <span style="color:#ae81ff">0x192bd8230</span>               <span style="color:#75715e">; &lt;+176&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; ...
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x192bd8230</span> <span style="color:#960050;background-color:#1e0010">&lt;</span><span style="color:#960050;background-color:#1e0010">+</span><span style="color:#ae81ff">176</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">mov</span>    <span style="color:#66d9ef">x1</span>, <span style="color:#75715e">#0x0
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x192bd8234</span> <span style="color:#960050;background-color:#1e0010">&lt;</span><span style="color:#960050;background-color:#1e0010">+</span><span style="color:#ae81ff">180</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movi</span>   <span style="color:#66d9ef">d0</span>, <span style="color:#75715e">#0000000000000000
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x192bd8238</span> <span style="color:#960050;background-color:#1e0010">&lt;</span><span style="color:#960050;background-color:#1e0010">+</span><span style="color:#ae81ff">184</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movi</span>   <span style="color:#66d9ef">d1</span>, <span style="color:#75715e">#0000000000000000
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x192bd823c</span> <span style="color:#960050;background-color:#1e0010">&lt;</span><span style="color:#960050;background-color:#1e0010">+</span><span style="color:#ae81ff">188</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movi</span>   <span style="color:#66d9ef">d2</span>, <span style="color:#75715e">#0000000000000000
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x192bd8240</span> <span style="color:#960050;background-color:#1e0010">&lt;</span><span style="color:#960050;background-color:#1e0010">+</span><span style="color:#ae81ff">192</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movi</span>   <span style="color:#66d9ef">d3</span>, <span style="color:#75715e">#0000000000000000
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x192bd8244</span> <span style="color:#960050;background-color:#1e0010">&lt;</span><span style="color:#960050;background-color:#1e0010">+</span><span style="color:#ae81ff">196</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">ret</span>
+</code></pre></div><h4 id="heading1">方法缓存</h4>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">objc_class</span> <span style="color:#f92672">:</span> objc_object {
+    <span style="color:#75715e">// Class ISA;
+</span><span style="color:#75715e"></span>    Class superclass;
+    <span style="color:#75715e">// ⬇️ 方法缓存
+</span><span style="color:#75715e"></span>    cache_t cache;             <span style="color:#75715e">// formerly cache pointer and vtable
+</span><span style="color:#75715e"></span>    class_data_bits_t bits;    <span style="color:#75715e">// class_rw_t * plus custom rr/alloc flags
+</span><span style="color:#75715e"></span>};
+</code></pre></div><p>在 <a href="../objects_in_obj-c/">Obj-C 中的对象</a>一文中，我们简单了解了 Obj-C 中类和元类对象的结构，其中的 <code>cache_t cache;</code> 是方法缓存。那么为什么需要缓存呢？</p>
 <p>Obj-C 的消息发送本质属于<strong>动态绑定（Dynamic Binding）</strong>，而非 C 语言常用的静态绑定（Static Binding）。动态绑定意味着只有在运行时才能确定真正被调用的函数；而静态绑定在编译时即可确定（不考虑内联函数的前提下），编译器会直接生成调用函数的指令，函数地址就被硬编码在指令当中。</p>
-
 <blockquote>
 <p><strong>Tips - 内联（Inline）函数</strong></p>
-
 <p>建议编译器对函数进行内联扩展，即建议编译器将指定的函数体直接插入到每一处调用该函数的地方（注：「建议」指具体是否进行内联需要看编译器本身）。</p>
 </blockquote>
-
 <p>因此对于动态绑定的语言来说，其方法查找的速度一定是慢于静态绑定的。为了提高效率，Obj-C 会将方法查找的结果缓存在 <code>cache_t cache;</code> 中，当后续发送同样的消息时即可得到更快得执行。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// _uint32_t.h
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> <span style="color:#66d9ef">uint32_t</span>;
 
-<pre><code class="language-cpp">// _uint32_t.h
+<span style="color:#75715e">// _uintptr_t.h
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span>           uintptr_t;
 
-typedef unsigned int uint32_t;
+<span style="color:#75715e">// objc-ptrauth.h
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">using</span> MethodCacheIMP <span style="color:#f92672">=</span> IMP;
 
-// _uintptr_t.h
+<span style="color:#75715e">// objc-runtime-new.h
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">if __LP64__</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">uint32_t</span> mask_t;  <span style="color:#75715e">// x86_64 &amp; arm64 asm are less efficient with 16-bits
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">else</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">uint16_t</span> mask_t;
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">typedef</span> uintptr_t cache_key_t;
 
-typedef unsigned long           uintptr_t;
-
-// objc-ptrauth.h
-
-using MethodCacheIMP = IMP;
-
-// objc-runtime-new.h
-
-#if __LP64__
-typedef uint32_t mask_t;  // x86_64 &amp; arm64 asm are less efficient with 16-bits
-#else
-typedef uint16_t mask_t;
-#endif
-typedef uintptr_t cache_key_t;
-
-struct bucket_t {
-private:
-    // IMP-first is better for arm64e ptrauth and no worse for arm64.
-    // SEL-first is better for armv7* and i386 and x86_64.
-#if __arm64__
-    MethodCacheIMP _imp;
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">bucket_t</span> {
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    <span style="color:#75715e">// IMP-first is better for arm64e ptrauth and no worse for arm64.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// SEL-first is better for armv7* and i386 and x86_64.
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">if __arm64__</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>    MethodCacheIMP _imp;
     cache_key_t _key;
-#else
-    cache_key_t _key;
+<span style="color:#75715e">#</span><span style="color:#75715e">else</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>    cache_key_t _key;
     MethodCacheIMP _imp;
-#endif
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>};
 
-    // ...
-};
-
-struct cache_t {
-    struct bucket_t *_buckets;
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">cache_t</span> {
+    <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">bucket_t</span> <span style="color:#f92672">*</span>_buckets;
     mask_t _mask;
     mask_t _occupied;
 
-    // ...
-};
-</code></pre>
-
-<p><code>cache_t</code> 结构体中存储了指向 <code>bucket_t</code> 结构体（数组）的指针、<code>_mask</code>（表示散列表容量 - 1，详见下文源码）、以及 <code>_occupied</code>（表示已缓存方法的数量）。<code>bucket_t</code> 即缓存方法的散列表，方法名将作为键，<code>IMP</code> 即方法的内存地址将作为值。</p>
-
-<h4 id="当未命中缓存时">当未命中缓存时</h4>
-
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>};
+</code></pre></div><p><code>cache_t</code> 结构体中存储了指向 <code>bucket_t</code> 结构体（数组）的指针、<code>_mask</code>（表示散列表容量 - 1，详见下文源码）、以及 <code>_occupied</code>（表示已缓存方法的数量）。<code>bucket_t</code> 即缓存方法的散列表，方法名将作为键，<code>IMP</code> 即方法的内存地址将作为值。</p>
+<h4 id="heading2">当未命中缓存时</h4>
 <p>方法的首次调用或遇到缓存扩容后无法命中缓存，将进入 C 函数中搜索，并在找到方法后缓存在调用者本身的缓存中。因此我们仍从 <code>cmp p0, #0</code> 开始，但这次接收者并非 <code>nil</code> 所以不会跳入判空分支：</p>
-
-<p><img src="/img/2019/objc_msgsend/5.png" alt="5" /></p>
-
+<p><img src="/img/2019/objc_msgsend/5.png" alt="5"></p>
 <p>到达 <code>bl __class_lookupMethodAndLoadCache3</code> 后将跳入 C 函数 <code>_class_lookupMethodAndLoadCache3</code> 中：</p>
-
-<pre><code class="language-cpp">// objc-runtime-new.mm
-
-/***********************************************************************
-* _class_lookupMethodAndLoadCache.
-* Method lookup for dispatchers ONLY. OTHER CODE SHOULD USE lookUpImp().
-* 仅供调度程序所使用的方法查找。其它代码应当使用 lookUpImp()。
-* This lookup avoids optimistic cache scan because the dispatcher
-* already tried that.
-* 此查找可避免乐观缓存扫描，因为调度程序已经尝试了此操作。
-**********************************************************************/
-IMP _class_lookupMethodAndLoadCache3(id obj, SEL sel, Class cls)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// objc-runtime-new.mm
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">/***********************************************************************
+</span><span style="color:#75715e">* _class_lookupMethodAndLoadCache.
+</span><span style="color:#75715e">* Method lookup for dispatchers ONLY. OTHER CODE SHOULD USE lookUpImp().
+</span><span style="color:#75715e">* 仅供调度程序所使用的方法查找。其它代码应当使用 lookUpImp()。
+</span><span style="color:#75715e">* This lookup avoids optimistic cache scan because the dispatcher
+</span><span style="color:#75715e">* already tried that.
+</span><span style="color:#75715e">* 此查找可避免乐观缓存扫描，因为调度程序已经尝试了此操作。
+</span><span style="color:#75715e">**********************************************************************/</span>
+IMP <span style="color:#a6e22e">_class_lookupMethodAndLoadCache3</span>(id obj, SEL sel, Class cls)
 {
-    // ⬇️ 查找 IMP 或转发
-    return lookUpImpOrForward(cls, sel, obj,
-                              YES/*initialize*/, NO/*cache*/, YES/*resolver*/);
+    <span style="color:#75715e">// ⬇️ 查找 IMP 或转发
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> lookUpImpOrForward(cls, sel, obj,
+                              YES<span style="color:#75715e">/*initialize*/</span>, NO<span style="color:#75715e">/*cache*/</span>, YES<span style="color:#75715e">/*resolver*/</span>);
 }
 
-/***********************************************************************
-* lookUpImpOrForward.
-* The standard IMP lookup.
-* 标准 IMP 查找。
-* initialize==NO tries to avoid +initialize (but sometimes fails)
-* initialize==NO 尝试避免调用 +initialize（但有时会失败）
-* cache==NO skips optimistic unlocked lookup (but uses cache elsewhere)
-* cache==NO 跳过乐观解锁查找（但在其它地方使用缓存）
-* Most callers should use initialize==YES and cache==YES.
-* 大多数调用者应当使用 initialize==YES 和 cache==YES。
-* inst is an instance of cls or a subclass thereof, or nil if none is known.
-* inst 是 cls 或其子类的实例，若未知则为 nil。
-*   If cls is an un-initialized metaclass then a non-nil inst is faster.
-*   如果 cls 是未初始化的元类，那么非空 inst 将更快。
-* May return _objc_msgForward_impcache. IMPs destined for external use
-*   must be converted to _objc_msgForward or _objc_msgForward_stret.
-* 可能会返回 _objc_msgForward_impcache。被指定外部使用的 IMP 必须转换为 _objc_msgForward 或 _objc_msgForward_stret。
-*   If you don't want forwarding at all, use lookUpImpOrNil() instead.
-*   如果不你需要任何转发，使用 lookUpImpOrNil() 代替。
-**********************************************************************/
-IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
-                       bool initialize, bool cache, bool resolver)
+<span style="color:#75715e">/***********************************************************************
+</span><span style="color:#75715e">* lookUpImpOrForward.
+</span><span style="color:#75715e">* The standard IMP lookup.
+</span><span style="color:#75715e">* 标准 IMP 查找。
+</span><span style="color:#75715e">* initialize==NO tries to avoid +initialize (but sometimes fails)
+</span><span style="color:#75715e">* initialize==NO 尝试避免调用 +initialize（但有时会失败）
+</span><span style="color:#75715e">* cache==NO skips optimistic unlocked lookup (but uses cache elsewhere)
+</span><span style="color:#75715e">* cache==NO 跳过乐观解锁查找（但在其它地方使用缓存）
+</span><span style="color:#75715e">* Most callers should use initialize==YES and cache==YES.
+</span><span style="color:#75715e">* 大多数调用者应当使用 initialize==YES 和 cache==YES。
+</span><span style="color:#75715e">* inst is an instance of cls or a subclass thereof, or nil if none is known.
+</span><span style="color:#75715e">* inst 是 cls 或其子类的实例，若未知则为 nil。
+</span><span style="color:#75715e">*   If cls is an un-initialized metaclass then a non-nil inst is faster.
+</span><span style="color:#75715e">*   如果 cls 是未初始化的元类，那么非空 inst 将更快。
+</span><span style="color:#75715e">* May return _objc_msgForward_impcache. IMPs destined for external use
+</span><span style="color:#75715e">*   must be converted to _objc_msgForward or _objc_msgForward_stret.
+</span><span style="color:#75715e">* 可能会返回 _objc_msgForward_impcache。被指定外部使用的 IMP 必须转换为 _objc_msgForward 或 _objc_msgForward_stret。
+</span><span style="color:#75715e">*   If you don&#39;t want forwarding at all, use lookUpImpOrNil() instead.
+</span><span style="color:#75715e">*   如果不你需要任何转发，使用 lookUpImpOrNil() 代替。
+</span><span style="color:#75715e">**********************************************************************/</span>
+IMP <span style="color:#a6e22e">lookUpImpOrForward</span>(Class cls, SEL sel, id inst,
+                       <span style="color:#66d9ef">bool</span> initialize, <span style="color:#66d9ef">bool</span> cache, <span style="color:#66d9ef">bool</span> resolver)
 {
-    IMP imp = nil;
-    bool triedResolver = NO;
+    IMP imp <span style="color:#f92672">=</span> nil;
+    <span style="color:#66d9ef">bool</span> triedResolver <span style="color:#f92672">=</span> NO;
 
     runtimeLock.assertUnlocked();
 
-    // Optimistic cache lookup
-    // cache 为 NO，跳过
-    if (cache) {
-        imp = cache_getImp(cls, sel);
-        if (imp) return imp;
+    <span style="color:#75715e">// Optimistic cache lookup
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// cache 为 NO，跳过
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (cache) {
+        imp <span style="color:#f92672">=</span> cache_getImp(cls, sel);
+        <span style="color:#66d9ef">if</span> (imp) <span style="color:#66d9ef">return</span> imp;
     }
 
-    // runtimeLock is held during isRealized and isInitialized checking
-    // to prevent races against concurrent realization.
-
-    // runtimeLock is held during method search to make
-    // method-lookup + cache-fill atomic with respect to method addition.
-    // Otherwise, a category could be added but ignored indefinitely because
-    // the cache was re-filled with the old value after the cache flush on
-    // behalf of the category.
-
+    <span style="color:#75715e">// runtimeLock is held during isRealized and isInitialized checking
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// to prevent races against concurrent realization.
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// runtimeLock is held during method search to make
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// method-lookup + cache-fill atomic with respect to method addition.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Otherwise, a category could be added but ignored indefinitely because
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// the cache was re-filled with the old value after the cache flush on
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// behalf of the category.
+</span><span style="color:#75715e"></span>
     runtimeLock.lock();
     checkIsKnownClass(cls);
 
-    // 若类未实化，则进行实化
-    if (!cls-&gt;isRealized()) {
+    <span style="color:#75715e">// 若类未实化，则进行实化
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isRealized()) {
         realizeClass(cls);
     }
 
-    if (initialize  &amp;&amp;  !cls-&gt;isInitialized()) {
+    <span style="color:#66d9ef">if</span> (initialize  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  <span style="color:#f92672">!</span>cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isInitialized()) {
         runtimeLock.unlock();
         _class_initialize (_class_getNonMetaClass(cls, inst));
         runtimeLock.lock();
-        // If sel == initialize, _class_initialize will send +initialize and
-        // then the messenger will send +initialize again after this
-        // procedure finishes. Of course, if this is not being called
-        // from the messenger then it won't happen. 2778172
-    }
+        <span style="color:#75715e">// If sel == initialize, _class_initialize will send +initialize and
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// then the messenger will send +initialize again after this
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// procedure finishes. Of course, if this is not being called
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// from the messenger then it won&#39;t happen. 2778172
+</span><span style="color:#75715e"></span>    }
 
 
  retry:
     runtimeLock.assertLocked();
 
-    // Try this class's cache.
+    <span style="color:#75715e">// Try this class&#39;s cache.
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// ⬇️ 再次尝试从缓存中取 IMP（汇编）
+</span><span style="color:#75715e"></span>    imp <span style="color:#f92672">=</span> cache_getImp(cls, sel);
+    <span style="color:#75715e">// 取到了则结束
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (imp) <span style="color:#66d9ef">goto</span> done;
 
-    // ⬇️ 再次尝试从缓存中取 IMP（汇编）
-    imp = cache_getImp(cls, sel);
-    // 取到了则结束
-    if (imp) goto done;
-
-    // Try this class's method lists.
-    {
-        // ⬇️ 根据 SEL 获取本类的方法
-        Method meth = getMethodNoSuper_nolock(cls, sel);
-        if (meth) {
-            // ⬇️ 如果获取到方法了，则填充缓存，并返回 IMP
-            log_and_fill_cache(cls, meth-&gt;imp, sel, inst, cls);
-            imp = meth-&gt;imp;
-            goto done;
+    <span style="color:#75715e">// Try this class&#39;s method lists.
+</span><span style="color:#75715e"></span>    {
+        <span style="color:#75715e">// ⬇️ 根据 SEL 获取本类的方法
+</span><span style="color:#75715e"></span>        Method meth <span style="color:#f92672">=</span> getMethodNoSuper_nolock(cls, sel);
+        <span style="color:#66d9ef">if</span> (meth) {
+            <span style="color:#75715e">// ⬇️ 如果获取到方法了，则填充缓存，并返回 IMP
+</span><span style="color:#75715e"></span>            log_and_fill_cache(cls, meth<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>imp, sel, inst, cls);
+            imp <span style="color:#f92672">=</span> meth<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>imp;
+            <span style="color:#66d9ef">goto</span> done;
         }
     }
 
-    // Try superclass caches and method lists.
-    {
-        unsigned attempts = unreasonableClassCount();
-        // 如果本类找不到，则去父类（父类的父类）中查找
-        for (Class curClass = cls-&gt;superclass;
-             curClass != nil;
-             curClass = curClass-&gt;superclass)
+    <span style="color:#75715e">// Try superclass caches and method lists.
+</span><span style="color:#75715e"></span>    {
+        <span style="color:#66d9ef">unsigned</span> attempts <span style="color:#f92672">=</span> unreasonableClassCount();
+        <span style="color:#75715e">// 如果本类找不到，则去父类（父类的父类）中查找
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">for</span> (Class curClass <span style="color:#f92672">=</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>superclass;
+             curClass <span style="color:#f92672">!</span><span style="color:#f92672">=</span> nil;
+             curClass <span style="color:#f92672">=</span> curClass<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>superclass)
         {
-            // Halt if there is a cycle in the superclass chain.
-            if (--attempts == 0) {
-                _objc_fatal(&quot;Memory corruption in class list.&quot;);
+            <span style="color:#75715e">// Halt if there is a cycle in the superclass chain.
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (<span style="color:#f92672">-</span><span style="color:#f92672">-</span>attempts <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+                _objc_fatal(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Memory corruption in class list.</span><span style="color:#e6db74">&#34;</span>);
             }
 
-            // Superclass cache.
-            // 在父类缓存中找
-            imp = cache_getImp(curClass, sel);
-            if (imp) {
-                if (imp != (IMP)_objc_msgForward_impcache) {
-                    // Found the method in a superclass. Cache it in this class.
-                    // 父类中找到了，则在本类缓存并返回 IMP
-                    log_and_fill_cache(cls, imp, sel, inst, curClass);
-                    goto done;
+            <span style="color:#75715e">// Superclass cache.
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 在父类缓存中找
+</span><span style="color:#75715e"></span>            imp <span style="color:#f92672">=</span> cache_getImp(curClass, sel);
+            <span style="color:#66d9ef">if</span> (imp) {
+                <span style="color:#66d9ef">if</span> (imp <span style="color:#f92672">!</span><span style="color:#f92672">=</span> (IMP)_objc_msgForward_impcache) {
+                    <span style="color:#75715e">// Found the method in a superclass. Cache it in this class.
+</span><span style="color:#75715e"></span>                    <span style="color:#75715e">// 父类中找到了，则在本类缓存并返回 IMP
+</span><span style="color:#75715e"></span>                    log_and_fill_cache(cls, imp, sel, inst, curClass);
+                    <span style="color:#66d9ef">goto</span> done;
                 }
-                else {
-                    // ⚠️ 父类的方法转发入口，停止循环
-                    // Found a forward:: entry in a superclass.
-                    // Stop searching, but don't cache yet; call method
-                    // resolver for this class first.
-                    break;
+                <span style="color:#66d9ef">else</span> {
+                    <span style="color:#75715e">// ⚠️ 父类的方法转发入口，停止循环
+</span><span style="color:#75715e"></span>                    <span style="color:#75715e">// Found a forward:: entry in a superclass.
+</span><span style="color:#75715e"></span>                    <span style="color:#75715e">// Stop searching, but don&#39;t cache yet; call method
+</span><span style="color:#75715e"></span>                    <span style="color:#75715e">// resolver for this class first.
+</span><span style="color:#75715e"></span>                    <span style="color:#66d9ef">break</span>;
                 }
             }
 
-            // Superclass method list.
-            // 父类缓存未找到，则在父类的方法列表中查找
-            Method meth = getMethodNoSuper_nolock(curClass, sel);
-            if (meth) {
-                // 找到则在本类缓存
-                log_and_fill_cache(cls, meth-&gt;imp, sel, inst, curClass);
-                imp = meth-&gt;imp;
-                goto done;
+            <span style="color:#75715e">// Superclass method list.
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 父类缓存未找到，则在父类的方法列表中查找
+</span><span style="color:#75715e"></span>            Method meth <span style="color:#f92672">=</span> getMethodNoSuper_nolock(curClass, sel);
+            <span style="color:#66d9ef">if</span> (meth) {
+                <span style="color:#75715e">// 找到则在本类缓存
+</span><span style="color:#75715e"></span>                log_and_fill_cache(cls, meth<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>imp, sel, inst, curClass);
+                imp <span style="color:#f92672">=</span> meth<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>imp;
+                <span style="color:#66d9ef">goto</span> done;
             }
         }
     }
 
-    // No implementation found. Try method resolver once.
-    // IMP 找不到，则进入方法动态解析一次。详见下文「动态方法解析」一节。
-    if (resolver  &amp;&amp;  !triedResolver) {
+    <span style="color:#75715e">// No implementation found. Try method resolver once.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// IMP 找不到，则进入方法动态解析一次。详见下文「动态方法解析」一节。
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (resolver  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  <span style="color:#f92672">!</span>triedResolver) {
         runtimeLock.unlock();
         _class_resolveMethod(cls, sel, inst);
         runtimeLock.lock();
-        // Don't cache the result; we don't hold the lock so it may have
-        // changed already. Re-do the search from scratch instead.
-        // 标记为 YES
-        triedResolver = YES;
-        goto retry;
+        <span style="color:#75715e">// Don&#39;t cache the result; we don&#39;t hold the lock so it may have
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// changed already. Re-do the search from scratch instead.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 标记为 YES
+</span><span style="color:#75715e"></span>        triedResolver <span style="color:#f92672">=</span> YES;
+        <span style="color:#66d9ef">goto</span> retry;
     }
 
-    // No implementation found, and method resolver didn't help.
-    // Use forwarding.
-    // 实现无法找到，方法解析无效，尝试方法转发。
-
-    imp = (IMP)_objc_msgForward_impcache;
+    <span style="color:#75715e">// No implementation found, and method resolver didn&#39;t help.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Use forwarding.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 实现无法找到，方法解析无效，尝试方法转发。
+</span><span style="color:#75715e"></span>
+    imp <span style="color:#f92672">=</span> (IMP)_objc_msgForward_impcache;
     cache_fill(cls, sel, imp, inst);
 
  done:
     runtimeLock.unlock();
 
-    return imp;
+    <span style="color:#66d9ef">return</span> imp;
 }
 
-static method_t *
-getMethodNoSuper_nolock(Class cls, SEL sel)
+<span style="color:#66d9ef">static</span> method_t <span style="color:#f92672">*</span>
+<span style="color:#a6e22e">getMethodNoSuper_nolock</span>(Class cls, SEL sel)
 {
     runtimeLock.assertLocked();
 
-    assert(cls-&gt;isRealized());
-    // fixme nil cls?
-    // fixme nil sel?
-
-    for (auto mlists = cls-&gt;data()-&gt;methods.beginLists(),
-              end = cls-&gt;data()-&gt;methods.endLists();
-         mlists != end;
-         ++mlists)
+    assert(cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isRealized());
+    <span style="color:#75715e">// fixme nil cls?
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// fixme nil sel?
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">auto</span> mlists <span style="color:#f92672">=</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>data()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>methods.beginLists(),
+              end <span style="color:#f92672">=</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>data()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>methods.endLists();
+         mlists <span style="color:#f92672">!</span><span style="color:#f92672">=</span> end;
+         <span style="color:#f92672">+</span><span style="color:#f92672">+</span>mlists)
     {
-        // ⬇️ 在方法列表中查找方法
-        method_t *m = search_method_list(*mlists, sel);
-        if (m) return m;
+        <span style="color:#75715e">// ⬇️ 在方法列表中查找方法
+</span><span style="color:#75715e"></span>        method_t <span style="color:#f92672">*</span>m <span style="color:#f92672">=</span> search_method_list(<span style="color:#f92672">*</span>mlists, sel);
+        <span style="color:#66d9ef">if</span> (m) <span style="color:#66d9ef">return</span> m;
     }
 
-    return nil;
+    <span style="color:#66d9ef">return</span> nil;
 }
 
-/***********************************************************************
-* getMethodNoSuper_nolock
-* fixme
-* Locking: runtimeLock must be read- or write-locked by the caller
-**********************************************************************/
-static method_t *search_method_list(const method_list_t *mlist, SEL sel)
+<span style="color:#75715e">/***********************************************************************
+</span><span style="color:#75715e">* getMethodNoSuper_nolock
+</span><span style="color:#75715e">* fixme
+</span><span style="color:#75715e">* Locking: runtimeLock must be read- or write-locked by the caller
+</span><span style="color:#75715e">**********************************************************************/</span>
+<span style="color:#66d9ef">static</span> method_t <span style="color:#f92672">*</span><span style="color:#a6e22e">search_method_list</span>(<span style="color:#66d9ef">const</span> method_list_t <span style="color:#f92672">*</span>mlist, SEL sel)
 {
-    int methodListIsFixedUp = mlist-&gt;isFixedUp();
-    int methodListHasExpectedSize = mlist-&gt;entsize() == sizeof(method_t);
+    <span style="color:#66d9ef">int</span> methodListIsFixedUp <span style="color:#f92672">=</span> mlist<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isFixedUp();
+    <span style="color:#66d9ef">int</span> methodListHasExpectedSize <span style="color:#f92672">=</span> mlist<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>entsize() <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#66d9ef">sizeof</span>(method_t);
 
-    if (__builtin_expect(methodListIsFixedUp &amp;&amp; methodListHasExpectedSize, 1)) {
-        // 在已排序的方法列表中查找
-        return findMethodInSortedMethodList(sel, mlist);
-    } else {
-        // Linear search of unsorted method list
-        // 线性查找未排序方法列表
-        for (auto&amp; meth : *mlist) {
-            if (meth.name == sel) return &amp;meth;
+    <span style="color:#66d9ef">if</span> (__builtin_expect(methodListIsFixedUp <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span> methodListHasExpectedSize, <span style="color:#ae81ff">1</span>)) {
+        <span style="color:#75715e">// 在已排序的方法列表中查找
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">return</span> findMethodInSortedMethodList(sel, mlist);
+    } <span style="color:#66d9ef">else</span> {
+        <span style="color:#75715e">// Linear search of unsorted method list
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 线性查找未排序方法列表
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">auto</span><span style="color:#f92672">&amp;</span> meth : <span style="color:#f92672">*</span>mlist) {
+            <span style="color:#66d9ef">if</span> (meth.name <span style="color:#f92672">=</span><span style="color:#f92672">=</span> sel) <span style="color:#66d9ef">return</span> <span style="color:#f92672">&amp;</span>meth;
         }
     }
 
-#if DEBUG
-    // sanity-check negative results
-    if (mlist-&gt;isFixedUp()) {
-        for (auto&amp; meth : *mlist) {
-            if (meth.name == sel) {
-                _objc_fatal(&quot;linear search worked when binary search did not&quot;);
+<span style="color:#75715e">#</span><span style="color:#75715e">if DEBUG</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// sanity-check negative results
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (mlist<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isFixedUp()) {
+        <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">auto</span><span style="color:#f92672">&amp;</span> meth : <span style="color:#f92672">*</span>mlist) {
+            <span style="color:#66d9ef">if</span> (meth.name <span style="color:#f92672">=</span><span style="color:#f92672">=</span> sel) {
+                _objc_fatal(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">linear search worked when binary search did not</span><span style="color:#e6db74">&#34;</span>);
             }
         }
     }
-#endif
-
-    return nil;
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">return</span> nil;
 }
 
-/***********************************************************************
-* log_and_fill_cache
-* Log this method call. If the logger permits it, fill the method cache.
-* 记录该方法调用。如果记录器允许，填充方法缓存。
-* cls is the method whose cache should be filled.
-* 方法应当填充在 cls 的缓存中。
-* implementer is the class that owns the implementation in question.
-* implementer 指拥有相关实现的类。
-**********************************************************************/
-static void
-log_and_fill_cache(Class cls, IMP imp, SEL sel, id receiver, Class implementer)
+<span style="color:#75715e">/***********************************************************************
+</span><span style="color:#75715e">* log_and_fill_cache
+</span><span style="color:#75715e">* Log this method call. If the logger permits it, fill the method cache.
+</span><span style="color:#75715e">* 记录该方法调用。如果记录器允许，填充方法缓存。
+</span><span style="color:#75715e">* cls is the method whose cache should be filled.
+</span><span style="color:#75715e">* 方法应当填充在 cls 的缓存中。
+</span><span style="color:#75715e">* implementer is the class that owns the implementation in question.
+</span><span style="color:#75715e">* implementer 指拥有相关实现的类。
+</span><span style="color:#75715e">**********************************************************************/</span>
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">log_and_fill_cache</span>(Class cls, IMP imp, SEL sel, id receiver, Class implementer)
 {
-#if SUPPORT_MESSAGE_LOGGING
-    if (objcMsgLogEnabled) {
-        bool cacheIt = logMessageSend(implementer-&gt;isMetaClass(),
-                                      cls-&gt;nameForLogging(),
-                                      implementer-&gt;nameForLogging(),
+<span style="color:#75715e">#</span><span style="color:#75715e">if SUPPORT_MESSAGE_LOGGING</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (objcMsgLogEnabled) {
+        <span style="color:#66d9ef">bool</span> cacheIt <span style="color:#f92672">=</span> logMessageSend(implementer<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isMetaClass(),
+                                      cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>nameForLogging(),
+                                      implementer<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>nameForLogging(),
                                       sel);
-        if (!cacheIt) return;
+        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>cacheIt) <span style="color:#66d9ef">return</span>;
     }
-#endif
-    // ⬇️ 填充缓存
-    cache_fill (cls, sel, imp, receiver);
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// ⬇️ 填充缓存
+</span><span style="color:#75715e"></span>    cache_fill (cls, sel, imp, receiver);
 }
 
-// objc-cache.mm
-
-void cache_fill(Class cls, SEL sel, IMP imp, id receiver)
+<span style="color:#75715e">// objc-cache.mm
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">cache_fill</span>(Class cls, SEL sel, IMP imp, id receiver)
 {
-#if !DEBUG_TASK_THREADS
-    mutex_locker_t lock(cacheUpdateLock);
-    // ⬇️ 填充缓存
-    cache_fill_nolock(cls, sel, imp, receiver);
-#else
-    _collecting_in_critical();
-    return;
-#endif
-}
+<span style="color:#75715e">#</span><span style="color:#75715e">if !DEBUG_TASK_THREADS</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>    mutex_locker_t lock(cacheUpdateLock);
+    <span style="color:#75715e">// ⬇️ 填充缓存
+</span><span style="color:#75715e"></span>    cache_fill_nolock(cls, sel, imp, receiver);
+<span style="color:#75715e">#</span><span style="color:#75715e">else</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>    _collecting_in_critical();
+    <span style="color:#66d9ef">return</span>;
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>}
 
-static void cache_fill_nolock(Class cls, SEL sel, IMP imp, id receiver)
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">cache_fill_nolock</span>(Class cls, SEL sel, IMP imp, id receiver)
 {
     cacheUpdateLock.assertLocked();
 
-    // Never cache before +initialize is done
-    // 若类未初始化，则返回
-    if (!cls-&gt;isInitialized()) return;
+    <span style="color:#75715e">// Never cache before +initialize is done
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 若类未初始化，则返回
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isInitialized()) <span style="color:#66d9ef">return</span>;
 
-    // Make sure the entry wasn't added to the cache by some other thread
-    // before we grabbed the cacheUpdateLock.
-    // 若缓存中已存在，则返回
-    if (cache_getImp(cls, sel)) return;
+    <span style="color:#75715e">// Make sure the entry wasn&#39;t added to the cache by some other thread
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// before we grabbed the cacheUpdateLock.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 若缓存中已存在，则返回
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (cache_getImp(cls, sel)) <span style="color:#66d9ef">return</span>;
 
-    cache_t *cache = getCache(cls);
-    // ⬇️ 获取缓存 key，本质即 SEL
-    cache_key_t key = getKey(sel);
+    cache_t <span style="color:#f92672">*</span>cache <span style="color:#f92672">=</span> getCache(cls);
+    <span style="color:#75715e">// ⬇️ 获取缓存 key，本质即 SEL
+</span><span style="color:#75715e"></span>    cache_key_t key <span style="color:#f92672">=</span> getKey(sel);
 
-    // Use the cache as-is if it is less than 3/4 full
-    // 如果小于等于 3/4 满，则使用缓存
-    // newOccupied 为当前占用数 + 1
-    mask_t newOccupied = cache-&gt;occupied() + 1;
-    // capacity 为容量（mask + 1 或 0）
-    mask_t capacity = cache-&gt;capacity();
-    if (cache-&gt;isConstantEmptyCache()) {
-        // 缓存为空
-        // Cache is read-only. Replace it.
-        // 重新分配内存
-        cache-&gt;reallocate(capacity, capacity ?: INIT_CACHE_SIZE);
+    <span style="color:#75715e">// Use the cache as-is if it is less than 3/4 full
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 如果小于等于 3/4 满，则使用缓存
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// newOccupied 为当前占用数 + 1
+</span><span style="color:#75715e"></span>    mask_t newOccupied <span style="color:#f92672">=</span> cache<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>occupied() <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>;
+    <span style="color:#75715e">// capacity 为容量（mask + 1 或 0）
+</span><span style="color:#75715e"></span>    mask_t capacity <span style="color:#f92672">=</span> cache<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>capacity();
+    <span style="color:#66d9ef">if</span> (cache<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isConstantEmptyCache()) {
+        <span style="color:#75715e">// 缓存为空
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Cache is read-only. Replace it.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 重新分配内存
+</span><span style="color:#75715e"></span>        cache<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>reallocate(capacity, capacity <span style="color:#f92672">?</span><span style="color:#f92672">:</span> INIT_CACHE_SIZE);
     }
-    else if (newOccupied &lt;= capacity / 4 * 3) {
-        // Cache is less than 3/4 full. Use it as-is.
-        // 缓存已占用比例小于等于 3/4，则使用
-    }
-    else {
-        // Cache is too full. Expand it.
-        // ⬇️ 大于 3/4 则先扩容。
-        cache-&gt;expand();
+    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (newOccupied <span style="color:#f92672">&lt;</span><span style="color:#f92672">=</span> capacity <span style="color:#f92672">/</span> <span style="color:#ae81ff">4</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">3</span>) {
+        <span style="color:#75715e">// Cache is less than 3/4 full. Use it as-is.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 缓存已占用比例小于等于 3/4，则使用
+</span><span style="color:#75715e"></span>    }
+    <span style="color:#66d9ef">else</span> {
+        <span style="color:#75715e">// Cache is too full. Expand it.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// ⬇️ 大于 3/4 则先扩容。
+</span><span style="color:#75715e"></span>        cache<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>expand();
     }
 
-    // Scan for the first unused slot and insert there.
-    // 扫描首个未使用的间隙并插入。
-    // There is guaranteed to be an empty slot because the
-    // minimum size is 4 and we resized at 3/4 full.
-    // 能够被确保有空间隙是因为最小大小为 4，并重调为 3/4 满。
-    // ⬇️ 查找要存入的 bucket_t
-    bucket_t *bucket = cache-&gt;find(key, receiver);
-    // key 为空，则为新占用缓存，占用数需自增
-    if (bucket-&gt;key() == 0) cache-&gt;incrementOccupied();
-    // 存入 bucket
-    bucket-&gt;set(key, imp);
+    <span style="color:#75715e">// Scan for the first unused slot and insert there.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 扫描首个未使用的间隙并插入。
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// There is guaranteed to be an empty slot because the
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// minimum size is 4 and we resized at 3/4 full.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 能够被确保有空间隙是因为最小大小为 4，并重调为 3/4 满。
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// ⬇️ 查找要存入的 bucket_t
+</span><span style="color:#75715e"></span>    bucket_t <span style="color:#f92672">*</span>bucket <span style="color:#f92672">=</span> cache<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>find(key, receiver);
+    <span style="color:#75715e">// key 为空，则为新占用缓存，占用数需自增
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (bucket<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>key() <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) cache<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>incrementOccupied();
+    <span style="color:#75715e">// 存入 bucket
+</span><span style="color:#75715e"></span>    bucket<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>set(key, imp);
 }
 
-mask_t cache_t::capacity()
+mask_t cache_t<span style="color:#f92672">:</span><span style="color:#f92672">:</span>capacity()
 {
-    return mask() ? mask()+1 : 0;
+    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">mask</span>() <span style="color:#f92672">?</span> mask()<span style="color:#f92672">+</span><span style="color:#ae81ff">1</span> <span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>;
 }
 
-cache_key_t getKey(SEL sel)
+cache_key_t <span style="color:#a6e22e">getKey</span>(SEL sel)
 {
     assert(sel);
-    // 将 SEL 强转为 cache_key_t 类型
-    return (cache_key_t)sel;
+    <span style="color:#75715e">// 将 SEL 强转为 cache_key_t 类型
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> (cache_key_t)sel;
 }
 
-// 🌟 根据 key 查找 bucket_t
-bucket_t * cache_t::find(cache_key_t k, id receiver)
+<span style="color:#75715e">// 🌟 根据 key 查找 bucket_t
+</span><span style="color:#75715e"></span>bucket_t <span style="color:#f92672">*</span> cache_t<span style="color:#f92672">:</span><span style="color:#f92672">:</span>find(cache_key_t k, id receiver)
 {
-    assert(k != 0);
+    assert(k <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>);
 
-    // b 为 buckets 数组首地址
-    bucket_t *b = buckets();
-    mask_t m = mask();
-    // begin 为方法在散列表的索引
-    mask_t begin = cache_hash(k, m);
-    // 从索引开始遍历
-    mask_t i = begin;
-    do {
-        // 如果该索引对应的 bucket_t 中的 key（SEL）对应了我们查找的 key（即已存在）或为空
-        // 则代表当前 bucket_t 可插入
-        if (b[i].key() == 0  ||  b[i].key() == k) {
-            return &amp;b[i];
+    <span style="color:#75715e">// b 为 buckets 数组首地址
+</span><span style="color:#75715e"></span>    bucket_t <span style="color:#f92672">*</span>b <span style="color:#f92672">=</span> buckets();
+    mask_t m <span style="color:#f92672">=</span> mask();
+    <span style="color:#75715e">// begin 为方法在散列表的索引
+</span><span style="color:#75715e"></span>    mask_t begin <span style="color:#f92672">=</span> cache_hash(k, m);
+    <span style="color:#75715e">// 从索引开始遍历
+</span><span style="color:#75715e"></span>    mask_t i <span style="color:#f92672">=</span> begin;
+    <span style="color:#66d9ef">do</span> {
+        <span style="color:#75715e">// 如果该索引对应的 bucket_t 中的 key（SEL）对应了我们查找的 key（即已存在）或为空
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 则代表当前 bucket_t 可插入
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (b[i].key() <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>  <span style="color:#f92672">|</span><span style="color:#f92672">|</span>  b[i].key() <span style="color:#f92672">=</span><span style="color:#f92672">=</span> k) {
+            <span style="color:#66d9ef">return</span> <span style="color:#f92672">&amp;</span>b[i];
         }
-        // 索引冲突，则进入当前索引的下一格
-    } while ((i = cache_next(i, m)) != begin);
+        <span style="color:#75715e">// 索引冲突，则进入当前索引的下一格
+</span><span style="color:#75715e"></span>    } <span style="color:#66d9ef">while</span> ((i <span style="color:#f92672">=</span> cache_next(i, m)) <span style="color:#f92672">!</span><span style="color:#f92672">=</span> begin);
 
-    // hack
-    Class cls = (Class)((uintptr_t)this - offsetof(objc_class, cache));
-    cache_t::bad_cache(receiver, (SEL)k, cls);
+    <span style="color:#75715e">// hack
+</span><span style="color:#75715e"></span>    Class cls <span style="color:#f92672">=</span> (Class)((uintptr_t)<span style="color:#66d9ef">this</span> <span style="color:#f92672">-</span> offsetof(objc_class, cache));
+    cache_t<span style="color:#f92672">:</span><span style="color:#f92672">:</span>bad_cache(receiver, (SEL)k, cls);
 }
 
-// Class points to cache. SEL is key. Cache buckets store SEL+IMP.
-// Caches are never built in the dyld shared cache.
-
-static inline mask_t cache_hash(cache_key_t key, mask_t mask)
+<span style="color:#75715e">// Class points to cache. SEL is key. Cache buckets store SEL+IMP.
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Caches are never built in the dyld shared cache.
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">inline</span> mask_t <span style="color:#a6e22e">cache_hash</span>(cache_key_t key, mask_t mask)
 {
-    // key &amp; mask 获得索引
-    return (mask_t)(key &amp; mask);
+    <span style="color:#75715e">// key &amp; mask 获得索引
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> (mask_t)(key <span style="color:#f92672">&amp;</span> mask);
 }
 
-static inline mask_t cache_next(mask_t i, mask_t mask) {
-    return (i+1) &amp; mask;
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">inline</span> mask_t <span style="color:#a6e22e">cache_next</span>(mask_t i, mask_t mask) {
+    <span style="color:#66d9ef">return</span> (i<span style="color:#f92672">+</span><span style="color:#ae81ff">1</span>) <span style="color:#f92672">&amp;</span> mask;
 }
 
-// 缓存扩容
-void cache_t::expand()
+<span style="color:#75715e">// 缓存扩容
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> cache_t<span style="color:#f92672">:</span><span style="color:#f92672">:</span>expand()
 {
     cacheUpdateLock.assertLocked();
 
-    uint32_t oldCapacity = capacity();
-    // 扩容大小为原空间 2 倍（若原为空，则扩容为初始大小）
-    uint32_t newCapacity = oldCapacity ? oldCapacity*2 : INIT_CACHE_SIZE;
+    <span style="color:#66d9ef">uint32_t</span> oldCapacity <span style="color:#f92672">=</span> capacity();
+    <span style="color:#75715e">// 扩容大小为原空间 2 倍（若原为空，则扩容为初始大小）
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">uint32_t</span> newCapacity <span style="color:#f92672">=</span> oldCapacity <span style="color:#f92672">?</span> oldCapacity<span style="color:#f92672">*</span><span style="color:#ae81ff">2</span> <span style="color:#f92672">:</span> INIT_CACHE_SIZE;
 
-    if ((uint32_t)(mask_t)newCapacity != newCapacity) {
-        // mask overflow - can't grow further
-        // fixme this wastes one bit of mask
-        newCapacity = oldCapacity;
+    <span style="color:#66d9ef">if</span> ((<span style="color:#66d9ef">uint32_t</span>)(mask_t)newCapacity <span style="color:#f92672">!</span><span style="color:#f92672">=</span> newCapacity) {
+        <span style="color:#75715e">// mask overflow - can&#39;t grow further
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// fixme this wastes one bit of mask
+</span><span style="color:#75715e"></span>        newCapacity <span style="color:#f92672">=</span> oldCapacity;
     }
 
     reallocate(oldCapacity, newCapacity);
 }
 
-/* Initial cache bucket count. INIT_CACHE_SIZE must be a power of two. */
-enum {
-    INIT_CACHE_SIZE_LOG2 = 2,
-    // 左移 2 位，为 4
-    INIT_CACHE_SIZE      = (1 &lt;&lt; INIT_CACHE_SIZE_LOG2)
+<span style="color:#75715e">/* Initial cache bucket count. INIT_CACHE_SIZE must be a power of two. */</span>
+<span style="color:#66d9ef">enum</span> {
+    INIT_CACHE_SIZE_LOG2 <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>,
+    <span style="color:#75715e">// 左移 2 位，为 4
+</span><span style="color:#75715e"></span>    INIT_CACHE_SIZE      <span style="color:#f92672">=</span> (<span style="color:#ae81ff">1</span> <span style="color:#f92672">&lt;</span><span style="color:#f92672">&lt;</span> INIT_CACHE_SIZE_LOG2)
 };
-</code></pre>
-
-<p>如上，消息发送的代码被分为两个部分：其一是快速路径（Fast Path），这一部分由汇编语言实现；其二是慢速路径（Slow Path），由 C 语言实现。当未命中缓存时，将调用 C 语言代码来查找方法列表，并缓存方法。</p>
-
-<h4 id="当命中缓存时">当命中缓存时</h4>
-
+</code></pre></div><p>如上，消息发送的代码被分为两个部分：其一是快速路径（Fast Path），这一部分由汇编语言实现；其二是慢速路径（Slow Path），由 C 语言实现。当未命中缓存时，将调用 C 语言代码来查找方法列表，并缓存方法。</p>
+<h4 id="heading3">当命中缓存时</h4>
 <p>当方法被再次调用时，将可以命中缓存得以快速执行：</p>
-
-<p><img src="/img/2019/objc_msgsend/6.png" alt="6" /></p>
-
-<h4 id="support-indexed-isa"><code>SUPPORT_INDEXED_ISA</code></h4>
-
+<p><img src="/img/2019/objc_msgsend/6.png" alt="6"></p>
+<h4 id="supportindexedisa"><code>SUPPORT_INDEXED_ISA</code></h4>
 <p><code>SUPPORT_INDEXED_ISA</code>，即是否支持索引化 isa 我们可以在源码中找到这段定义的宏：</p>
-
-<pre><code class="language-objectivec">// objc-config.h
-
-// Define SUPPORT_INDEXED_ISA=1 on platforms that store the class in the isa
-// field as an index into a class table.
-// 在将类存储在 isa 域中并作为类表索引的平台上定义 SUPPORT_INDEXED_ISA=1。
-// Note, keep this in sync with any .s files which also define it.
-// Be sure to edit objc-abi.h as well.
-#if __ARM_ARCH_7K__ &gt;= 2  ||  (__arm64__ &amp;&amp; !__LP64__)
-#   define SUPPORT_INDEXED_ISA 1
-#else
-#   define SUPPORT_INDEXED_ISA 0
-#endif
-</code></pre>
-
-<p>比较简单的验证方式是我们可以直接在指定真机运行的代码中尝试获取最终的值：</p>
-
-<pre><code class="language-objectivec">#if __ARM_ARCH_7K__ &gt;= 2  ||  (__arm64__ &amp;&amp; !__LP64__)
-#   define SUPPORT_INDEXED_ISA 1
-#else
-#   define SUPPORT_INDEXED_ISA 0
-#endif
-
-// Use of undeclared identifier '__ARM_ARCH_7K__'
-// NSLog(@&quot;%d&quot;, __ARM_ARCH_7K__);
-NSLog(@&quot;%d&quot;, __arm64__);           // 1
-NSLog(@&quot;%d&quot;, __LP64__);            // 1
-NSLog(@&quot;%d&quot;, SUPPORT_INDEXED_ISA); // 0
-</code></pre>
-
-<p>当然，我还是要细究一下。</p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// objc-config.h
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// Define SUPPORT_INDEXED_ISA=1 on platforms that store the class in the isa
+</span><span style="color:#75715e"></span><span style="color:#75715e">// field as an index into a class table.
+</span><span style="color:#75715e"></span><span style="color:#75715e">// 在将类存储在 isa 域中并作为类表索引的平台上定义 SUPPORT_INDEXED_ISA=1。
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Note, keep this in sync with any .s files which also define it.
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Be sure to edit objc-abi.h as well.
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">if __ARM_ARCH_7K__ &gt;= 2  ||  (__arm64__ &amp;&amp; !__LP64__)</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">   define SUPPORT_INDEXED_ISA 1</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">else</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">   define SUPPORT_INDEXED_ISA 0</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span></code></pre></div><p>比较简单的验证方式是我们可以直接在指定真机运行的代码中尝试获取最终的值：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">if __ARM_ARCH_7K__ &gt;= 2  ||  (__arm64__ &amp;&amp; !__LP64__)</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">   define SUPPORT_INDEXED_ISA 1</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">else</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">   define SUPPORT_INDEXED_ISA 0</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// Use of undeclared identifier &#39;__ARM_ARCH_7K__&#39;
+</span><span style="color:#75715e"></span><span style="color:#75715e">// NSLog(@&#34;%d&#34;, __ARM_ARCH_7K__);
+</span><span style="color:#75715e"></span>NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%d</span><span style="color:#e6db74">&#34;</span>, __arm64__);           <span style="color:#75715e">// 1
+</span><span style="color:#75715e"></span>NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%d</span><span style="color:#e6db74">&#34;</span>, __LP64__);            <span style="color:#75715e">// 1
+</span><span style="color:#75715e"></span>NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%d</span><span style="color:#e6db74">&#34;</span>, SUPPORT_INDEXED_ISA); <span style="color:#75715e">// 0
+</span></code></pre></div><p>当然，我还是要细究一下。</p>
 <p><code>__ARM_ARCH_7K__</code> 根据名称可以得出是定义在目标为 ARM 7k 架构 CPU 的代码中的标志宏。我们可以在 LLVM 开源的「ARM.cpp」找到其定义：</p>
-
-<pre><code class="language-cpp">// ARM.cpp
-
-// Unfortunately, __ARM_ARCH_7K__ is now more of an ABI descriptor. The CPU
-// happens to be Cortex-A7 though, so it should still get __ARM_ARCH_7A__.
-if (getTriple().isWatchABI())
-  Builder.defineMacro(&quot;__ARM_ARCH_7K__&quot;, &quot;2&quot;);
-</code></pre>
-
-<p><code>__arm64__</code> 即是定义在目标为 ARM 64 架构 CPU 的代码中；<code>__LP64__</code> 则意味着 Long Pointer，该标志宏为 <code>1</code> 的代码中 <code>long int</code> 和指针类型（指针中存储的是内存地址，也即内存地址）的长度为 64 位（8 字节），<code>int</code> 为 32 位（4 字节）。</p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// ARM.cpp
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// Unfortunately, __ARM_ARCH_7K__ is now more of an ABI descriptor. The CPU
+</span><span style="color:#75715e"></span><span style="color:#75715e">// happens to be Cortex-A7 though, so it should still get __ARM_ARCH_7A__.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">if</span> (getTriple().isWatchABI())
+  Builder.defineMacro(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">__ARM_ARCH_7K__</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">2</span><span style="color:#e6db74">&#34;</span>);
+</code></pre></div><p><code>__arm64__</code> 即是定义在目标为 ARM 64 架构 CPU 的代码中；<code>__LP64__</code> 则意味着 Long Pointer，该标志宏为 <code>1</code> 的代码中 <code>long int</code> 和指针类型（指针中存储的是内存地址，也即内存地址）的长度为 64 位（8 字节），<code>int</code> 为 32 位（4 字节）。</p>
 <p>综上，在 iOS 的真机设备中，<code>SUPPORT_INDEXED_ISA</code> 的值最终为 <code>0</code>。</p>
-
-<h4 id="尾递归调用">尾递归调用</h4>
-
+<h4 id="heading4">尾递归调用</h4>
 <p>🚧</p>
-
-<h3 id="动态方法解析">动态方法解析</h3>
-
+<h3 id="heading5">动态方法解析</h3>
 <h4 id="what">What</h4>
-
 <p>当一个类或元类自身及其所有父类中都没有相应的方法实现时，将尝试动态方法解析。即调用 <code>resolveInstanceMethod:</code> 或 <code>resolveClassMethod</code> 类方法（两者依次对应解析实例方法、类方法），如果我们在其中动态将方法添加，那么将可以执行到相应的方法中：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo</span> : <span style="color:#a6e22e">NSObject</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span>;
++ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">classFoo</span>;
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">tryC</span>;
+<span style="color:#66d9ef">@end</span>
 
-<pre><code class="language-objectivec">@interface Foo : NSObject
-- (void)foo;
-+ (void)classFoo;
-- (void)tryC;
-@end
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo</span>
 
-@implementation Foo
-
-- (void)bar {
-    NSLog(@&quot;%s&quot;, __func__);
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">bar</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__);
 }
 
-+ (void)classBar {
-    NSLog(@&quot;%s&quot;, __func__);
++ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">classBar</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__);
 }
 
-void c_func(id self, SEL _cmd) {
-    NSLog(@&quot;%p - %@&quot;, self, NSStringFromSelector(_cmd));
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">c_func</span>(<span style="color:#66d9ef">id</span> self, <span style="color:#66d9ef">SEL</span> _cmd) {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%p - %@</span><span style="color:#e6db74">&#34;</span>, self, NSStringFromSelector(_cmd));
 }
 
-+ (BOOL)resolveInstanceMethod:(SEL)sel {
-    if (sel == @selector(foo)) {
-        // 通过 Runtime API 获得类对象中的实例方法
-        Method method = class_getInstanceMethod(self, @selector(bar));
-        // 动态添加方法
-        class_addMethod(self, sel, method_getImplementation(method), method_getTypeEncoding(method));
++ (<span style="color:#66d9ef">BOOL</span>)<span style="color:#a6e22e">resolveInstanceMethod:</span>(<span style="color:#66d9ef">SEL</span>)sel {
+    <span style="color:#66d9ef">if</span> (sel <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#66d9ef">@selector</span>(foo)) {
+        <span style="color:#75715e">// 通过 Runtime API 获得类对象中的实例方法
+</span><span style="color:#75715e"></span>        Method method <span style="color:#f92672">=</span> class_getInstanceMethod(self, <span style="color:#66d9ef">@selector</span>(bar));
+        <span style="color:#75715e">// 动态添加方法
+</span><span style="color:#75715e"></span>        class_addMethod(self, sel, method_getImplementation(method), method_getTypeEncoding(method));
 
-        return YES;
+        <span style="color:#66d9ef">return</span> YES;
     }
 
-    if (sel == @selector(tryC)) {
-        // 也可以将 C 函数转换为 Method 格式作为动态方法；
-        class_addMethod(self, sel, (IMP)c_func, &quot;v16@0:8&quot;);
+    <span style="color:#66d9ef">if</span> (sel <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#66d9ef">@selector</span>(tryC)) {
+        <span style="color:#75715e">// 也可以将 C 函数转换为 Method 格式作为动态方法；
+</span><span style="color:#75715e"></span>        class_addMethod(self, sel, (<span style="color:#66d9ef">IMP</span>)c_func, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">v16@0:8</span><span style="color:#e6db74">&#34;</span>);
     }
 
-    // 当实现了动态方法解析时，最好按要求返回 YES，但目前看返回值并不影响结果（详见下源码）
-    return [super resolveInstanceMethod:sel];
+    <span style="color:#75715e">// 当实现了动态方法解析时，最好按要求返回 YES，但目前看返回值并不影响结果（详见下源码）
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> [super resolveInstanceMethod:sel];
 }
 
-+ (BOOL)resolveClassMethod:(SEL)sel {
-    if (sel == @selector(classFoo)) {
-        // 通过 Runtime API 获得元类对象中的类方法
-        Method method = class_getClassMethod(object_getClass(self), @selector(classBar));
-        // 动态添加方法（注意将k类方法添加到元类对象中）
-        class_addMethod(object_getClass(self), sel, method_getImplementation(method), method_getTypeEncoding(method));
++ (<span style="color:#66d9ef">BOOL</span>)<span style="color:#a6e22e">resolveClassMethod:</span>(<span style="color:#66d9ef">SEL</span>)sel {
+    <span style="color:#66d9ef">if</span> (sel <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#66d9ef">@selector</span>(classFoo)) {
+        <span style="color:#75715e">// 通过 Runtime API 获得元类对象中的类方法
+</span><span style="color:#75715e"></span>        Method method <span style="color:#f92672">=</span> class_getClassMethod(object_getClass(self), <span style="color:#66d9ef">@selector</span>(classBar));
+        <span style="color:#75715e">// 动态添加方法（注意将k类方法添加到元类对象中）
+</span><span style="color:#75715e"></span>        class_addMethod(object_getClass(self), sel, method_getImplementation(method), method_getTypeEncoding(method));
 
-        return YES;
+        <span style="color:#66d9ef">return</span> YES;
     }
 
-    return [super resolveClassMethod:sel];
+    <span style="color:#66d9ef">return</span> [super resolveClassMethod:sel];
 }
-@end
+<span style="color:#66d9ef">@end</span>
 
-Foo *foo = [[Foo alloc] init];
+Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span> [[Foo alloc] init];
 [foo foo];
 
 [Foo classFoo];
 
-// OUTPUT:
-// -[Foo bar]
-// +[Foo classBar]
-// 0x2802d0a50 - tryC
-</code></pre>
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Foo bar]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// +[Foo classBar]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// 0x2802d0a50 - tryC
+</span></code></pre></div><p>这里的 <code>Method</code> 是一个类似 <code>Class</code> 的不透明类型，我们可以在 objc4 源码中看到它的结构，本质即 <code>method_t</code>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// runtime.h
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">/// An opaque type that represents a method in a class definition.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> objc_method <span style="color:#f92672">*</span>Method;
 
-<p>这里的 <code>Method</code> 是一个类似 <code>Class</code> 的不透明类型，我们可以在 objc4 源码中看到它的结构，本质即 <code>method_t</code>：</p>
-
-<pre><code class="language-objectivec">// runtime.h
-
-/// An opaque type that represents a method in a class definition.
-typedef struct objc_method *Method;
-
-struct objc_method {
-    SEL _Nonnull method_name                                 OBJC2_UNAVAILABLE;
-    char * _Nullable method_types                            OBJC2_UNAVAILABLE;
-    IMP _Nonnull method_imp                                  OBJC2_UNAVAILABLE;
+<span style="color:#66d9ef">struct</span> objc_method {
+    <span style="color:#66d9ef">SEL</span> _Nonnull method_name                                 OBJC2_UNAVAILABLE;
+    <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> _Nullable method_types                            OBJC2_UNAVAILABLE;
+    <span style="color:#66d9ef">IMP</span> _Nonnull method_imp                                  OBJC2_UNAVAILABLE;
 }
 
-// objc-private.h
-
-#if __OBJC2__
-typedef struct method_t *Method;
-// ...
-</code></pre>
-
-<p>而 <code>class_addMethod</code> 将把新方法放置在一个一维方法列表中，并最终附加在 Obj-C 类中 <code>class_rw_t</code> 的二维 <code>method_array_t methods;</code> 中（因此 <code>class_addMethod</code> 对于每个方法只会调用一次）：</p>
-
-<pre><code class="language-cpp">// objc-runtime-new.mm
-
+<span style="color:#75715e">// objc-private.h
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">if __OBJC2__</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> method_t <span style="color:#f92672">*</span>Method;
+<span style="color:#75715e">// ...
+</span></code></pre></div><p>而 <code>class_addMethod</code> 将把新方法放置在一个一维方法列表中，并最终附加在 Obj-C 类中 <code>class_rw_t</code> 的二维 <code>method_array_t methods;</code> 中（因此 <code>class_addMethod</code> 对于每个方法只会调用一次）：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// objc-runtime-new.mm
+</span><span style="color:#75715e"></span>
 BOOL
-class_addMethod(Class cls, SEL name, IMP imp, const char *types)
+<span style="color:#a6e22e">class_addMethod</span>(Class cls, SEL name, IMP imp, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>types)
 {
-    if (!cls) return NO;
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>cls) <span style="color:#66d9ef">return</span> NO;
 
     mutex_locker_t lock(runtimeLock);
-    // ⬇️
-    return ! addMethod(cls, name, imp, types ?: &quot;&quot;, NO);
+    <span style="color:#75715e">// ⬇️
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> <span style="color:#f92672">!</span> addMethod(cls, name, imp, types <span style="color:#f92672">?</span><span style="color:#f92672">:</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>, NO);
 }
 
-/**********************************************************************
-* addMethod
-* fixme
-* Locking: runtimeLock must be held by the caller
-**********************************************************************/
-static IMP
-addMethod(Class cls, SEL name, IMP imp, const char *types, bool replace)
+<span style="color:#75715e">/**********************************************************************
+</span><span style="color:#75715e">* addMethod
+</span><span style="color:#75715e">* fixme
+</span><span style="color:#75715e">* Locking: runtimeLock must be held by the caller
+</span><span style="color:#75715e">**********************************************************************/</span>
+<span style="color:#66d9ef">static</span> IMP
+<span style="color:#a6e22e">addMethod</span>(Class cls, SEL name, IMP imp, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>types, <span style="color:#66d9ef">bool</span> replace)
 {
-    IMP result = nil;
+    IMP result <span style="color:#f92672">=</span> nil;
 
     runtimeLock.assertLocked();
 
     checkIsKnownClass(cls);
 
     assert(types);
-    assert(cls-&gt;isRealized());
+    assert(cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isRealized());
 
-    method_t *m;
-    if ((m = getMethodNoSuper_nolock(cls, name))) {
-        // already exists
-        if (!replace) {
-            result = m-&gt;imp;
-        } else {
-            result = _method_setImplementation(cls, m, imp);
+    method_t <span style="color:#f92672">*</span>m;
+    <span style="color:#66d9ef">if</span> ((m <span style="color:#f92672">=</span> getMethodNoSuper_nolock(cls, name))) {
+        <span style="color:#75715e">// already exists
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>replace) {
+            result <span style="color:#f92672">=</span> m<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>imp;
+        } <span style="color:#66d9ef">else</span> {
+            result <span style="color:#f92672">=</span> _method_setImplementation(cls, m, imp);
         }
-    } else {
-        // fixme optimize
-        // 初始化新的 method_list_t
-        method_list_t *newlist;
-        newlist = (method_list_t *)calloc(sizeof(*newlist), 1);
-        newlist-&gt;entsizeAndFlags =
-            (uint32_t)sizeof(method_t) | fixed_up_method_list;
-        newlist-&gt;count = 1;
-        // 将方法放置在新的方法列表中
-        newlist-&gt;first.name = name;
-        newlist-&gt;first.types = strdupIfMutable(types);
-        newlist-&gt;first.imp = imp;
+    } <span style="color:#66d9ef">else</span> {
+        <span style="color:#75715e">// fixme optimize
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 初始化新的 method_list_t
+</span><span style="color:#75715e"></span>        method_list_t <span style="color:#f92672">*</span>newlist;
+        newlist <span style="color:#f92672">=</span> (method_list_t <span style="color:#f92672">*</span>)calloc(<span style="color:#66d9ef">sizeof</span>(<span style="color:#f92672">*</span>newlist), <span style="color:#ae81ff">1</span>);
+        newlist<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>entsizeAndFlags <span style="color:#f92672">=</span>
+            (<span style="color:#66d9ef">uint32_t</span>)<span style="color:#66d9ef">sizeof</span>(method_t) <span style="color:#f92672">|</span> fixed_up_method_list;
+        newlist<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>count <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+        <span style="color:#75715e">// 将方法放置在新的方法列表中
+</span><span style="color:#75715e"></span>        newlist<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>first.name <span style="color:#f92672">=</span> name;
+        newlist<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>first.types <span style="color:#f92672">=</span> strdupIfMutable(types);
+        newlist<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>first.imp <span style="color:#f92672">=</span> imp;
 
-        // 方法列表的准备工作
-        prepareMethodLists(cls, &amp;newlist, 1, NO, NO);
-        // ⬇️ 附加方法列表
-        cls-&gt;data()-&gt;methods.attachLists(&amp;newlist, 1);
+        <span style="color:#75715e">// 方法列表的准备工作
+</span><span style="color:#75715e"></span>        prepareMethodLists(cls, <span style="color:#f92672">&amp;</span>newlist, <span style="color:#ae81ff">1</span>, NO, NO);
+        <span style="color:#75715e">// ⬇️ 附加方法列表
+</span><span style="color:#75715e"></span>        cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>data()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>methods.attachLists(<span style="color:#f92672">&amp;</span>newlist, <span style="color:#ae81ff">1</span>);
         flushCaches(cls);
 
-        result = nil;
+        result <span style="color:#f92672">=</span> nil;
     }
 
-    return result;
+    <span style="color:#66d9ef">return</span> result;
 }
 
-static void
-prepareMethodLists(Class cls, method_list_t **addedLists, int addedCount,
-                   bool baseMethods, bool methodsFromBundle)
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">prepareMethodLists</span>(Class cls, method_list_t <span style="color:#f92672">*</span><span style="color:#f92672">*</span>addedLists, <span style="color:#66d9ef">int</span> addedCount,
+                   <span style="color:#66d9ef">bool</span> baseMethods, <span style="color:#66d9ef">bool</span> methodsFromBundle)
 {
     runtimeLock.assertLocked();
 
-    if (addedCount == 0) return;
+    <span style="color:#66d9ef">if</span> (addedCount <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) <span style="color:#66d9ef">return</span>;
 
-    // Don't scan redundantly
-    bool scanForCustomRR = !cls-&gt;hasCustomRR();
-    bool scanForCustomAWZ = !cls-&gt;hasCustomAWZ();
+    <span style="color:#75715e">// Don&#39;t scan redundantly
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">bool</span> scanForCustomRR <span style="color:#f92672">=</span> <span style="color:#f92672">!</span>cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>hasCustomRR();
+    <span style="color:#66d9ef">bool</span> scanForCustomAWZ <span style="color:#f92672">=</span> <span style="color:#f92672">!</span>cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>hasCustomAWZ();
 
-    // There exist RR/AWZ special cases for some class's base methods.
-    // But this code should never need to scan base methods for RR/AWZ:
-    // default RR/AWZ cannot be set before setInitialized().
-    // Therefore we need not handle any special cases here.
-    if (baseMethods) {
-        assert(!scanForCustomRR  &amp;&amp;  !scanForCustomAWZ);
+    <span style="color:#75715e">// There exist RR/AWZ special cases for some class&#39;s base methods.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// But this code should never need to scan base methods for RR/AWZ:
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// default RR/AWZ cannot be set before setInitialized().
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Therefore we need not handle any special cases here.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (baseMethods) {
+        assert(<span style="color:#f92672">!</span>scanForCustomRR  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  <span style="color:#f92672">!</span>scanForCustomAWZ);
     }
 
-    // Add method lists to array.
-    // Reallocate un-fixed method lists.
-    // The new methods are PREPENDED to the method list array.
-
-    for (int i = 0; i &lt; addedCount; i++) {
-        method_list_t *mlist = addedLists[i];
+    <span style="color:#75715e">// Add method lists to array.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Reallocate un-fixed method lists.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// The new methods are PREPENDED to the method list array.
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> addedCount; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
+        method_list_t <span style="color:#f92672">*</span>mlist <span style="color:#f92672">=</span> addedLists[i];
         assert(mlist);
 
-        // Fixup selectors if necessary
-        if (!mlist-&gt;isFixedUp()) {
-            fixupMethodList(mlist, methodsFromBundle, true/*sort*/);
+        <span style="color:#75715e">// Fixup selectors if necessary
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>mlist<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isFixedUp()) {
+            fixupMethodList(mlist, methodsFromBundle, true<span style="color:#75715e">/*sort*/</span>);
         }
 
-        // Scan for method implementations tracked by the class's flags
-        if (scanForCustomRR  &amp;&amp;  methodListImplementsRR(mlist)) {
-            cls-&gt;setHasCustomRR();
-            scanForCustomRR = false;
+        <span style="color:#75715e">// Scan for method implementations tracked by the class&#39;s flags
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (scanForCustomRR  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  methodListImplementsRR(mlist)) {
+            cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setHasCustomRR();
+            scanForCustomRR <span style="color:#f92672">=</span> false;
         }
-        if (scanForCustomAWZ  &amp;&amp;  methodListImplementsAWZ(mlist)) {
-            cls-&gt;setHasCustomAWZ();
-            scanForCustomAWZ = false;
+        <span style="color:#66d9ef">if</span> (scanForCustomAWZ  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  methodListImplementsAWZ(mlist)) {
+            cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setHasCustomAWZ();
+            scanForCustomAWZ <span style="color:#f92672">=</span> false;
         }
     }
 }
 
-// objc-runtime-new.h
+<span style="color:#75715e">// objc-runtime-new.h
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> Element, <span style="color:#66d9ef">typename</span> List<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">list_array_tt</span> {
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">attachLists</span>(List<span style="color:#f92672">*</span> <span style="color:#66d9ef">const</span> <span style="color:#f92672">*</span> addedLists, <span style="color:#66d9ef">uint32_t</span> addedCount) {
+        <span style="color:#66d9ef">if</span> (addedCount <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) <span style="color:#66d9ef">return</span>;
 
-template &lt;typename Element, typename List&gt;
-class list_array_tt {
-    // ...
-
-    void attachLists(List* const * addedLists, uint32_t addedCount) {
-        if (addedCount == 0) return;
-
-        if (hasArray()) {
-            // many lists -&gt; many lists
-            // 已成二维，则先分配空间，挪动原表，放置新表
-            //（关于 memmove &amp; momcpy 可参考文末 Reference 中「iOS 中的 Category」一文）
-            uint32_t oldCount = array()-&gt;count;
-            uint32_t newCount = oldCount + addedCount;
-            setArray((array_t *)realloc(array(), array_t::byteSize(newCount)));
-            array()-&gt;count = newCount;
-            memmove(array()-&gt;lists + addedCount, array()-&gt;lists,
-                    oldCount * sizeof(array()-&gt;lists[0]));
-            memcpy(array()-&gt;lists, addedLists,
-                   addedCount * sizeof(array()-&gt;lists[0]));
+        <span style="color:#66d9ef">if</span> (hasArray()) {
+            <span style="color:#75715e">// many lists -&gt; many lists
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 已成二维，则先分配空间，挪动原表，放置新表
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">//（关于 memmove &amp; momcpy 可参考文末 Reference 中「iOS 中的 Category」一文）
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">uint32_t</span> oldCount <span style="color:#f92672">=</span> array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>count;
+            <span style="color:#66d9ef">uint32_t</span> newCount <span style="color:#f92672">=</span> oldCount <span style="color:#f92672">+</span> addedCount;
+            setArray((array_t <span style="color:#f92672">*</span>)realloc(array(), array_t<span style="color:#f92672">:</span><span style="color:#f92672">:</span>byteSize(newCount)));
+            array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>count <span style="color:#f92672">=</span> newCount;
+            memmove(array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>lists <span style="color:#f92672">+</span> addedCount, array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>lists,
+                    oldCount <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>lists[<span style="color:#ae81ff">0</span>]));
+            memcpy(array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>lists, addedLists,
+                   addedCount <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>lists[<span style="color:#ae81ff">0</span>]));
         }
-        else if (!list  &amp;&amp;  addedCount == 1) {
-            // 0 lists -&gt; 1 list
-            // 空表则直接附加
-            list = addedLists[0];
+        <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>list  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  addedCount <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>) {
+            <span style="color:#75715e">// 0 lists -&gt; 1 list
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 空表则直接附加
+</span><span style="color:#75715e"></span>            list <span style="color:#f92672">=</span> addedLists[<span style="color:#ae81ff">0</span>];
         }
-        else {
-            // 1 list -&gt; many lists
-            // 一维单表附加至二维
-            List* oldList = list;
-            uint32_t oldCount = oldList ? 1 : 0;
-            uint32_t newCount = oldCount + addedCount;
-            setArray((array_t *)malloc(array_t::byteSize(newCount)));
-            array()-&gt;count = newCount;
-            if (oldList) array()-&gt;lists[addedCount] = oldList;
-            memcpy(array()-&gt;lists, addedLists,
-                   addedCount * sizeof(array()-&gt;lists[0]));
+        <span style="color:#66d9ef">else</span> {
+            <span style="color:#75715e">// 1 list -&gt; many lists
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 一维单表附加至二维
+</span><span style="color:#75715e"></span>            List<span style="color:#f92672">*</span> oldList <span style="color:#f92672">=</span> list;
+            <span style="color:#66d9ef">uint32_t</span> oldCount <span style="color:#f92672">=</span> oldList <span style="color:#f92672">?</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>;
+            <span style="color:#66d9ef">uint32_t</span> newCount <span style="color:#f92672">=</span> oldCount <span style="color:#f92672">+</span> addedCount;
+            setArray((array_t <span style="color:#f92672">*</span>)malloc(array_t<span style="color:#f92672">:</span><span style="color:#f92672">:</span>byteSize(newCount)));
+            array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>count <span style="color:#f92672">=</span> newCount;
+            <span style="color:#66d9ef">if</span> (oldList) array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>lists[addedCount] <span style="color:#f92672">=</span> oldList;
+            memcpy(array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>lists, addedLists,
+                   addedCount <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>lists[<span style="color:#ae81ff">0</span>]));
         }
     }
 
-    // ...
-};
-</code></pre>
-
-<h4 id="how">How</h4>
-
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>};
+</code></pre></div><h4 id="how">How</h4>
 <p>正如上所述，在上面未命中缓存且本类及所有父类中都无法找到要调用的方法时，将进入 <code>lookUpImpOrForward</code> 中的 Method Resovle 即「动态方法解析」：</p>
-
-<pre><code class="language-cpp">// objc-runtime-new.mm
-
-IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
-                       bool initialize, bool cache, bool resolver)
-    // ...
-
-    // No implementation found. Try method resolver once.
-    // IMP 找不到，则进入方法动态解析一次。
-    if (resolver  &amp;&amp;  !triedResolver) {
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// objc-runtime-new.mm
+</span><span style="color:#75715e"></span>
+IMP <span style="color:#a6e22e">lookUpImpOrForward</span>(Class cls, SEL sel, id inst,
+                       <span style="color:#66d9ef">bool</span> initialize, <span style="color:#66d9ef">bool</span> cache, <span style="color:#66d9ef">bool</span> resolver)
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// No implementation found. Try method resolver once.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// IMP 找不到，则进入方法动态解析一次。
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (resolver  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  <span style="color:#f92672">!</span>triedResolver) {
         runtimeLock.unlock();
-        // ⬇️ 尝试方法解析
-        _class_resolveMethod(cls, sel, inst);
+        <span style="color:#75715e">// ⬇️ 尝试方法解析
+</span><span style="color:#75715e"></span>        _class_resolveMethod(cls, sel, inst);
         runtimeLock.lock();
-        // Don't cache the result; we don't hold the lock so it may have
-        // changed already. Re-do the search from scratch instead.
-        // 标记为 YES
-        triedResolver = YES;
-        // 添加到方法列表后，进而进入再次尝试从方法列表中获取并存入缓存
-        goto retry;
+        <span style="color:#75715e">// Don&#39;t cache the result; we don&#39;t hold the lock so it may have
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// changed already. Re-do the search from scratch instead.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 标记为 YES
+</span><span style="color:#75715e"></span>        triedResolver <span style="color:#f92672">=</span> YES;
+        <span style="color:#75715e">// 添加到方法列表后，进而进入再次尝试从方法列表中获取并存入缓存
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">goto</span> retry;
     }
 
-    // ...
-}
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>}
 
-/***********************************************************************
-* _class_resolveMethod
-* Call +resolveClassMethod or +resolveInstanceMethod.
-* Returns nothing; any result would be potentially out-of-date already.
-* Does not check if the method already exists.
-**********************************************************************/
-void _class_resolveMethod(Class cls, SEL sel, id inst)
+<span style="color:#75715e">/***********************************************************************
+</span><span style="color:#75715e">* _class_resolveMethod
+</span><span style="color:#75715e">* Call +resolveClassMethod or +resolveInstanceMethod.
+</span><span style="color:#75715e">* Returns nothing; any result would be potentially out-of-date already.
+</span><span style="color:#75715e">* Does not check if the method already exists.
+</span><span style="color:#75715e">**********************************************************************/</span>
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">_class_resolveMethod</span>(Class cls, SEL sel, id inst)
 {
-    if (! cls-&gt;isMetaClass()) {
-        // 非元类对象，则解析类对象
-        // try [cls resolveInstanceMethod:sel]
-        _class_resolveInstanceMethod(cls, sel, inst);
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isMetaClass()) {
+        <span style="color:#75715e">// 非元类对象，则解析类对象
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// try [cls resolveInstanceMethod:sel]
+</span><span style="color:#75715e"></span>        _class_resolveInstanceMethod(cls, sel, inst);
     }
-    else {
-        // 解析元类对象
-        // try [nonMetaClass resolveClassMethod:sel]
-        // and [cls resolveInstanceMethod:sel]
-        _class_resolveClassMethod(cls, sel, inst);
-        if (!lookUpImpOrNil(cls, sel, inst,
-                            NO/*initialize*/, YES/*cache*/, NO/*resolver*/))
+    <span style="color:#66d9ef">else</span> {
+        <span style="color:#75715e">// 解析元类对象
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// try [nonMetaClass resolveClassMethod:sel]
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// and [cls resolveInstanceMethod:sel]
+</span><span style="color:#75715e"></span>        _class_resolveClassMethod(cls, sel, inst);
+        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>lookUpImpOrNil(cls, sel, inst,
+                            NO<span style="color:#75715e">/*initialize*/</span>, YES<span style="color:#75715e">/*cache*/</span>, NO<span style="color:#75715e">/*resolver*/</span>))
         {
             _class_resolveInstanceMethod(cls, sel, inst);
         }
     }
 }
 
-/***********************************************************************
-* _class_resolveInstanceMethod
-* Call +resolveInstanceMethod, looking for a method to be added to class cls.
-* 调用 +resolveInstanceMethod，并查找要添加到 cls 类的方法。
-* cls may be a metaclass or a non-meta class.
-* cls 可能是元类或非元类。
-* Does not check if the method already exists.
-* 如果方法已经存在则不检查。
-**********************************************************************/
-static void _class_resolveInstanceMethod(Class cls, SEL sel, id inst)
+<span style="color:#75715e">/***********************************************************************
+</span><span style="color:#75715e">* _class_resolveInstanceMethod
+</span><span style="color:#75715e">* Call +resolveInstanceMethod, looking for a method to be added to class cls.
+</span><span style="color:#75715e">* 调用 +resolveInstanceMethod，并查找要添加到 cls 类的方法。
+</span><span style="color:#75715e">* cls may be a metaclass or a non-meta class.
+</span><span style="color:#75715e">* cls 可能是元类或非元类。
+</span><span style="color:#75715e">* Does not check if the method already exists.
+</span><span style="color:#75715e">* 如果方法已经存在则不检查。
+</span><span style="color:#75715e">**********************************************************************/</span>
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">_class_resolveInstanceMethod</span>(Class cls, SEL sel, id inst)
 {
-    // 如果未实现 resolveInstanceMethod 则返回
-    if (! lookUpImpOrNil(cls-&gt;ISA(), SEL_resolveInstanceMethod, cls,
-                         NO/*initialize*/, YES/*cache*/, NO/*resolver*/))
+    <span style="color:#75715e">// 如果未实现 resolveInstanceMethod 则返回
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span> lookUpImpOrNil(cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ISA(), SEL_resolveInstanceMethod, cls,
+                         NO<span style="color:#75715e">/*initialize*/</span>, YES<span style="color:#75715e">/*cache*/</span>, NO<span style="color:#75715e">/*resolver*/</span>))
     {
-        // Resolver not implemented.
-        return;
+        <span style="color:#75715e">// Resolver not implemented.
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">return</span>;
     }
 
-    BOOL (*msg)(Class, SEL, SEL) = (typeof(msg))objc_msgSend;
-    // 使用 objc_msgSend 执行 resolveInstanceMethod，将返回值保存为 resolved
-    bool resolved = msg(cls, SEL_resolveInstanceMethod, sel);
+    BOOL (<span style="color:#f92672">*</span>msg)(Class, SEL, SEL) <span style="color:#f92672">=</span> (typeof(msg))objc_msgSend;
+    <span style="color:#75715e">// 使用 objc_msgSend 执行 resolveInstanceMethod，将返回值保存为 resolved
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">bool</span> resolved <span style="color:#f92672">=</span> msg(cls, SEL_resolveInstanceMethod, sel);
 
-    // 根据 resolved 做一些日志等处理
-    // Cache the result (good or bad) so the resolver doesn't fire next time.
-    // +resolveInstanceMethod adds to self a.k.a. cls
-    IMP imp = lookUpImpOrNil(cls, sel, inst,
-                             NO/*initialize*/, YES/*cache*/, NO/*resolver*/);
+    <span style="color:#75715e">// 根据 resolved 做一些日志等处理
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Cache the result (good or bad) so the resolver doesn&#39;t fire next time.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// +resolveInstanceMethod adds to self a.k.a. cls
+</span><span style="color:#75715e"></span>    IMP imp <span style="color:#f92672">=</span> lookUpImpOrNil(cls, sel, inst,
+                             NO<span style="color:#75715e">/*initialize*/</span>, YES<span style="color:#75715e">/*cache*/</span>, NO<span style="color:#75715e">/*resolver*/</span>);
 
-    if (resolved  &amp;&amp;  PrintResolving) {
-        if (imp) {
-            _objc_inform(&quot;RESOLVE: method %c[%s %s] &quot;
-                         &quot;dynamically resolved to %p&quot;,
-                         cls-&gt;isMetaClass() ? '+' : '-',
-                         cls-&gt;nameForLogging(), sel_getName(sel), imp);
+    <span style="color:#66d9ef">if</span> (resolved  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  PrintResolving) {
+        <span style="color:#66d9ef">if</span> (imp) {
+            _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">RESOLVE: method %c[%s %s] </span><span style="color:#e6db74">&#34;</span>
+                         <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">dynamically resolved to %p</span><span style="color:#e6db74">&#34;</span>,
+                         cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isMetaClass() <span style="color:#f92672">?</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">+</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">-</span><span style="color:#e6db74">&#39;</span>,
+                         cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>nameForLogging(), sel_getName(sel), imp);
         }
-        else {
-            // Method resolver didn't add anything?
-            _objc_inform(&quot;RESOLVE: +[%s resolveInstanceMethod:%s] returned YES&quot;
-                         &quot;, but no new implementation of %c[%s %s] was found&quot;,
-                         cls-&gt;nameForLogging(), sel_getName(sel),
-                         cls-&gt;isMetaClass() ? '+' : '-',
-                         cls-&gt;nameForLogging(), sel_getName(sel));
+        <span style="color:#66d9ef">else</span> {
+            <span style="color:#75715e">// Method resolver didn&#39;t add anything?
+</span><span style="color:#75715e"></span>            _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">RESOLVE: +[%s resolveInstanceMethod:%s] returned YES</span><span style="color:#e6db74">&#34;</span>
+                         <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">, but no new implementation of %c[%s %s] was found</span><span style="color:#e6db74">&#34;</span>,
+                         cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>nameForLogging(), sel_getName(sel),
+                         cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isMetaClass() <span style="color:#f92672">?</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">+</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">-</span><span style="color:#e6db74">&#39;</span>,
+                         cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>nameForLogging(), sel_getName(sel));
         }
     }
 }
 
-/***********************************************************************
-* _class_resolveClassMethod
-* Call +resolveClassMethod, looking for a method to be added to class cls.
-* 调用 +resolveClassMethod，并查找要添加到 cls 类的方法。
-* cls should be a metaclass.
-* cls 应当是元类。
-* Does not check if the method already exists.
-* 如果方法已经存在则不检查。
-**********************************************************************/
-static void _class_resolveClassMethod(Class cls, SEL sel, id inst)
+<span style="color:#75715e">/***********************************************************************
+</span><span style="color:#75715e">* _class_resolveClassMethod
+</span><span style="color:#75715e">* Call +resolveClassMethod, looking for a method to be added to class cls.
+</span><span style="color:#75715e">* 调用 +resolveClassMethod，并查找要添加到 cls 类的方法。
+</span><span style="color:#75715e">* cls should be a metaclass.
+</span><span style="color:#75715e">* cls 应当是元类。
+</span><span style="color:#75715e">* Does not check if the method already exists.
+</span><span style="color:#75715e">* 如果方法已经存在则不检查。
+</span><span style="color:#75715e">**********************************************************************/</span>
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">_class_resolveClassMethod</span>(Class cls, SEL sel, id inst)
 {
-    assert(cls-&gt;isMetaClass());
+    assert(cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isMetaClass());
 
-    if (! lookUpImpOrNil(cls, SEL_resolveClassMethod, inst,
-                         NO/*initialize*/, YES/*cache*/, NO/*resolver*/))
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span> lookUpImpOrNil(cls, SEL_resolveClassMethod, inst,
+                         NO<span style="color:#75715e">/*initialize*/</span>, YES<span style="color:#75715e">/*cache*/</span>, NO<span style="color:#75715e">/*resolver*/</span>))
     {
-        // Resolver not implemented.
-        return;
+        <span style="color:#75715e">// Resolver not implemented.
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">return</span>;
     }
 
-    BOOL (*msg)(Class, SEL, SEL) = (typeof(msg))objc_msgSend;
-    bool resolved = msg(_class_getNonMetaClass(cls, inst),
+    BOOL (<span style="color:#f92672">*</span>msg)(Class, SEL, SEL) <span style="color:#f92672">=</span> (typeof(msg))objc_msgSend;
+    <span style="color:#66d9ef">bool</span> resolved <span style="color:#f92672">=</span> msg(_class_getNonMetaClass(cls, inst),
                         SEL_resolveClassMethod, sel);
 
-    // Cache the result (good or bad) so the resolver doesn't fire next time.
-    // +resolveClassMethod adds to self-&gt;ISA() a.k.a. cls
-    IMP imp = lookUpImpOrNil(cls, sel, inst,
-                             NO/*initialize*/, YES/*cache*/, NO/*resolver*/);
+    <span style="color:#75715e">// Cache the result (good or bad) so the resolver doesn&#39;t fire next time.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// +resolveClassMethod adds to self-&gt;ISA() a.k.a. cls
+</span><span style="color:#75715e"></span>    IMP imp <span style="color:#f92672">=</span> lookUpImpOrNil(cls, sel, inst,
+                             NO<span style="color:#75715e">/*initialize*/</span>, YES<span style="color:#75715e">/*cache*/</span>, NO<span style="color:#75715e">/*resolver*/</span>);
 
-    if (resolved  &amp;&amp;  PrintResolving) {
-        if (imp) {
-            _objc_inform(&quot;RESOLVE: method %c[%s %s] &quot;
-                         &quot;dynamically resolved to %p&quot;,
-                         cls-&gt;isMetaClass() ? '+' : '-',
-                         cls-&gt;nameForLogging(), sel_getName(sel), imp);
+    <span style="color:#66d9ef">if</span> (resolved  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  PrintResolving) {
+        <span style="color:#66d9ef">if</span> (imp) {
+            _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">RESOLVE: method %c[%s %s] </span><span style="color:#e6db74">&#34;</span>
+                         <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">dynamically resolved to %p</span><span style="color:#e6db74">&#34;</span>,
+                         cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isMetaClass() <span style="color:#f92672">?</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">+</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">-</span><span style="color:#e6db74">&#39;</span>,
+                         cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>nameForLogging(), sel_getName(sel), imp);
         }
-        else {
-            // Method resolver didn't add anything?
-            _objc_inform(&quot;RESOLVE: +[%s resolveClassMethod:%s] returned YES&quot;
-                         &quot;, but no new implementation of %c[%s %s] was found&quot;,
-                         cls-&gt;nameForLogging(), sel_getName(sel),
-                         cls-&gt;isMetaClass() ? '+' : '-',
-                         cls-&gt;nameForLogging(), sel_getName(sel));
+        <span style="color:#66d9ef">else</span> {
+            <span style="color:#75715e">// Method resolver didn&#39;t add anything?
+</span><span style="color:#75715e"></span>            _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">RESOLVE: +[%s resolveClassMethod:%s] returned YES</span><span style="color:#e6db74">&#34;</span>
+                         <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">, but no new implementation of %c[%s %s] was found</span><span style="color:#e6db74">&#34;</span>,
+                         cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>nameForLogging(), sel_getName(sel),
+                         cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isMetaClass() <span style="color:#f92672">?</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">+</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">-</span><span style="color:#e6db74">&#39;</span>,
+                         cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>nameForLogging(), sel_getName(sel));
         }
     }
 }
 
-/***********************************************************************
-* lookUpImpOrNil.
-* Like lookUpImpOrForward, but returns nil instead of _objc_msgForward_impcache
-* 类似 lookUpImpOrForward，但返回 nil 而非 _objc_msgForward_impcache
-**********************************************************************/
-IMP lookUpImpOrNil(Class cls, SEL sel, id inst,
-                   bool initialize, bool cache, bool resolver)
+<span style="color:#75715e">/***********************************************************************
+</span><span style="color:#75715e">* lookUpImpOrNil.
+</span><span style="color:#75715e">* Like lookUpImpOrForward, but returns nil instead of _objc_msgForward_impcache
+</span><span style="color:#75715e">* 类似 lookUpImpOrForward，但返回 nil 而非 _objc_msgForward_impcache
+</span><span style="color:#75715e">**********************************************************************/</span>
+IMP <span style="color:#a6e22e">lookUpImpOrNil</span>(Class cls, SEL sel, id inst,
+                   <span style="color:#66d9ef">bool</span> initialize, <span style="color:#66d9ef">bool</span> cache, <span style="color:#66d9ef">bool</span> resolver)
 {
-    IMP imp = lookUpImpOrForward(cls, sel, inst, initialize, cache, resolver);
-    // 若找不到该方法（返回了消息转发），则返回 nil
-    if (imp == _objc_msgForward_impcache) return nil;
-    else return imp;
+    IMP imp <span style="color:#f92672">=</span> lookUpImpOrForward(cls, sel, inst, initialize, cache, resolver);
+    <span style="color:#75715e">// 若找不到该方法（返回了消息转发），则返回 nil
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (imp <span style="color:#f92672">=</span><span style="color:#f92672">=</span> _objc_msgForward_impcache) <span style="color:#66d9ef">return</span> nil;
+    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">return</span> imp;
 }
-</code></pre>
-
-<h3 id="消息转发">消息转发</h3>
-
-<h4 id="what-1">What</h4>
-
+</code></pre></div><h3 id="heading6">消息转发</h3>
+<h4 id="what1">What</h4>
 <p>当动态方法解析也无能为力时，将最终尝试消息转发。即 <code>- (id)forwardingTargetForSelector:(SEL)aSelector</code> 实例方法或 <code>+ (id)forwardingTargetForSelector:(SEL)aSelector</code> 类方法，如果我们将需要转发到的目标返回，那么目标就可以执行到转发的相同方法：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">FooBackup</span> : <span style="color:#a6e22e">NSObject</span>
+<span style="color:#66d9ef">@end</span>
 
-<pre><code class="language-objectivec">@interface FooBackup : NSObject
-@end
-
-@implementation FooBackup
-- (void)foo {
-    NSLog(@&quot;%s&quot;, __func__);
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">FooBackup</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__);
 }
 
-+ (void)foo {
-    NSLog(@&quot;%s&quot;, __func__);
++ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__);
 }
 
-+ (void)classFoo {
-    NSLog(@&quot;%s&quot;, __func__);
++ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">classFoo</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__);
 }
 
-- (void)classFoo {
-    NSLog(@&quot;%s&quot;, __func__);
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">classFoo</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__);
 }
-@end
+<span style="color:#66d9ef">@end</span>
 
-@interface Foo : NSObject
-- (void)foo;
-+ (void)classFoo;
-@end
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo</span> : <span style="color:#a6e22e">NSObject</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span>;
++ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">classFoo</span>;
+<span style="color:#66d9ef">@end</span>
 
-@implementation Foo
-- (id)forwardingTargetForSelector:(SEL)aSelector {
-    if (aSelector == @selector(foo)) {
-        // 实例方法也可以转发给类对象
-        // return [FooBackup class];
-        return [[FooBackup alloc] init];
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo</span>
+- (<span style="color:#66d9ef">id</span>)<span style="color:#a6e22e">forwardingTargetForSelector:</span>(<span style="color:#66d9ef">SEL</span>)aSelector {
+    <span style="color:#66d9ef">if</span> (aSelector <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#66d9ef">@selector</span>(foo)) {
+        <span style="color:#75715e">// 实例方法也可以转发给类对象
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// return [FooBackup class];
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">return</span> [[FooBackup alloc] init];
     }
 
-    return [super forwardingTargetForSelector:aSelector];
+    <span style="color:#66d9ef">return</span> [super forwardingTargetForSelector:aSelector];
 }
 
-+ (id)forwardingTargetForSelector:(SEL)aSelector {
-    if (aSelector == @selector(classFoo)) {
-        // return [[FooBackup alloc] init];
-        return [FooBackup class];
++ (<span style="color:#66d9ef">id</span>)<span style="color:#a6e22e">forwardingTargetForSelector:</span>(<span style="color:#66d9ef">SEL</span>)aSelector {
+    <span style="color:#66d9ef">if</span> (aSelector <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#66d9ef">@selector</span>(classFoo)) {
+        <span style="color:#75715e">// return [[FooBackup alloc] init];
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">return</span> [FooBackup <span style="color:#66d9ef">class</span>];
     }
 
-    return [super forwardingTargetForSelector:aSelector];
+    <span style="color:#66d9ef">return</span> [super forwardingTargetForSelector:aSelector];
 }
-@end
+<span style="color:#66d9ef">@end</span>
 
-Foo *foo = [[Foo alloc] init];
+Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span> [[Foo alloc] init];
 [foo foo];
 
 [Foo classFoo];
 
-// OUTPUT:
-// -[FooBackup foo]
-// +[FooBackup classFoo]
-</code></pre>
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[FooBackup foo]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// +[FooBackup classFoo]
+</span></code></pre></div><p>正如《Effective Objective-C 2.0》一书中所提到的，通过这种方式我们可以模拟出多重继承（Multiple Inheritance），即在一个对象内部使用一系列其它对象来处理相应的消息。另外需要注意的是，在这一步骤我们无法对消息本身进行更改，我们只能返回处理消息的对象。</p>
+<p>如果 <code>forwardingTargetForSelector:</code> 也没有转发到目标，消息将尝试从 <code>- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector`/</code>+ (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector<code>获取方法签名，方法签名可以根据方法的类型编码获得；接下来将可以通过</code>- (void)forwardInvocation:(NSInvocation *)anInvocation<code>/</code>+ (void)forwardInvocation:(NSInvocation *)anInvocation<code>执行，原来的消息将被封装在</code>NSInvocation` 中：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">FooBackup</span> : <span style="color:#a6e22e">NSObject</span>
+<span style="color:#66d9ef">@end</span>
 
-<p>正如《Effective Objective-C 2.0》一书中所提到的，通过这种方式我们可以模拟出多重继承（Multiple Inheritance），即在一个对象内部使用一系列其它对象来处理相应的消息。另外需要注意的是，在这一步骤我们无法对消息本身进行更改，我们只能返回处理消息的对象。</p>
-
-<p>如果 <code>forwardingTargetForSelector:</code> 也没有转发到目标，消息将尝试从 <code>- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector</code>/<code>+ (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector</code> 获取方法签名，方法签名可以根据方法的类型编码获得；接下来将可以通过 <code>- (void)forwardInvocation:(NSInvocation *)anInvocation</code>/<code>+ (void)forwardInvocation:(NSInvocation *)anInvocation</code> 执行，原来的消息将被封装在 <code>NSInvocation</code> 中：</p>
-
-<pre><code class="language-objectivec">@interface FooBackup : NSObject
-@end
-
-@implementation FooBackup
-- (void)foo {
-    NSLog(@&quot;%s&quot;, __func__);
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">FooBackup</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__);
 }
 
-+ (void)classFoo {
-    NSLog(@&quot;%s&quot;, __func__);
++ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">classFoo</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__);
 }
-@end
+<span style="color:#66d9ef">@end</span>
 
-@interface Foo : NSObject
-- (void)foo;
-+ (void)classFoo;
-@end
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo</span> : <span style="color:#a6e22e">NSObject</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span>;
++ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">classFoo</span>;
+<span style="color:#66d9ef">@end</span>
 
-@implementation Foo
-- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector {
-    if (aSelector == @selector(foo)) {
-        // return [NSMethodSignature signatureWithObjCTypes:&quot;v@:&quot;];
-        return [NSMethodSignature signatureWithObjCTypes:&quot;v16@0:8&quot;];
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo</span>
+- (NSMethodSignature <span style="color:#f92672">*</span>)<span style="color:#a6e22e">methodSignatureForSelector:</span>(<span style="color:#66d9ef">SEL</span>)aSelector {
+    <span style="color:#66d9ef">if</span> (aSelector <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#66d9ef">@selector</span>(foo)) {
+        <span style="color:#75715e">// return [NSMethodSignature signatureWithObjCTypes:&#34;v@:&#34;];
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">return</span> [NSMethodSignature signatureWithObjCTypes:<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">v16@0:8</span><span style="color:#e6db74">&#34;</span>];
     }
 
-    return [super methodSignatureForSelector:aSelector];
+    <span style="color:#66d9ef">return</span> [super methodSignatureForSelector:aSelector];
 }
 
-- (void)forwardInvocation:(NSInvocation *)anInvocation {
-    if (anInvocation.selector == @selector(foo)) {
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">forwardInvocation:</span>(NSInvocation <span style="color:#f92672">*</span>)anInvocation {
+    <span style="color:#66d9ef">if</span> (anInvocation.selector <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#66d9ef">@selector</span>(foo)) {
         [anInvocation invokeWithTarget:[[FooBackup alloc] init]];
     }
 }
 
-+ (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector {
-    if (aSelector == @selector(classFoo)) {
-        // return [NSMethodSignature signatureWithObjCTypes:&quot;v@:&quot;];
-        return [NSMethodSignature signatureWithObjCTypes:&quot;v16@0:8&quot;];
++ (NSMethodSignature <span style="color:#f92672">*</span>)<span style="color:#a6e22e">methodSignatureForSelector:</span>(<span style="color:#66d9ef">SEL</span>)aSelector {
+    <span style="color:#66d9ef">if</span> (aSelector <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#66d9ef">@selector</span>(classFoo)) {
+        <span style="color:#75715e">// return [NSMethodSignature signatureWithObjCTypes:&#34;v@:&#34;];
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">return</span> [NSMethodSignature signatureWithObjCTypes:<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">v16@0:8</span><span style="color:#e6db74">&#34;</span>];
     }
 
-    return [super methodSignatureForSelector:aSelector];
+    <span style="color:#66d9ef">return</span> [super methodSignatureForSelector:aSelector];
 }
 
-+ (void)forwardInvocation:(NSInvocation *)anInvocation {
-    if (anInvocation.selector == @selector(classFoo)) {
-        [anInvocation invokeWithTarget:[FooBackup class]];
++ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">forwardInvocation:</span>(NSInvocation <span style="color:#f92672">*</span>)anInvocation {
+    <span style="color:#66d9ef">if</span> (anInvocation.selector <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#66d9ef">@selector</span>(classFoo)) {
+        [anInvocation invokeWithTarget:[FooBackup <span style="color:#66d9ef">class</span>]];
     }
 }
-@end
-</code></pre>
-
-<h4 id="how-1">How</h4>
-
+<span style="color:#66d9ef">@end</span>
+</code></pre></div><h4 id="how1">How</h4>
 <p>正如上所述，当动态方法解析也无法奏效或者我们在动态方法解析中并没有添加了正确的方法时，将进入 <code>lookUpImpOrForward</code> 中的 Method Forward 即「消息转发」：</p>
-
-<pre><code class="language-cpp">IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
-                       bool initialize, bool cache, bool resolver)
-    // ...
-
-    // No implementation found, and method resolver didn't help.
-    // Use forwarding.
-    // 实现无法找到，方法解析无效，尝试方法转发。
-
-    imp = (IMP)_objc_msgForward_impcache;
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">IMP <span style="color:#a6e22e">lookUpImpOrForward</span>(Class cls, SEL sel, id inst,
+                       <span style="color:#66d9ef">bool</span> initialize, <span style="color:#66d9ef">bool</span> cache, <span style="color:#66d9ef">bool</span> resolver)
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// No implementation found, and method resolver didn&#39;t help.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Use forwarding.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 实现无法找到，方法解析无效，尝试方法转发。
+</span><span style="color:#75715e"></span>
+    imp <span style="color:#f92672">=</span> (IMP)_objc_msgForward_impcache;
     cache_fill(cls, sel, imp, inst);
 
-    // ...
-}
-</code></pre>
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p><code>_objc_msgForward_impcache</code> 则又是在汇编中：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#960050;background-color:#1e0010">/</span><span style="color:#960050;background-color:#1e0010">/</span> <span style="color:#a6e22e">objc-msg-arm.s</span>
+<span style="color:#960050;background-color:#1e0010">/</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span>
+<span style="color:#960050;background-color:#1e0010">*</span>
+<span style="color:#960050;background-color:#1e0010">*</span> <span style="color:#a6e22e">id</span> <span style="color:#66d9ef">_objc_msgForward</span>(<span style="color:#66d9ef">id</span> <span style="color:#66d9ef">self</span>, <span style="color:#66d9ef">SEL</span> <span style="color:#66d9ef">_cmd</span>,...)<span style="color:#75715e">;
+</span><span style="color:#75715e"></span>*
+<span style="color:#960050;background-color:#1e0010">*</span> <span style="color:#a6e22e">_objc_msgForward</span> <span style="color:#66d9ef">is</span> <span style="color:#66d9ef">the</span> <span style="color:#66d9ef">externally-callable</span>
+<span style="color:#960050;background-color:#1e0010">*</span>   <span style="color:#a6e22e">function</span> <span style="color:#66d9ef">returned</span> <span style="color:#66d9ef">by</span> <span style="color:#66d9ef">things</span> <span style="color:#66d9ef">like</span> <span style="color:#66d9ef">method_getImplementation</span>().
+<span style="color:#960050;background-color:#1e0010">*</span> <span style="color:#a6e22e">_objc_msgForward_impcache</span> <span style="color:#66d9ef">is</span> <span style="color:#66d9ef">the</span> <span style="color:#66d9ef">function</span> <span style="color:#66d9ef">pointer</span> <span style="color:#66d9ef">actually</span> <span style="color:#66d9ef">stored</span> <span style="color:#66d9ef">in</span>
+<span style="color:#960050;background-color:#1e0010">*</span>   <span style="color:#a6e22e">method</span> <span style="color:#66d9ef">caches.</span>
+<span style="color:#960050;background-color:#1e0010">*</span>
+<span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#960050;background-color:#1e0010">/</span>
 
-<p><code>_objc_msgForward_impcache</code> 则又是在汇编中：</p>
+	<span style="color:#a6e22e">STATIC_ENTRY</span> <span style="color:#66d9ef">__objc_msgForward_impcache</span>
 
-<pre><code class="language-asm">// objc-msg-arm.s
-/********************************************************************
-*
-* id _objc_msgForward(id self, SEL _cmd,...);
-*
-* _objc_msgForward is the externally-callable
-*   function returned by things like method_getImplementation().
-* _objc_msgForward_impcache is the function pointer actually stored in
-*   method caches.
-*
-********************************************************************/
+	<span style="color:#960050;background-color:#1e0010">/</span><span style="color:#960050;background-color:#1e0010">/</span> <span style="color:#a6e22e">No</span> <span style="color:#66d9ef">stret</span> <span style="color:#66d9ef">specialization.</span>
+	<span style="color:#a6e22e">b</span>	<span style="color:#66d9ef">__objc_msgForward</span>
 
-	STATIC_ENTRY __objc_msgForward_impcache
-
-	// No stret specialization.
-	b	__objc_msgForward
-
-	END_ENTRY __objc_msgForward_impcache
+	<span style="color:#a6e22e">END_ENTRY</span> <span style="color:#66d9ef">__objc_msgForward_impcache</span>
 
 
-	ENTRY __objc_msgForward
+	<span style="color:#a6e22e">ENTRY</span> <span style="color:#66d9ef">__objc_msgForward</span>
 
-	adrp	x17, __objc_forward_handler@PAGE
-	ldr	p17, [x17, __objc_forward_handler@PAGEOFF]
-	TailCallFunctionPointer x17
+	<span style="color:#a6e22e">adrp</span>	<span style="color:#66d9ef">x17</span>, <span style="color:#66d9ef">__objc_forward_handler@PAGE</span>
+	<span style="color:#a6e22e">ldr</span>	<span style="color:#66d9ef">p17</span>, [<span style="color:#66d9ef">x17</span>, <span style="color:#66d9ef">__objc_forward_handler@PAGEOFF</span>]
+	<span style="color:#a6e22e">TailCallFunctionPointer</span> <span style="color:#66d9ef">x17</span>
 
-	END_ENTRY __objc_msgForward
-</code></pre>
-
-<p>最终会发现 objc4 中并没有开源的 <code>objc_msgForward</code> 实现：</p>
-
-<pre><code class="language-cpp">// objc-runtime.mm
-
-// Default forward handler halts the process.
-__attribute__((noreturn)) void
+	<span style="color:#a6e22e">END_ENTRY</span> <span style="color:#66d9ef">__objc_msgForward</span>
+</code></pre></div><p>最终会发现 objc4 中并没有开源的 <code>objc_msgForward</code> 实现：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// objc-runtime.mm
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// Default forward handler halts the process.
+</span><span style="color:#75715e"></span>__attribute__((noreturn)) <span style="color:#66d9ef">void</span>
 objc_defaultForwardHandler(id self, SEL sel)
 {
-    _objc_fatal(&quot;%c[%s %s]: unrecognized selector sent to instance %p &quot;
-                &quot;(no message forward handler is installed)&quot;,
-                class_isMetaClass(object_getClass(self)) ? '+' : '-',
+    _objc_fatal(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%c[%s %s]: unrecognized selector sent to instance %p </span><span style="color:#e6db74">&#34;</span>
+                <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">(no message forward handler is installed)</span><span style="color:#e6db74">&#34;</span>,
+                class_isMetaClass(object_getClass(self)) <span style="color:#f92672">?</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">+</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">-</span><span style="color:#e6db74">&#39;</span>,
                 object_getClassName(self), sel_getName(sel), self);
 }
-void *_objc_forward_handler = (void*)objc_defaultForwardHandler;
-</code></pre>
-
-<hr />
-
+<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>_objc_forward_handler <span style="color:#f92672">=</span> (<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)objc_defaultForwardHandler;
+</code></pre></div><hr>
 <p>综上，一个 Obj-C 方法调用的过程可以描述为：</p>
-
 <ol>
 <li><code>objc_msgSend</code> 判断消息接收者是否为 <code>nil</code></li>
 <li>当非 <code>nil</code> 时，将根据 <code>isa</code> 指针找到缓存所在的类或元类对象的缓存中寻找；</li>
 <li>当无法在缓存中找到时，将从本类开始到父类（到父类的父）在其方法列表中查找，如果找到会同时缓存到原有类中一份；</li>
-<li>如果方法列表也无法找到将尝试动态方法解析，即进入 <code>resolveInstanceMethod</code>/<code>resolveClassMethod</code>，如果其中将方法正确地动态添加了，则从方法列表中调用并缓存；</li>
+<li>如果方法列表也无法找到将尝试动态方法解析，即进入 <code>resolveInstanceMethod`/</code>resolveClassMethod`，如果其中将方法正确地动态添加了，则从方法列表中调用并缓存；</li>
 <li>如果仍无，将尝试 <code>forwardingTargetForSelector</code>，其返回将作为被转发到的目标尝试执行相应方法；</li>
 <li>如果转发目标为 <code>nil</code>，将最终尝试 <code>methodSignatureForSelector:</code> 返回方法签名并在 <code>forwardInvocation:</code> 决定根据消息的信息选择如何执行；</li>
 <li>如果在 <code>methodSignatureForSelector:</code> 返回了空方法签名，将最终导致「unrecognized selector sent to instance」。</li>
 </ol>
-
 <p>正如《Effective Objective-C 2.0》一书中提到的 <code>CALayer</code> 使用了消息转发来实现兼容 KVC 的容器类：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">MyLayer</span> : <span style="color:#a6e22e">CALayer</span>
+<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">copy</span>) NSString <span style="color:#f92672">*</span>foo;
+<span style="color:#66d9ef">@end</span>
 
-<pre><code class="language-objectivec">@interface MyLayer : CALayer
-@property (nonatomic, copy) NSString *foo;
-@end
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">MyLayer</span>
+<span style="color:#66d9ef">@dynamic</span> foo; <span style="color:#75715e">// 不自动生成 getter &amp; setter
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@end</span>
 
-@implementation MyLayer
-@dynamic foo; // 不自动生成 getter &amp; setter
-@end
+MyLayer <span style="color:#f92672">*</span>layer <span style="color:#f92672">=</span> [[MyLayer alloc] init];
+[layer setFoo:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>];
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [layer foo]);
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [layer valueForKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">foo</span><span style="color:#e6db74">&#34;</span>]);
 
-MyLayer *layer = [[MyLayer alloc] init];
-[layer setFoo:@&quot;kingcos.me&quot;];
-NSLog(@&quot;%@&quot;, [layer foo]);
-NSLog(@&quot;%@&quot;, [layer valueForKey:@&quot;foo&quot;]);
-
-// OUTPUT:
-// kingcos.me
-// kingcos.me
-</code></pre>
-
-<!--
-
-- Obj-C 对象方法查找顺序：本类的类对象方法列表中查找同名方法（分类 Category 中的方法会合并到类的方法列表中，根据后编译更靠前，会被先找到） -> 若没有找到，则根据 `superclass` 指针向父类的类对象方法列表中查找，直到查找基类 `NSObject` 的类对象中也没有则进行消息转发（Message Forwarding）。
-- `objc_msgSend` 会将方法的匹配的结果缓存在类对象的 `cache_t cache;` 中，优化之后查找相同方法的速度，但仍慢于静态绑定，不过也不至于是瓶颈；如果对查找速度极致追求则可使用纯 C 函数。
-- 边界情况：
-
-  - `objc_msgSend_stret`：如果待发送的消息要返回结构体，那么可交由此函数处理。只有当 CPU 的寄存器能够容纳得下消息返回类型时，这个函数才能处理此消息。若是返回值无法容纳于 CPU 寄存器中（比如返回的结构体太大了），那么就交由另一个函数执行派发。此时，那个函数会通过分配在栈上的某个变量来处理消息所返回的结构体。
-  - `objc_msgSend_fpret`：如果消息返回的是浮点数，那么可交由此函数处理。在某些结构的 CPU 中调用函数时，需要对「浮点数寄存器（Floating-Point Register）」做特殊处理，也就是说，通常所用的 `objc_msgSend` 在这种情况下并不合适。这个函数是为了处理 x86 等架构 CPU 中某些令人稍觉惊讶的奇怪状况。（不会使用在 ARM 64 架构中）
-  - `objc_msgSendSuper`：如果要给父类发送消息，例如 `[super message:parameter]`，那么就交由此函数处理。也有另外两个与 `objc_msgSend_stret` 和 `objc_msgSend_fpret` 等效的函数，用于处理发给 `super` 的相应的消息。
-
-- Obj-C 每个类中都有以上原型函数表，`objc_msgSend` 等函数通过该表寻找应该执行的方法并跳至其实现（原型与 `objc_msgSend` 函数类似是为了利用尾调用优化 Tail-Call Optimization 技术，简化跳至实现的操作）。
-- 如果某个函数的最后一项操作是调用另外一个函数，那么就可以运用「尾调用优化」技术。编译器会生成调转至另一函数所需的指令码，而且不会向调用堆栈中推入新的「栈帧 Frame Stack」。只有当某函数的最后一个操作仅仅是调用其他函数而不会将其返回值另作他用时，才能执行「尾调用优化」。如果不这样的话，每次调用 Obj-C 方法之前都需要需要为 `objc_msgSend` 准备栈帧（可以在栈追踪 Stack Trace）中看到这种栈帧）。此外，若是不优化，还会过早地发生「栈溢出（Stack Overflow）」现象。 -->
-
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// kingcos.me
+</span><span style="color:#75715e"></span><span style="color:#75715e">// kingcos.me
+</span></code></pre></div><!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
 <h2 id="reference">Reference</h2>
-
 <ul>
 <li><a href="https://www.mikeash.com/pyblog/friday-qa-2017-06-30-dissecting-objc_msgsend-on-arm64.html">Dissecting objc_msgSend on ARM64 - Mike Ash</a></li>
 <li><a href="http://infocenter.arm.com/help/index.jsp">ARM Software development tools - arm.com</a></li>
@@ -1524,14 +1396,12 @@ NSLog(@&quot;%@&quot;, [layer valueForKey:@&quot;foo&quot;]);
 <li><a href="../category_in_ios/">iOS 中的 Category - kingcos</a></li>
 <li><a href="http://yulingtianxia.com/blog/2016/06/15/Objective-C-Message-Sending-and-Forwarding/">Objective-C 消息发送与转发机制原理 - 杨萧玉</a></li>
 </ul>
-
 <h2 id="todo">TODO</h2>
-
-<ul class="task-list">
-<li><label><input type="checkbox" disabled class="task-list-item"> 尾递归调用</label></li>
-<li><label><input type="checkbox" disabled class="task-list-item"> 尝试逆向得到消息转发部分的步骤</label></li>
-<li><label><input type="checkbox" disabled class="task-list-item"> 消息发送流程图</label></li>
-<li><label><input type="checkbox" disabled class="task-list-item"> 尝试使用 Swift 实现整个过程</label></li>
+<ul>
+<li><input disabled="" type="checkbox">尾递归调用</li>
+<li><input disabled="" type="checkbox">尝试逆向得到消息转发部分的步骤</li>
+<li><input disabled="" type="checkbox">消息发送流程图</li>
+<li><input disabled="" type="checkbox">尝试使用 Swift 实现整个过程</li>
 </ul>
 
     </div>

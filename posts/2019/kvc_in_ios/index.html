@@ -7,7 +7,7 @@
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <meta name="description" content="Date Notes     2019-03-25 首次提交    Preface KVC，即 Key-Value Coding，译作键值编码（下文简称 KVC）。当对象兼容 KVC 时，可以通过统一的 API 访问对象中某个键对应的属性值。Cocoa 中的许多功能都依赖 KVC，比如，KVO、Cocoa 绑定机制、Core Data、以及 AppleScript 等。本文将主要探讨 KVC 及其本质相关，关于其它的内容可参考文末的「Reference」。
-Basics How #import &amp;lt;Foundation/Foundation.h&amp;gt; @interface Speaker : NSObject @property (nonatomic) int volume; @end @implementation Speaker @end @interface Computer : NSObject @property (nonatomic) NSString *name; @property (nonatomic) NSArray *speakers; @end @implementation Computer @end int main(int argc, const char * argv[]) { @autoreleasepool { Computer *cpt = [[Computer alloc] init]; // ➡️ 通过 setter 设置 [cpt setName:@&amp;quot;My Mac 1&amp;quot;]; // ➡️ 通过 getter 读取 NSLog(@&amp;quot;name from getter - %@&amp;quot;, [cpt name]); // ➡️ 通过 setValue:forKey: 设置 [cpt setValue:@&amp;quot;My Mac 2&amp;quot; forKey:@&amp;quot;name&amp;quot;]; // ➡️ 通过 valueForKey: 读取 NSLog(@&amp;quot;name from KVC - %@&amp;quot;, [cpt valueForKey:@&amp;quot;name&amp;quot;]); Speaker *s1 = [[Speaker alloc] init]; s1."/>
+Basics How #import &amp;lt;Foundation/Foundation.h&amp;gt; @interface Speaker : NSObject @property (nonatomic) int volume; @end @implementation Speaker @end @interface Computer : NSObject @property (nonatomic) NSString *name; @property (nonatomic) NSArray *speakers; @end @implementation Computer @end int main(int argc, const char * argv[]) { @autoreleasepool { Computer *cpt = [[Computer alloc] init]; // ➡️ 通过 setter 设置  [cpt setName:@&amp;#34;My Mac 1&amp;#34;]; // ➡️ 通过 getter 读取  NSLog(@&amp;#34;name from getter - %@&amp;#34;, [cpt name]); // ➡️ 通过 setValue:forKey: 设置  [cpt setValue:@&amp;#34;My Mac 2&amp;#34; forKey:@&amp;#34;name&amp;#34;]; // ➡️ 通过 valueForKey: 读取  NSLog(@&amp;#34;name from KVC - %@&amp;#34;, [cpt valueForKey:@&amp;#34;name&amp;#34;]); Speaker *s1 = [[Speaker alloc] init]; s1."/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2019/kvc_in_ios/" />
@@ -139,7 +139,7 @@ Basics How #import &amp;lt;Foundation/Foundation.h&amp;gt; @interface Speaker : 
       
       
       
-        <span class="post-read-time">— 10 min read</span>
+        <span class="post-read-time">— 9 min read</span>
       
     </div>
 
@@ -158,16 +158,13 @@ Basics How #import &amp;lt;Foundation/Foundation.h&amp;gt; @interface Speaker : 
     
 
     <div class="post-content">
-      
-
-<table>
+      <table>
 <thead>
 <tr>
 <th align="center">Date</th>
 <th align="center">Notes</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td align="center">2019-03-25</td>
@@ -175,826 +172,696 @@ Basics How #import &amp;lt;Foundation/Foundation.h&amp;gt; @interface Speaker : 
 </tr>
 </tbody>
 </table>
-
 <h2 id="preface">Preface</h2>
-
 <p>KVC，即 Key-Value Coding，译作键值编码（下文简称 KVC）。当对象兼容 KVC 时，可以通过统一的 API 访问对象中某个键对应的属性值。Cocoa 中的许多功能都依赖 KVC，比如，KVO、Cocoa 绑定机制、Core Data、以及 AppleScript 等。本文将主要探讨 KVC 及其本质相关，关于其它的内容可参考文末的「Reference」。</p>
-
 <h2 id="basics">Basics</h2>
-
 <h3 id="how">How</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Speaker</span> : <span style="color:#a6e22e">NSObject</span>
+<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>) <span style="color:#66d9ef">int</span> volume;
+<span style="color:#66d9ef">@end</span>
 
-<pre><code class="language-objectivec">#import &lt;Foundation/Foundation.h&gt;
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Speaker</span>
+<span style="color:#66d9ef">@end</span>
 
-@interface Speaker : NSObject
-@property (nonatomic) int volume;
-@end
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span>
+<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>) NSString <span style="color:#f92672">*</span>name;
+<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>) NSArray <span style="color:#f92672">*</span>speakers;
+<span style="color:#66d9ef">@end</span>
 
-@implementation Speaker
-@end
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
+<span style="color:#66d9ef">@end</span>
 
-@interface Computer : NSObject
-@property (nonatomic) NSString *name;
-@property (nonatomic) NSArray *speakers;
-@end
-
-@implementation Computer
-@end
-
-int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-        Computer *cpt = [[Computer alloc] init];
-        // ➡️ 通过 setter 设置
-        [cpt setName:@&quot;My Mac 1&quot;];
-        // ➡️ 通过 getter 读取
-        NSLog(@&quot;name from getter - %@&quot;, [cpt name]);
+<span style="color:#66d9ef">int</span> main(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
+    <span style="color:#66d9ef">@autoreleasepool</span> {
+        Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
+        <span style="color:#75715e">// ➡️ 通过 setter 设置
+</span><span style="color:#75715e"></span>        [cpt setName:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">My Mac 1</span><span style="color:#e6db74">&#34;</span>];
+        <span style="color:#75715e">// ➡️ 通过 getter 读取
+</span><span style="color:#75715e"></span>        NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">name from getter - %@</span><span style="color:#e6db74">&#34;</span>, [cpt name]);
         
-        // ➡️ 通过 setValue:forKey: 设置
-        [cpt setValue:@&quot;My Mac 2&quot; forKey:@&quot;name&quot;];
-        // ➡️ 通过 valueForKey: 读取
-        NSLog(@&quot;name from KVC - %@&quot;, [cpt valueForKey:@&quot;name&quot;]);
+        <span style="color:#75715e">// ➡️ 通过 setValue:forKey: 设置
+</span><span style="color:#75715e"></span>        [cpt setValue:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">My Mac 2</span><span style="color:#e6db74">&#34;</span> forKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">name</span><span style="color:#e6db74">&#34;</span>];
+        <span style="color:#75715e">// ➡️ 通过 valueForKey: 读取
+</span><span style="color:#75715e"></span>        NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">name from KVC - %@</span><span style="color:#e6db74">&#34;</span>, [cpt valueForKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">name</span><span style="color:#e6db74">&#34;</span>]);
         
-        Speaker *s1 = [[Speaker alloc] init];
-        s1.volume = 5;
-        Speaker *s2 = [[Speaker alloc] init];
-        s2.volume = 5;
-        cpt.speakers = @[s1, s2];
-        // ➡️ 通过 setValue:forKeyPath: 设置
-        [cpt setValue:@10 forKeyPath:@&quot;speakers.volume&quot;];
-        // ➡️ 通过 valueForKeyPath: 读取
-        NSLog(@&quot;speakers.volume - %@&quot;, [cpt valueForKeyPath:@&quot;speakers.volume&quot;]);
+        Speaker <span style="color:#f92672">*</span>s1 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+        s1.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">5</span>;
+        Speaker <span style="color:#f92672">*</span>s2 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+        s2.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">5</span>;
+        cpt.speakers <span style="color:#f92672">=</span> <span style="color:#ae81ff">@[</span>s1, s2<span style="color:#ae81ff">]</span>;
+        <span style="color:#75715e">// ➡️ 通过 setValue:forKeyPath: 设置
+</span><span style="color:#75715e"></span>        [cpt setValue:<span style="color:#ae81ff">@10</span> forKeyPath:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">speakers.volume</span><span style="color:#e6db74">&#34;</span>];
+        <span style="color:#75715e">// ➡️ 通过 valueForKeyPath: 读取
+</span><span style="color:#75715e"></span>        NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">speakers.volume - %@</span><span style="color:#e6db74">&#34;</span>, [cpt valueForKeyPath:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">speakers.volume</span><span style="color:#e6db74">&#34;</span>]);
         
-        // ➡️ dictionaryWithValuesForKeys
-        NSLog(@&quot;%@&quot;, [cpt dictionaryWithValuesForKeys:@[@&quot;name&quot;, @&quot;speakers&quot;]]);
+        <span style="color:#75715e">// ➡️ dictionaryWithValuesForKeys
+</span><span style="color:#75715e"></span>        NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [cpt dictionaryWithValuesForKeys:<span style="color:#ae81ff">@[</span><span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">name</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">speakers</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">]</span>]);
     }
-    return 0;
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
 }
 
-// OUTPUT:
-// name from getter - My Mac 1
-// name from KVC - My Mac 2
-// speakers.volume - (
-//     10,
-//     10
-// )
-// {
-//     name = &quot;My Mac 2&quot;;
-//     speakers =     (
-//         &quot;&lt;Speaker: 0x100501610&gt;&quot;,
-//         &quot;&lt;Speaker: 0x1005018f0&gt;&quot;
-//     );
-// }
-</code></pre>
-
-<p>定义一个 <code>Computer</code> 类，其拥有 <code>name</code> 和 <code>speakers</code> 属性，后者为数组类型，是容纳 <code>Speaker</code> 类型对象的集合。访问对象的属性，最自然的是通过 getter &amp; setter，但 KVC 提供了通过键或键路径统一访问属性的方式。<code>setValue:forKey:</code> 和 <code>valueForKey:</code> 可以通过键来使用，键即是属性的名称，使用 ASCII 编码，不支持空格；<code>setValue:forKeyPath:</code> 和 <code>valueForKeyPath:</code> 是对应的键路径方法，键路径通过 <code>.</code> 连接键，对于多级嵌套的类型提供了便捷的方式。<code>dictionaryWithValuesForKeys:</code> 支持通过多个键（非键路径）的数组返回包含键和对应值的字典。</p>
-
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// name from getter - My Mac 1
+</span><span style="color:#75715e"></span><span style="color:#75715e">// name from KVC - My Mac 2
+</span><span style="color:#75715e"></span><span style="color:#75715e">// speakers.volume - (
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     10,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     10
+</span><span style="color:#75715e"></span><span style="color:#75715e">// )
+</span><span style="color:#75715e"></span><span style="color:#75715e">// {
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     name = &#34;My Mac 2&#34;;
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     speakers =     (
+</span><span style="color:#75715e"></span><span style="color:#75715e">//         &#34;&lt;Speaker: 0x100501610&gt;&#34;,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//         &#34;&lt;Speaker: 0x1005018f0&gt;&#34;
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     );
+</span><span style="color:#75715e"></span><span style="color:#75715e">// }
+</span></code></pre></div><p>定义一个 <code>Computer</code> 类，其拥有 <code>name</code> 和 <code>speakers</code> 属性，后者为数组类型，是容纳 <code>Speaker</code> 类型对象的集合。访问对象的属性，最自然的是通过 getter &amp; setter，但 KVC 提供了通过键或键路径统一访问属性的方式。<code>setValue:forKey:</code> 和 <code>valueForKey:</code> 可以通过键来使用，键即是属性的名称，使用 ASCII 编码，不支持空格；<code>setValue:forKeyPath:</code> 和 <code>valueForKeyPath:</code> 是对应的键路径方法，键路径通过 <code>.</code> 连接键，对于多级嵌套的类型提供了便捷的方式。<code>dictionaryWithValuesForKeys:</code> 支持通过多个键（非键路径）的数组返回包含键和对应值的字典。</p>
 <h3 id="why">Why</h3>
-
 <p>KVC 中的方法都定义在 NSObject 的 <code>NSKeyValueCoding</code> 分类（Category）中，所以所有基于 NSObject 类型的对象都是 KVC 兼容的。那么 KVC 是如何根据键或键路径来搜索匹配到属性的呢？</p>
-
 <h4 id="valueforkey">valueForKey</h4>
-
 <h5 id="getter">getter</h5>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span>
+<span style="color:#66d9ef">@end</span>
 
-<pre><code class="language-objectivec">@interface Computer : NSObject
-@end
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
 
-@implementation Computer
-
-- (NSString *)getName {
-    return [NSString stringWithFormat:@&quot;%s&quot;, __func__];
+- (NSString <span style="color:#f92672">*</span>)<span style="color:#a6e22e">getName</span> {
+    <span style="color:#66d9ef">return</span> [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__];
 }
 
-- (NSString *)name {
-    return [NSString stringWithFormat:@&quot;%s&quot;, __func__];
+- (NSString <span style="color:#f92672">*</span>)<span style="color:#a6e22e">name</span> {
+    <span style="color:#66d9ef">return</span> [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__];
 }
 
-- (NSString *)isName {
-    return [NSString stringWithFormat:@&quot;%s&quot;, __func__];
+- (NSString <span style="color:#f92672">*</span>)<span style="color:#a6e22e">isName</span> {
+    <span style="color:#66d9ef">return</span> [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__];
 }
 
-- (NSString *)_name {
-    return [NSString stringWithFormat:@&quot;%s&quot;, __func__];
+- (NSString <span style="color:#f92672">*</span>)<span style="color:#a6e22e">_name</span> {
+    <span style="color:#66d9ef">return</span> [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__];
 }
 
-@end
+<span style="color:#66d9ef">@end</span>
 
-Computer *cpt = [[Computer alloc] init];
-NSLog(@&quot;%@&quot;, [cpt valueForKey:@&quot;name&quot;]);
+Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [cpt valueForKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">name</span><span style="color:#e6db74">&#34;</span>]);
 
-// 依次注释方法代码可得：
-// OUTPUT:
-// -[Computer getName]
-// -[Computer name]
-// -[Computer isName]
-// -[Computer _name]
-</code></pre>
-
-<p>当调用 <code>valueForKey</code> 方法时，首先会通过传入的 Key 按顺序寻找调用 <code>get&lt;Key&gt;</code>、<code>&lt;key&gt;</code>、<code>is&lt;Key&gt;</code>、<code>_&lt;key&gt;</code> getter <strong>方法</strong>，当前面的寻找到并返回后，即提前结束匹配，若该四个方法都没有实现，则进入下一阶段集合元素匹配。</p>
-
-<h5 id="集合匹配">集合匹配</h5>
-
-<pre><code class="language-objectivec">@interface Computer : NSObject {
-    @public
-    NSArray *_namesArray;
-    NSSet *_namesSet;
+<span style="color:#75715e">// 依次注释方法代码可得：
+</span><span style="color:#75715e"></span><span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer getName]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer name]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer isName]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer _name]
+</span></code></pre></div><p>当调用 <code>valueForKey</code> 方法时，首先会通过传入的 Key 按顺序寻找调用 <code>get&lt;Key&gt;</code>、<code>&lt;key&gt;</code>、<code>is&lt;Key&gt;</code>、<code>_&lt;key&gt;</code> getter <strong>方法</strong>，当前面的寻找到并返回后，即提前结束匹配，若该四个方法都没有实现，则进入下一阶段集合元素匹配。</p>
+<h5 id="heading">集合匹配</h5>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span> {
+    <span style="color:#66d9ef">@public</span>
+    NSArray <span style="color:#f92672">*</span>_namesArray;
+    NSSet <span style="color:#f92672">*</span>_namesSet;
 }
-@end
+<span style="color:#66d9ef">@end</span>
 
-@implementation Computer
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
 
-// 属性数量
-- (NSUInteger)countOfNamesArray {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
-    return [_namesArray count];
+<span style="color:#75715e">// 属性数量
+</span><span style="color:#75715e"></span>- (NSUInteger)<span style="color:#a6e22e">countOfNamesArray</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
+    <span style="color:#66d9ef">return</span> [_namesArray count];
 }
 
-// 数组指定下标的元素（与 namesArrayAtIndexes: 择一实现即可）
-- (id)objectInNamesArrayAtIndex:(NSUInteger)index {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
-    return [_namesArray objectAtIndex:index];
+<span style="color:#75715e">// 数组指定下标的元素（与 namesArrayAtIndexes: 择一实现即可）
+</span><span style="color:#75715e"></span>- (<span style="color:#66d9ef">id</span>)<span style="color:#a6e22e">objectInNamesArrayAtIndex:</span>(NSUInteger)index {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
+    <span style="color:#66d9ef">return</span> [_namesArray objectAtIndex:index];
 }
 
-// 数组下标集合的元素数组
-- (NSArray *)namesArrayAtIndexes:(NSIndexSet *)indexes {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
-    return [_namesArray objectsAtIndexes:indexes];
+<span style="color:#75715e">// 数组下标集合的元素数组
+</span><span style="color:#75715e"></span>- (NSArray <span style="color:#f92672">*</span>)<span style="color:#a6e22e">namesArrayAtIndexes:</span>(NSIndexSet <span style="color:#f92672">*</span>)indexes {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
+    <span style="color:#66d9ef">return</span> [_namesArray objectsAtIndexes:indexes];
 }
 
-//- (void)getNamesArray:(NSString *)namesArray range:(NSRange)range {
-//    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
-//}
-
-// ---
-
-// 属性数量
-- (NSUInteger)countOfNamesSet {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
-    return [_namesSet count];
+<span style="color:#75715e">//- (void)getNamesArray:(NSString *)namesArray range:(NSRange)range {
+</span><span style="color:#75715e"></span><span style="color:#75715e">//    NSLog(@&#34;%@&#34;, [NSString stringWithFormat:@&#34;%s&#34;, __func__]);
+</span><span style="color:#75715e"></span><span style="color:#75715e">//}
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// ---
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// 属性数量
+</span><span style="color:#75715e"></span>- (NSUInteger)<span style="color:#a6e22e">countOfNamesSet</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
+    <span style="color:#66d9ef">return</span> [_namesSet count];
 }
 
-// 集合枚举
-- (NSEnumerator *)enumeratorOfNamesSet {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
-    return [_namesSet objectEnumerator];
+<span style="color:#75715e">// 集合枚举
+</span><span style="color:#75715e"></span>- (NSEnumerator <span style="color:#f92672">*</span>)<span style="color:#a6e22e">enumeratorOfNamesSet</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
+    <span style="color:#66d9ef">return</span> [_namesSet objectEnumerator];
 }
 
-// 集合成员
-- (id)memberOfNamesSet:(NSSet *)namesSet {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
-    return [_namesSet member:namesSet];
+<span style="color:#75715e">// 集合成员
+</span><span style="color:#75715e"></span>- (<span style="color:#66d9ef">id</span>)<span style="color:#a6e22e">memberOfNamesSet:</span>(NSSet <span style="color:#f92672">*</span>)namesSet {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
+    <span style="color:#66d9ef">return</span> [_namesSet member:namesSet];
 }
 
-@end
+<span style="color:#66d9ef">@end</span>
 
-Computer *cpt = [[Computer alloc] init];
-cpt-&gt;_namesArray = @[@&quot;a&quot;, @&quot;b&quot;, @&quot;c&quot;];
-NSLog(@&quot;%@&quot;, [cpt valueForKey:@&quot;namesArray&quot;]);
+Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
+cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_namesArray <span style="color:#f92672">=</span> <span style="color:#ae81ff">@[</span><span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">a</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">c</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">]</span>;
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [cpt valueForKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">namesArray</span><span style="color:#e6db74">&#34;</span>]);
 
-// OUTPUT:
-// -[Computer countOfNamesArray]
-// -[Computer countOfNamesArray]
-// -[Computer objectInNamesArrayAtIndex:] or -[Computer namesArrayAtIndexes:]
-// -[Computer objectInNamesArrayAtIndex:] or -[Computer namesArrayAtIndexes:]
-// -[Computer objectInNamesArrayAtIndex:] or -[Computer namesArrayAtIndexes:]
-// (
-//     a,
-//     b,
-//     c
-// )
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer countOfNamesArray]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer countOfNamesArray]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer objectInNamesArrayAtIndex:] or -[Computer namesArrayAtIndexes:]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer objectInNamesArrayAtIndex:] or -[Computer namesArrayAtIndexes:]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer objectInNamesArrayAtIndex:] or -[Computer namesArrayAtIndexes:]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// (
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     a,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     b,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     c
+</span><span style="color:#75715e"></span><span style="color:#75715e">// )
+</span><span style="color:#75715e"></span>
+cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_namesSet <span style="color:#f92672">=</span> [NSSet setWithArray:<span style="color:#ae81ff">@[</span><span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">a</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">c</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">]</span>];
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [cpt valueForKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">namesSet</span><span style="color:#e6db74">&#34;</span>]);
 
-cpt-&gt;_namesSet = [NSSet setWithArray:@[@&quot;a&quot;, @&quot;b&quot;, @&quot;c&quot;]];
-NSLog(@&quot;%@&quot;, [cpt valueForKey:@&quot;namesSet&quot;]);
-
-// OUTPUT:
-// -[Computer countOfNamesSet]
-// -[Computer countOfNamesSet]
-// -[Computer enumeratorOfNamesSet]
-// {(
-//     a,
-//     b,
-//     c
-// )}
-</code></pre>
-
-<p>集合匹配主要是利用集合（Collection）类型的一些方法进行匹配：</p>
-
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer countOfNamesSet]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer countOfNamesSet]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer enumeratorOfNamesSet]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// {(
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     a,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     b,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     c
+</span><span style="color:#75715e"></span><span style="color:#75715e">// )}
+</span></code></pre></div><p>集合匹配主要是利用集合（Collection）类型的一些方法进行匹配：</p>
 <ol>
 <li>首先如果 <code>countOf&lt;Key&gt;</code> 方法（其内部本质为 NSArray 或 NSSet 的 <code>count</code>）已经被实现，跳入第 2 步，如果未被实现，则直接跳入成员变量匹配；</li>
 <li>若 <code>objectIn&lt;Key&gt;AtIndex:</code>（其内部本质为 NSArray 的 <code>objectAtIndex:</code>）或 <code>&lt;key&gt;AtIndexes:</code>（其内部本质为 NSArray 的 <code>objectsAtIndexes:</code>）两个方法中至少有一个被实现，首先会调用（两次）<code>countOf&lt;Key&gt;</code> 方法；之后会调用两者中被实现的方法，如果均被实现时，只会调用一次前者，并结束匹配；若该两个方法均未实现，跳入第 3 步；</li>
 <li>判断 <code>enumeratorOf&lt;Key&gt;</code>（其内部本质为 NSSet 的 <code>objectEnumerator</code>）和 <code>memberOf&lt;Key&gt;:</code>（其内部本质为 NSSet 的 <code>member:</code>）两个方法的实现，若两者都已实现，则会调用 <code>enumeratorOf&lt;Key&gt;</code> 并跳入下一步匹配；若有其中之一未实现，则直接跳入下一步匹配。</li>
 </ol>
-
 <ul>
 <li>在 2 和 3 步骤中，当这些方法匹配到时，<code>valueForKey</code> 将返回一个集合代理对象。但对于空数组、空集合（Set）或非 NSArray/NSSet 类型的属性只会调用到 <code>countOf&lt;key&gt;</code>，当其返回 <code>0</code> 后续的方法便不会再调用了。</li>
 </ul>
-
 <blockquote>
 <p>⚠️ 注意</p>
-
 <p>官方文档中提到在上述第 2 步中，如果对象实现了 <code>get&lt;Key&gt;:range:</code> 方法，代理对象也会在合适的时机调用该方法以达到更好的性能。但我在尝试中，在 <code>objectIn&lt;Key&gt;AtIndex:</code> 或 <code>&lt;key&gt;AtIndexes:</code> 中有被实现的方法时，即会在 <code>countOf&lt;Key&gt;</code> 方法被调用后，调用 <code>get&lt;Key&gt;:range:</code> 方法，但会发生崩溃：「Thread 1: EXC_BAD_ACCESS」。具体的原因尚未查明，欢迎大家指教。</p>
 </blockquote>
-
-<h4 id="成员变量匹配">成员变量匹配</h4>
-
-<pre><code class="language-objectivec">@interface Computer : NSObject {
-    @public
-    NSString *_name;
-    NSString *_isName;
-    NSString *name;
-    NSString *isName;
+<h4 id="heading1">成员变量匹配</h4>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span> {
+    <span style="color:#66d9ef">@public</span>
+    NSString <span style="color:#f92672">*</span>_name;
+    NSString <span style="color:#f92672">*</span>_isName;
+    NSString <span style="color:#f92672">*</span>name;
+    NSString <span style="color:#f92672">*</span>isName;
 }
-@end
+<span style="color:#66d9ef">@end</span>
 
-@implementation Computer
-@end
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
+<span style="color:#66d9ef">@end</span>
 
-Computer *cpt = [[Computer alloc] init];
+Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
 
-cpt-&gt;_name = @&quot;a&quot;;
-cpt-&gt;_isName = @&quot;b&quot;;
-cpt-&gt;name = @&quot;c&quot;;
-cpt-&gt;isName = @&quot;d&quot;;
+cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_name <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">a</span><span style="color:#e6db74">&#34;</span>;
+cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_isName <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span>;
+cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>name <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">c</span><span style="color:#e6db74">&#34;</span>;
+cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isName <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">d</span><span style="color:#e6db74">&#34;</span>;
 
-NSLog(@&quot;%@&quot;, [cpt valueForKey:@&quot;name&quot;]);
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [cpt valueForKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">name</span><span style="color:#e6db74">&#34;</span>]);
 
-// 依次注释方法和成员变量代码可得：
-// OUTPUT:
-// a
-// b
-// c
-// d
-</code></pre>
+<span style="color:#75715e">// 依次注释方法和成员变量代码可得：
+</span><span style="color:#75715e"></span><span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// a
+</span><span style="color:#75715e"></span><span style="color:#75715e">// b
+</span><span style="color:#75715e"></span><span style="color:#75715e">// c
+</span><span style="color:#75715e"></span><span style="color:#75715e">// d
+</span></code></pre></div><p>在成员变量匹配阶段首先判断 <code>accessInstanceVariablesDirectly</code> 方法的返回，即是否允许直接访问成员变量，默认返回 <code>YES</code>；当为 <code>YES</code> 时，将按顺序尝试直接访问 <code>_&lt;key&gt;</code>、<code>_is&lt;Key&gt;</code>、<code>&lt;key&gt;</code>、<code>is&lt;Key&gt;</code> 成员变量。当为 <code>NO</code> 或没有匹配到相应的成员变量时，将调用 <code>valueForUndefinedKey:</code> 方法，该方法默认实现为抛出「NSUnknownKeyException」异常，但子类可以重写该方法以提供更灵活的行为。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span>
+<span style="color:#66d9ef">@end</span>
 
-<p>在成员变量匹配阶段首先判断 <code>accessInstanceVariablesDirectly</code> 方法的返回，即是否允许直接访问成员变量，默认返回 <code>YES</code>；当为 <code>YES</code> 时，将按顺序尝试直接访问 <code>_&lt;key&gt;</code>、<code>_is&lt;Key&gt;</code>、<code>&lt;key&gt;</code>、<code>is&lt;Key&gt;</code> 成员变量。当为 <code>NO</code> 或没有匹配到相应的成员变量时，将调用 <code>valueForUndefinedKey:</code> 方法，该方法默认实现为抛出「NSUnknownKeyException」异常，但子类可以重写该方法以提供更灵活的行为。</p>
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
 
-<pre><code class="language-objectivec">@interface Computer : NSObject
-@end
-
-@implementation Computer
-
-- (id)valueForUndefinedKey:(NSString *)key {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
-    if ([key isEqualToString:@&quot;name&quot;]) {
-        return nil;
+- (<span style="color:#66d9ef">id</span>)<span style="color:#a6e22e">valueForUndefinedKey:</span>(NSString <span style="color:#f92672">*</span>)key {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
+    <span style="color:#66d9ef">if</span> ([key isEqualToString:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">name</span><span style="color:#e6db74">&#34;</span>]) {
+        <span style="color:#66d9ef">return</span> nil;
     }
     
-    return [super valueForUndefinedKey:key];
+    <span style="color:#66d9ef">return</span> [super valueForUndefinedKey:key];
 }
 
-@end
+<span style="color:#66d9ef">@end</span>
 
-Computer *cpt = [[Computer alloc] init];
-NSLog(@&quot;%@&quot;, [cpt valueForKey:@&quot;name&quot;]);
+Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [cpt valueForKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">name</span><span style="color:#e6db74">&#34;</span>]);
 
-// OUTPUT:
-// -[Computer valueForUndefinedKey:]
-// (null)
-</code></pre>
-
-<h5 id="总结">总结</h5>
-
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer valueForUndefinedKey:]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// (null)
+</span></code></pre></div><h5 id="heading2">总结</h5>
 <p>KVC <code>valueForKey:</code> 方法的调用确实深究起来比较复杂，画成图表更容易理解些：</p>
+<p><img src="/img/2019/KVC_in_iOS/1.png" alt=""></p>
+<h4 id="setvalueforkey">setValue:forKey:</h4>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span>
+<span style="color:#66d9ef">@end</span>
 
-<p><img src="/img/2019/KVC_in_iOS/1.png" alt="" /></p>
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
 
-<h4 id="setvalue-forkey">setValue:forKey:</h4>
-
-<pre><code class="language-objectivec">@interface Computer : NSObject
-@end
-
-@implementation Computer
-
-- (void)setName:(NSString *)name {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
-    _name = name;
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">setName:</span>(NSString <span style="color:#f92672">*</span>)name {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
+    _name <span style="color:#f92672">=</span> name;
 }
 
-- (void)_setName:(NSString *)name {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
-    _name = name;
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">_setName:</span>(NSString <span style="color:#f92672">*</span>)name {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
+    _name <span style="color:#f92672">=</span> name;
 }
 
-@end
+<span style="color:#66d9ef">@end</span>
 
-// 依次注释方法代码可得：
-// OUTPUT:
-// -[Computer setName:] or -[Computer _setName:]
-// a
-</code></pre>
-
-<p>当调用 <code>setValue:forKey:</code> 方法时，会通过传入的 Key 按顺序寻找调用 <code>set&lt;Key&gt;</code>、<code>_set&lt;Key&gt;</code> 方法，当前面的寻找到并设置后，即提前返回。</p>
-
-<pre><code class="language-objectivec">@interface Computer : NSObject {
-    @public
-    NSString *_name;
-    NSString *_isName;
-    NSString *name;
-    NSString *isName;
+<span style="color:#75715e">// 依次注释方法代码可得：
+</span><span style="color:#75715e"></span><span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer setName:] or -[Computer _setName:]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// a
+</span></code></pre></div><p>当调用 <code>setValue:forKey:</code> 方法时，会通过传入的 Key 按顺序寻找调用 <code>set&lt;Key&gt;</code>、<code>_set&lt;Key&gt;</code> 方法，当前面的寻找到并设置后，即提前返回。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span> {
+    <span style="color:#66d9ef">@public</span>
+    NSString <span style="color:#f92672">*</span>_name;
+    NSString <span style="color:#f92672">*</span>_isName;
+    NSString <span style="color:#f92672">*</span>name;
+    NSString <span style="color:#f92672">*</span>isName;
 }
-@end
+<span style="color:#66d9ef">@end</span>
 
-@implementation Computer
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
 
-@end
+<span style="color:#66d9ef">@end</span>
 
-// 依次注释成员变量代码可得：
-// OUTPUT:
-// a
-// a
-// a
-// a
-</code></pre>
+<span style="color:#75715e">// 依次注释成员变量代码可得：
+</span><span style="color:#75715e"></span><span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// a
+</span><span style="color:#75715e"></span><span style="color:#75715e">// a
+</span><span style="color:#75715e"></span><span style="color:#75715e">// a
+</span><span style="color:#75715e"></span><span style="color:#75715e">// a
+</span></code></pre></div><p>若这两个方法都没有实现，则会判断 <code>accessInstanceVariablesDirectly</code> 方法的返回，即是否允许直接访问成员变量，默认返回 YES；当为 YES 时，将按顺序尝试直接通过 <code>_&lt;key&gt;</code>、<code>_is&lt;Key&gt;</code>、<code>&lt;key&gt;</code>、<code>is&lt;Key&gt;</code> 成员变量设置值。当为 NO 或没有匹配到相应的成员变量时，将调用 <code>setValue:forUndefinedKey:</code> 方法，该方法默认实现为抛出「NSUnknownKeyException」异常，但子类可以重写该方法以提供更灵活的行为。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span>
+<span style="color:#66d9ef">@end</span>
 
-<p>若这两个方法都没有实现，则会判断 <code>accessInstanceVariablesDirectly</code> 方法的返回，即是否允许直接访问成员变量，默认返回 YES；当为 YES 时，将按顺序尝试直接通过 <code>_&lt;key&gt;</code>、<code>_is&lt;Key&gt;</code>、<code>&lt;key&gt;</code>、<code>is&lt;Key&gt;</code> 成员变量设置值。当为 NO 或没有匹配到相应的成员变量时，将调用 <code>setValue:forUndefinedKey:</code> 方法，该方法默认实现为抛出「NSUnknownKeyException」异常，但子类可以重写该方法以提供更灵活的行为。</p>
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
 
-<pre><code class="language-objectivec">@interface Computer : NSObject
-@end
-
-@implementation Computer
-
-- (void)setValue:(id)value forUndefinedKey:(NSString *)key {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
-    if ([key isEqualToString:@&quot;name&quot;]) {
-        return;
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">setValue:</span>(<span style="color:#66d9ef">id</span>)value <span style="color:#a6e22e">forUndefinedKey:</span>(NSString <span style="color:#f92672">*</span>)key {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
+    <span style="color:#66d9ef">if</span> ([key isEqualToString:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">name</span><span style="color:#e6db74">&#34;</span>]) {
+        <span style="color:#66d9ef">return</span>;
     }
     
-    return [super setValue:value forUndefinedKey:key];
+    <span style="color:#66d9ef">return</span> [super setValue:value forUndefinedKey:key];
 }
 
-@end
+<span style="color:#66d9ef">@end</span>
 
-Computer *cpt = [[Computer alloc] init];
-[cpt setValue:@&quot;a&quot; forKey:@&quot;name&quot;];
-NSLog(@&quot;%@&quot;, [cpt valueForKey:@&quot;name&quot;]);
+Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
+[cpt setValue:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">a</span><span style="color:#e6db74">&#34;</span> forKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">name</span><span style="color:#e6db74">&#34;</span>];
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [cpt valueForKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">name</span><span style="color:#e6db74">&#34;</span>]);
 
-// OUTPUT:
-// -[Computer setValue:forUndefinedKey:]
-// -[Computer valueForUndefinedKey:]
-// (null)
-</code></pre>
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer setValue:forUndefinedKey:]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer valueForUndefinedKey:]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// (null)
+</span></code></pre></div><h2 id="mutablevalueforkey">mutableValueForKey</h2>
+<h3 id="how1">How</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
 
-<h2 id="mutablevalueforkey">mutableValueForKey</h2>
+Speaker <span style="color:#f92672">*</span>s1 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+s1.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">@1</span>;
+Speaker <span style="color:#f92672">*</span>s2 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+s1.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">@2</span>;
 
-<h3 id="how-1">How</h3>
+cpt.speakers <span style="color:#f92672">=</span> <span style="color:#ae81ff">@[</span>s1, s2<span style="color:#ae81ff">]</span>;
 
-<pre><code class="language-objectivec">Computer *cpt = [[Computer alloc] init];
+NSMutableArray <span style="color:#f92672">*</span>arr <span style="color:#f92672">=</span> [cpt mutableArrayValueForKeyPath:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">speakers</span><span style="color:#e6db74">&#34;</span>];
 
-Speaker *s1 = [[Speaker alloc] init];
-s1.volume = @1;
-Speaker *s2 = [[Speaker alloc] init];
-s1.volume = @2;
-
-cpt.speakers = @[s1, s2];
-
-NSMutableArray *arr = [cpt mutableArrayValueForKeyPath:@&quot;speakers&quot;];
-
-Speaker *s3 = [[Speaker alloc] init];
-s3.volume = @20;
+Speaker <span style="color:#f92672">*</span>s3 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+s3.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">@20</span>;
 
 [arr addObject:s3];
 
-NSLog(@&quot;%@&quot;, [cpt mutableArrayValueForKey:@&quot;speakers&quot;]);
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [cpt mutableArrayValueForKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">speakers</span><span style="color:#e6db74">&#34;</span>]);
 
-// OUTPUT:
-// (
-//     &quot;&lt;Speaker: 0x100505220&gt;&quot;,
-//     &quot;&lt;Speaker: 0x1005021a0&gt;&quot;,
-//     &quot;&lt;Speaker: 0x100502180&gt;&quot;
-// )
-</code></pre>
-
-<p>对于对象中的集合类型 <code>NSArray</code>、<code>NSSet</code>、<code>NSOrderedSet</code>，KVC 提供了比 <code>setValue:forKey:</code> 和 <code>valueForKey:</code> 更便捷高效的 <code>mutableArrayValueForKey:</code>、<code>mutableSetValueForKey</code>、<code>mutableOrderedSetValueForKey:</code> 以及对应的 <code>KeyPath</code> 方法。它们都会返回一个可变（Mutable）类型的代理对象，在该代理对象上的操作将影响真实的属性值。</p>
-
-<h3 id="why-1">Why</h3>
-
-<pre><code class="language-objectivec">@interface Computer : NSObject {
-	@public
-	NSMutableArray *_speakers;
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// (
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;Speaker: 0x100505220&gt;&#34;,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;Speaker: 0x1005021a0&gt;&#34;,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;Speaker: 0x100502180&gt;&#34;
+</span><span style="color:#75715e"></span><span style="color:#75715e">// )
+</span></code></pre></div><p>对于对象中的集合类型 <code>NSArray</code>、<code>NSSet</code>、<code>NSOrderedSet</code>，KVC 提供了比 <code>setValue:forKey:</code> 和 <code>valueForKey:</code> 更便捷高效的 <code>mutableArrayValueForKey:</code>、<code>mutableSetValueForKey</code>、<code>mutableOrderedSetValueForKey:</code> 以及对应的 <code>KeyPath</code> 方法。它们都会返回一个可变（Mutable）类型的代理对象，在该代理对象上的操作将影响真实的属性值。</p>
+<h3 id="why1">Why</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span> {
+	<span style="color:#66d9ef">@public</span>
+	NSMutableArray <span style="color:#f92672">*</span>_speakers;
 }
-@end
+<span style="color:#66d9ef">@end</span>
 
-@implementation Computer
-- (void)insertObject:(id)value inSpeakersAtIndex:(NSUInteger)index {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">insertObject:</span>(<span style="color:#66d9ef">id</span>)value <span style="color:#a6e22e">inSpeakersAtIndex:</span>(NSUInteger)index {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
     [_speakers insertObject:value atIndex:index];
 }
 
-- (void)removeObjectFromSpeakersAtIndex:(NSUInteger)index {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">removeObjectFromSpeakersAtIndex:</span>(NSUInteger)index {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
     [_speakers removeObjectAtIndex:index];
 }
 
-- (void)insertSpeakers:(id)object atIndexes:(NSIndexSet *)indexes {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
-    [_speakers insertObjects:@[object] atIndexes:indexes];
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">insertSpeakers:</span>(<span style="color:#66d9ef">id</span>)object <span style="color:#a6e22e">atIndexes:</span>(NSIndexSet <span style="color:#f92672">*</span>)indexes {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
+    [_speakers insertObjects:<span style="color:#ae81ff">@[</span>object<span style="color:#ae81ff">]</span> atIndexes:indexes];
 }
 
-- (void)removeSpeakersAtIndexes:(NSIndexSet *)indexes {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">removeSpeakersAtIndexes:</span>(NSIndexSet <span style="color:#f92672">*</span>)indexes {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
     [_speakers removeObjectsAtIndexes:indexes];
 }
-@end
+<span style="color:#66d9ef">@end</span>
 
-Computer *cpt = [[Computer alloc] init];
+Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
 
-Speaker *s1 = [[Speaker alloc] init];
-s1.volume = @1;
-Speaker *s2 = [[Speaker alloc] init];
-s1.volume = @2;
+Speaker <span style="color:#f92672">*</span>s1 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+s1.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">@1</span>;
+Speaker <span style="color:#f92672">*</span>s2 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+s1.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">@2</span>;
 
-cpt-&gt;_speakers = [@[s1, s2] mutableCopy];
+cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_speakers <span style="color:#f92672">=</span> [<span style="color:#ae81ff">@[</span>s1, s2<span style="color:#ae81ff">]</span> mutableCopy];
 
-NSMutableArray *arr = [cpt mutableArrayValueForKey:@&quot;speakers&quot;];
+NSMutableArray <span style="color:#f92672">*</span>arr <span style="color:#f92672">=</span> [cpt mutableArrayValueForKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">speakers</span><span style="color:#e6db74">&#34;</span>];
 
-Speaker *s3 = [[Speaker alloc] init];
-s3.volume = @20;
+Speaker <span style="color:#f92672">*</span>s3 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+s3.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">@20</span>;
 
-Speaker *s4 = [[Speaker alloc] init];
-s4.volume = @30;
+Speaker <span style="color:#f92672">*</span>s4 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+s4.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">@30</span>;
 
-[arr addObjectsFromArray:@[s3, s4]];
+[arr addObjectsFromArray:<span style="color:#ae81ff">@[</span>s3, s4<span style="color:#ae81ff">]</span>];
 
-NSLog(@&quot;%@&quot;, [cpt mutableArrayValueForKey:@&quot;speakers&quot;]);
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [cpt mutableArrayValueForKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">speakers</span><span style="color:#e6db74">&#34;</span>]);
 
-// OUTPUT:
-// -[Computer insertObject:inSpeakersAtIndex:]
-// -[Computer insertObject:inSpeakersAtIndex:]
-// (
-//     &quot;&lt;Speaker: 0x10068cb00&gt;&quot;,
-//     &quot;&lt;Speaker: 0x10067a880&gt;&quot;,
-//     &quot;&lt;Speaker: 0x100705430&gt;&quot;,
-//     &quot;&lt;Speaker: 0x100705020&gt;&quot;
-// )
-</code></pre>
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer insertObject:inSpeakersAtIndex:]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer insertObject:inSpeakersAtIndex:]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// (
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;Speaker: 0x10068cb00&gt;&#34;,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;Speaker: 0x10067a880&gt;&#34;,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;Speaker: 0x100705430&gt;&#34;,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;Speaker: 0x100705020&gt;&#34;
+</span><span style="color:#75715e"></span><span style="color:#75715e">// )
+</span></code></pre></div><p>当调用 <code>mutableArrayValueForKey:</code> 会首先寻找 <code>insertObject:in&lt;key&gt;AtIndex:</code>（其内部本质为 NSMutableArray 的 <code>insertObject:atIndex:</code>）、<code>removeObjectFrom&lt;key&gt;AtIndex:</code>（其内部本质为 NSMutableArray 的 <code>removeObjectAtIndex:</code>）、<code>insertSpeakers:atIndexes:</code>（其内部本质为 NSMutableArray 的 <code>insertObjects:atIndexes:</code>）、<code>removeKeyAtIndexes:</code>（其内部本质为 NSMutableArray 的 <code>removeObjectsAtIndexes:</code>），判断这四个方法中是否有至少一个插入和一个移除方法被实现，如果有，将返回 NSMutableArray 类型的代理对象，并通过调用已实现的插入和移除方法对实际的数组进行操作。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
 
-<p>当调用 <code>mutableArrayValueForKey:</code> 会首先寻找 <code>insertObject:in&lt;key&gt;AtIndex:</code>（其内部本质为 NSMutableArray 的 <code>insertObject:atIndex:</code>）、<code>removeObjectFrom&lt;key&gt;AtIndex:</code>（其内部本质为 NSMutableArray 的 <code>removeObjectAtIndex:</code>）、<code>insertSpeakers:atIndexes:</code>（其内部本质为 NSMutableArray 的 <code>insertObjects:atIndexes:</code>）、<code>removeKeyAtIndexes:</code>（其内部本质为 NSMutableArray 的 <code>removeObjectsAtIndexes:</code>），判断这四个方法中是否有至少一个插入和一个移除方法被实现，如果有，将返回 NSMutableArray 类型的代理对象，并通过调用已实现的插入和移除方法对实际的数组进行操作。</p>
-
-<pre><code class="language-objectivec">@implementation Computer
-
-- (void)setSpeakers:(NSMutableArray *)speakers {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
-    _speakers = speakers;
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">setSpeakers:</span>(NSMutableArray <span style="color:#f92672">*</span>)speakers {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
+    _speakers <span style="color:#f92672">=</span> speakers;
 }
 
-@end
+<span style="color:#66d9ef">@end</span>
 
-// OUTPUT:
-// -[Computer setSpeakers:]
-// -[Computer setSpeakers:]
-// (
-//     &quot;&lt;Speaker: 0x101808b90&gt;&quot;,
-//     &quot;&lt;Speaker: 0x10180da20&gt;&quot;,
-//     &quot;&lt;Speaker: 0x100613c00&gt;&quot;,
-//     &quot;&lt;Speaker: 0x100613260&gt;&quot;
-// )
-</code></pre>
-
-<p>如果上述四个方法不符合至少一个插入和一个移除方法被实现，将寻找 setter <code>setKey:</code> 方法实现，若存在该实现，代理对象将通过它设置值。但若这一阶段的效率将低于上一阶段，因为每次更新数据都需要创建新的一个数组对象。</p>
-
-<pre><code class="language-objectivec">@interface Computer : NSObject {
-    @public
-    NSMutableArray *_speakers;
-    NSMutableArray *speakers;
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer setSpeakers:]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer setSpeakers:]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// (
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;Speaker: 0x101808b90&gt;&#34;,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;Speaker: 0x10180da20&gt;&#34;,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;Speaker: 0x100613c00&gt;&#34;,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;Speaker: 0x100613260&gt;&#34;
+</span><span style="color:#75715e"></span><span style="color:#75715e">// )
+</span></code></pre></div><p>如果上述四个方法不符合至少一个插入和一个移除方法被实现，将寻找 setter <code>setKey:</code> 方法实现，若存在该实现，代理对象将通过它设置值。但若这一阶段的效率将低于上一阶段，因为每次更新数据都需要创建新的一个数组对象。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span> {
+    <span style="color:#66d9ef">@public</span>
+    NSMutableArray <span style="color:#f92672">*</span>_speakers;
+    NSMutableArray <span style="color:#f92672">*</span>speakers;
 }
-@end
+<span style="color:#66d9ef">@end</span>
 
-@implementation Computer
-@end
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
+<span style="color:#66d9ef">@end</span>
 
-// 注释成员变量声明可得到同样的结果：
-// OUTPUT:
-// (
-//     &quot;&lt;Speaker: 0x100601550&gt;&quot;,
-//     &quot;&lt;Speaker: 0x100604800&gt;&quot;,
-//     &quot;&lt;Speaker: 0x100606190&gt;&quot;,
-//     &quot;&lt;Speaker: 0x100600bd0&gt;&quot;
-// )
-</code></pre>
+<span style="color:#75715e">// 注释成员变量声明可得到同样的结果：
+</span><span style="color:#75715e"></span><span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// (
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;Speaker: 0x100601550&gt;&#34;,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;Speaker: 0x100604800&gt;&#34;,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;Speaker: 0x100606190&gt;&#34;,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;Speaker: 0x100600bd0&gt;&#34;
+</span><span style="color:#75715e"></span><span style="color:#75715e">// )
+</span></code></pre></div><p>若 setter 也不存在，将会判断 <code>accessInstanceVariablesDirectly</code> 方法的返回，即是否允许直接访问成员变量，默认返回 YES；当为 YES 时，代理对象将按顺序尝试直接通过 <code>_&lt;key&gt;</code>、<code>&lt;key&gt;</code> 成员变量设置值。当为 NO 或没有匹配到相应的成员变量时，官方文档称将调用 <code>setValue:forUndefinedKey:</code> 方法，该方法默认实现为抛出「NSUnknownKeyException」异常，但子类可以重写该方法以提供更灵活的行为。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span>
+<span style="color:#66d9ef">@end</span>
 
-<p>若 setter 也不存在，将会判断 <code>accessInstanceVariablesDirectly</code> 方法的返回，即是否允许直接访问成员变量，默认返回 YES；当为 YES 时，代理对象将按顺序尝试直接通过 <code>_&lt;key&gt;</code>、<code>&lt;key&gt;</code> 成员变量设置值。当为 NO 或没有匹配到相应的成员变量时，官方文档称将调用 <code>setValue:forUndefinedKey:</code> 方法，该方法默认实现为抛出「NSUnknownKeyException」异常，但子类可以重写该方法以提供更灵活的行为。</p>
-
-<pre><code class="language-objectivec">@interface Computer : NSObject
-@end
-
-@implementation Computer
-- (id)valueForUndefinedKey:(NSString *)key {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
-    return [super valueForUndefinedKey:key];
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
+- (<span style="color:#66d9ef">id</span>)<span style="color:#a6e22e">valueForUndefinedKey:</span>(NSString <span style="color:#f92672">*</span>)key {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
+    <span style="color:#66d9ef">return</span> [super valueForUndefinedKey:key];
 }
 
-- (void)setValue:(id)value forUndefinedKey:(NSString *)key {
-    NSLog(@&quot;%@&quot;, [NSString stringWithFormat:@&quot;%s&quot;, __func__]);
-    return [super setValue:value forUndefinedKey:key];
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">setValue:</span>(<span style="color:#66d9ef">id</span>)value <span style="color:#a6e22e">forUndefinedKey:</span>(NSString <span style="color:#f92672">*</span>)key {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__]);
+    <span style="color:#66d9ef">return</span> [super setValue:value forUndefinedKey:key];
 }
-@end
+<span style="color:#66d9ef">@end</span>
 
-Speaker *s3 = [[Speaker alloc] init];
-s3.volume = @20;
+Speaker <span style="color:#f92672">*</span>s3 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+s3.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">@20</span>;
 
 [arr addObject:s3];
 
-// OUTPUT:
-// -[Computer valueForUndefinedKey:]
-// *** Terminating app due to uncaught exception 'NSUnknownKeyException', reason: '[&lt;Computer 0x1005426d0&gt; valueForUndefinedKey:]: this class is not key value coding-compliant for the key speakers.'
-</code></pre>
-
-<p>但其实经过测试，对代理对象进行插入操作，将首先进入 <code>valueForUndefinedKey:</code>，若该 key 无法匹配，将抛出「NSUnknownKeyException」异常，若这一步骤未抛出异常，才将会进入到 <code>setValue:forUndefinedKey:</code>。原因我认为是当我们对代理对象进行插入操作时，首先要获得其中原本的元素，所以此时如果无法匹配，将抛出异常提前终止。</p>
-
-<h2 id="集合操作符">集合操作符</h2>
-
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer valueForUndefinedKey:]
+</span><span style="color:#75715e"></span><span style="color:#75715e">// *** Terminating app due to uncaught exception &#39;NSUnknownKeyException&#39;, reason: &#39;[&lt;Computer 0x1005426d0&gt; valueForUndefinedKey:]: this class is not key value coding-compliant for the key speakers.&#39;
+</span></code></pre></div><p>但其实经过测试，对代理对象进行插入操作，将首先进入 <code>valueForUndefinedKey:</code>，若该 key 无法匹配，将抛出「NSUnknownKeyException」异常，若这一步骤未抛出异常，才将会进入到 <code>setValue:forUndefinedKey:</code>。原因我认为是当我们对代理对象进行插入操作时，首先要获得其中原本的元素，所以此时如果无法匹配，将抛出异常提前终止。</p>
+<h2 id="heading3">集合操作符</h2>
 <p>对于对象中的集合类型，KVC 提供了一些可以放置在键路径中的操作符，由 <code>@</code> 开头，整体结构为：<code>左键路径.@集合操作符.右键路径</code>，当然，左右键路径都可以根据需要选择是否忽略。集合操作符分为三种：聚合（Aggregation）操作符、数组操作符、嵌套（Nesting）操作符。</p>
+<!-- raw HTML omitted -->
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Speaker</span> : <span style="color:#a6e22e">NSObject</span>
+<span style="color:#75715e">// ⚠️ 注意：这里将 volume 改为 NSNumber * 类型，因为 int 时，属性将有默认值 0，不便于后续结果演示
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>) NSNumber <span style="color:#f92672">*</span>volume;
+<span style="color:#66d9ef">@end</span>
 
-<table>
-    <tr>
-        <th>类型</th>
-        <th>操作符</th>
-        <th>作用</th>
-    </tr>
-    <tr>
-        <td rowspan="6" align="center">聚合操作符<br>（针对数组或集合类型，最终返回反应集合某个特性的单一值）</td>
-    </tr>
-    <tr>
-        <td><code>@avg</code></td>
-        <td>将数值转换为 <code>double</code> 类型求和并计算平均值（<code>nil</code> 值为 <code>0</code>），并返回 <code>NSNumber</code> 类型的实例</td>
-    </tr>
-    <tr>
-        <td><code>@count</code></td>
-        <td>计算集合类型中的对象数量，将忽略右键路径</td>
-    </tr>
-    <tr>
-        <td><code>@max</code></td>
-        <td>内部使用 <code>compare:</code> 方法比对出最大值（忽略 <code>nil</code> 值），并返回 <code>NSNumber</code> 类型的实例</td>
-    </tr>
-    <tr>
-        <td><code>@min</code></td>
-        <td>内部使用 <code>compare:</code> 方法比对出最小值（忽略 <code>nil</code> 值），并返回 <code>NSNumber</code> 类型的实例</td>
-    </tr>
-    <tr>
-        <td><code>@sum</code></td>
-        <td>将数值转换为 <code>double</code> 类型求和（<code>nil</code> 值为 <code>0</code>），并返回 <code>NSNumber</code> 类型的实例</td>
-    </tr>
-    <tr>
-        <td rowspan="3" align="center">数组操作符<br>（返回特定的对象数组）</td>
-    </tr>
-    <tr>
-        <td><code>@unionOfObjects</code></td>
-        <td>返回包含右键路径指定属性的对象数组（即值为 <code>nil</code> 时不会被包含进来）</td>
-    </tr>
-    <tr>
-        <td><code>@distinctUnionOfObjects</code></td>
-        <td>返回包含右键路径指定属性的对象数组（即值为 <code>nil</code> 时不会被包含进来），并去重</td>
-    </tr>
-    <tr>
-        <td rowspan="4" align="center">嵌套操作符<br>（嵌套意为包含集合的集合）</td>
-    </tr>
-    <tr>
-        <td><code>@unionOfArrays</code></td>
-        <td>返回调用数组中所有数组中包含右键路径指定属性的对象数组（当指定属性的值为 <code>nil</code> 时，对象将返回空）</td>
-    </tr>
-    <tr>
-        <td><code>@distinctUnionOfArrays</code></td>
-        <td>返回调用数组中所有数组中包含右键路径指定属性的对象数组（当指定属性的值为 <code>nil</code> 时，对象将返回空，多个空对象也会被去重），并去重</td>
-    </tr>
-    <tr>
-        <td><code>@distinctUnionOfSets</code></td>
-        <td>返回调用集合（Set）中所有集合（Set）中包含右键路径指定属性的对象数组（即值为 <code>nil</code> 时不会被包含进来，多个空对象也会被去重），并去重</td>
-    </tr>
-</table>
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Speaker</span>
+<span style="color:#66d9ef">@end</span>
 
-<pre><code class="language-objectivec">@interface Speaker : NSObject
-// ⚠️ 注意：这里将 volume 改为 NSNumber * 类型，因为 int 时，属性将有默认值 0，不便于后续结果演示
-@property (nonatomic) NSNumber *volume;
-@end
+<span style="color:#75715e">// main()
+</span><span style="color:#75715e"></span>Computer <span style="color:#f92672">*</span>cpt1 <span style="color:#f92672">=</span> [[Computer alloc] init];
+Speaker <span style="color:#f92672">*</span>s1 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+s1.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">@1</span>;
+Speaker <span style="color:#f92672">*</span>s2 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+s2.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">@2</span>;
+Speaker <span style="color:#f92672">*</span>s3 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+s3.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">@2</span>;
+Speaker <span style="color:#f92672">*</span>s4 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+<span style="color:#75715e">// s4.volume = nil;
+</span><span style="color:#75715e"></span>Speaker <span style="color:#f92672">*</span>s5 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+s5.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">@5</span>;
 
-@implementation Speaker
-@end
+[cpt1 setValue:<span style="color:#ae81ff">@[</span>s1, s2, s3, s4, s5<span style="color:#ae81ff">]</span> forKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">speakers</span><span style="color:#e6db74">&#34;</span>];
 
-// main()
-Computer *cpt1 = [[Computer alloc] init];
-Speaker *s1 = [[Speaker alloc] init];
-s1.volume = @1;
-Speaker *s2 = [[Speaker alloc] init];
-s2.volume = @2;
-Speaker *s3 = [[Speaker alloc] init];
-s3.volume = @2;
-Speaker *s4 = [[Speaker alloc] init];
-// s4.volume = nil;
-Speaker *s5 = [[Speaker alloc] init];
-s5.volume = @5;
+<span style="color:#75715e">// Aggregation Operators:
+</span><span style="color:#75715e"></span>NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Aggregation Operators:</span><span style="color:#e6db74">&#34;</span>);
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Volumes at avg: %.2lf</span><span style="color:#e6db74">&#34;</span>, [[cpt1 valueForKeyPath:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">speakers.@avg.volume</span><span style="color:#e6db74">&#34;</span>] doubleValue]);
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Speakers at count: %d</span><span style="color:#e6db74">&#34;</span>, [[cpt1 valueForKeyPath:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">speakers.@count</span><span style="color:#e6db74">&#34;</span>] intValue]);
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Volumes at max: %.2lf</span><span style="color:#e6db74">&#34;</span>, [[cpt1 valueForKeyPath:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">speakers.@max.volume</span><span style="color:#e6db74">&#34;</span>] doubleValue]);
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Volumes at min: %.2lf</span><span style="color:#e6db74">&#34;</span>, [[cpt1 valueForKeyPath:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">speakers.@min.volume</span><span style="color:#e6db74">&#34;</span>] doubleValue]);
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Volumes at sum: %.2lf</span><span style="color:#e6db74">&#34;</span>, [[cpt1 valueForKeyPath:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">speakers.@sum.volume</span><span style="color:#e6db74">&#34;</span>] doubleValue]);
 
-[cpt1 setValue:@[s1, s2, s3, s4, s5] forKey:@&quot;speakers&quot;];
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Aggregation Operators:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Volumes at avg: 2.00
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Speakers at count: 5
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Volumes at max: 5.00
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Volumes at min: 1.00
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Volumes at sum: 10.00
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// Array Operators:
+</span><span style="color:#75715e"></span>NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Array Operators:</span><span style="color:#e6db74">&#34;</span>);
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [cpt1.speakers valueForKeyPath:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">@unionOfObjects.volume</span><span style="color:#e6db74">&#34;</span>]);
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [cpt1.speakers valueForKeyPath:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">@distinctUnionOfObjects.volume</span><span style="color:#e6db74">&#34;</span>]);
 
-// Aggregation Operators:
-NSLog(@&quot;Aggregation Operators:&quot;);
-NSLog(@&quot;Volumes at avg: %.2lf&quot;, [[cpt1 valueForKeyPath:@&quot;speakers.@avg.volume&quot;] doubleValue]);
-NSLog(@&quot;Speakers at count: %d&quot;, [[cpt1 valueForKeyPath:@&quot;speakers.@count&quot;] intValue]);
-NSLog(@&quot;Volumes at max: %.2lf&quot;, [[cpt1 valueForKeyPath:@&quot;speakers.@max.volume&quot;] doubleValue]);
-NSLog(@&quot;Volumes at min: %.2lf&quot;, [[cpt1 valueForKeyPath:@&quot;speakers.@min.volume&quot;] doubleValue]);
-NSLog(@&quot;Volumes at sum: %.2lf&quot;, [[cpt1 valueForKeyPath:@&quot;speakers.@sum.volume&quot;] doubleValue]);
+Computer <span style="color:#f92672">*</span>cpt2 <span style="color:#f92672">=</span> [[Computer alloc] init];
+Speaker <span style="color:#f92672">*</span>s6 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+s6.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">@5</span>;
+Speaker <span style="color:#f92672">*</span>s7 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+<span style="color:#75715e">// s7.volume = nil;
+</span><span style="color:#75715e"></span>Speaker <span style="color:#f92672">*</span>s8 <span style="color:#f92672">=</span> [[Speaker alloc] init];
+s8.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">@8</span>;
+cpt2.speakers <span style="color:#f92672">=</span> <span style="color:#ae81ff">@[</span>s6, s7, s8<span style="color:#ae81ff">]</span>;
 
-// OUTPUT:
-// Aggregation Operators:
-// Volumes at avg: 2.00
-// Speakers at count: 5
-// Volumes at max: 5.00
-// Volumes at min: 1.00
-// Volumes at sum: 10.00
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Array Operators:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// (
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     1,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     2,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     2,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     5
+</span><span style="color:#75715e"></span><span style="color:#75715e">// )
+</span><span style="color:#75715e"></span><span style="color:#75715e">// (
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     2,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     5,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     1
+</span><span style="color:#75715e"></span><span style="color:#75715e">// )
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// Nesting Operators:
+</span><span style="color:#75715e"></span>NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Nesting Operators:</span><span style="color:#e6db74">&#34;</span>);
+NSArray <span style="color:#f92672">*</span>arrayOfArrays <span style="color:#f92672">=</span> <span style="color:#ae81ff">@[</span>cpt1.speakers, cpt2.speakers<span style="color:#ae81ff">]</span>;
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [arrayOfArrays valueForKeyPath:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">@unionOfArrays.volume</span><span style="color:#e6db74">&#34;</span>]);
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [arrayOfArrays valueForKeyPath:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">@distinctUnionOfArrays.volume</span><span style="color:#e6db74">&#34;</span>]);
 
-// Array Operators:
-NSLog(@&quot;Array Operators:&quot;);
-NSLog(@&quot;%@&quot;, [cpt1.speakers valueForKeyPath:@&quot;@unionOfObjects.volume&quot;]);
-NSLog(@&quot;%@&quot;, [cpt1.speakers valueForKeyPath:@&quot;@distinctUnionOfObjects.volume&quot;]);
+NSSet <span style="color:#f92672">*</span>setOfSets <span style="color:#f92672">=</span> [NSSet setWithArray:<span style="color:#ae81ff">@[</span>[NSSet setWithArray:cpt1.speakers], [NSSet setWithArray:cpt2.speakers]<span style="color:#ae81ff">]</span>];
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [setOfSets valueForKeyPath:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">@distinctUnionOfSets.volume</span><span style="color:#e6db74">&#34;</span>]);
 
-Computer *cpt2 = [[Computer alloc] init];
-Speaker *s6 = [[Speaker alloc] init];
-s6.volume = @5;
-Speaker *s7 = [[Speaker alloc] init];
-// s7.volume = nil;
-Speaker *s8 = [[Speaker alloc] init];
-s8.volume = @8;
-cpt2.speakers = @[s6, s7, s8];
-
-// OUTPUT:
-// Array Operators:
-// (
-//     1,
-//     2,
-//     2,
-//     5
-// )
-// (
-//     2,
-//     5,
-//     1
-// )
-
-// Nesting Operators:
-NSLog(@&quot;Nesting Operators:&quot;);
-NSArray *arrayOfArrays = @[cpt1.speakers, cpt2.speakers];
-NSLog(@&quot;%@&quot;, [arrayOfArrays valueForKeyPath:@&quot;@unionOfArrays.volume&quot;]);
-NSLog(@&quot;%@&quot;, [arrayOfArrays valueForKeyPath:@&quot;@distinctUnionOfArrays.volume&quot;]);
-
-NSSet *setOfSets = [NSSet setWithArray:@[[NSSet setWithArray:cpt1.speakers], [NSSet setWithArray:cpt2.speakers]]];
-NSLog(@&quot;%@&quot;, [setOfSets valueForKeyPath:@&quot;@distinctUnionOfSets.volume&quot;]);
-
-// OUTPUT:
-// Nesting Operators:
-// (
-//     1,
-//     2,
-//     2,
-//     &quot;&lt;null&gt;&quot;,
-//     5,
-//     5,
-//     &quot;&lt;null&gt;&quot;,
-//     8
-// )
-// (
-//     5,
-//     1,
-//     2,
-//     &quot;&lt;null&gt;&quot;,
-//     8
-// )
-// {(
-//     2,
-//     5,
-//     8,
-//     1
-// )}
-</code></pre>
-
-<h2 id="非对象属性">非对象属性</h2>
-
-<p>当 KVC 中的 <code>valueForKey:</code> 或 <code>valueForKeyPath:</code> 获取到的值不是 Obj-C 对象时，将会以其值初始化     <code>NSNumber</code> 对象（针对标量（Scalar））或 <code>NSValue</code> 对象（针对结构体）并返回。</p>
-
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Nesting Operators:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// (
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     1,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     2,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     2,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;null&gt;&#34;,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     5,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     5,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;null&gt;&#34;,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     8
+</span><span style="color:#75715e"></span><span style="color:#75715e">// )
+</span><span style="color:#75715e"></span><span style="color:#75715e">// (
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     5,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     1,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     2,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;null&gt;&#34;,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     8
+</span><span style="color:#75715e"></span><span style="color:#75715e">// )
+</span><span style="color:#75715e"></span><span style="color:#75715e">// {(
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     2,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     5,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     8,
+</span><span style="color:#75715e"></span><span style="color:#75715e">//     1
+</span><span style="color:#75715e"></span><span style="color:#75715e">// )}
+</span></code></pre></div><h2 id="heading4">非对象属性</h2>
+<p>当 KVC 中的 <code>valueForKey:</code> 或 <code>valueForKeyPath:</code> 获取到的值不是 Obj-C 对象时，将会以其值初始化 	<code>NSNumber</code> 对象（针对标量（Scalar））或 <code>NSValue</code> 对象（针对结构体）并返回。</p>
 <ul>
-<li><p>标量值</p>
-
-<pre><code class="language-objectivec">@interface Computer : NSObject {
-@public
-int _diskSize;
+<li>标量值</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span> {
+    <span style="color:#66d9ef">@public</span>
+    <span style="color:#66d9ef">int</span> _diskSize;
 }
-@end
+<span style="color:#66d9ef">@end</span>
 
-@implementation Computer
-@end
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
+<span style="color:#66d9ef">@end</span>
 
-Computer *cpt = [[Computer alloc] init];
-cpt-&gt;_diskSize = 512;
-NSNumber *diskSizeNum = [cpt valueForKey:@&quot;diskSize&quot;];
-NSLog(@&quot;Disk size: %d.&quot;, [diskSizeNum intValue]);
+Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
+cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_diskSize <span style="color:#f92672">=</span> <span style="color:#ae81ff">512</span>;
+NSNumber <span style="color:#f92672">*</span>diskSizeNum <span style="color:#f92672">=</span> [cpt valueForKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">diskSize</span><span style="color:#e6db74">&#34;</span>];
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Disk size: %d.</span><span style="color:#e6db74">&#34;</span>, [diskSizeNum intValue]);
 
-// LLDB:
-// (lldb) po object_getClass([cpt valueForKey:@&quot;diskSize&quot;])
-// __NSCFNumber
-
-// OUTPUT:
-// Disk size: 512.
-</code></pre></li>
-
-<li><p>结构体</p>
-
-<pre><code class="language-objectivec">typedef struct {
-NSSize size;
-double inch;
+<span style="color:#75715e">// LLDB:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// (lldb) po object_getClass([cpt valueForKey:@&#34;diskSize&#34;])
+</span><span style="color:#75715e"></span><span style="color:#75715e">// __NSCFNumber
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Disk size: 512.
+</span></code></pre></div><ul>
+<li>结构体</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> {
+    NSSize size;
+    <span style="color:#66d9ef">double</span> inch;
 } Screen;
 
-@interface Computer : NSObject {
-@public
-Screen _screen;
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span> {
+    <span style="color:#66d9ef">@public</span>
+    Screen _screen;
 }
-@end
+<span style="color:#66d9ef">@end</span>
 
-@implementation Computer
-@end
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
+<span style="color:#66d9ef">@end</span>
 
-Computer *cpt = [[Computer alloc] init];
-cpt-&gt;_screen.size = NSMakeSize(1920, 1090);
-cpt-&gt;_screen.inch = 15.6;
+Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
+cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_screen.size <span style="color:#f92672">=</span> NSMakeSize(<span style="color:#ae81ff">1920</span>, <span style="color:#ae81ff">1090</span>);
+cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_screen.inch <span style="color:#f92672">=</span> <span style="color:#ae81ff">15.6</span>;
 
-// ➡️ valueForKey
-NSValue *value = [cpt valueForKey:@&quot;screen&quot;];
+<span style="color:#75715e">// ➡️ valueForKey
+</span><span style="color:#75715e"></span>NSValue <span style="color:#f92672">*</span>value <span style="color:#f92672">=</span> [cpt valueForKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">screen</span><span style="color:#e6db74">&#34;</span>];
 
 Screen screen;
-[value getValue:&amp;screen];
+[value getValue:<span style="color:#f92672">&amp;</span>screen];
 
-NSLog(@&quot;Screen size: %.f * %.f\nScreen inch: %.1lf&quot;, screen.size.width, screen.size.height, screen.inch);
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Screen size: %.f * %.f</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">Screen inch: %.1lf</span><span style="color:#e6db74">&#34;</span>, screen.size.width, screen.size.height, screen.inch);
 
-// OUTPUT:
-// Screen size: 1920 * 1090
-// Screen inch: 15.6
-
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Screen size: 1920 * 1090
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Screen inch: 15.6
+</span><span style="color:#75715e"></span>
 Screen retinaScreen;
-retinaScreen.size = NSMakeSize(2560, 1600);
-retinaScreen.inch = 13.3;
+retinaScreen.size <span style="color:#f92672">=</span> NSMakeSize(<span style="color:#ae81ff">2560</span>, <span style="color:#ae81ff">1600</span>);
+retinaScreen.inch <span style="color:#f92672">=</span> <span style="color:#ae81ff">13.3</span>;
 
-NSValue *retinaValue = [NSValue valueWithBytes:&amp;retinaScreen objCType:@encode(Screen)];
+NSValue <span style="color:#f92672">*</span>retinaValue <span style="color:#f92672">=</span> [NSValue valueWithBytes:<span style="color:#f92672">&amp;</span>retinaScreen objCType:<span style="color:#66d9ef">@encode</span>(Screen)];
 
-// ➡️ setValue:forKey
-[cpt setValue:retinaValue forKey:@&quot;screen&quot;];
+<span style="color:#75715e">// ➡️ setValue:forKey
+</span><span style="color:#75715e"></span>[cpt setValue:retinaValue forKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">screen</span><span style="color:#e6db74">&#34;</span>];
 
-NSLog(@&quot;Screen size: %.f * %.f\nScreen inch: %.1lf&quot;, cpt-&gt;_screen.size.width, cpt-&gt;_screen.size.height, cpt-&gt;_screen.inch);
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Screen size: %.f * %.f</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">Screen inch: %.1lf</span><span style="color:#e6db74">&#34;</span>, cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_screen.size.width, cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_screen.size.height, cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_screen.inch);
 
-// OUTPUT:
-// Screen size: 2560 * 1600
-// Screen inch: 13.3
-</code></pre></li>
-</ul>
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Screen size: 2560 * 1600
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Screen inch: 13.3
+</span></code></pre></div><h2 id="heading5">属性校验</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">static</span> NSString <span style="color:#f92672">*</span> <span style="color:#66d9ef">const</span> kKVCValidateErrorDomain <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">kKVCValidateErrorDomain</span><span style="color:#e6db74">&#34;</span>;
 
-<h2 id="属性校验">属性校验</h2>
-
-<pre><code class="language-objectivec">static NSString * const kKVCValidateErrorDomain = @&quot;kKVCValidateErrorDomain&quot;;
-
-typedef NS_ENUM(NSUInteger, KVCValidateError) {
+<span style="color:#66d9ef">typedef</span> <span style="color:#a6e22e">NS_ENUM</span>(NSUInteger, KVCValidateError) {
     KVCValidateErrorNilValue
 };
 
-@interface Computer : NSObject
-@property (nonatomic) NSString *name;
-@end
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span>
+<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>) NSString <span style="color:#f92672">*</span>name;
+<span style="color:#66d9ef">@end</span>
 
-@implementation Computer
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
 
-- (BOOL)validateValue:(inout id  _Nullable __autoreleasing *)ioValue
-               forKey:(NSString *)inKey
-                error:(out NSError * _Nullable __autoreleasing *)outError {
-    if ([inKey isEqualToString:NSStringFromSelector(@selector(name))]) {
-        if (*ioValue != nil) {
-            return YES;
-        } else {
-            *outError = [NSError errorWithDomain:kKVCValidateErrorDomain
+- (<span style="color:#66d9ef">BOOL</span>)<span style="color:#a6e22e">validateValue:</span>(<span style="color:#66d9ef">inout</span> <span style="color:#66d9ef">id</span>  _Nullable <span style="color:#66d9ef">__autoreleasing</span> <span style="color:#f92672">*</span>)ioValue
+               <span style="color:#a6e22e">forKey:</span>(NSString <span style="color:#f92672">*</span>)inKey
+                <span style="color:#a6e22e">error:</span>(<span style="color:#66d9ef">out</span> NSError <span style="color:#f92672">*</span> _Nullable <span style="color:#66d9ef">__autoreleasing</span> <span style="color:#f92672">*</span>)outError {
+    <span style="color:#66d9ef">if</span> ([inKey isEqualToString:NSStringFromSelector(<span style="color:#66d9ef">@selector</span>(name))]) {
+        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">*</span>ioValue <span style="color:#f92672">!</span><span style="color:#f92672">=</span> nil) {
+            <span style="color:#66d9ef">return</span> YES;
+        } <span style="color:#66d9ef">else</span> {
+            <span style="color:#f92672">*</span>outError <span style="color:#f92672">=</span> [NSError errorWithDomain:kKVCValidateErrorDomain
                                             code:KVCValidateErrorNilValue
                                         userInfo:nil];
-            return NO;
+            <span style="color:#66d9ef">return</span> NO;
         }
     }
     
-    return [super validateValue:ioValue forKey:inKey error:outError];
+    <span style="color:#66d9ef">return</span> [super validateValue:ioValue forKey:inKey error:outError];
 }
 
-@end
+<span style="color:#66d9ef">@end</span>
 
-Computer *cpt = [[Computer alloc] init];
+Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
 
-NSString *nilName = nil;
-NSError *err;
+NSString <span style="color:#f92672">*</span>nilName <span style="color:#f92672">=</span> nil;
+NSError <span style="color:#f92672">*</span>err;
 
-if (![cpt validateValue:&amp;nilName forKey:@&quot;name&quot; error:&amp;err]) {
-    NSLog(@&quot;Error domain: %@, code: %ld&quot;, err.domain, (long)err.code);
-} else {
-    [cpt setValue:nilName forKey:@&quot;name&quot;];
+<span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>[cpt validateValue:<span style="color:#f92672">&amp;</span>nilName forKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">name</span><span style="color:#e6db74">&#34;</span> error:<span style="color:#f92672">&amp;</span>err]) {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Error domain: %@, code: %ld</span><span style="color:#e6db74">&#34;</span>, err.domain, (<span style="color:#66d9ef">long</span>)err.code);
+} <span style="color:#66d9ef">else</span> {
+    [cpt setValue:nilName forKey:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">name</span><span style="color:#e6db74">&#34;</span>];
 }
 
-// OUTPUT:
-// Error domain: kKVCValidateErrorDomain, code: 0
-</code></pre>
-
-<p>KVC 中的属性校验的方法可以让我们在设置值前先进行校验，即 <code>validateValue:forKey:error:</code>。该方法会调用被观察对象的 <code>validateValue:forKey:error:</code> 方法，NSObject 中的默认实现是返回 <code>YES</code> 即不作校验。所以当我们需要校验 <code>value</code> 是否为空，需要自己实现该方法。需要注意的是，<code>validateValue:forKey:error:</code> 和 <code>validateValue:forKey:error:</code> 方法中的 <code>value</code> 和 <code>error</code> 参数均是引用传递，外界调用时要传入相应的地址 <code>&amp;value</code> 和 <code>&amp;error</code>，而在方法内部我们只需要在方法中将其赋值到 <code>*value</code> 和 <code>*error</code> 即可。</p>
-
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Error domain: kKVCValidateErrorDomain, code: 0
+</span></code></pre></div><p>KVC 中的属性校验的方法可以让我们在设置值前先进行校验，即 <code>validateValue:forKey:error:</code>。该方法会调用被观察对象的 <code>validateValue:forKey:error:</code> 方法，NSObject 中的默认实现是返回 <code>YES</code> 即不作校验。所以当我们需要校验 <code>value</code> 是否为空，需要自己实现该方法。需要注意的是，<code>validateValue:forKey:error:</code> 和 <code>validateValue:forKey:error:</code> 方法中的 <code>value</code> 和 <code>error</code> 参数均是引用传递，外界调用时要传入相应的地址 <code>&amp;value</code> 和 <code>&amp;error</code>，而在方法内部我们只需要在方法中将其赋值到 <code>*value</code> 和 <code>*error</code> 即可。</p>
 <h2 id="reference">Reference</h2>
-
 <ul>
 <li><a href="/img/2019/KVC_in_iOS/https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/KeyValueCoding/index.html">Key-Value Coding Programming Guide</a></li>
 <li><a href="/img/2019/KVC_in_iOS/https://github.com/kingcos/Perspective/tree/writing/Posts/Focus/KVO_in_iOS">Practice - iOS 中的 KVO</a></li>

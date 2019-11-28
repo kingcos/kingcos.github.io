@@ -160,9 +160,7 @@ Preface  POSIX Threads, usually referred to as pthreads, is an execution model t
     
 
     <div class="post-content">
-      
-
-<table>
+      <table>
 <thead>
 <tr>
 <th align="center">Date</th>
@@ -171,7 +169,6 @@ Preface  POSIX Threads, usually referred to as pthreads, is an execution model t
 <th align="center">Xcode</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td align="center">2019-03-08</td>
@@ -181,114 +178,93 @@ Preface  POSIX Threads, usually referred to as pthreads, is an execution model t
 </tr>
 </tbody>
 </table>
-
 <p>在 iOS 中的多线程（Multithreading）技术通常有以下几种实现方式：pthreads、<code>NSThread</code>、GCD、<code>NSOperation</code>。首先，我们来一起看一看 pthreads。</p>
-
 <h2 id="preface">Preface</h2>
-
 <blockquote>
 <p>POSIX Threads, usually referred to as pthreads, is an execution model that exists independently from a language, as well as a parallel execution model. It allows a program to control multiple different flows of work that overlap in time. Each flow of work is referred to as a thread, and creation and control over these flows is achieved by making calls to the POSIX Threads API.</p>
-
 <p>&ndash; POSIX Threads, Wikipedia</p>
-
 <p>译：</p>
-
 <p>POSIX（Portable Operating System Interface of UNIX，可移植操作系统接口）线程，即 pthreads，是一种不依赖于语言的执行模型，也称作并行（Parallel）执行模型。其允许一个程序控制多个时间重叠的不同工作流。每个工作流即为一个线程，通过调用 POSIX 线程 API 创建并控制这些流。</p>
 </blockquote>
-
 <p>如上所述，pthreads，即 POSIX Threads（后简称 pthreads）是一套跨平台的多线程 API。由 C 语言编写，在 Obj-C 中，<code>#import &lt;pthread.h&gt;</code> 即可引入 pthreads 相关的 API。但也由于是纯 C 的 API，使用起来不够友好，也需要手动管理线程的整个生命周期。</p>
-
-<h2 id="pthread-create"><code>pthread_create</code></h2>
-
+<h2 id="pthreadcreate"><code>pthread_create</code></h2>
 <p>pthreads 使用 <code>int pthread_create(pthread_t _Nullable * _Nonnull __restrict, const pthread_attr_t * _Nullable __restrict, void * _Nullable (* _Nonnull)(void * _Nullable), void * _Nullable __restrict);</code> 来创建线程。<code>_Nullable</code> 和 <code>_Nonnull</code> 是 Obj-C 桥接 Swift 可选（Optional）类型的标志；<code>__restrict</code> 是 C99 标准引入的关键字，类似于 <code>restrict</code>，可以用在指针声明处，用于告诉编译器只有该指针本身才能修改指向的内容，便于编译器优化。去掉这些不影响函数本身的标志，补全参数名，即 <code>int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);</code>。下面将简单分析下该函数的四个参数。</p>
-
 <p>其中第一个参数是 <code>pthread_t *thread</code>。关于该参数实际意义，一种指整型（Integer）四字节的线程 ID，另一种指包含值和其他的抽象结构体，这种抽象有助于在一个进程（Process）中实现扩展到数千个线程，后者也可以称为 <code>pthread</code> 的句柄（Handle）。在 Obj-C 中，<code>pthread_t</code> 属于后者，其本质是 <code>_opaque_pthread_t</code>，一个不透明类型（Opaque Type）的结构体，即一种外界只需要知道其存在，而无需关心内部实现细节的数据类型。在函数中，该参数是作为指针传入的，总之我们可以简单将这个参数理解为线程的引用即可，通过它能找到线程的 ID 或者其他信息。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// sys/_pthread/_pthread_t.h
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">typedef</span> __darwin_pthread_t pthread_t;
 
-<pre><code class="language-c">// sys/_pthread/_pthread_t.h
-typedef __darwin_pthread_t pthread_t;
+<span style="color:#75715e">// sys/_pthread/_pthread_types.h
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> _opaque_pthread_t <span style="color:#f92672">*</span>__darwin_pthread_t;
 
-// sys/_pthread/_pthread_types.h
-typedef struct _opaque_pthread_t *__darwin_pthread_t;
-
-// sys/_pthread/_pthread_types.h
-struct _opaque_pthread_t {
-	long __sig;
-	struct __darwin_pthread_handler_rec  *__cleanup_stack;
-	char __opaque[__PTHREAD_SIZE__];
+<span style="color:#75715e">// sys/_pthread/_pthread_types.h
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> _opaque_pthread_t {
+	<span style="color:#66d9ef">long</span> __sig;
+	<span style="color:#66d9ef">struct</span> __darwin_pthread_handler_rec  <span style="color:#f92672">*</span>__cleanup_stack;
+	<span style="color:#66d9ef">char</span> __opaque[__PTHREAD_SIZE__];
 };
-</code></pre>
+</code></pre></div><p>第二个参数是 <code>const pthread_attr_t *attr</code>。<code>pthread_attr_t</code> 本质也是一个不透明类型的结构体。可以使用 <code>int pthread_attr_init(pthread_attr_t *);</code> 初始化该结构体。该参数为 <code>NULL</code> 时将使用默认属性来创建线程。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// sys/_pthread/_pthread_attr_t.h
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">typedef</span> __darwin_pthread_attr_t pthread_attr_t;
 
-<p>第二个参数是 <code>const pthread_attr_t *attr</code>。<code>pthread_attr_t</code> 本质也是一个不透明类型的结构体。可以使用 <code>int pthread_attr_init(pthread_attr_t *);</code> 初始化该结构体。该参数为 <code>NULL</code> 时将使用默认属性来创建线程。</p>
+<span style="color:#75715e">// sys/_pthread/_pthread_types.h
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> _opaque_pthread_attr_t __darwin_pthread_attr_t;
 
-<pre><code class="language-c">// sys/_pthread/_pthread_attr_t.h
-typedef __darwin_pthread_attr_t pthread_attr_t;
-
-// sys/_pthread/_pthread_types.h
-typedef struct _opaque_pthread_attr_t __darwin_pthread_attr_t;
-
-// sys/_pthread/_pthread_types.h
-struct _opaque_pthread_attr_t {
-	long __sig;
-	char __opaque[__PTHREAD_ATTR_SIZE__];
+<span style="color:#75715e">// sys/_pthread/_pthread_types.h
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> _opaque_pthread_attr_t {
+	<span style="color:#66d9ef">long</span> __sig;
+	<span style="color:#66d9ef">char</span> __opaque[__PTHREAD_ATTR_SIZE__];
 };
-</code></pre>
-
-<p>最后两个参数是 <code>void *(*start_routine) (void *), void *arg</code>。<code>start_routine()</code> 是新线程运行时所执行的函数，<code>arg</code> 是传入 <code>start_routine()</code> 的参数。当 <code>start_routine()</code> 执行终止或者线程被明确杀死，线程也将会终止。</p>
-
+</code></pre></div><p>最后两个参数是 <code>void *(*start_routine) (void *), void *arg</code>。<code>start_routine()</code> 是新线程运行时所执行的函数，<code>arg</code> 是传入 <code>start_routine()</code> 的参数。当 <code>start_routine()</code> 执行终止或者线程被明确杀死，线程也将会终止。</p>
 <p>返回值是 <code>int</code> 类型，当返回 <code>0</code> 时，创建成功，否则将返回错误码。</p>
-
-<pre><code class="language-objectivec">#import &quot;POSIXThreadManager.h&quot;
-
-#import &lt;pthread.h&gt;
-
-void * run_for_pthread_create_demo(void * arg) {
-    // 打印参数 &amp; 当前线程 __opaque 属性的地址
-    printf(&quot;%s (%p) is running.\n&quot;, arg, &amp;pthread_self()-&gt;__opaque);
-    exit(2);
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &#34;POSIXThreadManager.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">import &lt;pthread.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">run_for_pthread_create_demo</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> arg) {
+    <span style="color:#75715e">// 打印参数 &amp; 当前线程 __opaque 属性的地址
+</span><span style="color:#75715e"></span>    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%s (%p) is running.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, arg, <span style="color:#f92672">&amp;</span>pthread_self()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>__opaque);
+    exit(<span style="color:#ae81ff">2</span>);
 }
 
-@implementation POSIXThreadManager
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">POSIXThreadManager</span>
 
-+ (void)pthread_create_demo {
-    // 声明 thread_1 &amp; thread_2
-    pthread_t thread_1, thread_2;
++ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">pthread_create_demo</span> {
+    <span style="color:#75715e">// 声明 thread_1 &amp; thread_2
+</span><span style="color:#75715e"></span>    pthread_t thread_1, thread_2;
 
-    // 创建 thread_1
-    int result_1 = pthread_create(&amp;thread_1, NULL, run_for_pthread_create_demo, &quot;thread_1&quot;);
+    <span style="color:#75715e">// 创建 thread_1
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> result_1 <span style="color:#f92672">=</span> pthread_create(<span style="color:#f92672">&amp;</span>thread_1, NULL, run_for_pthread_create_demo, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">thread_1</span><span style="color:#e6db74">&#34;</span>);
 
-    // 打印 thread_1 创建函数返回值 &amp; __opaque 属性的地址
-    printf(&quot;result_1 - %d - %p\n&quot;, result_1, &amp;thread_1-&gt;__opaque);
+    <span style="color:#75715e">// 打印 thread_1 创建函数返回值 &amp; __opaque 属性的地址
+</span><span style="color:#75715e"></span>    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">result_1 - %d - %p</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, result_1, <span style="color:#f92672">&amp;</span>thread_1<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>__opaque);
 
-    // 检查线程是否创建成功
-    if (result_1 != 0) {
-        perror(&quot;pthread_create thread_1 error.&quot;);
-        // 线程创建失败退出码为 1
-        exit(1);
+    <span style="color:#75715e">// 检查线程是否创建成功
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (result_1 <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+        perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_1 error.</span><span style="color:#e6db74">&#34;</span>);
+        <span style="color:#75715e">// 线程创建失败退出码为 1
+</span><span style="color:#75715e"></span>        exit(<span style="color:#ae81ff">1</span>);
     }
 
-    // 创建 thread_2
-    int result_2 = pthread_create(&amp;thread_2, NULL, run_for_pthread_create_demo, &quot;thread_2&quot;);
+    <span style="color:#75715e">// 创建 thread_2
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> result_2 <span style="color:#f92672">=</span> pthread_create(<span style="color:#f92672">&amp;</span>thread_2, NULL, run_for_pthread_create_demo, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">thread_2</span><span style="color:#e6db74">&#34;</span>);
 
-    // 打印 thread_2 创建函数返回值 &amp; __opaque 属性的地址
-    printf(&quot;result_2 - %d - %p\n&quot;, result_2, &amp;thread_2-&gt;__opaque);
+    <span style="color:#75715e">// 打印 thread_2 创建函数返回值 &amp; __opaque 属性的地址
+</span><span style="color:#75715e"></span>    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">result_2 - %d - %p</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, result_2, <span style="color:#f92672">&amp;</span>thread_2<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>__opaque);
 
-    if (result_2 != 0) {
-        perror(&quot;pthread_create thread_2 error.&quot;);
-        // 线程创建失败退出码为 1
-        exit(1);
+    <span style="color:#66d9ef">if</span> (result_2 <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+        perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_2 error.</span><span style="color:#e6db74">&#34;</span>);
+        <span style="color:#75715e">// 线程创建失败退出码为 1
+</span><span style="color:#75715e"></span>        exit(<span style="color:#ae81ff">1</span>);
     }
 
-    // sleep(1);
-
-    // 主线程退出码为 3
-    exit(3);
+    <span style="color:#75715e">// sleep(1);
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// 主线程退出码为 3
+</span><span style="color:#75715e"></span>    exit(<span style="color:#ae81ff">3</span>);
 }
 
-@end
-</code></pre>
-
-<p>这段程序简单地创建了两个子线程，带上程序本身的主线程，其实一共有三个线程。当某个线程执行到 <code>exit()</code> 时，整个程序停止。尝试多运行几次就能发现，每次的输出结果都不太一样。<code>OUTPUT-1</code> 中，主线程先抢在了子线程之前输出，之后子线程输出，最后主线程结束了程序；<code>OUTPUT-2</code> 中，主线程和子线程轮流输出，最后被子线程结束了程序。<code>OUTPUT-3</code> 中，<code>thread_2</code> 还没执行完，就被主线程结束了程序，所以没有 <code>thread_2</code> 的输出。</p>
-
+<span style="color:#66d9ef">@end</span>
+</code></pre></div><p>这段程序简单地创建了两个子线程，带上程序本身的主线程，其实一共有三个线程。当某个线程执行到 <code>exit()</code> 时，整个程序停止。尝试多运行几次就能发现，每次的输出结果都不太一样。<code>OUTPUT-1</code> 中，主线程先抢在了子线程之前输出，之后子线程输出，最后主线程结束了程序；<code>OUTPUT-2</code> 中，主线程和子线程轮流输出，最后被子线程结束了程序。<code>OUTPUT-3</code> 中，<code>thread_2</code> 还没执行完，就被主线程结束了程序，所以没有 <code>thread_2</code> 的输出。</p>
 <pre><code>// OUTPUT-1:
 result_1 - 0 - 0x700002479010 // 主线程输出
 result_2 - 0 - 0x7000024fc010 // 主线程输出
@@ -308,441 +284,415 @@ result_1 - 0 - 0x700005914010 // 主线程输出
 result_2 - 0 - 0x700005997010 // 主线程输出
 thread_1 (0x700005914010) is running. // thread_1 输出
 Program ended with exit code: 3 // 主线程结束程序
-</code></pre>
-
-<h2 id="pthread-join"><code>pthread_join</code></h2>
-
+</code></pre><h2 id="pthreadjoin"><code>pthread_join</code></h2>
 <p>那如何保证主线程在子线程还没有结束的时候，不执行完呢？首先可以想到的就是让主线程休息一会儿。在 <code>exit(3);</code> 之前加一句 <code>sleep(1);</code> 让主线程休眠一秒钟，这样子线程的程序就有足够的时间执行完。但这样真的好吗？如果子线程的执行时间小于一秒，那么我们的时间就浪费了；而当大于一秒时，这个方法就没用了。这时候就需要另外一个函数，<code>int pthread_join(pthread_t , void * _Nullable * _Nullable)</code>，即 <code>int pthread_join(pthread_t thread, void **retval);</code>，其作用是阻塞当前线程运行，直到参数线程 <code>thread</code> 终止，参数 <code>retval</code> 保存了线程函数的返回值。与 <code>pthread_create</code> 一样，当返回 <code>0</code> 时，参与成功，否则将返回错误码。</p>
-
-<pre><code class="language-objectivec">#import &quot;POSIXThreadManager.h&quot;
-
-#import &lt;pthread.h&gt;
-
-void * run_for_pthread_join_demo(void * arg) {
-    // 返回参数
-    // return arg;
-    pthread_exit(arg);
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &#34;POSIXThreadManager.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">import &lt;pthread.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">run_for_pthread_join_demo</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> arg) {
+    <span style="color:#75715e">// 返回参数
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// return arg;
+</span><span style="color:#75715e"></span>    pthread_exit(arg);
 }
 
-@implementation POSIXThreadManager
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">POSIXThreadManager</span>
 
-+ (void)pthread_join_demo {
-    // 声明 thread_1 &amp; thread_2
-    pthread_t thread_1, thread_2;
++ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">pthread_join_demo</span> {
+    <span style="color:#75715e">// 声明 thread_1 &amp; thread_2
+</span><span style="color:#75715e"></span>    pthread_t thread_1, thread_2;
 
-    // 创建 thread_1
-    int result_1 = pthread_create(&amp;thread_1, NULL, run_for_pthread_join_demo, &quot;thread_1&quot;);
+    <span style="color:#75715e">// 创建 thread_1
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> result_1 <span style="color:#f92672">=</span> pthread_create(<span style="color:#f92672">&amp;</span>thread_1, NULL, run_for_pthread_join_demo, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">thread_1</span><span style="color:#e6db74">&#34;</span>);
 
-    // 打印 thread_1 创建函数返回值 &amp; __opaque 属性的地址
-    printf(&quot;result_1 - %d - %p\n&quot;, result_1, &amp;thread_1-&gt;__opaque);
+    <span style="color:#75715e">// 打印 thread_1 创建函数返回值 &amp; __opaque 属性的地址
+</span><span style="color:#75715e"></span>    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">result_1 - %d - %p</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, result_1, <span style="color:#f92672">&amp;</span>thread_1<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>__opaque);
 
-    // 检查线程是否创建成功
-    if (result_1 != 0) {
-        perror(&quot;pthread_create thread_1 error.&quot;);
-        // 线程创建失败退出码为 1
-        exit(1);
+    <span style="color:#75715e">// 检查线程是否创建成功
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (result_1 <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+        perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_1 error.</span><span style="color:#e6db74">&#34;</span>);
+        <span style="color:#75715e">// 线程创建失败退出码为 1
+</span><span style="color:#75715e"></span>        exit(<span style="color:#ae81ff">1</span>);
     }
 
-    // 创建 thread_2
-    int result_2 = pthread_create(&amp;thread_2, NULL, run_for_pthread_join_demo, &quot;thread_2&quot;);
+    <span style="color:#75715e">// 创建 thread_2
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> result_2 <span style="color:#f92672">=</span> pthread_create(<span style="color:#f92672">&amp;</span>thread_2, NULL, run_for_pthread_join_demo, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">thread_2</span><span style="color:#e6db74">&#34;</span>);
 
-    // 打印 thread_2 创建函数返回值 &amp; __opaque 属性的地址
-    printf(&quot;result_2 - %d - %p\n&quot;, result_2, &amp;thread_2-&gt;__opaque);
+    <span style="color:#75715e">// 打印 thread_2 创建函数返回值 &amp; __opaque 属性的地址
+</span><span style="color:#75715e"></span>    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">result_2 - %d - %p</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, result_2, <span style="color:#f92672">&amp;</span>thread_2<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>__opaque);
 
-    if (result_2 != 0) {
-        perror(&quot;pthread_create thread_2 error.&quot;);
-        // 线程创建失败退出码为 1
-        exit(1);
+    <span style="color:#66d9ef">if</span> (result_2 <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+        perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_2 error.</span><span style="color:#e6db74">&#34;</span>);
+        <span style="color:#75715e">// 线程创建失败退出码为 1
+</span><span style="color:#75715e"></span>        exit(<span style="color:#ae81ff">1</span>);
     }
 
-    void * result;
-    if (pthread_join(thread_1, &amp;result) != 0) {
-        perror(&quot;pthread_join thread_1 error.&quot;);
+    <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> result;
+    <span style="color:#66d9ef">if</span> (pthread_join(thread_1, <span style="color:#f92672">&amp;</span>result) <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+        perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_join thread_1 error.</span><span style="color:#e6db74">&#34;</span>);
     }
-    printf(&quot;%s\n&quot;, result);
+    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%s</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, result);
 
-    if (pthread_join(thread_2, &amp;result) != 0) {
-        perror(&quot;pthread_join thread_2 error.&quot;);
+    <span style="color:#66d9ef">if</span> (pthread_join(thread_2, <span style="color:#f92672">&amp;</span>result) <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+        perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_join thread_2 error.</span><span style="color:#e6db74">&#34;</span>);
     }
-    printf(&quot;%s\n&quot;, result);
+    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%s</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, result);
 
-    // 主线程退出码为 3
-    exit(3);
+    <span style="color:#75715e">// 主线程退出码为 3
+</span><span style="color:#75715e"></span>    exit(<span style="color:#ae81ff">3</span>);
 }
 
-@end
-</code></pre>
-
-<p>这样主线程就能等待子线程全部执行完毕后再接着执行了，而且通过第二个参数也可以使我们在线程间进行数据传输。</p>
-
+<span style="color:#66d9ef">@end</span>
+</code></pre></div><p>这样主线程就能等待子线程全部执行完毕后再接着执行了，而且通过第二个参数也可以使我们在线程间进行数据传输。</p>
 <pre><code>// OUTPUT:
 result_1 - 0 - 0x70000c9e5010 // 主线程输出
 result_2 - 0 - 0x70000ca68010 // 主线程输出
 thread_1 // 主线程拿到了子线程调用函数的返回值并输出
 thread_2 // 主线程拿到了子线程调用函数的返回值并输出
 Program ended with exit code: 3 // 主线程结束程序
-</code></pre>
-
-<h2 id="互斥锁-mutex">互斥锁（Mutex）</h2>
-
+</code></pre><h2 id="mutex">互斥锁（Mutex）</h2>
 <p>多线程的并行计算加快了速度，但这使得多个线程的管理变得复杂。其中一个问题便是，如果两个线程同时对同一个资源操作，情况将变得不可控。举个例子，从 0 开始数数，数到 10 为止，如果有 5 个线程，则平均每个线程只需要数 2 个即可完成。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &#34;POSIXThreadManager.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">import &lt;pthread.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// 起始数
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> START_NUMBER <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+<span style="color:#75715e">// 结束数
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> END_NUMBER <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>;
+<span style="color:#75715e">// 线程数
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> THREAD_NUMBER <span style="color:#f92672">=</span> <span style="color:#ae81ff">5</span>;
+<span style="color:#75715e">// 平均每个线程的任务数
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> COUNT_PER_THREAD <span style="color:#f92672">=</span> (END_NUMBER <span style="color:#f92672">-</span> START_NUMBER) <span style="color:#f92672">/</span> THREAD_NUMBER;
 
-<pre><code class="language-objectivec">#import &quot;POSIXThreadManager.h&quot;
+<span style="color:#75715e">// 当前数，初始为起始数
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> current_count <span style="color:#f92672">=</span> START_NUMBER;
 
-#import &lt;pthread.h&gt;
-
-// 起始数
-const int START_NUMBER = 0;
-// 结束数
-const int END_NUMBER = 10;
-// 线程数
-const int THREAD_NUMBER = 5;
-// 平均每个线程的任务数
-const int COUNT_PER_THREAD = (END_NUMBER - START_NUMBER) / THREAD_NUMBER;
-
-// 当前数，初始为起始数
-int current_count = START_NUMBER;
-
-void * run_for_thread_conflict_demo(void * arg) {
-    for (int i = 0; i &lt; COUNT_PER_THREAD; i++) {
-        // 人为休息线程 1 秒
-        sleep(1);
-        current_count += 1;
-        printf(&quot;Now - %d\n&quot;, current_count);
+<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">run_for_thread_conflict_demo</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> arg) {
+    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> COUNT_PER_THREAD; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
+        <span style="color:#75715e">// 人为休息线程 1 秒
+</span><span style="color:#75715e"></span>        sleep(<span style="color:#ae81ff">1</span>);
+        current_count <span style="color:#f92672">+</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+        printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Now - %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, current_count);
     }
-    return NULL;
+    <span style="color:#66d9ef">return</span> NULL;
 }
 
-@implementation POSIXThreadManager
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">POSIXThreadManager</span>
 
-+ (void)thread_conflict_demo {
-    // 线程数组
-    pthread_t thread[THREAD_NUMBER];
-    void * result;
++ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">thread_conflict_demo</span> {
+    <span style="color:#75715e">// 线程数组
+</span><span style="color:#75715e"></span>    pthread_t <span style="color:#66d9ef">thread</span>[THREAD_NUMBER];
+    <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> result;
 
-    printf(&quot;Start number: %d\nEnd number: %d\nThread number: %d\n&quot;, START_NUMBER, END_NUMBER, THREAD_NUMBER);
+    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Start number: %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">End number: %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">Thread number: %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, START_NUMBER, END_NUMBER, THREAD_NUMBER);
 
-    for (int i = 0; i &lt; THREAD_NUMBER; i++) {
-        // 循环创建线程
-        if (pthread_create(&amp;thread[i], NULL, run_for_thread_conflict_demo, NULL) != 0) {
-            printf(&quot;pthread_create thread_%d error.&quot;, i);
-            exit(1);
+    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> THREAD_NUMBER; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
+        <span style="color:#75715e">// 循环创建线程
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (pthread_create(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">thread</span>[i], NULL, run_for_thread_conflict_demo, NULL) <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+            printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_%d error.</span><span style="color:#e6db74">&#34;</span>, i);
+            exit(<span style="color:#ae81ff">1</span>);
         }
     }
 
-    for (int i = 0; i &lt; THREAD_NUMBER; i++) {
-        // 循环 Join 线程，防止主线程提前结束
-        pthread_join(thread[i], &amp;result);
+    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> THREAD_NUMBER; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
+        <span style="color:#75715e">// 循环 Join 线程，防止主线程提前结束
+</span><span style="color:#75715e"></span>        pthread_join(<span style="color:#66d9ef">thread</span>[i], <span style="color:#f92672">&amp;</span>result);
     }
 
-    // 打印最终的数
-    printf(&quot;Result count - %d\n&quot;, current_count);
+    <span style="color:#75715e">// 打印最终的数
+</span><span style="color:#75715e"></span>    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Result count - %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, current_count);
 }
 
-@end
+<span style="color:#66d9ef">@end</span>
 
-// OUTPUT:
-// Start number: 0
-// End number: 10
-// Thread number: 5
-// Now - 1
-// Now - 5
-// Now - 4
-// Now - 2
-// Now - 3
-// Now - 6
-// Now - 6
-// Now - 7
-// Now - 8
-// Now - 9
-// Result count - 9
-// Program ended with exit code: 0
-</code></pre>
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Start number: 0
+</span><span style="color:#75715e"></span><span style="color:#75715e">// End number: 10
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Thread number: 5
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 1
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 5
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 4
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 2
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 3
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 6
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 6
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 7
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 8
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 9
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Result count - 9
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Program ended with exit code: 0
+</span></code></pre></div><p>结果怎么会是 9，是不是谁少数了 1 个呢？数一下输出语句可以发现并没有少数，而却有两个 <code>6</code>。其实问题就在于 <code>sleep(1);</code>，在一个线程休息的时候可能被另外一个线程抢先访问了同样的资源，而导致出错重复数数，虽然次数都是一定的，但最终的结果却少了。当然，因为这个示例程序是个很简单的 Demo，我们加入了人为的休息 <code>sleep()</code> 函数，然而其实每条程序语句的执行都是需要时间的，仍然有可能和其他线程同时访问一块资源。解决这一问题的方法就是加锁（Lock）。计算机科学中的锁不止互斥锁一种，限于主题，我将之后一篇文章中专门讲述锁相关的概念。最基本的锁就是互斥锁，即在不希望被同时多个线程访问的代码前加锁，执行完后再解锁，他们的执行是互斥的。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// 创建互斥锁
+</span><span style="color:#75715e"></span>pthread_mutex_t mutex <span style="color:#f92672">=</span> PTHREAD_MUTEX_INITIALIZER;
 
-<p>结果怎么会是 9，是不是谁少数了 1 个呢？数一下输出语句可以发现并没有少数，而却有两个 <code>6</code>。其实问题就在于 <code>sleep(1);</code>，在一个线程休息的时候可能被另外一个线程抢先访问了同样的资源，而导致出错重复数数，虽然次数都是一定的，但最终的结果却少了。当然，因为这个示例程序是个很简单的 Demo，我们加入了人为的休息 <code>sleep()</code> 函数，然而其实每条程序语句的执行都是需要时间的，仍然有可能和其他线程同时访问一块资源。解决这一问题的方法就是加锁（Lock）。计算机科学中的锁不止互斥锁一种，限于主题，我将之后一篇文章中专门讲述锁相关的概念。最基本的锁就是互斥锁，即在不希望被同时多个线程访问的代码前加锁，执行完后再解锁，他们的执行是互斥的。</p>
+<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">run_for_thread_conflict_demo</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> arg) {
+    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> COUNT_PER_THREAD; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
+        <span style="color:#75715e">// 人为休息线程 1 秒
+</span><span style="color:#75715e"></span>        sleep(<span style="color:#ae81ff">1</span>);
 
-<pre><code class="language-objectivec">// 创建互斥锁
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+        <span style="color:#75715e">// 加锁
+</span><span style="color:#75715e"></span>        pthread_mutex_lock(<span style="color:#f92672">&amp;</span>mutex);
 
-void * run_for_thread_conflict_demo(void * arg) {
-    for (int i = 0; i &lt; COUNT_PER_THREAD; i++) {
-        // 人为休息线程 1 秒
-        sleep(1);
+        current_count <span style="color:#f92672">+</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+        printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Now - %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, current_count);
 
-        // 加锁
-        pthread_mutex_lock(&amp;mutex);
-
-        current_count += 1;
-        printf(&quot;Now - %d\n&quot;, current_count);
-
-        // 解锁
-        pthread_mutex_unlock(&amp;mutex);
+        <span style="color:#75715e">// 解锁
+</span><span style="color:#75715e"></span>        pthread_mutex_unlock(<span style="color:#f92672">&amp;</span>mutex);
     }
-    return NULL;
+    <span style="color:#66d9ef">return</span> NULL;
 }
 
-// Start number: 0
-// End number: 10
-// Thread number: 5
-// Now - 1
-// Now - 2
-// Now - 3
-// Now - 4
-// Now - 5
-// Now - 6
-// Now - 7
-// Now - 8
-// Now - 9
-// Now - 10
-// Result count - 10
-// Program ended with exit code: 0
-</code></pre>
-
-<h2 id="信号量-semaphore">信号量（Semaphore）</h2>
-
+<span style="color:#75715e">// Start number: 0
+</span><span style="color:#75715e"></span><span style="color:#75715e">// End number: 10
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Thread number: 5
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 1
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 2
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 3
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 4
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 5
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 6
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 7
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 8
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 9
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Now - 10
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Result count - 10
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Program ended with exit code: 0
+</span></code></pre></div><h2 id="semaphore">信号量（Semaphore）</h2>
 <p>信号量的概念很难从字面直接理解，常用的比喻是信号灯：一段马路（即资源）对车辆（即线程）的承载量是有限的，当承载量达到限度时，红灯会亮起阻止进入；当承载量未达到时，绿灯会亮起允许进入。关于互斥锁和信号量的区别，简而言之，互斥锁通常处理多个线程对一个资源的争夺，意味着总是按顺序获取和释放。而信号量则应当用在一个任务到另一个任务的信号，其中的任务要么发送信号要么等待信号。我在 <a href="https://github.com/kingcos/WWDCHelper">WWDCHelper</a> 中也用到了信号量，函数返回的数据需要等待下载任务完成后才可以得到，所以当下载任务完成后发送信号，等待的信号收到后便继续前行。</p>
-
 <p>我们创建两个线程，线程 2 中人为等待 1 秒代表处理任务，任务完成后发送信号，线程 1 中等待信号，等信号发出再执行自己的任务：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &#34;POSIXThreadManager.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">import &lt;pthread.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;sys</span><span style="color:#75715e">/</span><span style="color:#75715e">semaphore.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// 声明信号量
+</span><span style="color:#75715e"></span>sem_t <span style="color:#f92672">*</span> semaphore;
 
-<pre><code class="language-objectivec">#import &quot;POSIXThreadManager.h&quot;
-
-#import &lt;pthread.h&gt;
-#import &lt;sys/semaphore.h&gt;
-
-// 声明信号量
-sem_t * semaphore;
-
-void * run_for_semaphore_demo_1(void * arg) {
-    // 等待信号
-    if (sem_wait(semaphore) != 0) {
-        perror(&quot;sem_wait error.&quot;);
-        exit(1);
+<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">run_for_semaphore_demo_1</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> arg) {
+    <span style="color:#75715e">// 等待信号
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (sem_wait(semaphore) <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+        perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">sem_wait error.</span><span style="color:#e6db74">&#34;</span>);
+        exit(<span style="color:#ae81ff">1</span>);
     }
 
-    printf(&quot;Running - %s.\n&quot;, arg);
+    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Running - %s.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, arg);
 
     pthread_exit(NULL);
 }
 
-void * run_for_semaphore_demo_2(void * arg) {
-    printf(&quot;Running - %s.\n&quot;, arg);
+<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">run_for_semaphore_demo_2</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> arg) {
+    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Running - %s.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, arg);
 
-    sleep(1);
-    // 发送信号
-    if (sem_post(semaphore) != 0) {
-        perror(&quot;sem_post error.&quot;);
-        exit(1);
+    sleep(<span style="color:#ae81ff">1</span>);
+    <span style="color:#75715e">// 发送信号
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (sem_post(semaphore) <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+        perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">sem_post error.</span><span style="color:#e6db74">&#34;</span>);
+        exit(<span style="color:#ae81ff">1</span>);
     }
 
     pthread_exit(NULL);
 }
 
-@implementation POSIXThreadManager
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">POSIXThreadManager</span>
 
-+ (void)semaphore_demo {
-    // sem_init 初始化匿名信号量在 macOS 中已被废弃
-    // semaphore = sem_init(&amp;semaphore, 0, 0);
-    semaphore = sem_open(&quot;sem&quot;, 0, 0);
++ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">semaphore_demo</span> {
+    <span style="color:#75715e">// sem_init 初始化匿名信号量在 macOS 中已被废弃
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// semaphore = sem_init(&amp;semaphore, 0, 0);
+</span><span style="color:#75715e"></span>    semaphore <span style="color:#f92672">=</span> sem_open(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">sem</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>);
 
     pthread_t thread_1, thread_2;
-    void * result;
+    <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> result;
 
-    if (pthread_create(&amp;thread_1, NULL, run_for_semaphore_demo_1, &quot;Thread 1&quot;) != 0) {
-        perror(&quot;pthread_create thread_1 error.&quot;);
-        exit(1);
+    <span style="color:#66d9ef">if</span> (pthread_create(<span style="color:#f92672">&amp;</span>thread_1, NULL, run_for_semaphore_demo_1, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Thread 1</span><span style="color:#e6db74">&#34;</span>) <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+        perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_1 error.</span><span style="color:#e6db74">&#34;</span>);
+        exit(<span style="color:#ae81ff">1</span>);
     }
 
-    if (pthread_create(&amp;thread_2, NULL, run_for_semaphore_demo_2, &quot;Thread 2&quot;) != 0) {
-        perror(&quot;pthread_create thread_2 error.&quot;);
-        exit(1);
+    <span style="color:#66d9ef">if</span> (pthread_create(<span style="color:#f92672">&amp;</span>thread_2, NULL, run_for_semaphore_demo_2, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Thread 2</span><span style="color:#e6db74">&#34;</span>) <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+        perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_2 error.</span><span style="color:#e6db74">&#34;</span>);
+        exit(<span style="color:#ae81ff">1</span>);
     }
 
-    pthread_join(thread_1, &amp;result);
-    pthread_join(thread_2, &amp;result);
+    pthread_join(thread_1, <span style="color:#f92672">&amp;</span>result);
+    pthread_join(thread_2, <span style="color:#f92672">&amp;</span>result);
 }
 
-@end
-</code></pre>
-
-<h2 id="one-more-thing">One more thing&hellip;</h2>
-
+<span style="color:#66d9ef">@end</span>
+</code></pre></div><h2 id="one-more-thing">One more thing&hellip;</h2>
 <p>上面我们在 Obj-C 中简单尝试了 pthreads 几个 API，那么它们能用 Swift 实现吗？答案是肯定的，但因为 Swift 没有指针的概念，存在了许多 <code>Unsafe</code> 开头的指针类型，告知我们其中可能存在隐患。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Foundation</span>
 
-<pre><code class="language-swift">import Foundation
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">PThreadsManager</span> {
+    <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">func</span> tryCreate() {
+        <span style="color:#66d9ef">var</span> thread_1, thread_2: pthread_t?
 
-class PThreadsManager {
-    class func tryCreate() {
-        var thread_1, thread_2: pthread_t?
-
-        if pthread_create(&amp;thread_1, nil, runForCreate, encode(&quot;Thread 1&quot;)) != 0 {
-            print(&quot;pthread_create thread_1 error.&quot;)
-            exit(1)
+        <span style="color:#66d9ef">if</span> pthread_create(&amp;thread_1, <span style="color:#66d9ef">nil</span>, runForCreate, encode(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Thread 1</span><span style="color:#e6db74">&#34;</span>)) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_1 error.</span><span style="color:#e6db74">&#34;</span>)
+            exit(<span style="color:#ae81ff">1</span>)
         }
 
-        if pthread_create(&amp;thread_2, nil, runForCreate, encode(&quot;Thread 2&quot;)) != 0 {
-            print(&quot;pthread_create thread_2 error.&quot;)
-            exit(1)
+        <span style="color:#66d9ef">if</span> pthread_create(&amp;thread_2, <span style="color:#66d9ef">nil</span>, runForCreate, encode(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Thread 2</span><span style="color:#e6db74">&#34;</span>)) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_2 error.</span><span style="color:#e6db74">&#34;</span>)
+            exit(<span style="color:#ae81ff">1</span>)
         }
 
-        sleep(1)
-        exit(3)
+        sleep(<span style="color:#ae81ff">1</span>)
+        exit(<span style="color:#ae81ff">3</span>)
     }
 
-    class func tryJoin() {
-        var thread_1, thread_2: pthread_t?
+    <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">func</span> tryJoin() {
+        <span style="color:#66d9ef">var</span> thread_1, thread_2: pthread_t?
 
-        if pthread_create(&amp;thread_1, nil, runForJoin, encode(&quot;Thread 1&quot;)) != 0 {
-            print(&quot;pthread_create thread_1 error.&quot;)
-            exit(1)
+        <span style="color:#66d9ef">if</span> pthread_create(&amp;thread_1, <span style="color:#66d9ef">nil</span>, runForJoin, encode(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Thread 1</span><span style="color:#e6db74">&#34;</span>)) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_1 error.</span><span style="color:#e6db74">&#34;</span>)
+            exit(<span style="color:#ae81ff">1</span>)
         }
 
-        if pthread_create(&amp;thread_2, nil, runForJoin, encode(&quot;Thread 2&quot;)) != 0 {
-            print(&quot;pthread_create thread_2 error.&quot;)
-            exit(1)
+        <span style="color:#66d9ef">if</span> pthread_create(&amp;thread_2, <span style="color:#66d9ef">nil</span>, runForJoin, encode(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Thread 2</span><span style="color:#e6db74">&#34;</span>)) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_2 error.</span><span style="color:#e6db74">&#34;</span>)
+            exit(<span style="color:#ae81ff">1</span>)
         }
 
-        if pthread_join(thread_1!, nil) != 0 {
-            print(&quot;pthread_join thread_1 error.&quot;)
-            exit(1)
+        <span style="color:#66d9ef">if</span> pthread_join(thread_1!, <span style="color:#66d9ef">nil</span>) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_join thread_1 error.</span><span style="color:#e6db74">&#34;</span>)
+            exit(<span style="color:#ae81ff">1</span>)
         }
 
-        if pthread_join(thread_2!, nil) != 0 {
-            print(&quot;pthread_join thread_2 error.&quot;)
-            exit(1)
+        <span style="color:#66d9ef">if</span> pthread_join(thread_2!, <span style="color:#66d9ef">nil</span>) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_join thread_2 error.</span><span style="color:#e6db74">&#34;</span>)
+            exit(<span style="color:#ae81ff">1</span>)
         }
     }
 
-    class func tryMutex() {
-        var thread_1, thread_2: pthread_t?
+    <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">func</span> tryMutex() {
+        <span style="color:#66d9ef">var</span> thread_1, thread_2: pthread_t?
 
-        if pthread_mutex_init(&amp;mutex, nil) != 0 {
-            print(&quot;pthread_mutex_init error.&quot;)
+        <span style="color:#66d9ef">if</span> pthread_mutex_init(&amp;mutex, <span style="color:#66d9ef">nil</span>) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_mutex_init error.</span><span style="color:#e6db74">&#34;</span>)
         }
 
-        if pthread_create(&amp;thread_1, nil, runForMutex, encode(&quot;Thread 1&quot;)) != 0 {
-            print(&quot;pthread_create thread_1 error.&quot;)
-            exit(1)
+        <span style="color:#66d9ef">if</span> pthread_create(&amp;thread_1, <span style="color:#66d9ef">nil</span>, runForMutex, encode(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Thread 1</span><span style="color:#e6db74">&#34;</span>)) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_1 error.</span><span style="color:#e6db74">&#34;</span>)
+            exit(<span style="color:#ae81ff">1</span>)
         }
 
-        if pthread_create(&amp;thread_2, nil, runForMutex, encode(&quot;Thread 2&quot;)) != 0 {
-            print(&quot;pthread_create thread_2 error.&quot;)
-            exit(1)
+        <span style="color:#66d9ef">if</span> pthread_create(&amp;thread_2, <span style="color:#66d9ef">nil</span>, runForMutex, encode(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Thread 2</span><span style="color:#e6db74">&#34;</span>)) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_2 error.</span><span style="color:#e6db74">&#34;</span>)
+            exit(<span style="color:#ae81ff">1</span>)
         }
 
-        if pthread_join(thread_1!, nil) != 0 {
-            print(&quot;pthread_join thread_1 error.&quot;)
-            exit(1)
+        <span style="color:#66d9ef">if</span> pthread_join(thread_1!, <span style="color:#66d9ef">nil</span>) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_join thread_1 error.</span><span style="color:#e6db74">&#34;</span>)
+            exit(<span style="color:#ae81ff">1</span>)
         }
 
-        if pthread_join(thread_2!, nil) != 0 {
-            print(&quot;pthread_join thread_2 error.&quot;)
-            exit(1)
+        <span style="color:#66d9ef">if</span> pthread_join(thread_2!, <span style="color:#66d9ef">nil</span>) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_join thread_2 error.</span><span style="color:#e6db74">&#34;</span>)
+            exit(<span style="color:#ae81ff">1</span>)
         }
 
-        print(&quot;Result count \(current_count)&quot;)
+        print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Result count </span><span style="color:#e6db74">\(</span>current_count<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>)
     }
 
-    class func trySemaphore() {
-        var thread_1, thread_2: pthread_t?
+    <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">func</span> trySemaphore() {
+        <span style="color:#66d9ef">var</span> thread_1, thread_2: pthread_t?
 
-        if pthread_create(&amp;thread_1, nil, runForSemaphore1, encode(&quot;Thread 1&quot;)) != 0 {
-            print(&quot;pthread_create thread_1 error.&quot;)
-            exit(1)
+        <span style="color:#66d9ef">if</span> pthread_create(&amp;thread_1, <span style="color:#66d9ef">nil</span>, runForSemaphore1, encode(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Thread 1</span><span style="color:#e6db74">&#34;</span>)) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_1 error.</span><span style="color:#e6db74">&#34;</span>)
+            exit(<span style="color:#ae81ff">1</span>)
         }
 
-        if pthread_create(&amp;thread_2, nil, runForSemaphore2, encode(&quot;Thread 2&quot;)) != 0 {
-            print(&quot;pthread_create thread_2 error.&quot;)
-            exit(1)
+        <span style="color:#66d9ef">if</span> pthread_create(&amp;thread_2, <span style="color:#66d9ef">nil</span>, runForSemaphore2, encode(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Thread 2</span><span style="color:#e6db74">&#34;</span>)) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_2 error.</span><span style="color:#e6db74">&#34;</span>)
+            exit(<span style="color:#ae81ff">1</span>)
         }
 
-        if pthread_join(thread_1!, nil) != 0 {
-            print(&quot;pthread_join thread_1 error.&quot;)
-            exit(1)
+        <span style="color:#66d9ef">if</span> pthread_join(thread_1!, <span style="color:#66d9ef">nil</span>) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_join thread_1 error.</span><span style="color:#e6db74">&#34;</span>)
+            exit(<span style="color:#ae81ff">1</span>)
         }
 
-        if pthread_join(thread_2!, nil) != 0 {
-            print(&quot;pthread_join thread_2 error.&quot;)
-            exit(1)
+        <span style="color:#66d9ef">if</span> pthread_join(thread_2!, <span style="color:#66d9ef">nil</span>) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_join thread_2 error.</span><span style="color:#e6db74">&#34;</span>)
+            exit(<span style="color:#ae81ff">1</span>)
         }
     }
 }
 
-let START_NUMBER = 0
-let END_NUMBER = 10
-let THREAD_NUMBER = 2
-let COUNT_PER_THREAD = (END_NUMBER - START_NUMBER) / THREAD_NUMBER
+<span style="color:#66d9ef">let</span> START_NUMBER = <span style="color:#ae81ff">0</span>
+<span style="color:#66d9ef">let</span> END_NUMBER = <span style="color:#ae81ff">10</span>
+<span style="color:#66d9ef">let</span> THREAD_NUMBER = <span style="color:#ae81ff">2</span>
+<span style="color:#66d9ef">let</span> COUNT_PER_THREAD = (END_NUMBER <span style="color:#f92672">-</span> START_NUMBER) <span style="color:#f92672">/</span> THREAD_NUMBER
 
-var current_count = START_NUMBER
-var mutex = pthread_mutex_t()
+<span style="color:#66d9ef">var</span> current_count = START_NUMBER
+<span style="color:#66d9ef">var</span> mutex = pthread_mutex_t()
 
-var sem: [CChar] = &quot;sem&quot;.cString(using: String.Encoding.utf8)!
-var semaphore = sem_open(&amp;sem, 0, 0, 0)
+<span style="color:#66d9ef">var</span> sem: [CChar] = <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">sem</span><span style="color:#e6db74">&#34;</span>.cString(using: String.Encoding.utf8)<span style="color:#f92672">!</span>
+<span style="color:#66d9ef">var</span> semaphore = sem_open(&amp;sem, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>)
 
-func runForCreate(_ context: UnsafeMutableRawPointer) -&gt; UnsafeMutableRawPointer? {
-    print(&quot;\(decode(context) as String) is running.&quot;)
-    exit(2)
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">runForCreate</span>(<span style="color:#66d9ef">_</span> context: UnsafeMutableRawPointer) -&gt; UnsafeMutableRawPointer? {
+    print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>decode<span style="color:#e6db74">(</span>context<span style="color:#e6db74">)</span> <span style="color:#66d9ef">as</span> String<span style="color:#e6db74">)</span><span style="color:#e6db74"> is running.</span><span style="color:#e6db74">&#34;</span>)
+    exit(<span style="color:#ae81ff">2</span>)
 }
 
-func runForJoin(_ context: UnsafeMutableRawPointer) -&gt; UnsafeMutableRawPointer? {
-    print(&quot;\(decode(context) as String) is running.&quot;)
-    exit(2)
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">runForJoin</span>(<span style="color:#66d9ef">_</span> context: UnsafeMutableRawPointer) -&gt; UnsafeMutableRawPointer? {
+    print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>decode<span style="color:#e6db74">(</span>context<span style="color:#e6db74">)</span> <span style="color:#66d9ef">as</span> String<span style="color:#e6db74">)</span><span style="color:#e6db74"> is running.</span><span style="color:#e6db74">&#34;</span>)
+    exit(<span style="color:#ae81ff">2</span>)
 }
 
-func runForMutex(_ context: UnsafeMutableRawPointer) -&gt; UnsafeMutableRawPointer? {
-    for _ in 0..&lt;COUNT_PER_THREAD {
-        sleep(1)
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">runForMutex</span>(<span style="color:#66d9ef">_</span> context: UnsafeMutableRawPointer) -&gt; UnsafeMutableRawPointer? {
+    <span style="color:#66d9ef">for</span> <span style="color:#66d9ef">_</span> <span style="color:#66d9ef">in</span> <span style="color:#ae81ff">0.</span>.&lt;COUNT_PER_THREAD {
+        sleep(<span style="color:#ae81ff">1</span>)
         pthread_mutex_lock(&amp;mutex)
 
-        current_count += 1
-        print(&quot;Now - \(current_count)&quot;)
+        current_count <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+        print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Now - </span><span style="color:#e6db74">\(</span>current_count<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>)
 
         pthread_mutex_unlock(&amp;mutex)
     }
-    pthread_exit(nil)
+    pthread_exit(<span style="color:#66d9ef">nil</span>)
 }
 
-func runForSemaphore1(_ context: UnsafeMutableRawPointer) -&gt; UnsafeMutableRawPointer? {
-    if sem_wait(semaphore) != 0 {
-        perror(&quot;sem_wait error.&quot;)
-        exit(1)
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">runForSemaphore1</span>(<span style="color:#66d9ef">_</span> context: UnsafeMutableRawPointer) -&gt; UnsafeMutableRawPointer? {
+    <span style="color:#66d9ef">if</span> sem_wait(semaphore) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+        perror(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">sem_wait error.</span><span style="color:#e6db74">&#34;</span>)
+        exit(<span style="color:#ae81ff">1</span>)
     }
-    print(&quot;runForSemaphore1&quot;)
-    pthread_exit(nil)
+    print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">runForSemaphore1</span><span style="color:#e6db74">&#34;</span>)
+    pthread_exit(<span style="color:#66d9ef">nil</span>)
 }
 
-func runForSemaphore2(_ context: UnsafeMutableRawPointer) -&gt; UnsafeMutableRawPointer? {
-    sleep(1)
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">runForSemaphore2</span>(<span style="color:#66d9ef">_</span> context: UnsafeMutableRawPointer) -&gt; UnsafeMutableRawPointer? {
+    sleep(<span style="color:#ae81ff">1</span>)
 
-    if sem_post(semaphore) != 0 {
-        print(&quot;sem_post error.&quot;)
-        exit(1)
+    <span style="color:#66d9ef">if</span> sem_post(semaphore) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+        print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">sem_post error.</span><span style="color:#e6db74">&#34;</span>)
+        exit(<span style="color:#ae81ff">1</span>)
     }
 
-    print(&quot;runForSemaphore2&quot;)
-    pthread_exit(nil)
+    print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">runForSemaphore2</span><span style="color:#e6db74">&#34;</span>)
+    pthread_exit(<span style="color:#66d9ef">nil</span>)
 }
 
-class Box&lt;T&gt; {
-    let value: T
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Box</span>&lt;T&gt; {
+    <span style="color:#66d9ef">let</span> value: T
 
-    init(_ value: T) {
-        self.value = value
+    <span style="color:#66d9ef">init</span>(<span style="color:#66d9ef">_</span> value: T) {
+        <span style="color:#66d9ef">self</span>.value = value
     }
 }
 
-private func decode&lt;T&gt;(_ memory: UnsafeMutableRawPointer) -&gt; T {
-    let unmanaged = Unmanaged&lt;Box&lt;T&gt;&gt;.fromOpaque(memory)
-    defer { unmanaged.release() }
-    return unmanaged.takeUnretainedValue().value
+<span style="color:#66d9ef">private</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">decode</span>&lt;T&gt;(<span style="color:#66d9ef">_</span> memory: UnsafeMutableRawPointer) -&gt; T {
+    <span style="color:#66d9ef">let</span> unmanaged = Unmanaged&lt;Box&lt;T&gt;<span style="color:#f92672">&gt;</span>.fromOpaque(memory)
+    <span style="color:#66d9ef">defer</span> { unmanaged.release() }
+    <span style="color:#66d9ef">return</span> unmanaged.takeUnretainedValue().value
 }
 
-private func encode&lt;T&gt;(_ t: T) -&gt; UnsafeMutableRawPointer {
-    return Unmanaged.passRetained(Box(t)).toOpaque()
+<span style="color:#66d9ef">private</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">encode</span>&lt;T&gt;(<span style="color:#66d9ef">_</span> t: T) -&gt; UnsafeMutableRawPointer {
+    <span style="color:#66d9ef">return</span> Unmanaged.passRetained(Box(t)).toOpaque()
 }
-</code></pre>
-
-<h2 id="reference">Reference</h2>
-
+</code></pre></div><h2 id="reference">Reference</h2>
 <ul>
 <li><a href="http://man7.org/linux/man-pages/man3/pthread_create.3.html">man - pthread_create</a></li>
 <li><a href="https://www.ibm.com/support/knowledgecenter/en/ssw_ibm_i_71/apis/concep17.htm">IBM - Thread ID vs. Pthread Handle (pthread_t)</a></li>

@@ -160,9 +160,7 @@
     
 
     <div class="post-content">
-      
-
-<table>
+      <table>
 <thead>
 <tr>
 <th align="center">Date</th>
@@ -171,7 +169,6 @@
 <th align="center">Xcode</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td align="center">2017-04-27</td>
@@ -179,7 +176,6 @@
 <td align="center">3.1</td>
 <td align="center">8.3.2</td>
 </tr>
-
 <tr>
 <td align="center">2016-10-26</td>
 <td align="center">首次提交</td>
@@ -188,17 +184,11 @@
 </tr>
 </tbody>
 </table>
-
-<h2 id="前言">前言</h2>
-
+<h2 id="heading">前言</h2>
 <p>Swift 中的属性分为存储属性与计算属性，存储属性即为我们平时常用的属性，可以直接赋值使用，而计算属性不直接存储值，而是根据其他（存储）属性计算得来的值。</p>
-
 <p>在其他面向对象的编程语言中，例如 Java 和 Objective-C 中，get 和 set 方法提供了统一、规范的接口，可以使得外部访问或设置对象的私有属性，而不破坏封装性，也可以很好的控制权限（选择性实现 get 或 set 方法）。而 Swift 中似乎并没有见到类似的 get 和 set 方法，而 Swift 使用了一种名为属性观察器的概念来解决该问题。</p>
-
 <p>本文简单介绍下 Swift 中的这两种属性，以及属性观察器。</p>
-
-<h2 id="延迟存储属性">延迟存储属性</h2>
-
+<h2 id="heading1">延迟存储属性</h2>
 <ul>
 <li>存储属性使用广泛，即是类或结构体中的变量或常量，可以直接赋初始值，也可以修改其初始值（仅指变量）。</li>
 <li>延迟存储属性是指第一次使用到该变量再进行运算（这里的运算不能依赖其他成员属性，但可以使用静态／类属性）。</li>
@@ -206,315 +196,264 @@
 <li>在 Swift 中，可以将消耗性能才能得到的值作为延迟存储属性，即懒加载。</li>
 <li>全局的常量和变量也是延迟存储属性，但不需要显式声明为 lazy（不支持 Playground）。</li>
 </ul>
-
 <h3 id="demo">Demo</h3>
-
 <ul>
 <li>这里假定在 ViewController.swift 有一个属性，需要从 plist 文件读取内容，将其中的字典转为模型。如果 plist 文件中内容很多，那么就十分消耗性能。如果用户不触发相应事件，也没有必要加载这些数据。那么这里就很适合使用懒加载，即延迟存储属性。</li>
 </ul>
-
 <p>ViewController.swift</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ViewController</span>: UIViewController {
 
-<pre><code class="language-swift">class ViewController: UIViewController {
+    <span style="color:#66d9ef">lazy</span> <span style="color:#66d9ef">var</span> goods: NSArray? = {
+        <span style="color:#66d9ef">var</span> goodsArray: NSMutableArray = []
 
-    lazy var goods: NSArray? = {
-        var goodsArray: NSMutableArray = []
-
-        if let path = Bundle.main.path(forResource: &quot;Goods&quot;, ofType: &quot;plist&quot;) {
-            if let array = NSArray(contentsOfFile: path) {
-                for goodsDict in array {
-                    goodsArray.add(Goods(goodsDict as! NSDictionary))
+        <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> path = Bundle.main.path(forResource: <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Goods</span><span style="color:#e6db74">&#34;</span>, ofType: <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">plist</span><span style="color:#e6db74">&#34;</span>) {
+            <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> array = NSArray(contentsOfFile: path) {
+                <span style="color:#66d9ef">for</span> goodsDict <span style="color:#66d9ef">in</span> array {
+                    goodsArray.add(Goods(goodsDict <span style="color:#66d9ef">as</span>! NSDictionary))
                 }
-                return goodsArray
+                <span style="color:#66d9ef">return</span> goodsArray
             }
         }
 
-        return nil
+        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
     }()
 
-    // 这样也是允许的，可以把初始化的代码直接放在构造方法中
-    lazy var testLazy = Person()
+    <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">这</span><span style="color:#75715e">样</span><span style="color:#75715e">也</span><span style="color:#75715e">是</span><span style="color:#75715e">允</span><span style="color:#75715e">许</span><span style="color:#75715e">的</span><span style="color:#75715e">，</span><span style="color:#75715e">可</span><span style="color:#75715e">以</span><span style="color:#75715e">把</span><span style="color:#75715e">初</span><span style="color:#75715e">始</span><span style="color:#75715e">化</span><span style="color:#75715e">的</span><span style="color:#75715e">代</span><span style="color:#75715e">码</span><span style="color:#75715e">直</span><span style="color:#75715e">接</span><span style="color:#75715e">放</span><span style="color:#75715e">在</span><span style="color:#75715e">构</span><span style="color:#75715e">造</span><span style="color:#75715e">方</span><span style="color:#75715e">法</span><span style="color:#75715e">中</span>
+    <span style="color:#66d9ef">lazy</span> <span style="color:#66d9ef">var</span> testLazy = Person()
 }
 
-class Person {}
-</code></pre>
-
-<p><em>可以在延迟存储属性运算的代码中加入打印语句，即可验证其何时初始化。</em></p>
-
-<h3 id="lazy-初始化的-演变-过程">Lazy 初始化的「演变」过程</h3>
-
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Person</span> {}
+</code></pre></div><p><em>可以在延迟存储属性运算的代码中加入打印语句，即可验证其何时初始化。</em></p>
+<h3 id="lazy-">Lazy 初始化的「演变」过程</h3>
 <ul>
-<li><p>根据上面 Demo，延迟存储属性的初始化代码部分可能有些让人迷惑，但其实也是初始化的一步步的演变过程。在 <a href="https://weibo.com/u/1683298872">@Onetaway</a> 的 <a href="http://www.bilibili.com/video/av10139582/">【菜鸡Playground 1】Swift 中 lazy initialization</a> 中也有描述这个过程，简单用代码表示也如下所示：</p>
+<li>根据上面 Demo，延迟存储属性的初始化代码部分可能有些让人迷惑，但其实也是初始化的一步步的演变过程。在 <a href="https://weibo.com/u/1683298872">@Onetaway</a> 的 <a href="http://www.bilibili.com/video/av10139582/">【菜鸡Playground 1】Swift 中 lazy initialization</a> 中也有描述这个过程，简单用代码表示也如下所示：</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-Swift" data-lang="Swift"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Person</span> {
+    <span style="color:#66d9ef">var</span> name = <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>
 
-<pre><code class="language-Swift">struct Person {
-var name = &quot;&quot;
-
-init() {
-    print(#function)
-}
-}
-
-// 直接初始化
-let p1 = Person()
-
-// 利用闭包
-let getOnePerson = { () -&gt; Person in
-let p = Person()
-return p
+    <span style="color:#66d9ef">init</span>() {
+        print(<span style="color:#66d9ef">#function</span>)
+    }
 }
 
-let p2 = getOnePerson()
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">直</span><span style="color:#75715e">接</span><span style="color:#75715e">初</span><span style="color:#75715e">始</span><span style="color:#75715e">化</span>
+<span style="color:#66d9ef">let</span> p1 = Person()
 
-// 闭包执行
-let p3 = { () -&gt; Person in
-let p = Person()
-return p
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">利</span><span style="color:#75715e">用</span><span style="color:#75715e">闭</span><span style="color:#75715e">包</span>
+<span style="color:#66d9ef">let</span> getOnePerson = { () -&gt; Person <span style="color:#66d9ef">in</span>
+    <span style="color:#66d9ef">let</span> p = Person()
+    <span style="color:#66d9ef">return</span> p
+}
+
+<span style="color:#66d9ef">let</span> p2 = getOnePerson()
+
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">闭</span><span style="color:#75715e">包</span><span style="color:#75715e">执</span><span style="color:#75715e">行</span>
+<span style="color:#66d9ef">let</span> p3 = { () -&gt; Person <span style="color:#66d9ef">in</span>
+    <span style="color:#66d9ef">let</span> p = Person()
+    <span style="color:#66d9ef">return</span> p
 }()
 
-// 简化
-let p4: Person = {
-let p = Person()
-return p
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">简</span><span style="color:#75715e">化</span>
+<span style="color:#66d9ef">let</span> p4: Person = {
+    <span style="color:#66d9ef">let</span> p = Person()
+    <span style="color:#66d9ef">return</span> p
 }()
-</code></pre></li>
-</ul>
-
-<h3 id="lazy-方法">Lazy 方法</h3>
-
+</code></pre></div><h3 id="lazy-1">Lazy 方法</h3>
 <ul>
-<li><p><a href="https://onevcat.com">@Onevcat</a> 的 Swifter Tips 中也提到，在 Swift 标准库中，也有一些 Lazy 方法，就可以在不需要运行时，避免消耗太多的性能。</p>
-
-<pre><code class="language-Swift">let data = 0...3
-let result = data.lazy.map { (i: Int) -&gt; Int in
-print(&quot;Handling...&quot;)
-return i * 2
-}
-
-print(&quot;Begin:&quot;)
-for i in result {
-print(i)
-}
-// OUTPUT:
-// Begin:
-// Handling...
-// 0
-// Handling...
-// 2
-// Handling...
-// 4
-// Handling...
-// 6
-</code></pre></li>
+<li><a href="https://onevcat.com">@Onevcat</a> 的 Swifter Tips 中也提到，在 Swift 标准库中，也有一些 Lazy 方法，就可以在不需要运行时，避免消耗太多的性能。</li>
 </ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-Swift" data-lang="Swift"><span style="color:#66d9ef">let</span> data = <span style="color:#ae81ff">0.</span>..<span style="color:#ae81ff">3</span>
+<span style="color:#66d9ef">let</span> result = data.<span style="color:#66d9ef">lazy</span>.map { (i: Int) -&gt; Int <span style="color:#66d9ef">in</span>
+    print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Handling...</span><span style="color:#e6db74">&#34;</span>)
+    <span style="color:#66d9ef">return</span> i <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>
+}
 
-<h2 id="devxoul-then">devxoul/Then</h2>
-
+print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Begin:</span><span style="color:#e6db74">&#34;</span>)
+<span style="color:#66d9ef">for</span> i <span style="color:#66d9ef">in</span> result {
+    print(i)
+}
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">O</span><span style="color:#75715e">U</span><span style="color:#75715e">T</span><span style="color:#75715e">P</span><span style="color:#75715e">U</span><span style="color:#75715e">T</span><span style="color:#75715e">:</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">B</span><span style="color:#75715e">e</span><span style="color:#75715e">g</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">:</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">H</span><span style="color:#75715e">a</span><span style="color:#75715e">n</span><span style="color:#75715e">d</span><span style="color:#75715e">l</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">g</span><span style="color:#75715e">.</span><span style="color:#75715e">.</span><span style="color:#75715e">.</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">0</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">H</span><span style="color:#75715e">a</span><span style="color:#75715e">n</span><span style="color:#75715e">d</span><span style="color:#75715e">l</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">g</span><span style="color:#75715e">.</span><span style="color:#75715e">.</span><span style="color:#75715e">.</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">2</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">H</span><span style="color:#75715e">a</span><span style="color:#75715e">n</span><span style="color:#75715e">d</span><span style="color:#75715e">l</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">g</span><span style="color:#75715e">.</span><span style="color:#75715e">.</span><span style="color:#75715e">.</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">4</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">H</span><span style="color:#75715e">a</span><span style="color:#75715e">n</span><span style="color:#75715e">d</span><span style="color:#75715e">l</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">g</span><span style="color:#75715e">.</span><span style="color:#75715e">.</span><span style="color:#75715e">.</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">6</span>
+</code></pre></div><h2 id="devxoulthen">devxoul/Then</h2>
 <ul>
 <li>在 <a href="http://www.jianshu.com/u/88a056103c02">@没故事的卓同学</a>的<a href="http://www.bilibili.com/video/av10142408/">【菜鸡Playground 2】Swift 中 lazy initialization 的使用场景</a>中提到了一个 <a href="https://github.com/devxoul/Then">devxoul/Then</a> 库，为 Swift 的构造方法加入语法糖。</li>
 </ul>
-
-<h3 id="demo-1">Demo</h3>
-
+<h3 id="demo1">Demo</h3>
 <p>ViewController.swift</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-Swift" data-lang="Swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Then</span>
 
-<pre><code class="language-Swift">import UIKit
-import Then
-
-class ViewController: UIViewController {
-    lazy var myLabel = UILabel().then {
-        $0.text = &quot;My Label&quot;
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ViewController</span>: UIViewController {
+    <span style="color:#66d9ef">lazy</span> <span style="color:#66d9ef">var</span> myLabel = UILabel().then {
+        $0.text = <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">My Label</span><span style="color:#e6db74">&#34;</span>
     }
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">viewDidLoad</span>() {
+        <span style="color:#66d9ef">super</span>.viewDidLoad()
 
-        myLabel.frame = CGRect(x: 0.0, y: 0.0,
-                               width: 100.0, height: 100.0)
+        myLabel.frame = CGRect(x: <span style="color:#ae81ff">0.0</span>, y: <span style="color:#ae81ff">0.0</span>,
+                               width: <span style="color:#ae81ff">100.0</span>, height: <span style="color:#ae81ff">100.0</span>)
         view.addSubview(myLabel)
     }
 }
-</code></pre>
-
-<h3 id="source-code">Source Code</h3>
-
+</code></pre></div><h3 id="source-code">Source Code</h3>
 <ul>
 <li>Then 的核心源码部分总共只有不到 20 行，非常简单易懂。</li>
 <li>Then 库中定义了一个名为 Then 的空协议，之后通过协议扩展（Protocol Extension），来为协议添加默认的方法实现。</li>
 </ul>
-
 <h3 id="then"><code>then()</code></h3>
-
 <ul>
 <li>因为 <code>then()</code> 内部将 <code>self</code> 返回，即可在初始化完成后，调用该方法，并在闭包中设置属性，而且不需要再将自身返回。</li>
-
-<li><p>支持 NSObject 子类，也可以将自定义类型（仅支持 AnyObject 类型，即 class）声明实现该协议即可（协议扩展已经拥有默认实现，所以仅声明实现协议即可）。</p>
-
-<pre><code class="language-Swift">extension Then where Self: AnyObject {
-
-/// Makes it available to set properties with closures just after initializing.
-public func then(_ block: (Self) -&gt; Void) -&gt; Self {
-block(self)
-return self
-}
-
-}
-</code></pre></li>
+<li>支持 NSObject 子类，也可以将自定义类型（仅支持 AnyObject 类型，即 class）声明实现该协议即可（协议扩展已经拥有默认实现，所以仅声明实现协议即可）。</li>
 </ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-Swift" data-lang="Swift"><span style="color:#66d9ef">extension</span> <span style="color:#a6e22e">Then</span> <span style="color:#66d9ef">where</span> <span style="color:#66d9ef">Self</span>: AnyObject {
 
-<h3 id="with"><code>with()</code></h3>
+  <span style="color:#75715e">//</span><span style="color:#75715e">/</span><span style="color:#75715e"> </span><span style="color:#75715e">M</span><span style="color:#75715e">a</span><span style="color:#75715e">k</span><span style="color:#75715e">e</span><span style="color:#75715e">s</span><span style="color:#75715e"> </span><span style="color:#75715e">i</span><span style="color:#75715e">t</span><span style="color:#75715e"> </span><span style="color:#75715e">a</span><span style="color:#75715e">v</span><span style="color:#75715e">a</span><span style="color:#75715e">i</span><span style="color:#75715e">l</span><span style="color:#75715e">a</span><span style="color:#75715e">b</span><span style="color:#75715e">l</span><span style="color:#75715e">e</span><span style="color:#75715e"> </span><span style="color:#75715e">t</span><span style="color:#75715e">o</span><span style="color:#75715e"> </span><span style="color:#75715e">s</span><span style="color:#75715e">e</span><span style="color:#75715e">t</span><span style="color:#75715e"> </span><span style="color:#75715e">p</span><span style="color:#75715e">r</span><span style="color:#75715e">o</span><span style="color:#75715e">p</span><span style="color:#75715e">e</span><span style="color:#75715e">r</span><span style="color:#75715e">t</span><span style="color:#75715e">i</span><span style="color:#75715e">e</span><span style="color:#75715e">s</span><span style="color:#75715e"> </span><span style="color:#75715e">w</span><span style="color:#75715e">i</span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e"> </span><span style="color:#75715e">c</span><span style="color:#75715e">l</span><span style="color:#75715e">o</span><span style="color:#75715e">s</span><span style="color:#75715e">u</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">s</span><span style="color:#75715e"> </span><span style="color:#75715e">j</span><span style="color:#75715e">u</span><span style="color:#75715e">s</span><span style="color:#75715e">t</span><span style="color:#75715e"> </span><span style="color:#75715e">a</span><span style="color:#75715e">f</span><span style="color:#75715e">t</span><span style="color:#75715e">e</span><span style="color:#75715e">r</span><span style="color:#75715e"> </span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">i</span><span style="color:#75715e">t</span><span style="color:#75715e">i</span><span style="color:#75715e">a</span><span style="color:#75715e">l</span><span style="color:#75715e">i</span><span style="color:#75715e">z</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">g</span><span style="color:#75715e">.</span>
+  <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">then</span>(<span style="color:#66d9ef">_</span> block: (<span style="color:#66d9ef">Self</span>) -&gt; Void) -&gt; <span style="color:#66d9ef">Self</span> {
+    block(<span style="color:#66d9ef">self</span>)
+    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">self</span>
+  }
 
+}
+</code></pre></div><h3 id="with"><code>with()</code></h3>
 <ul>
 <li><code>then()</code> 适用于引用类型，而 <code>with()</code> 适用于值类型。</li>
-
-<li><p>使用了 <code>inout</code> 确保方法内外共用一个值类型变量。</p>
-
-<pre><code class="language-Swift">extension Then where Self: Any {
-
-/// Makes it available to set properties with closures just after initializing and copying the value types.
-public func with(_ block: (inout Self) -&gt; Void) -&gt; Self {
-var copy = self
-block(&amp;copy)
-return copy
-}
-
-}
-</code></pre></li>
+<li>使用了 <code>inout</code> 确保方法内外共用一个值类型变量。</li>
 </ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-Swift" data-lang="Swift"><span style="color:#66d9ef">extension</span> <span style="color:#a6e22e">Then</span> <span style="color:#66d9ef">where</span> <span style="color:#66d9ef">Self</span>: Any {
 
-<h3 id="do"><code>do()</code></h3>
+  <span style="color:#75715e">//</span><span style="color:#75715e">/</span><span style="color:#75715e"> </span><span style="color:#75715e">M</span><span style="color:#75715e">a</span><span style="color:#75715e">k</span><span style="color:#75715e">e</span><span style="color:#75715e">s</span><span style="color:#75715e"> </span><span style="color:#75715e">i</span><span style="color:#75715e">t</span><span style="color:#75715e"> </span><span style="color:#75715e">a</span><span style="color:#75715e">v</span><span style="color:#75715e">a</span><span style="color:#75715e">i</span><span style="color:#75715e">l</span><span style="color:#75715e">a</span><span style="color:#75715e">b</span><span style="color:#75715e">l</span><span style="color:#75715e">e</span><span style="color:#75715e"> </span><span style="color:#75715e">t</span><span style="color:#75715e">o</span><span style="color:#75715e"> </span><span style="color:#75715e">s</span><span style="color:#75715e">e</span><span style="color:#75715e">t</span><span style="color:#75715e"> </span><span style="color:#75715e">p</span><span style="color:#75715e">r</span><span style="color:#75715e">o</span><span style="color:#75715e">p</span><span style="color:#75715e">e</span><span style="color:#75715e">r</span><span style="color:#75715e">t</span><span style="color:#75715e">i</span><span style="color:#75715e">e</span><span style="color:#75715e">s</span><span style="color:#75715e"> </span><span style="color:#75715e">w</span><span style="color:#75715e">i</span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e"> </span><span style="color:#75715e">c</span><span style="color:#75715e">l</span><span style="color:#75715e">o</span><span style="color:#75715e">s</span><span style="color:#75715e">u</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">s</span><span style="color:#75715e"> </span><span style="color:#75715e">j</span><span style="color:#75715e">u</span><span style="color:#75715e">s</span><span style="color:#75715e">t</span><span style="color:#75715e"> </span><span style="color:#75715e">a</span><span style="color:#75715e">f</span><span style="color:#75715e">t</span><span style="color:#75715e">e</span><span style="color:#75715e">r</span><span style="color:#75715e"> </span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">i</span><span style="color:#75715e">t</span><span style="color:#75715e">i</span><span style="color:#75715e">a</span><span style="color:#75715e">l</span><span style="color:#75715e">i</span><span style="color:#75715e">z</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">g</span><span style="color:#75715e"> </span><span style="color:#75715e">a</span><span style="color:#75715e">n</span><span style="color:#75715e">d</span><span style="color:#75715e"> </span><span style="color:#75715e">c</span><span style="color:#75715e">o</span><span style="color:#75715e">p</span><span style="color:#75715e">y</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">g</span><span style="color:#75715e"> </span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e">e</span><span style="color:#75715e"> </span><span style="color:#75715e">v</span><span style="color:#75715e">a</span><span style="color:#75715e">l</span><span style="color:#75715e">u</span><span style="color:#75715e">e</span><span style="color:#75715e"> </span><span style="color:#75715e">t</span><span style="color:#75715e">y</span><span style="color:#75715e">p</span><span style="color:#75715e">e</span><span style="color:#75715e">s</span><span style="color:#75715e">.</span>
+  <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">with</span>(<span style="color:#66d9ef">_</span> block: (<span style="color:#66d9ef">inout</span> <span style="color:#66d9ef">Self</span>) -&gt; Void) -&gt; <span style="color:#66d9ef">Self</span> {
+    <span style="color:#66d9ef">var</span> copy = <span style="color:#66d9ef">self</span>
+    block(&amp;copy)
+    <span style="color:#66d9ef">return</span> copy
+  }
 
+}
+</code></pre></div><h3 id="do"><code>do()</code></h3>
 <ul>
-<li><p><code>do()</code> 使得可以直接在闭包中简单地执行一些操作。</p>
-
-<pre><code class="language-Swift">extension Then where Self: Any {
-/// Makes it available to execute something with closures.
-public func `do`(_ block: (Self) -&gt; Void) {
-block(self)
-}
-
-}
-</code></pre></li>
+<li><code>do()</code> 使得可以直接在闭包中简单地执行一些操作。</li>
 </ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-Swift" data-lang="Swift"><span style="color:#66d9ef">extension</span> <span style="color:#a6e22e">Then</span> <span style="color:#66d9ef">where</span> <span style="color:#66d9ef">Self</span>: Any {
+  <span style="color:#75715e">//</span><span style="color:#75715e">/</span><span style="color:#75715e"> </span><span style="color:#75715e">M</span><span style="color:#75715e">a</span><span style="color:#75715e">k</span><span style="color:#75715e">e</span><span style="color:#75715e">s</span><span style="color:#75715e"> </span><span style="color:#75715e">i</span><span style="color:#75715e">t</span><span style="color:#75715e"> </span><span style="color:#75715e">a</span><span style="color:#75715e">v</span><span style="color:#75715e">a</span><span style="color:#75715e">i</span><span style="color:#75715e">l</span><span style="color:#75715e">a</span><span style="color:#75715e">b</span><span style="color:#75715e">l</span><span style="color:#75715e">e</span><span style="color:#75715e"> </span><span style="color:#75715e">t</span><span style="color:#75715e">o</span><span style="color:#75715e"> </span><span style="color:#75715e">e</span><span style="color:#75715e">x</span><span style="color:#75715e">e</span><span style="color:#75715e">c</span><span style="color:#75715e">u</span><span style="color:#75715e">t</span><span style="color:#75715e">e</span><span style="color:#75715e"> </span><span style="color:#75715e">s</span><span style="color:#75715e">o</span><span style="color:#75715e">m</span><span style="color:#75715e">e</span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">g</span><span style="color:#75715e"> </span><span style="color:#75715e">w</span><span style="color:#75715e">i</span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e"> </span><span style="color:#75715e">c</span><span style="color:#75715e">l</span><span style="color:#75715e">o</span><span style="color:#75715e">s</span><span style="color:#75715e">u</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">s</span><span style="color:#75715e">.</span>
+  <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> `<span style="color:#66d9ef">do</span>`(<span style="color:#66d9ef">_</span> block: (<span style="color:#66d9ef">Self</span>) -&gt; Void) {
+    block(<span style="color:#66d9ef">self</span>)
+  }
 
-<h2 id="计算属性">计算属性</h2>
-
+}
+</code></pre></div><h2 id="heading2">计算属性</h2>
 <ul>
 <li>举个例子，一个<strong>矩形</strong>结构体（类同理），拥有<strong>宽度</strong>和<strong>高度</strong>两个存储属性，以及一个只读<strong>面积</strong>的计算属性，因为通过设置矩形的宽度和高度即可<strong>计算</strong>出矩形的面积，而无需直接设置其值。当宽度或高度改变，面积也应当可以跟随其变化（反之不能推算，因此为只读）。为说明 setter 以及便捷 setter 说明，另外添加了<strong>原点</strong>（矩形左下角）存储属性，以及<strong>中心</strong>计算属性。</li>
 </ul>
-
-<h3 id="demo-2">Demo</h3>
-
-<pre><code class="language-swift">struct Point {
-    var x = 0.0
-    var y = 0.0
+<h3 id="demo2">Demo</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Point</span> {
+    <span style="color:#66d9ef">var</span> x = <span style="color:#ae81ff">0.0</span>
+    <span style="color:#66d9ef">var</span> y = <span style="color:#ae81ff">0.0</span>
 }
 
-struct Rectangle {
-    var width = 0.0
-    var height = 0.0
-    var origin = Point()
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Rectangle</span> {
+    <span style="color:#66d9ef">var</span> width = <span style="color:#ae81ff">0.0</span>
+    <span style="color:#66d9ef">var</span> height = <span style="color:#ae81ff">0.0</span>
+    <span style="color:#66d9ef">var</span> origin = Point()
 
-    // 只读计算属性
-    var size: Double {
-        get {
-            return width * height
+    <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">只</span><span style="color:#75715e">读</span><span style="color:#75715e">计</span><span style="color:#75715e">算</span><span style="color:#75715e">属</span><span style="color:#75715e">性</span>
+    <span style="color:#66d9ef">var</span> size: Double {
+        <span style="color:#66d9ef">get</span> {
+            <span style="color:#66d9ef">return</span> width <span style="color:#f92672">*</span> height
         }
     }
 
-    // 只读计算属性简写为
-//    var size: Double {
-//        return width * height
-//    }
+    <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">只</span><span style="color:#75715e">读</span><span style="color:#75715e">计</span><span style="color:#75715e">算</span><span style="color:#75715e">属</span><span style="color:#75715e">性</span><span style="color:#75715e">简</span><span style="color:#75715e">写</span><span style="color:#75715e">为</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e">v</span><span style="color:#75715e">a</span><span style="color:#75715e">r</span><span style="color:#75715e"> </span><span style="color:#75715e">s</span><span style="color:#75715e">i</span><span style="color:#75715e">z</span><span style="color:#75715e">e</span><span style="color:#75715e">:</span><span style="color:#75715e"> </span><span style="color:#75715e">D</span><span style="color:#75715e">o</span><span style="color:#75715e">u</span><span style="color:#75715e">b</span><span style="color:#75715e">l</span><span style="color:#75715e">e</span><span style="color:#75715e"> </span><span style="color:#75715e">{</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">t</span><span style="color:#75715e">u</span><span style="color:#75715e">r</span><span style="color:#75715e">n</span><span style="color:#75715e"> </span><span style="color:#75715e">w</span><span style="color:#75715e">i</span><span style="color:#75715e">d</span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e"> </span><span style="color:#75715e">*</span><span style="color:#75715e"> </span><span style="color:#75715e">h</span><span style="color:#75715e">e</span><span style="color:#75715e">i</span><span style="color:#75715e">g</span><span style="color:#75715e">h</span><span style="color:#75715e">t</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e">}</span>
 
-    var center: Point {
-        get {
-            return Point(x: origin.x + width / 2,
-                         y: origin.y + height / 2)
+    <span style="color:#66d9ef">var</span> center: Point {
+        <span style="color:#66d9ef">get</span> {
+            <span style="color:#66d9ef">return</span> Point(x: origin.x <span style="color:#f92672">+</span> width <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>,
+                         y: origin.y <span style="color:#f92672">+</span> height <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>)
         }
 
-        set(newCenter) {
-            origin.x = newCenter.x - width / 2
-            origin.y = newCenter.y - height / 2
+        <span style="color:#66d9ef">set</span>(newCenter) {
+            origin.x = newCenter.x <span style="color:#f92672">-</span> width <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>
+            origin.y = newCenter.y <span style="color:#f92672">-</span> height <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>
         }
 
-        // 便捷 setter 声明
-//        set {
-//            origin.x = newValue.x - width / 2
-//            origin.y = newValue.y - height / 2
-//        }
+        <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">便</span><span style="color:#75715e">捷</span><span style="color:#75715e"> </span><span style="color:#75715e">s</span><span style="color:#75715e">e</span><span style="color:#75715e">t</span><span style="color:#75715e">t</span><span style="color:#75715e">e</span><span style="color:#75715e">r</span><span style="color:#75715e"> </span><span style="color:#75715e">声</span><span style="color:#75715e">明</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e">s</span><span style="color:#75715e">e</span><span style="color:#75715e">t</span><span style="color:#75715e"> </span><span style="color:#75715e">{</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e">o</span><span style="color:#75715e">r</span><span style="color:#75715e">i</span><span style="color:#75715e">g</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">.</span><span style="color:#75715e">x</span><span style="color:#75715e"> </span><span style="color:#75715e">=</span><span style="color:#75715e"> </span><span style="color:#75715e">n</span><span style="color:#75715e">e</span><span style="color:#75715e">w</span><span style="color:#75715e">V</span><span style="color:#75715e">a</span><span style="color:#75715e">l</span><span style="color:#75715e">u</span><span style="color:#75715e">e</span><span style="color:#75715e">.</span><span style="color:#75715e">x</span><span style="color:#75715e"> </span><span style="color:#75715e">-</span><span style="color:#75715e"> </span><span style="color:#75715e">w</span><span style="color:#75715e">i</span><span style="color:#75715e">d</span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e"> </span><span style="color:#75715e">/</span><span style="color:#75715e"> </span><span style="color:#75715e">2</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e">o</span><span style="color:#75715e">r</span><span style="color:#75715e">i</span><span style="color:#75715e">g</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">.</span><span style="color:#75715e">y</span><span style="color:#75715e"> </span><span style="color:#75715e">=</span><span style="color:#75715e"> </span><span style="color:#75715e">n</span><span style="color:#75715e">e</span><span style="color:#75715e">w</span><span style="color:#75715e">V</span><span style="color:#75715e">a</span><span style="color:#75715e">l</span><span style="color:#75715e">u</span><span style="color:#75715e">e</span><span style="color:#75715e">.</span><span style="color:#75715e">y</span><span style="color:#75715e"> </span><span style="color:#75715e">-</span><span style="color:#75715e"> </span><span style="color:#75715e">h</span><span style="color:#75715e">e</span><span style="color:#75715e">i</span><span style="color:#75715e">g</span><span style="color:#75715e">h</span><span style="color:#75715e">t</span><span style="color:#75715e"> </span><span style="color:#75715e">/</span><span style="color:#75715e"> </span><span style="color:#75715e">2</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e">}</span>
     }
 
 }
 
-var rect = Rectangle()
-rect.width = 100
-rect.height = 50
+<span style="color:#66d9ef">var</span> rect = Rectangle()
+rect.width = <span style="color:#ae81ff">100</span>
+rect.height = <span style="color:#ae81ff">50</span>
 print(rect.size)
 
-rect.origin = Point(x: 0, y: 0)
+rect.origin = Point(x: <span style="color:#ae81ff">0</span>, y: <span style="color:#ae81ff">0</span>)
 print(rect.center)
 
-rect.center = Point(x: 100, y: 100)
+rect.center = Point(x: <span style="color:#ae81ff">100</span>, y: <span style="color:#ae81ff">100</span>)
 print(rect.origin)
 
-// 5000.0
-// Point(x: 50.0, y: 25.0)
-// Point(x: 50.0, y: 75.0)
-</code></pre>
-
-<p><em>综上，getter 可以根据存储属性推算计算属性的值，setter 可以在被赋值时根据新值倒推存储属性，但它们与我们在其他语言中的 get/set 方法却不一样。</em></p>
-
-<h2 id="属性观察器">属性观察器</h2>
-
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">5</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">.</span><span style="color:#75715e">0</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">P</span><span style="color:#75715e">o</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">t</span><span style="color:#75715e">(</span><span style="color:#75715e">x</span><span style="color:#75715e">:</span><span style="color:#75715e"> </span><span style="color:#75715e">5</span><span style="color:#75715e">0</span><span style="color:#75715e">.</span><span style="color:#75715e">0</span><span style="color:#75715e">,</span><span style="color:#75715e"> </span><span style="color:#75715e">y</span><span style="color:#75715e">:</span><span style="color:#75715e"> </span><span style="color:#75715e">2</span><span style="color:#75715e">5</span><span style="color:#75715e">.</span><span style="color:#75715e">0</span><span style="color:#75715e">)</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">P</span><span style="color:#75715e">o</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">t</span><span style="color:#75715e">(</span><span style="color:#75715e">x</span><span style="color:#75715e">:</span><span style="color:#75715e"> </span><span style="color:#75715e">5</span><span style="color:#75715e">0</span><span style="color:#75715e">.</span><span style="color:#75715e">0</span><span style="color:#75715e">,</span><span style="color:#75715e"> </span><span style="color:#75715e">y</span><span style="color:#75715e">:</span><span style="color:#75715e"> </span><span style="color:#75715e">7</span><span style="color:#75715e">5</span><span style="color:#75715e">.</span><span style="color:#75715e">0</span><span style="color:#75715e">)</span>
+</code></pre></div><p><em>综上，getter 可以根据存储属性推算计算属性的值，setter 可以在被赋值时根据新值倒推存储属性，但它们与我们在其他语言中的 get/set 方法却不一样。</em></p>
+<h2 id="heading3">属性观察器</h2>
 <ul>
 <li>属性观察器算是 Swift 中的一个 feature，变量在设值<strong>前</strong>会先进入 <code>willSet</code>，这时默认 <code>newValue</code> 等于即将要赋值的值，而变量本身尚未改变。变量在设值<strong>后</strong>会先进入 <code>didSet</code>，这时默认 <code>oldValue</code> 等于赋值前变量的值，而变量变为新值。</li>
 <li>这样，开发者即可在 <code>willSet</code> 和 <code>didSet</code> 中进行相应的操作，如果只是取值和设值而不进行额外操作，那么直接使用点语法即可。但是有时候一个变量只需要被访问，而不能在外界赋值，那么可以使用<a href="/2016/25/">访问控制修饰符</a>加上 <code>(set)</code> 即可私有化 set 方法。例如 <code>fileprivate(set)</code>，<code>private(set)</code>，以及 <code>internal(set)</code>。值得注意的是，这里的访问控制修饰符修饰的是 set 方法，访问权限（即 get）是另外设置的。例如 <code>public fileprivate(set) var prop = 0</code>，该变量全局可以访问，但只有同文件内可以使用 set 方法。</li>
 </ul>
+<h3 id="demo3">Demo</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Animal</span> {
+    <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">t</span><span style="color:#75715e">e</span><span style="color:#75715e">r</span><span style="color:#75715e">n</span><span style="color:#75715e">a</span><span style="color:#75715e">l</span><span style="color:#75715e"> </span><span style="color:#75715e">为</span><span style="color:#75715e">默</span><span style="color:#75715e">认</span><span style="color:#75715e">权</span><span style="color:#75715e">限</span><span style="color:#75715e">，</span><span style="color:#75715e">可</span><span style="color:#75715e">不</span><span style="color:#75715e">加</span>
+    <span style="color:#66d9ef">internal</span> <span style="color:#66d9ef">private</span>(<span style="color:#66d9ef">set</span>) <span style="color:#66d9ef">var</span> privateSetProp = <span style="color:#ae81ff">0</span>
 
-<h3 id="demo-3">Demo</h3>
-
-<pre><code class="language-swift">struct Animal {
-    // internal 为默认权限，可不加
-    internal private(set) var privateSetProp = 0
-
-    var hungryValue = 0 {
-        // 设置前调用
-        willSet {
-            print(&quot;willSet \(hungryValue) newValue: \(newValue)&quot;)
+    <span style="color:#66d9ef">var</span> hungryValue = <span style="color:#ae81ff">0</span> {
+        <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">设</span><span style="color:#75715e">置</span><span style="color:#75715e">前</span><span style="color:#75715e">调</span><span style="color:#75715e">用</span>
+        <span style="color:#66d9ef">willSet</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">willSet </span><span style="color:#e6db74">\(</span>hungryValue<span style="color:#e6db74">)</span><span style="color:#e6db74"> newValue: </span><span style="color:#e6db74">\(</span>newValue<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>)
         }
 
-        // 设置后调用
-        didSet {
-            print(&quot;didSet \(hungryValue) oldValue: \(oldValue)&quot;)
+        <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">设</span><span style="color:#75715e">置</span><span style="color:#75715e">后</span><span style="color:#75715e">调</span><span style="color:#75715e">用</span>
+        <span style="color:#66d9ef">didSet</span> {
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">didSet </span><span style="color:#e6db74">\(</span>hungryValue<span style="color:#e6db74">)</span><span style="color:#e6db74"> oldValue: </span><span style="color:#e6db74">\(</span>oldValue<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>)
         }
 
-        // 也可以自己命名默认的 newValue/oldValue
-        // willSet(new) {}
-        // didSet(old) {}
+        <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">也</span><span style="color:#75715e">可</span><span style="color:#75715e">以</span><span style="color:#75715e">自</span><span style="color:#75715e">己</span><span style="color:#75715e">命</span><span style="color:#75715e">名</span><span style="color:#75715e">默</span><span style="color:#75715e">认</span><span style="color:#75715e">的</span><span style="color:#75715e"> </span><span style="color:#75715e">n</span><span style="color:#75715e">e</span><span style="color:#75715e">w</span><span style="color:#75715e">V</span><span style="color:#75715e">a</span><span style="color:#75715e">l</span><span style="color:#75715e">u</span><span style="color:#75715e">e</span><span style="color:#75715e">/</span><span style="color:#75715e">o</span><span style="color:#75715e">l</span><span style="color:#75715e">d</span><span style="color:#75715e">V</span><span style="color:#75715e">a</span><span style="color:#75715e">l</span><span style="color:#75715e">u</span><span style="color:#75715e">e</span>
+        <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">w</span><span style="color:#75715e">i</span><span style="color:#75715e">l</span><span style="color:#75715e">l</span><span style="color:#75715e">S</span><span style="color:#75715e">e</span><span style="color:#75715e">t</span><span style="color:#75715e">(</span><span style="color:#75715e">n</span><span style="color:#75715e">e</span><span style="color:#75715e">w</span><span style="color:#75715e">)</span><span style="color:#75715e"> </span><span style="color:#75715e">{</span><span style="color:#75715e">}</span>
+        <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">d</span><span style="color:#75715e">i</span><span style="color:#75715e">d</span><span style="color:#75715e">S</span><span style="color:#75715e">e</span><span style="color:#75715e">t</span><span style="color:#75715e">(</span><span style="color:#75715e">o</span><span style="color:#75715e">l</span><span style="color:#75715e">d</span><span style="color:#75715e">)</span><span style="color:#75715e"> </span><span style="color:#75715e">{</span><span style="color:#75715e">}</span>
     }
 }
 
-var cat = Animal()
+<span style="color:#66d9ef">var</span> cat = Animal()
 
-// private(set) 即只读
-// cat.privateSetProp = 10
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">p</span><span style="color:#75715e">r</span><span style="color:#75715e">i</span><span style="color:#75715e">v</span><span style="color:#75715e">a</span><span style="color:#75715e">t</span><span style="color:#75715e">e</span><span style="color:#75715e">(</span><span style="color:#75715e">s</span><span style="color:#75715e">e</span><span style="color:#75715e">t</span><span style="color:#75715e">)</span><span style="color:#75715e"> </span><span style="color:#75715e">即</span><span style="color:#75715e">只</span><span style="color:#75715e">读</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">c</span><span style="color:#75715e">a</span><span style="color:#75715e">t</span><span style="color:#75715e">.</span><span style="color:#75715e">p</span><span style="color:#75715e">r</span><span style="color:#75715e">i</span><span style="color:#75715e">v</span><span style="color:#75715e">a</span><span style="color:#75715e">t</span><span style="color:#75715e">e</span><span style="color:#75715e">S</span><span style="color:#75715e">e</span><span style="color:#75715e">t</span><span style="color:#75715e">P</span><span style="color:#75715e">r</span><span style="color:#75715e">o</span><span style="color:#75715e">p</span><span style="color:#75715e"> </span><span style="color:#75715e">=</span><span style="color:#75715e"> </span><span style="color:#75715e">1</span><span style="color:#75715e">0</span>
 print(cat.privateSetProp)
 
-cat.hungryValue += 10
+cat.hungryValue <span style="color:#f92672">+=</span> <span style="color:#ae81ff">10</span>
 print(cat.hungryValue)
 
-// 0
-// willSet 0 newValue: 10
-// didSet 10 oldValue: 0
-// 10
-</code></pre>
-
-<h2 id="总结">总结</h2>
-
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">0</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">w</span><span style="color:#75715e">i</span><span style="color:#75715e">l</span><span style="color:#75715e">l</span><span style="color:#75715e">S</span><span style="color:#75715e">e</span><span style="color:#75715e">t</span><span style="color:#75715e"> </span><span style="color:#75715e">0</span><span style="color:#75715e"> </span><span style="color:#75715e">n</span><span style="color:#75715e">e</span><span style="color:#75715e">w</span><span style="color:#75715e">V</span><span style="color:#75715e">a</span><span style="color:#75715e">l</span><span style="color:#75715e">u</span><span style="color:#75715e">e</span><span style="color:#75715e">:</span><span style="color:#75715e"> </span><span style="color:#75715e">1</span><span style="color:#75715e">0</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">d</span><span style="color:#75715e">i</span><span style="color:#75715e">d</span><span style="color:#75715e">S</span><span style="color:#75715e">e</span><span style="color:#75715e">t</span><span style="color:#75715e"> </span><span style="color:#75715e">1</span><span style="color:#75715e">0</span><span style="color:#75715e"> </span><span style="color:#75715e">o</span><span style="color:#75715e">l</span><span style="color:#75715e">d</span><span style="color:#75715e">V</span><span style="color:#75715e">a</span><span style="color:#75715e">l</span><span style="color:#75715e">u</span><span style="color:#75715e">e</span><span style="color:#75715e">:</span><span style="color:#75715e"> </span><span style="color:#75715e">0</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">1</span><span style="color:#75715e">0</span>
+</code></pre></div><h2 id="heading4">总结</h2>
 <p>Swift 的这几个 feature 我未曾在其他语言中见过，对于初学者确实容易造成凌乱。特别是 getter/setter 以及属性观察器中均没有代码提示，容易造成手误，代码似乎也变得臃肿。但是熟悉之后，这些也都能完成之前的功能，甚至更加细分。保持每一部分可控，也使得整个程序更加严谨，更加安全。</p>
-
-<h2 id="参考">参考</h2>
-
+<h2 id="heading5">参考</h2>
 <ul>
 <li><a href="http://www.jianshu.com/p/80810efe5229">浅谈 Swift 3 中的访问控制</a></li>
 <li><a href="https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/AccessControl.html">Access Control</a></li>

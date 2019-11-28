@@ -168,182 +168,136 @@ Cocoa Touch Static Library 我们先从 Xcode 中能够直接创建的 Cocoa Tou
     
 
     <div class="post-content">
-      
-
-<table>
+      <table>
 <thead>
 <tr>
 <th align="center">Date</th>
 <th align="center">Notes</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td align="center">2019-09-14</td>
 <td align="center">首次提交，持续更新完善</td>
 </tr>
-
 <tr>
 <td align="center">2019-09-22</td>
 <td align="center">适配 Xcode 11，持续更新完善</td>
 </tr>
-
 <tr>
 <td align="center">2019-10-29</td>
 <td align="center">添加 Demo：<a href="https://github.com/kingcos/libraries_in_ios-demo">libraries_in_ios-demo</a></td>
 </tr>
 </tbody>
 </table>
-
-<p><img src="/img/2019/libraries_in_ios/0.png" alt="0" /></p>
-
+<p><img src="/img/2019/libraries_in_ios/0.png" alt="0"></p>
 <h2 id="preface">Preface</h2>
-
 <p>随着软件工程的发展，很多我们需要的功能前人都已经很好地实现了，为了提高效率避免重复建设，这些功能实现的代码被封装为代码库，有时也称框架。我们只需要在用到的时候通过依赖管理工具将它们以适当的方式引入即可。本文将简单聊聊 iOS 中的库与框架相关概念。</p>
-
-<h2 id="基本概念">基本概念</h2>
-
+<h2 id="heading">基本概念</h2>
 <p>在切入正题之前，我们先来达成一些共识。</p>
-
 <p>不管是老派 Obj-C 还是新秀 Swift，它们的本质都是编译型语言。对于编译型语言，源代码会首先经由编译器编译为目标文件，链接器再将多个目标文件链接为可执行文件。针对链接阶段，主要分为静态链接与动态链接。</p>
-
 <p><strong>静态</strong>，即 Static。按照字面意思，静态即一旦确定，就不再容易改变。静态链接，即在链接阶段，直接将多个目标文件链接为一个文件。而静态库就可以理解为共同编译为一个目标文件的源代码集合。</p>
-
 <p><strong>动态</strong>，即 Dynamic。按照字面意思，动态即推迟到运行时动态地决议。动态链接，即在运行时才将各个部分组合形成完整的程序。而动态库就可以理解为支持动态链接方式的源代码集合。</p>
-
 <p>静态链接的好处是，运行时不再额外需要时间动态链接；坏处则是由于链接的粒度是目标文件，那么可能会链接了没有使用到的函数，会造成可执行文件过大；而且当某一个目标文件的源代码改动时，那么所有依赖该目标文件的静态库都需要重新编译；动态链接则解决了静态链接的空间浪费与重复编译问题，比如在 iOS 中，系统库采用了 dyld_shared_cache 动态链接，这样其它程序就无需再将系统库重复链接，当 iOS 系统更新时也无需将所有 app 重新编译。而在移动端开发中，app 的启动时间与包体积大小将是一个权衡问题，值得我们侧重与考量。</p>
-
 <p>另外，虽然广义上的库（Library）与框架（Framework）含义是类似的，但在 iOS 开发中，官方将这两个概念进行了区分，因此下文中我们会明确两个词的使用。</p>
-
 <h2 id="cocoa-touch-static-library">Cocoa Touch Static Library</h2>
-
 <p>我们先从 Xcode 中能够直接创建的 Cocoa Touch Static Library 说起（注意，在 Xcode 11 中，这里已经变成 Framework 与 Library，更加清晰）：</p>
-
-<p><img src="/img/2019/libraries_in_ios/1.png" alt="1" /></p>
-
+<p><img src="/img/2019/libraries_in_ios/1.png" alt="1"></p>
 <p>Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即<strong>只包含编译后代码的 <code>.a</code> 文件</strong>。我们创建一个 oc-static-lib 的静态库，为其默认提供的 <code>oc_static_lib</code> 类添加 <code>foo</code> 方法，并添加一个 <code>NSObject</code> 的分类，实现 +load 和 <code>foo</code> 方法：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// oc_static_lib.h
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">oc_static_lib</span> : <span style="color:#a6e22e">NSObject</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span>;
+<span style="color:#66d9ef">@end</span>
 
-<pre><code class="language-objectivec">// oc_static_lib.h
-
-#import &lt;Foundation/Foundation.h&gt;
-
-@interface oc_static_lib : NSObject
-- (void)foo;
-@end
-
-// oc_static_lib.m
-
-#import &quot;oc_static_lib.h&quot;
-
-@implementation oc_static_lib
-- (void)foo {
-    NSLog(@&quot;%@ - %@&quot;, NSStringFromClass([self class]), NSStringFromSelector(_cmd));
+<span style="color:#75715e">// oc_static_lib.m
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">import &#34;oc_static_lib.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">oc_static_lib</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@ - %@</span><span style="color:#e6db74">&#34;</span>, NSStringFromClass([self <span style="color:#66d9ef">class</span>]), NSStringFromSelector(_cmd));
 }
-@end
+<span style="color:#66d9ef">@end</span>
 
-// NSObject+OC_Static_Lib.h
-
-#import &lt;Foundation/Foundation.h&gt;
-
+<span style="color:#75715e">// NSObject+OC_Static_Lib.h
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
 NS_ASSUME_NONNULL_BEGIN
-@interface NSObject (OC_Static_Lib)
-- (void)foo;
-@end
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">NSObject</span> (OC_Static_Lib)
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span>;
+<span style="color:#66d9ef">@end</span>
 NS_ASSUME_NONNULL_END
 
-// NSObject+OC_Static_Lib.m
-
-#import &quot;NSObject+OC_Static_Lib.h&quot;
-
-@implementation NSObject (OC_Static_Lib)
-+ (void)load {
-    NSLog(@&quot;%@ - %@&quot;, NSStringFromClass([self class]), NSStringFromSelector(_cmd));
+<span style="color:#75715e">// NSObject+OC_Static_Lib.m
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">import &#34;NSObject+OC_Static_Lib.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">NSObject</span> (OC_Static_Lib)
++ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">load</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@ - %@</span><span style="color:#e6db74">&#34;</span>, NSStringFromClass([self <span style="color:#66d9ef">class</span>]), NSStringFromSelector(_cmd));
 }
-- (void)foo {
-    NSLog(@&quot;%@ - %@&quot;, NSStringFromClass([self class]), NSStringFromSelector(_cmd));
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@ - %@</span><span style="color:#e6db74">&#34;</span>, NSStringFromClass([self <span style="color:#66d9ef">class</span>]), NSStringFromSelector(_cmd));
 }
-@end
-</code></pre>
-
-<p>需要注意的是我们需要将新创建的 <code>.h</code> 加入到 Xcode - Targets - Build Phases - Copy Files 中，这样外界才能通过引入该头文件来访问其中的内容：</p>
-
-<p><img src="/img/2019/libraries_in_ios/2.png" alt="2" /></p>
-
+<span style="color:#66d9ef">@end</span>
+</code></pre></div><p>需要注意的是我们需要将新创建的 <code>.h</code> 加入到 Xcode - Targets - Build Phases - Copy Files 中，这样外界才能通过引入该头文件来访问其中的内容：</p>
+<p><img src="/img/2019/libraries_in_ios/2.png" alt="2"></p>
 <blockquote>
 <p>⚠️</p>
-
 <p>这里我们的目标设备选择的是模拟器，所以默认编译后的 <code>.a</code> 文件也将只适用于模拟器架构（x86_64），为了同时能够真机运行和模拟器调试，通常会使用 <code>lipo</code> 命令将多种架构的 <code>.a</code> 文件进行合并为胖二进制（Fat-Binary）文件。</p>
 </blockquote>
-
-<h3 id="obj-c-工程引入-obj-c-静态库">Obj-C 工程引入 Obj-C 静态库</h3>
-
-<p><img src="/img/2019/libraries_in_ios/3.png" alt="3" /></p>
-
+<h3 id="objc--objc-">Obj-C 工程引入 Obj-C 静态库</h3>
+<p><img src="/img/2019/libraries_in_ios/3.png" alt="3"></p>
 <p>我们将 oc-static-lib 编译后的 <code>.a</code> 与 <code>.h</code> 一起拖入 Obj-C 工程（勾选「Add to targets」添加至目标 Target，或者手动将 <code>.a</code> 加入到「Link Binary With Libraries」中），即可使用 <code>#import &quot;&quot;</code> 来引入并调用（需要注意的是：静态库中如果存在分类，需要添加 <code>-ObjC</code> 作为 Other Linker Flags，具体可详见《<a href="/posts/2019/+load_in_ios/">iOS 中的 +load 方法</a>》一文）：</p>
-
 <blockquote>
 <p><strong>Tips</strong></p>
-
 <p>在 C/C++ 中，为了更加清晰化声明与实现，声明和实现需要分别写在 <code>.h</code>（头文件）和 <code>.c</code> / <code>.cpp</code>（实现文件）中。这样的好处是，开发者可以无需额外的访问控制符即可将需要暴露在外界的声明放置在头文件中，外界使用时通过 <code>#include</code> 引用头文件即可。Obj-C/C++ 也延续了这一传统，不同的是实现文件的后缀分别为 <code>.m</code> 和 <code>.mm</code>，并为了避免重复引用新推出了 <code>#import</code>。</p>
-
 <p><code>#include</code> 和 <code>#import</code> 后面都可以加 <code>&lt;XXX.h&gt;</code> 或 <code>&quot;XXX.h&quot;</code>。通常来说加 <code>&quot;&quot;</code> 的头文件优先从本地当前文件目录查找，其中也可以包含相对路径，即 <code>#import &quot;oc-static-lib/oc_static_lib.h&quot;</code> / <code>#import &quot;NSObject+OC_Static_Lib.h&quot;</code> 都是支持的；而加 <code>&lt;&gt;</code> 的头文件则会使得编译器优先到系统目录下全局查找。</p>
 </blockquote>
-
-<h3 id="swift-工程引入-swift-静态库">Swift 工程引入 Swift 静态库</h3>
-
+<h3 id="swift--swift-">Swift 工程引入 Swift 静态库</h3>
 <p>在 Xcode 9 之后，Swift 也支持了静态库。与 Obj-C 不同，Swift 没有头文件的概念，因此我们需要将暴露给外界的类和函数等使用 <code>public</code> 修饰。编译后的 Swift 静态库也是 <code>.a</code> 文件，但不同的是多了 <code>.swiftmodule</code> 以及 <code>.swiftdoc</code>：</p>
-
-<pre><code class="language-shell">➜  Debug-iphonesimulator tree
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">➜  Debug-iphonesimulator tree
 .
 ├── libswift-static-lib.a
 └── swift_static_lib.swiftmodule
     ├── x86_64.swiftdoc
     └── x86_64.swiftmodule
 
-1 directory, 3 files
-</code></pre>
-
-<p><code>.swiftmodule</code> 包含了序列化过的 AST（抽象语法树，Abstract Syntax Tree），可能也包含 SIL（Swift 中间语言，Swift Intermediate Language），我们可以将其理解为类似 C 语言库或框架中头文件的二进制格式文件；<code>.swiftdoc</code> 则是 Swift 文档注释生成的二进制文件，由 <code>Serialization::writeDocToStream()</code> 生成，因此并非是必要的。由于 Swift 的 Module 机制，我们需要在 Xcode - Targets - Build Settings - Swift Compiler - Search Paths - Import Paths 中引入：</p>
-
-<p><img src="/img/2019/libraries_in_ios/4.png" alt="4" /></p>
-
+<span style="color:#ae81ff">1</span> directory, <span style="color:#ae81ff">3</span> files
+</code></pre></div><p><code>.swiftmodule</code> 包含了序列化过的 AST（抽象语法树，Abstract Syntax Tree），可能也包含 SIL（Swift 中间语言，Swift Intermediate Language），我们可以将其理解为类似 C 语言库或框架中头文件的二进制格式文件；<code>.swiftdoc</code> 则是 Swift 文档注释生成的二进制文件，由 <code>Serialization::writeDocToStream()</code> 生成，因此并非是必要的。由于 Swift 的 Module 机制，我们需要在 Xcode - Targets - Build Settings - Swift Compiler - Search Paths - Import Paths 中引入：</p>
+<p><img src="/img/2019/libraries_in_ios/4.png" alt="4"></p>
 <p>这样我们才能在 Swift 工程中正常使用：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">s</span><span style="color:#75715e">w</span><span style="color:#75715e">i</span><span style="color:#75715e">f</span><span style="color:#75715e">t</span><span style="color:#75715e">_</span><span style="color:#75715e">s</span><span style="color:#75715e">t</span><span style="color:#75715e">a</span><span style="color:#75715e">t</span><span style="color:#75715e">i</span><span style="color:#75715e">c</span><span style="color:#75715e">_</span><span style="color:#75715e">l</span><span style="color:#75715e">i</span><span style="color:#75715e">b</span><span style="color:#75715e">.</span><span style="color:#75715e">s</span><span style="color:#75715e">w</span><span style="color:#75715e">i</span><span style="color:#75715e">f</span><span style="color:#75715e">t</span>
 
-<pre><code class="language-swift">// swift_static_lib.swift
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Foundation</span>
 
-import Foundation
-
-@objc public class swift_static_lib: NSObject {
-    @objc public func foo() {
-        print(&quot;swift_static_lib - \(#function)&quot;)
+<span style="color:#66d9ef">@objc</span> <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">swift_static_lib</span>: NSObject {
+    <span style="color:#66d9ef">@objc</span> <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">foo</span>() {
+        print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">swift_static_lib - </span><span style="color:#e6db74">\(</span><span style="color:#66d9ef">#function</span><span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>)
     }
 }
 
-// ViewController.swift
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">V</span><span style="color:#75715e">i</span><span style="color:#75715e">e</span><span style="color:#75715e">w</span><span style="color:#75715e">C</span><span style="color:#75715e">o</span><span style="color:#75715e">n</span><span style="color:#75715e">t</span><span style="color:#75715e">r</span><span style="color:#75715e">o</span><span style="color:#75715e">l</span><span style="color:#75715e">l</span><span style="color:#75715e">e</span><span style="color:#75715e">r</span><span style="color:#75715e">.</span><span style="color:#75715e">s</span><span style="color:#75715e">w</span><span style="color:#75715e">i</span><span style="color:#75715e">f</span><span style="color:#75715e">t</span>
 
-import UIKit
-import swift_static_lib
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">swift_static_lib</span>
 
-class ViewController: UIViewController {
-    override func viewDidLoad() {
-        super.viewDidLoad()
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ViewController</span>: UIViewController {
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">viewDidLoad</span>() {
+        <span style="color:#66d9ef">super</span>.viewDidLoad()
         swift_static_lib().foo()
     }
 }
-</code></pre>
-
-<h3 id="obj-c-工程引入-swift-静态库">Obj-C 工程引入 Swift 静态库</h3>
-
+</code></pre></div><h3 id="objc--swift-">Obj-C 工程引入 Swift 静态库</h3>
 <p>为了「提拔」新秀，Swift 支持与 Obj-C 混编，然而混编下的各种情况就会变得十分特殊。在同一个工程下 Swift 文件与 Obj-C 文件混编时，Xcode 会提示我们创建桥接头文件 <code>&lt;PROJECT_NAME&gt;-Bridging-Header.h</code>，我们可以将需要暴露给 Swift 的 Obj-C 代码在该桥接文件中引入；而 Obj-C 代码中希望使用 Swift 中的相关定义时，可以引入自动生成但不可见的 <code>&lt;PROJECT_NAME&gt;-Swift.h</code>，另外需要注意的是，暴露给 Obj-C 的类或函数等需要使用 <code>@objc</code> 或 <code>dynamic</code> 修饰，<strong>但前者不能决定函数最终派发方式，而后者则为动态派发</strong>。</p>
-
 <p>那么如果要在 Obj-C 工程引入 Swift 静态库，首先要在工程中引入一个占位 Swift 文件，并创建桥接文件，这样 Xcode 中 Swift 相关的依赖配置才能得以建立：</p>
-
-<p><img src="/img/2019/libraries_in_ios/7.png" alt="7" /></p>
-
+<p><img src="/img/2019/libraries_in_ios/7.png" alt="7"></p>
 <p>Swift 静态库也可以自动生成 <code>&lt;PROJECT_NAME&gt;-Swift.h</code>，但其并没有和最终产物 <code>.a</code> 放置在一起：</p>
-
-<pre><code class="language-shell">➜  Build tree
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">➜  Build tree
 .
 ├── Intermediates.noindex
 │   ├── XCBuildData
@@ -357,28 +311,22 @@ class ViewController: UIViewController {
 └── Products
     └── ...
 
-17 directories, 41 files
-</code></pre>
+<span style="color:#ae81ff">17</span> directories, <span style="color:#ae81ff">41</span> files
+</code></pre></div><p>因此我们可以将以下脚本添加到 Xcode - Targets - Build Phases - New Run Script Phase 中，这样每次构建即可将 <code>&lt;PROJECT_NAME&gt;-Swift.h</code> 一并拷贝到产物目录：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#75715e"># Powered by https://paul-samuels.com/blog/2018/01/14/swift-static-library-in-objective-c/</span>
 
-<p>因此我们可以将以下脚本添加到 Xcode - Targets - Build Phases - New Run Script Phase 中，这样每次构建即可将 <code>&lt;PROJECT_NAME&gt;-Swift.h</code> 一并拷贝到产物目录：</p>
+<span style="color:#75715e"># BUILT_PRODUCTS_DIR：构建产物目录；PRODUCT_MODULE_NAME：产物名称</span>
+target_dir<span style="color:#f92672">=</span><span style="color:#e6db74">${</span>BUILT_PRODUCTS_DIR<span style="color:#e6db74">}</span>/include/<span style="color:#e6db74">${</span>PRODUCT_MODULE_NAME<span style="color:#e6db74">}</span>/
 
-<pre><code class="language-shell"># Powered by https://paul-samuels.com/blog/2018/01/14/swift-static-library-in-objective-c/
+<span style="color:#75715e"># Ensure the target include path exists</span>
+<span style="color:#75715e"># 递归创建文件夹</span>
+mkdir -p <span style="color:#e6db74">${</span>target_dir<span style="color:#e6db74">}</span>
 
-# BUILT_PRODUCTS_DIR：构建产物目录；PRODUCT_MODULE_NAME：产物名称
-target_dir=${BUILT_PRODUCTS_DIR}/include/${PRODUCT_MODULE_NAME}/
-
-# Ensure the target include path exists
-# 递归创建文件夹
-mkdir -p ${target_dir}
-
-# Copy any file that looks like a Swift generated header to the include path
-# 复制到产物路径
-cp ${DERIVED_SOURCES_DIR}/*-Swift.h ${target_dir}
-</code></pre>
-
-<p>之后我们需要将生成的产物放 swift_static_lib 文件中一起拖到 Obj-C 工程中（勾选「Add to targets」添加至目标 Target，或者手动将 <code>.a</code> 加入到「Link Binary With Libraries」中）：</p>
-
-<pre><code class="language-shell">➜  swift_static_lib tree
+<span style="color:#75715e"># Copy any file that looks like a Swift generated header to the include path</span>
+<span style="color:#75715e"># 复制到产物路径</span>
+cp <span style="color:#e6db74">${</span>DERIVED_SOURCES_DIR<span style="color:#e6db74">}</span>/*-Swift.h <span style="color:#e6db74">${</span>target_dir<span style="color:#e6db74">}</span>
+</code></pre></div><p>之后我们需要将生成的产物放 swift_static_lib 文件中一起拖到 Obj-C 工程中（勾选「Add to targets」添加至目标 Target，或者手动将 <code>.a</code> 加入到「Link Binary With Libraries」中）：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">➜  swift_static_lib tree
 .
 ├── include
 │   └── swift_static_lib
@@ -388,59 +336,43 @@ cp ${DERIVED_SOURCES_DIR}/*-Swift.h ${target_dir}
     ├── x86_64.swiftdoc
     └── x86_64.swiftmodule
 
-3 directories, 4 files
-</code></pre>
-
-<!-- 最后再在 Xcode - Targets - Build Settings - Header Search Paths & Library Search Paths 中添加上 `.a` 的父级路径 `$(PROJECT_DIR)/oc-demo-project/swift_static_lib` 即可（比较神奇的是，在 Xcode 11 中即使不手动指定，也可正常编译通过运行）：
-
-![6](/img/2019/libraries_in_ios/6.png) -->
-
+<span style="color:#ae81ff">3</span> directories, <span style="color:#ae81ff">4</span> files
+</code></pre></div><!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
 <p>这样，在 Obj-C 工程中通过 <code>#import &quot;swift_static_lib-Swift.h&quot;</code> 即可使用：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// ViewController.m
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">//#import &#34;swift-static-lib/include/swift_static_lib/swift_static_lib-Swift.h&#34;
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &#34;swift_static_lib-Swift.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">ViewController</span>
 
-<pre><code class="language-objectivec">// ViewController.m
-
-//#import &quot;swift-static-lib/include/swift_static_lib/swift_static_lib-Swift.h&quot;
-#import &quot;swift_static_lib-Swift.h&quot;
-
-@implementation ViewController
-
-- (void)viewDidLoad {
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">viewDidLoad</span> {
     [super viewDidLoad];
 
     [[swift_static_lib new] foo];
 }
-</code></pre>
-
-<h3 id="swift-工程引入-obj-c-静态库">Swift 工程引入 Obj-C 静态库</h3>
-
+</code></pre></div><h3 id="swift--objc-">Swift 工程引入 Obj-C 静态库</h3>
 <p>如果想要在 Swift 工程中引入 Obj-C 静态库（注意如有分类仍需加 <code>-ObjC</code>），则也需要桥接头文件作为中介。我们在工程中新建一个占位 Obj-C 文件，按 Xcode 提示创建桥接文件；将 oc-static-lib 编译后的产物一起拖入 Swift 工程，并在桥接文件中引入 Obj-C 静态库中的相关头文件：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// swift-demo-project-Bridging-Header.h
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">//#import &#34;liboc-static-lib/include/oc-static-lib/oc_static_lib.h&#34;
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &#34;oc_static_lib.h&#34;</span><span style="color:#75715e">
+</span></code></pre></div><p>之后即可直接在 Swift 中使用：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">V</span><span style="color:#75715e">i</span><span style="color:#75715e">e</span><span style="color:#75715e">w</span><span style="color:#75715e">C</span><span style="color:#75715e">o</span><span style="color:#75715e">n</span><span style="color:#75715e">t</span><span style="color:#75715e">r</span><span style="color:#75715e">o</span><span style="color:#75715e">l</span><span style="color:#75715e">l</span><span style="color:#75715e">e</span><span style="color:#75715e">r</span><span style="color:#75715e">.</span><span style="color:#75715e">s</span><span style="color:#75715e">w</span><span style="color:#75715e">i</span><span style="color:#75715e">f</span><span style="color:#75715e">t</span>
 
-<pre><code class="language-objectivec">// swift-demo-project-Bridging-Header.h
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
 
-//#import &quot;liboc-static-lib/include/oc-static-lib/oc_static_lib.h&quot;
-#import &quot;oc_static_lib.h&quot;
-</code></pre>
-
-<p>之后即可直接在 Swift 中使用：</p>
-
-<pre><code class="language-swift">// ViewController.swift
-
-import UIKit
-
-class ViewController: UIViewController {
-    override func viewDidLoad() {
-        super.viewDidLoad()
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ViewController</span>: UIViewController {
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">viewDidLoad</span>() {
+        <span style="color:#66d9ef">super</span>.viewDidLoad()
 
         oc_static_lib().foo()
     }
 }
-</code></pre>
-
-<h2 id="cocoa-touch-framework">Cocoa Touch Framework</h2>
-
+</code></pre></div><h2 id="cocoa-touch-framework">Cocoa Touch Framework</h2>
 <p>Cocoa Touch Framework 是 Xcode 中能够创建的另外一种框架（Framework）类型（注意，在 Xcode 11 中，这里已经变成 Framework 与 Library，更加清晰），而非库（Library）。不同于库，iOS 中的框架指的是包含资源（比如图片、本地化文件、Storyboard 等）、头文件、以及编译后的二进制等的集合。框架的后缀名是 <code>.framework</code>，并可以通过 <code>NSBundle</code> API 访问，不同的是框架可以直接导航到其中的目录内容，便于开发者查看：</p>
-
-<pre><code class="language-shell">➜  oc_framework.framework tree
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">➜  oc_framework.framework tree
 .
 ├── Assets.car ➡️ 工程中的 xcassets 资源将被压缩为 car
 ├── Headers
@@ -455,7 +387,7 @@ class ViewController: UIViewController {
 │   └── CodeResources
 └── oc_framework
 
-3 directories, 9 files
+<span style="color:#ae81ff">3</span> directories, <span style="color:#ae81ff">9</span> files
 
 ➜  swift_framework.framework tree
 .
@@ -473,174 +405,136 @@ class ViewController: UIViewController {
 ├── eng.strings ➡️ 工程中的 strings 资源
 └── swift_framework
 
-4 directories, 9 files
-</code></pre>
-
-<p>Framework 中编译后的 Mach-O 可以根据需要作为动态库、静态库（注意如有分类仍需加 <code>-ObjC</code>）、或者可执行文件等：</p>
-
-<p><img src="/img/2019/libraries_in_ios/8.png" alt="8" /></p>
-
+<span style="color:#ae81ff">4</span> directories, <span style="color:#ae81ff">9</span> files
+</code></pre></div><p>Framework 中编译后的 Mach-O 可以根据需要作为动态库、静态库（注意如有分类仍需加 <code>-ObjC</code>）、或者可执行文件等：</p>
+<p><img src="/img/2019/libraries_in_ios/8.png" alt="8"></p>
 <p>Framework 中需要暴露在外界的头文件，需要在 Xcode - Targets - Build Phases - Headers - Public 中公开（Swift Framework 中的 <code>*-Swift.h</code> 则不需要手动移动）；资源文件则需要加入 Copy Bundle Resources 中（使用时通过 <code>NSBunlde</code> API）：</p>
-
-<p><img src="/img/2019/libraries_in_ios/10.png" alt="10" /></p>
-
-<h3 id="obj-c-工程">Obj-C 工程</h3>
-
+<p><img src="/img/2019/libraries_in_ios/10.png" alt="10"></p>
+<h3 id="objc-">Obj-C 工程</h3>
 <p>在 Obj-C 工程中，只需要将 Framework 产物拖入并在 Xcode - Targets - General - Embedded Binaries &amp; Links Framework and Libraries 中添加即可(Xcode 11 中需将 Framework 在 Xcode - General - Frameworks, Libraries, and Embedded Content 中设置为 Embed）：</p>
-
-<p><img src="/img/2019/libraries_in_ios/9.png" alt="9" /></p>
-
+<p><img src="/img/2019/libraries_in_ios/9.png" alt="9"></p>
 <p>在工程中我们就可以将其引入并使用了：</p>
-
 <p><strong>oc-framework:</strong></p>
-
-<pre><code class="language-objectivec">// OC_Foo.m
-
-#import &quot;OC_Foo.h&quot;
-
-@implementation OC_Foo
-- (void)foo {
-    NSLog(@&quot;%@ - %@&quot;, NSStringFromClass([self class]), NSStringFromSelector(_cmd));
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// OC_Foo.m
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">import &#34;OC_Foo.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">OC_Foo</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@ - %@</span><span style="color:#e6db74">&#34;</span>, NSStringFromClass([self <span style="color:#66d9ef">class</span>]), NSStringFromSelector(_cmd));
 }
 
-- (UIImage *)image {
-    // 通过 NSBundle 获取资源
-    NSBundle *bundle = [NSBundle bundleForClass:[self class]];
-    return [UIImage imageNamed:@&quot;blog&quot; inBundle:bundle compatibleWithTraitCollection:nil];
+- (UIImage <span style="color:#f92672">*</span>)<span style="color:#a6e22e">image</span> {
+    <span style="color:#75715e">// 通过 NSBundle 获取资源
+</span><span style="color:#75715e"></span>    NSBundle <span style="color:#f92672">*</span>bundle <span style="color:#f92672">=</span> [NSBundle bundleForClass:[self <span style="color:#66d9ef">class</span>]];
+    <span style="color:#66d9ef">return</span> [UIImage imageNamed:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">blog</span><span style="color:#e6db74">&#34;</span> inBundle:bundle compatibleWithTraitCollection:nil];
 }
-@end
-</code></pre>
+<span style="color:#66d9ef">@end</span>
+</code></pre></div><p><strong>swift-framework:</strong></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">S</span><span style="color:#75715e">w</span><span style="color:#75715e">i</span><span style="color:#75715e">f</span><span style="color:#75715e">t</span><span style="color:#75715e">_</span><span style="color:#75715e">F</span><span style="color:#75715e">o</span><span style="color:#75715e">o</span><span style="color:#75715e">.</span><span style="color:#75715e">s</span><span style="color:#75715e">w</span><span style="color:#75715e">i</span><span style="color:#75715e">f</span><span style="color:#75715e">t</span>
 
-<p><strong>swift-framework:</strong></p>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Foundation</span>
 
-<pre><code class="language-swift">// Swift_Foo.swift
-
-import Foundation
-
-@objc public class Swift_Foo : NSObject {
-    @objc public func foo() {
-        print(&quot;Swift_Foo - \(#function)&quot;)
+<span style="color:#66d9ef">@objc</span> <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Swift_Foo</span> : NSObject {
+    <span style="color:#66d9ef">@objc</span> <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">foo</span>() {
+        print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Swift_Foo - </span><span style="color:#e6db74">\(</span><span style="color:#66d9ef">#function</span><span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>)
     }
 
-    @objc public func strings() -&gt; String {
-        let bundle = Bundle(for: Swift_Foo.self)
-        return NSLocalizedString(&quot;my_blog&quot;, bundle: bundle, comment: &quot;My blog link.&quot;)
+    <span style="color:#66d9ef">@objc</span> <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">strings</span>() -&gt; String {
+        <span style="color:#66d9ef">let</span> bundle = Bundle(<span style="color:#66d9ef">for</span>: Swift_Foo.<span style="color:#66d9ef">self</span>)
+        <span style="color:#66d9ef">return</span> NSLocalizedString(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">my_blog</span><span style="color:#e6db74">&#34;</span>, bundle: bundle, comment: <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">My blog link.</span><span style="color:#e6db74">&#34;</span>)
     }
 }
-</code></pre>
-
-<p><strong>Obj-C 工程：</strong></p>
-
-<pre><code class="language-objectivec">// ViewController.m
-
-#import &quot;ViewController.h&quot;
-@import oc_framework;
-//#import &quot;oc_framework/oc_framework.h&quot;
-//#import &lt;oc_framework/oc_framework.h&gt;
-//#import &lt;oc_framework/PublicHeader.h&gt;
-//#import &lt;oc_framework/OC_Foo.h&gt;
-
+</code></pre></div><p><strong>Obj-C 工程：</strong></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// ViewController.m
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">import &#34;ViewController.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>@import oc_framework;
+<span style="color:#75715e">//#import &#34;oc_framework/oc_framework.h&#34;
+</span><span style="color:#75715e"></span><span style="color:#75715e">//#import &lt;oc_framework/oc_framework.h&gt;
+</span><span style="color:#75715e"></span><span style="color:#75715e">//#import &lt;oc_framework/PublicHeader.h&gt;
+</span><span style="color:#75715e"></span><span style="color:#75715e">//#import &lt;oc_framework/OC_Foo.h&gt;
+</span><span style="color:#75715e"></span>
 @import swift_framework;
-//#import &quot;swift_framework/swift_framework.h&quot;
-//#import &quot;swift_framework/swift_framework-Swift.h&quot;
-//#import &lt;swift_framework/swift_framework.h&gt;
-//#import &lt;swift_framework/swift_framework-Swift.h&gt;
+<span style="color:#75715e">//#import &#34;swift_framework/swift_framework.h&#34;
+</span><span style="color:#75715e"></span><span style="color:#75715e">//#import &#34;swift_framework/swift_framework-Swift.h&#34;
+</span><span style="color:#75715e"></span><span style="color:#75715e">//#import &lt;swift_framework/swift_framework.h&gt;
+</span><span style="color:#75715e"></span><span style="color:#75715e">//#import &lt;swift_framework/swift_framework-Swift.h&gt;
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">ViewController</span> ()
+<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">weak</span>, <span style="color:#66d9ef">nonatomic</span>) <span style="color:#66d9ef">IBOutlet</span> UIImageView <span style="color:#f92672">*</span>imageView;
+<span style="color:#66d9ef">@end</span>
 
-@interface ViewController ()
-@property (weak, nonatomic) IBOutlet UIImageView *imageView;
-@end
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">ViewController</span>
 
-@implementation ViewController
-
-- (void)viewDidLoad {
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">viewDidLoad</span> {
     [super viewDidLoad];
 
-    OC_Foo *foo = [OC_Foo new];
+    OC_Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span> [OC_Foo new];
     [foo foo];
 
-    self.imageView.image = [foo image];
+    self.imageView.image <span style="color:#f92672">=</span> [foo image];
 
-    Swift_Foo *sFoo = [[Swift_Foo alloc] init];
+    Swift_Foo <span style="color:#f92672">*</span>sFoo <span style="color:#f92672">=</span> [[Swift_Foo alloc] init];
     [sFoo foo];
 
-    NSLog(@&quot;%@&quot;, [sFoo strings]);
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [sFoo strings]);
 }
 
-@end
-</code></pre>
-
-<h3 id="swift-工程">Swift 工程</h3>
-
+<span style="color:#66d9ef">@end</span>
+</code></pre></div><h3 id="swift-">Swift 工程</h3>
 <p>Framework 的引入要比静态库简单许多，我们只需要将其直接引入工程中（注意如有分类仍需加 <code>-ObjC</code>），并在 Swift 通过 <code>import &lt;FRAMEWORK_NAME&gt;</code> 导入即可：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">oc_framework</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">swift_framework</span>
 
-<pre><code class="language-swift">import UIKit
-import oc_framework
-import swift_framework
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ViewController</span>: UIViewController {
+    <span style="color:#66d9ef">@IBOutlet</span> <span style="color:#66d9ef">weak</span> <span style="color:#66d9ef">var</span> imageView: UIImageView!
 
-class ViewController: UIViewController {
-    @IBOutlet weak var imageView: UIImageView!
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">viewDidLoad</span>() {
+        <span style="color:#66d9ef">super</span>.viewDidLoad()
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-
-        let foo = OC_Foo()
+        <span style="color:#66d9ef">let</span> foo = OC_Foo()
         foo.foo()
-        // ⚠️ 注意，比较奇怪的是：
-        // 只有当 Obj-C Framework 的 Mach-O 类型为动态库时，以下的资源才有效
+        <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">⚠</span><span style="color:#75715e">️</span><span style="color:#75715e"> </span><span style="color:#75715e">注</span><span style="color:#75715e">意</span><span style="color:#75715e">，</span><span style="color:#75715e">比</span><span style="color:#75715e">较</span><span style="color:#75715e">奇</span><span style="color:#75715e">怪</span><span style="color:#75715e">的</span><span style="color:#75715e">是</span><span style="color:#75715e">：</span>
+        <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">只</span><span style="color:#75715e">有</span><span style="color:#75715e">当</span><span style="color:#75715e"> </span><span style="color:#75715e">O</span><span style="color:#75715e">b</span><span style="color:#75715e">j</span><span style="color:#75715e">-</span><span style="color:#75715e">C</span><span style="color:#75715e"> </span><span style="color:#75715e">F</span><span style="color:#75715e">r</span><span style="color:#75715e">a</span><span style="color:#75715e">m</span><span style="color:#75715e">e</span><span style="color:#75715e">w</span><span style="color:#75715e">o</span><span style="color:#75715e">r</span><span style="color:#75715e">k</span><span style="color:#75715e"> </span><span style="color:#75715e">的</span><span style="color:#75715e"> </span><span style="color:#75715e">M</span><span style="color:#75715e">a</span><span style="color:#75715e">c</span><span style="color:#75715e">h</span><span style="color:#75715e">-</span><span style="color:#75715e">O</span><span style="color:#75715e"> </span><span style="color:#75715e">类</span><span style="color:#75715e">型</span><span style="color:#75715e">为</span><span style="color:#75715e">动</span><span style="color:#75715e">态</span><span style="color:#75715e">库</span><span style="color:#75715e">时</span><span style="color:#75715e">，</span><span style="color:#75715e">以</span><span style="color:#75715e">下</span><span style="color:#75715e">的</span><span style="color:#75715e">资</span><span style="color:#75715e">源</span><span style="color:#75715e">才</span><span style="color:#75715e">有</span><span style="color:#75715e">效</span>
         imageView.image = foo.image()
 
-        let sFoo = Swift_Foo()
+        <span style="color:#66d9ef">let</span> sFoo = Swift_Foo()
         sFoo.foo()
         print(sFoo.strings())
     }
 }
-</code></pre>
-
-<h3 id="aggregate-target">Aggregate Target</h3>
-
-<p><img src="/img/2019/libraries_in_ios/11.png" alt="11" /></p>
-
+</code></pre></div><h3 id="aggregate-target">Aggregate Target</h3>
+<p><img src="/img/2019/libraries_in_ios/11.png" alt="11"></p>
 <p>关于 Aggregate Target，官方提供的可参考资料很少。老版本的 Xcode 中将其描述为「This target is used to aggregate other targets together」，即 aggregate 本身具有聚合、总计之意，而 Aggregate Target 正是用于聚合其它 Target，使得可以在 Xcode 中达到一次性构建多个 Target 的目的。比如我们这里有多个 Framework，即可使用 Aggregate Target 同时构建，但这并不会影响最终产物：</p>
-
-<p><img src="/img/2019/libraries_in_ios/17.png" alt="17" /></p>
-
+<p><img src="/img/2019/libraries_in_ios/17.png" alt="17"></p>
 <h2 id="cocoapods">CocoaPods</h2>
-
 <p>iOS 开发发展的这些年，CocoaPods 是 iOS/macOS 开发的老牌搭档，用来帮助我们管理工程依赖。</p>
-
-<h3 id="非-use-frameworks">非 use_frameworks!</h3>
-
-<h4 id="obj-c-工程与-obj-c-pod">Obj-C 工程与 Obj-C Pod</h4>
-
+<h3 id="-useframeworks">非 use_frameworks!</h3>
+<h4 id="objc--objc-pod">Obj-C 工程与 Obj-C Pod</h4>
 <p>使用 <code>pod lib create oc-pod</code> 即可以创建我们的私有 Pod，资源文件的管理这里我们尝试使用两种方式：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-ruby" data-lang="ruby"><span style="color:#75715e"># 将通过脚本引入（将直接把文件本身移动到主 Bundle 下）</span>
+s<span style="color:#f92672">.</span>resources <span style="color:#f92672">=</span> <span style="color:#f92672">[</span><span style="color:#e6db74">&#39;oc-pod/Assets/info.json&#39;</span><span style="color:#f92672">]</span>
 
-<pre><code class="language-ruby"># 将通过脚本引入（将直接把文件本身移动到主 Bundle 下）
-s.resources = ['oc-pod/Assets/info.json']
-
-# 将创建 oc-pod 的 Bundle（将把 Bundle 移动到主 Bundle 下），等同于 s.resources = ['oc-pod/Assets/oc-pod.bundle']
-s.resource_bundles = {
-    'oc-pod' =&gt; ['oc-pod/Assets/info-bundle.json']
+<span style="color:#75715e"># 将创建 oc-pod 的 Bundle（将把 Bundle 移动到主 Bundle 下），等同于 s.resources = [&#39;oc-pod/Assets/oc-pod.bundle&#39;]</span>
+s<span style="color:#f92672">.</span>resource_bundles <span style="color:#f92672">=</span> {
+    <span style="color:#e6db74">&#39;oc-pod&#39;</span> <span style="color:#f92672">=</span><span style="color:#f92672">&gt;</span> <span style="color:#f92672">[</span><span style="color:#e6db74">&#39;oc-pod/Assets/info-bundle.json&#39;</span><span style="color:#f92672">]</span>
 }
-</code></pre>
+</code></pre></div><p>这里我们将放置在与 oc-demo-project-pod 同一父目录下，并将语言选择 Obj-C，随后在 oc-demo-project-pod 目录下，<code>pod init</code> 并以路径指定方式引用刚才创建的 Pod：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-ruby" data-lang="ruby"><span style="color:#75715e"># Uncomment the next line to define a global platform for your project</span>
+platform <span style="color:#e6db74">:ios</span>, <span style="color:#e6db74">&#39;13.0&#39;</span>
 
-<p>这里我们将放置在与 oc-demo-project-pod 同一父目录下，并将语言选择 Obj-C，随后在 oc-demo-project-pod 目录下，<code>pod init</code> 并以路径指定方式引用刚才创建的 Pod：</p>
+target <span style="color:#e6db74">&#39;oc-demo-project-pod&#39;</span> <span style="color:#66d9ef">do</span>
+  <span style="color:#75715e"># Uncomment the next line if you&#39;re using Swift or would like to use dynamic frameworks</span>
+  <span style="color:#75715e"># use_frameworks!</span>
 
-<pre><code class="language-ruby"># Uncomment the next line to define a global platform for your project
-platform :ios, '13.0'
+  <span style="color:#75715e"># Pods for oc-demo-project-pod</span>
+  pod <span style="color:#e6db74">&#39;oc-pod&#39;</span>, <span style="color:#e6db74">:path</span> <span style="color:#f92672">=</span><span style="color:#f92672">&gt;</span> <span style="color:#e6db74">&#39;../oc-pod&#39;</span>
+<span style="color:#66d9ef">end</span>
 
-target 'oc-demo-project-pod' do
-  # Uncomment the next line if you're using Swift or would like to use dynamic frameworks
-  # use_frameworks!
-
-  # Pods for oc-demo-project-pod
-  pod 'oc-pod', :path =&gt; '../oc-pod'
-end
-
-</code></pre>
-
-<p>我们将上文已有代码放在 oc-pod 的 <code>Classes</code> 文件夹下，并将资源放在 <code>Assets</code> 文件夹下：</p>
-
-<pre><code class="language-shell">➜  oc-pod git:(master) ✗ tree
+</code></pre></div><p>我们将上文已有代码放在 oc-pod 的 <code>Classes</code> 文件夹下，并将资源放在 <code>Assets</code> 文件夹下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">➜  oc-pod git:<span style="color:#f92672">(</span>master<span style="color:#f92672">)</span> ✗ tree
 .
 ├── oc-pod
 │   ├── Assets  ➡️ 资源
@@ -653,19 +547,19 @@ end
 │       └── ObjC_Foo.m
 └── oc-pod.podspec
 
-3 directories, 7 files
+<span style="color:#ae81ff">3</span> directories, <span style="color:#ae81ff">7</span> files
 
-➜  oc-demo-project-pod git:(master) ✗ tree
+➜  oc-demo-project-pod git:<span style="color:#f92672">(</span>master<span style="color:#f92672">)</span> ✗ tree
 .
 ├── Podfile
 ├── Podfile.lock
 ├── Pods
 │   ├── Headers
-│   ├── Local\ Podspecs
+│   ├── Local<span style="color:#ae81ff">\ </span>Podspecs
 │   │   └── oc-pod.podspec.json
 │   ├── Manifest.lock
 │   ├── Pods.xcodeproj
-│   └── Target\ Support\ Files
+│   └── Target<span style="color:#ae81ff">\ </span>Support<span style="color:#ae81ff">\ </span>Files
 │       ├── Pods-oc-demo-project-pod
 │       │   ├── Pods-oc-demo-project-pod-acknowledgements.markdown
 │       │   ├── Pods-oc-demo-project-pod-acknowledgements.plist
@@ -682,209 +576,195 @@ end
 ├── oc-demo-project-pod.xcodeproj
 └── oc-demo-project-pod.xcworkspace
 
-28 directories, 42 files
-</code></pre>
-
-<blockquote>
+<span style="color:#ae81ff">28</span> directories, <span style="color:#ae81ff">42</span> files
+</code></pre></div><blockquote>
 <p><strong>Tips</strong></p>
-
 <p>CocoaPods 现在默认开启了 <code>use_frameworks!</code> 选项，即使用 Framework 方式集成，这里我们将先对其进行注释，看下非 <code>use_frameworks!</code> 的情况。</p>
 </blockquote>
-
 <p>此时 Pods 工程将在之后作为单一的静态库以 <code>.a</code> 形式集成到主工程中：</p>
-
-<p><img src="/img/2019/libraries_in_ios/13.png" alt="13" /></p>
-
+<p><img src="/img/2019/libraries_in_ios/13.png" alt="13"></p>
 <p>而我们定义在 Podfile 中的相关依赖如 oc-pod 将作为类似上文中 Cocoa Touch Static Library 一样的 Target 被 Pods 工程自身依赖：</p>
-
-<p><img src="/img/2019/libraries_in_ios/12.png" alt="12" /></p>
-
+<p><img src="/img/2019/libraries_in_ios/12.png" alt="12"></p>
 <p>Resource Bundle 或者 <code>s.dependency</code> 的子依赖将被 oc-pod 依赖：</p>
-
-<p><img src="/img/2019/libraries_in_ios/15.png" alt="15" /></p>
-
+<p><img src="/img/2019/libraries_in_ios/15.png" alt="15"></p>
 <p>如前文所述，<code>.a</code> 仅仅包含了编译后的代码，那么它所以依赖的资源文件将如何处理呢？我们可以看到上上图中的「[CP] Copy Pods Resoureces」执行了如下的脚本：</p>
-
-<pre><code class="language-shell">#!/bin/sh
-set -e
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#75715e">#!/bin/sh
+</span><span style="color:#75715e"></span>set -e
 set -u
-set -o pipefail # 一些设置
+set -o pipefail <span style="color:#75715e"># 一些设置</span>
 
-# 错误处理
-function on_error {
-  echo &quot;$(realpath -mq &quot;${0}&quot;):$1: error: Unexpected failure&quot;
-}
-trap 'on_error $LINENO' ERR
+<span style="color:#75715e"># 错误处理</span>
+<span style="color:#66d9ef">function</span> on_error <span style="color:#f92672">{</span>
+  echo <span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>realpath -mq <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>0<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74">:</span>$1<span style="color:#e6db74">: error: Unexpected failure</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#f92672">}</span>
+trap <span style="color:#e6db74">&#39;on_error $LINENO&#39;</span> ERR
 
-# if [ -z STRING ]; 如果字符串 STRING 长度为 0 则为真
-# UNLOCALIZED_RESOURCES_FOLDER_PATH（未本地化资源路径，app 包）：oc-demo-project-pod.app
-if [ -z ${UNLOCALIZED_RESOURCES_FOLDER_PATH+x} ]; then
-  # If UNLOCALIZED_RESOURCES_FOLDER_PATH is not set, then there's nowhere for us to copy
-  # resources to, so exit 0 (signalling the script phase was successful).
-  # 若 UNLOCALIZED_RESOURCES_FOLDER_PATH 未设置，则无需拷贝资源并退出
-  exit 0
-fi
+<span style="color:#75715e"># if [ -z STRING ]; 如果字符串 STRING 长度为 0 则为真</span>
+<span style="color:#75715e"># UNLOCALIZED_RESOURCES_FOLDER_PATH（未本地化资源路径，app 包）：oc-demo-project-pod.app</span>
+<span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> -z <span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH+x<span style="color:#e6db74">}</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+  <span style="color:#75715e"># If UNLOCALIZED_RESOURCES_FOLDER_PATH is not set, then there&#39;s nowhere for us to copy</span>
+  <span style="color:#75715e"># resources to, so exit 0 (signalling the script phase was successful).</span>
+  <span style="color:#75715e"># 若 UNLOCALIZED_RESOURCES_FOLDER_PATH 未设置，则无需拷贝资源并退出</span>
+  exit <span style="color:#ae81ff">0</span>
+<span style="color:#66d9ef">fi</span>
 
-# TARGET_BUILD_DIR（目标构建目录）：/Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-fvrppqpxzudpvicewkjnbszgmrll/Build/Products/Debug-iphonesimulator
-# 递归创建 .app 路径
-mkdir -p &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
+<span style="color:#75715e"># TARGET_BUILD_DIR（目标构建目录）：/Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-fvrppqpxzudpvicewkjnbszgmrll/Build/Products/Debug-iphonesimulator</span>
+<span style="color:#75715e"># 递归创建 .app 路径</span>
+mkdir -p <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
 
-# RESOURCES_TO_COPY（欲拷贝资源记录临时文件）：oc-demo-project-pod/Pods/resources-to-copy-oc-demo-project-pod.txt
-RESOURCES_TO_COPY=${PODS_ROOT}/resources-to-copy-${TARGETNAME}.txt
-# 创建该文件
-&gt; &quot;$RESOURCES_TO_COPY&quot;
+<span style="color:#75715e"># RESOURCES_TO_COPY（欲拷贝资源记录临时文件）：oc-demo-project-pod/Pods/resources-to-copy-oc-demo-project-pod.txt</span>
+RESOURCES_TO_COPY<span style="color:#f92672">=</span><span style="color:#e6db74">${</span>PODS_ROOT<span style="color:#e6db74">}</span>/resources-to-copy-<span style="color:#e6db74">${</span>TARGETNAME<span style="color:#e6db74">}</span>.txt
+<span style="color:#75715e"># 创建该文件</span>
+&gt; <span style="color:#e6db74">&#34;</span>$RESOURCES_TO_COPY<span style="color:#e6db74">&#34;</span>
 
-XCASSET_FILES=()
+XCASSET_FILES<span style="color:#f92672">=</span><span style="color:#f92672">(</span><span style="color:#f92672">)</span>
 
-# 防止多个 target 同时拷贝相同的框架依赖
-# This protects against multiple targets copying the same framework dependency at the same time. The solution
-# was originally proposed here: https://lists.samba.org/archive/rsync/2008-February/020158.html
-# RSYNC_PROTECT_TMP_FILES --filter
-RSYNC_PROTECT_TMP_FILES=(--filter &quot;P .*.??????&quot;)
+<span style="color:#75715e"># 防止多个 target 同时拷贝相同的框架依赖</span>
+<span style="color:#75715e"># This protects against multiple targets copying the same framework dependency at the same time. The solution</span>
+<span style="color:#75715e"># was originally proposed here: https://lists.samba.org/archive/rsync/2008-February/020158.html</span>
+<span style="color:#75715e"># RSYNC_PROTECT_TMP_FILES --filter</span>
+RSYNC_PROTECT_TMP_FILES<span style="color:#f92672">=</span><span style="color:#f92672">(</span>--filter <span style="color:#e6db74">&#34;P .*.??????&#34;</span><span style="color:#f92672">)</span>
 
-# TARGETED_DEVICE_FAMILY（目标设备家族）：1,2（iPhone &amp; iPad）
-case &quot;${TARGETED_DEVICE_FAMILY:-}&quot; in
-  1,2)
-    TARGET_DEVICE_ARGS=&quot;--target-device ipad --target-device iphone&quot;
+<span style="color:#75715e"># TARGETED_DEVICE_FAMILY（目标设备家族）：1,2（iPhone &amp; iPad）</span>
+<span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>TARGETED_DEVICE_FAMILY<span style="color:#66d9ef">:-</span><span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> in
+  1,2<span style="color:#f92672">)</span>
+    TARGET_DEVICE_ARGS<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;--target-device ipad --target-device iphone&#34;</span>
     ;;
-  1)
-    TARGET_DEVICE_ARGS=&quot;--target-device iphone&quot;
+  1<span style="color:#f92672">)</span>
+    TARGET_DEVICE_ARGS<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;--target-device iphone&#34;</span>
     ;;
-  2)
-    TARGET_DEVICE_ARGS=&quot;--target-device ipad&quot;
+  2<span style="color:#f92672">)</span>
+    TARGET_DEVICE_ARGS<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;--target-device ipad&#34;</span>
     ;;
-  3)
-    TARGET_DEVICE_ARGS=&quot;--target-device tv&quot;
+  3<span style="color:#f92672">)</span>
+    TARGET_DEVICE_ARGS<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;--target-device tv&#34;</span>
     ;;
-  4)
-    TARGET_DEVICE_ARGS=&quot;--target-device watch&quot;
+  4<span style="color:#f92672">)</span>
+    TARGET_DEVICE_ARGS<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;--target-device watch&#34;</span>
     ;;
-  *)
-    TARGET_DEVICE_ARGS=&quot;--target-device mac&quot;
+  *<span style="color:#f92672">)</span>
+    TARGET_DEVICE_ARGS<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;--target-device mac&#34;</span>
     ;;
-esac
-# TARGET_DEVICE_ARGS（目标设备参数）：--target-device ipad --target-device iphone（默认）
+<span style="color:#66d9ef">esac</span>
+<span style="color:#75715e"># TARGET_DEVICE_ARGS（目标设备参数）：--target-device ipad --target-device iphone（默认）</span>
 
-# 安装资源函数
-install_resource()
-{
-  # 判断是否是根路径（第一个参数开头有无 /），非根路径则添加 Pods 根路径
-  if [[ &quot;$1&quot; = /* ]] ; then
-    RESOURCE_PATH=&quot;$1&quot;
-  else
-    RESOURCE_PATH=&quot;${PODS_ROOT}/$1&quot;
-  fi
+<span style="color:#75715e"># 安装资源函数</span>
+install_resource<span style="color:#f92672">(</span><span style="color:#f92672">)</span>
+<span style="color:#f92672">{</span>
+  <span style="color:#75715e"># 判断是否是根路径（第一个参数开头有无 /），非根路径则添加 Pods 根路径</span>
+  <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span><span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span>$1<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">=</span> /* <span style="color:#f92672">]</span><span style="color:#f92672">]</span> ; <span style="color:#66d9ef">then</span>
+    RESOURCE_PATH<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span>$1<span style="color:#e6db74">&#34;</span>
+  <span style="color:#66d9ef">else</span>
+    RESOURCE_PATH<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>PODS_ROOT<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span>$1<span style="color:#e6db74">&#34;</span>
+  <span style="color:#66d9ef">fi</span>
 
-  # RESOURCE_PATH（资源路径）
-  # PATH/TO/libraries_in_ios-demo/oc-demo-project-pod/Pods/../../oc-pod/oc-pod/Assets/info.json
-  # /Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-aaokquikwvguhaglfagfimosuecy/Build/Products/Debug-iphonesimulator/oc-pod/oc-pod.bundle
-  # PATH/TO/libraries_in_ios-demo/oc-demo-project-pod/Pods/../../swift-pod/swift-pod/Assets/Localizable.strings
-  # 若资源路径不存在则提示并退出
-  if [[ ! -e &quot;$RESOURCE_PATH&quot; ]] ; then
-    cat &lt;&lt; EOM
-error: Resource &quot;$RESOURCE_PATH&quot; not found. Run 'pod install' to update the copy resources script.
-EOM
-    exit 1
-  fi
-  case $RESOURCE_PATH in
-    # storyboard 资源：编译为 storyboardc
-    *.storyboard)
-      echo &quot;ibtool --reference-external-strings-file --errors --warnings --notices --minimum-deployment-target ${!DEPLOYMENT_TARGET_SETTING_NAME} --output-format human-readable-text --compile ${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename \&quot;$RESOURCE_PATH\&quot; .storyboard`.storyboardc $RESOURCE_PATH --sdk ${SDKROOT} ${TARGET_DEVICE_ARGS}&quot; || true
-      ibtool --reference-external-strings-file --errors --warnings --notices --minimum-deployment-target ${!DEPLOYMENT_TARGET_SETTING_NAME} --output-format human-readable-text --compile &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename \&quot;$RESOURCE_PATH\&quot; .storyboard`.storyboardc&quot; &quot;$RESOURCE_PATH&quot; --sdk &quot;${SDKROOT}&quot; ${TARGET_DEVICE_ARGS}
+  <span style="color:#75715e"># RESOURCE_PATH（资源路径）</span>
+  <span style="color:#75715e"># PATH/TO/libraries_in_ios-demo/oc-demo-project-pod/Pods/../../oc-pod/oc-pod/Assets/info.json</span>
+  <span style="color:#75715e"># /Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-aaokquikwvguhaglfagfimosuecy/Build/Products/Debug-iphonesimulator/oc-pod/oc-pod.bundle</span>
+  <span style="color:#75715e"># PATH/TO/libraries_in_ios-demo/oc-demo-project-pod/Pods/../../swift-pod/swift-pod/Assets/Localizable.strings</span>
+  <span style="color:#75715e"># 若资源路径不存在则提示并退出</span>
+  <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span><span style="color:#f92672">[</span> ! -e <span style="color:#e6db74">&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span><span style="color:#f92672">]</span> ; <span style="color:#66d9ef">then</span>
+    cat <span style="color:#e6db74">&lt;&lt; EOM
+</span><span style="color:#e6db74">error: Resource &#34;$RESOURCE_PATH&#34; not found. Run &#39;pod install&#39; to update the copy resources script.
+</span><span style="color:#e6db74">EOM</span>
+    exit <span style="color:#ae81ff">1</span>
+  <span style="color:#66d9ef">fi</span>
+  <span style="color:#66d9ef">case</span> $RESOURCE_PATH in
+    <span style="color:#75715e"># storyboard 资源：编译为 storyboardc</span>
+    *.storyboard<span style="color:#f92672">)</span>
+      echo <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">ibtool --reference-external-strings-file --errors --warnings --notices --minimum-deployment-target </span><span style="color:#e6db74">${</span>!DEPLOYMENT_TARGET_SETTING_NAME<span style="color:#e6db74">}</span><span style="color:#e6db74"> --output-format human-readable-text --compile </span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">/`basename \&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">\&#34; .storyboard`.storyboardc </span>$RESOURCE_PATH<span style="color:#e6db74"> --sdk </span><span style="color:#e6db74">${</span>SDKROOT<span style="color:#e6db74">}</span><span style="color:#e6db74"> </span><span style="color:#e6db74">${</span>TARGET_DEVICE_ARGS<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">||</span> true
+      ibtool --reference-external-strings-file --errors --warnings --notices --minimum-deployment-target <span style="color:#e6db74">${</span>!DEPLOYMENT_TARGET_SETTING_NAME<span style="color:#e6db74">}</span> --output-format human-readable-text --compile <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">/`basename \&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">\&#34; .storyboard`.storyboardc</span><span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">&#34;</span> --sdk <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>SDKROOT<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">${</span>TARGET_DEVICE_ARGS<span style="color:#e6db74">}</span>
       ;;
-    # xib 资源：编译为 nib
-    *.xib)
-      echo &quot;ibtool --reference-external-strings-file --errors --warnings --notices --minimum-deployment-target ${!DEPLOYMENT_TARGET_SETTING_NAME} --output-format human-readable-text --compile ${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename \&quot;$RESOURCE_PATH\&quot; .xib`.nib $RESOURCE_PATH --sdk ${SDKROOT} ${TARGET_DEVICE_ARGS}&quot; || true
-      ibtool --reference-external-strings-file --errors --warnings --notices --minimum-deployment-target ${!DEPLOYMENT_TARGET_SETTING_NAME} --output-format human-readable-text --compile &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename \&quot;$RESOURCE_PATH\&quot; .xib`.nib&quot; &quot;$RESOURCE_PATH&quot; --sdk &quot;${SDKROOT}&quot; ${TARGET_DEVICE_ARGS}
+    <span style="color:#75715e"># xib 资源：编译为 nib</span>
+    *.xib<span style="color:#f92672">)</span>
+      echo <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">ibtool --reference-external-strings-file --errors --warnings --notices --minimum-deployment-target </span><span style="color:#e6db74">${</span>!DEPLOYMENT_TARGET_SETTING_NAME<span style="color:#e6db74">}</span><span style="color:#e6db74"> --output-format human-readable-text --compile </span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">/`basename \&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">\&#34; .xib`.nib </span>$RESOURCE_PATH<span style="color:#e6db74"> --sdk </span><span style="color:#e6db74">${</span>SDKROOT<span style="color:#e6db74">}</span><span style="color:#e6db74"> </span><span style="color:#e6db74">${</span>TARGET_DEVICE_ARGS<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">||</span> true
+      ibtool --reference-external-strings-file --errors --warnings --notices --minimum-deployment-target <span style="color:#e6db74">${</span>!DEPLOYMENT_TARGET_SETTING_NAME<span style="color:#e6db74">}</span> --output-format human-readable-text --compile <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">/`basename \&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">\&#34; .xib`.nib</span><span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">&#34;</span> --sdk <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>SDKROOT<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">${</span>TARGET_DEVICE_ARGS<span style="color:#e6db74">}</span>
       ;;
-    *.framework)
-      echo &quot;mkdir -p ${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot; || true
-      mkdir -p &quot;${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot;
-      echo &quot;rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; $RESOURCE_PATH ${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot; || true
-      rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; &quot;$RESOURCE_PATH&quot; &quot;${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot;
+    *.framework<span style="color:#f92672">)</span>
+      echo <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">mkdir -p </span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>FRAMEWORKS_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">||</span> true
+      mkdir -p <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>FRAMEWORKS_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
+      echo <span style="color:#e6db74">&#34;rsync --delete -av &#34;</span><span style="color:#e6db74">${</span>RSYNC_PROTECT_TMP_FILES[@]<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74"> </span>$RESOURCE_PATH<span style="color:#e6db74"> </span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>FRAMEWORKS_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">||</span> true
+      rsync --delete -av <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>RSYNC_PROTECT_TMP_FILES[@]<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>FRAMEWORKS_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
       ;;
-    *.xcdatamodel)
-      echo &quot;xcrun momc \&quot;$RESOURCE_PATH\&quot; \&quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename &quot;$RESOURCE_PATH&quot;`.mom\&quot;&quot; || true
-      xcrun momc &quot;$RESOURCE_PATH&quot; &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename &quot;$RESOURCE_PATH&quot; .xcdatamodel`.mom&quot;
+    *.xcdatamodel<span style="color:#f92672">)</span>
+      echo <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">xcrun momc \&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">\&#34; \&#34;</span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">/`basename </span><span style="color:#e6db74">&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">&#34;`.mom\&#34;&#34;</span> <span style="color:#f92672">||</span> true
+      xcrun momc <span style="color:#e6db74">&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">/`basename </span><span style="color:#e6db74">&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">&#34; .xcdatamodel`.mom&#34;</span>
       ;;
-    *.xcdatamodeld)
-      echo &quot;xcrun momc \&quot;$RESOURCE_PATH\&quot; \&quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename &quot;$RESOURCE_PATH&quot; .xcdatamodeld`.momd\&quot;&quot; || true
-      xcrun momc &quot;$RESOURCE_PATH&quot; &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename &quot;$RESOURCE_PATH&quot; .xcdatamodeld`.momd&quot;
+    *.xcdatamodeld<span style="color:#f92672">)</span>
+      echo <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">xcrun momc \&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">\&#34; \&#34;</span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">/`basename </span><span style="color:#e6db74">&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">&#34; .xcdatamodeld`.momd\&#34;&#34;</span> <span style="color:#f92672">||</span> true
+      xcrun momc <span style="color:#e6db74">&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">/`basename </span><span style="color:#e6db74">&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">&#34; .xcdatamodeld`.momd&#34;</span>
       ;;
-    *.xcmappingmodel)
-      echo &quot;xcrun mapc \&quot;$RESOURCE_PATH\&quot; \&quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename &quot;$RESOURCE_PATH&quot; .xcmappingmodel`.cdm\&quot;&quot; || true
-      xcrun mapc &quot;$RESOURCE_PATH&quot; &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename &quot;$RESOURCE_PATH&quot; .xcmappingmodel`.cdm&quot;
+    *.xcmappingmodel<span style="color:#f92672">)</span>
+      echo <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">xcrun mapc \&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">\&#34; \&#34;</span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">/`basename </span><span style="color:#e6db74">&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">&#34; .xcmappingmodel`.cdm\&#34;&#34;</span> <span style="color:#f92672">||</span> true
+      xcrun mapc <span style="color:#e6db74">&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">/`basename </span><span style="color:#e6db74">&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">&#34; .xcmappingmodel`.cdm&#34;</span>
       ;;
-    *.xcassets)
-      ABSOLUTE_XCASSET_FILE=&quot;$RESOURCE_PATH&quot;
-      XCASSET_FILES+=(&quot;$ABSOLUTE_XCASSET_FILE&quot;)
+    *.xcassets<span style="color:#f92672">)</span>
+      ABSOLUTE_XCASSET_FILE<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">&#34;</span>
+      XCASSET_FILES<span style="color:#f92672">+=</span><span style="color:#f92672">(</span><span style="color:#e6db74">&#34;</span>$ABSOLUTE_XCASSET_FILE<span style="color:#e6db74">&#34;</span><span style="color:#f92672">)</span>
       ;;
-    # 其它，比如 bundle / json
-    *)
-      echo &quot;$RESOURCE_PATH&quot; || true
-      # 将资源路径写入欲拷贝资源记录临时文件中
-      echo &quot;$RESOURCE_PATH&quot; &gt;&gt; &quot;$RESOURCES_TO_COPY&quot;
+    <span style="color:#75715e"># 其它，比如 bundle / json</span>
+    *<span style="color:#f92672">)</span>
+      echo <span style="color:#e6db74">&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">||</span> true
+      <span style="color:#75715e"># 将资源路径写入欲拷贝资源记录临时文件中</span>
+      echo <span style="color:#e6db74">&#34;</span>$RESOURCE_PATH<span style="color:#e6db74">&#34;</span> &gt;&gt; <span style="color:#e6db74">&#34;</span>$RESOURCES_TO_COPY<span style="color:#e6db74">&#34;</span>
       ;;
-  esac
-}
+  <span style="color:#66d9ef">esac</span>
+<span style="color:#f92672">}</span>
 
-# CONFIGURATION：运行的 scheme 配置模式，Debug 或 Release
-# 目前 Debug 和 Release 模式处理一致
-if [[ &quot;$CONFIGURATION&quot; == &quot;Debug&quot; ]]; then
-  install_resource &quot;${PODS_ROOT}/../../oc-pod/oc-pod/Assets/info.json&quot;
-  install_resource &quot;${PODS_CONFIGURATION_BUILD_DIR}/oc-pod/oc-pod.bundle&quot;
-  install_resource &quot;${PODS_ROOT}/../../swift-pod/swift-pod/Assets/Localizable.strings&quot;
-fi
-if [[ &quot;$CONFIGURATION&quot; == &quot;Release&quot; ]]; then
-  install_resource &quot;${PODS_ROOT}/../../oc-pod/oc-pod/Assets/info.json&quot;
-  install_resource &quot;${PODS_CONFIGURATION_BUILD_DIR}/oc-pod/oc-pod.bundle&quot;
-  install_resource &quot;${PODS_ROOT}/../../swift-pod/swift-pod/Assets/Localizable.strings&quot;
-fi
+<span style="color:#75715e"># CONFIGURATION：运行的 scheme 配置模式，Debug 或 Release</span>
+<span style="color:#75715e"># 目前 Debug 和 Release 模式处理一致</span>
+<span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span><span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span>$CONFIGURATION<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Debug&#34;</span> <span style="color:#f92672">]</span><span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+  install_resource <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>PODS_ROOT<span style="color:#e6db74">}</span><span style="color:#e6db74">/../../oc-pod/oc-pod/Assets/info.json</span><span style="color:#e6db74">&#34;</span>
+  install_resource <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>PODS_CONFIGURATION_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/oc-pod/oc-pod.bundle</span><span style="color:#e6db74">&#34;</span>
+  install_resource <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>PODS_ROOT<span style="color:#e6db74">}</span><span style="color:#e6db74">/../../swift-pod/swift-pod/Assets/Localizable.strings</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#66d9ef">fi</span>
+<span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span><span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span>$CONFIGURATION<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Release&#34;</span> <span style="color:#f92672">]</span><span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+  install_resource <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>PODS_ROOT<span style="color:#e6db74">}</span><span style="color:#e6db74">/../../oc-pod/oc-pod/Assets/info.json</span><span style="color:#e6db74">&#34;</span>
+  install_resource <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>PODS_CONFIGURATION_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/oc-pod/oc-pod.bundle</span><span style="color:#e6db74">&#34;</span>
+  install_resource <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>PODS_ROOT<span style="color:#e6db74">}</span><span style="color:#e6db74">/../../swift-pod/swift-pod/Assets/Localizable.strings</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#66d9ef">fi</span>
 
-# 再次尝试确保同一文件夹创建
-mkdir -p &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
+<span style="color:#75715e"># 再次尝试确保同一文件夹创建</span>
+mkdir -p <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
 
-# rsync：快速、多功能、远程（和本地）文件复制工具，-a：保留所有；-v：输出信息；-r：递归；
-# --copy-links：当遇到符号链接时，指向的项目（引用）被复制，而不是符号链接；
-# --no-relative：非相对路径，即绝对路径
-# --exclude：排除某个模式的目录
-# --files-from：文件来源
-# /：文件目的
-rsync -avr --copy-links --no-relative --exclude '*/.svn/*' --files-from=&quot;$RESOURCES_TO_COPY&quot; / &quot;${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
+<span style="color:#75715e"># rsync：快速、多功能、远程（和本地）文件复制工具，-a：保留所有；-v：输出信息；-r：递归；</span>
+<span style="color:#75715e"># --copy-links：当遇到符号链接时，指向的项目（引用）被复制，而不是符号链接；</span>
+<span style="color:#75715e"># --no-relative：非相对路径，即绝对路径</span>
+<span style="color:#75715e"># --exclude：排除某个模式的目录</span>
+<span style="color:#75715e"># --files-from：文件来源</span>
+<span style="color:#75715e"># /：文件目的</span>
+rsync -avr --copy-links --no-relative --exclude <span style="color:#e6db74">&#39;*/.svn/*&#39;</span> --files-from<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span>$RESOURCES_TO_COPY<span style="color:#e6db74">&#34;</span> / <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
 
-# ACTION（行为）：构建即 build，不太清楚何时为 install
-# SKIP_INSTALL（是否跳过安装）：否为 NO
-if [[ &quot;${ACTION}&quot; == &quot;install&quot; ]] &amp;&amp; [[ &quot;${SKIP_INSTALL}&quot; == &quot;NO&quot; ]]; then
-  mkdir -p &quot;${INSTALL_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
-  rsync -avr --copy-links --no-relative --exclude '*/.svn/*' --files-from=&quot;$RESOURCES_TO_COPY&quot; / &quot;${INSTALL_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
-fi
+<span style="color:#75715e"># ACTION（行为）：构建即 build，不太清楚何时为 install</span>
+<span style="color:#75715e"># SKIP_INSTALL（是否跳过安装）：否为 NO</span>
+<span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span><span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>ACTION<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;install&#34;</span> <span style="color:#f92672">]</span><span style="color:#f92672">]</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#f92672">[</span><span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>SKIP_INSTALL<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;NO&#34;</span> <span style="color:#f92672">]</span><span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+  mkdir -p <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>INSTALL_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
+  rsync -avr --copy-links --no-relative --exclude <span style="color:#e6db74">&#39;*/.svn/*&#39;</span> --files-from<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span>$RESOURCES_TO_COPY<span style="color:#e6db74">&#34;</span> / <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>INSTALL_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#66d9ef">fi</span>
 
-# 删除存储资源路径的临时文件
-rm -f &quot;$RESOURCES_TO_COPY&quot;
+<span style="color:#75715e"># 删除存储资源路径的临时文件</span>
+rm -f <span style="color:#e6db74">&#34;</span>$RESOURCES_TO_COPY<span style="color:#e6db74">&#34;</span>
 
-# WRAPPER_EXTENSION（扩展）：app
-if [[ -n &quot;${WRAPPER_EXTENSION}&quot; ]] &amp;&amp; [ &quot;`xcrun --find actool`&quot; ] &amp;&amp; [ -n &quot;${XCASSET_FILES:-}&quot; ]
-then
-  # Find all other xcassets (this unfortunately includes those of path pods and other targets).
-  # 查找其他所有 xcassets
-  OTHER_XCASSETS=$(find &quot;$PWD&quot; -iname &quot;*.xcassets&quot; -type d)
-  while read line; do
-    if [[ $line != &quot;${PODS_ROOT}*&quot; ]]; then
-      XCASSET_FILES+=(&quot;$line&quot;)
-    fi
-  done &lt;&lt;&lt;&quot;$OTHER_XCASSETS&quot;
+<span style="color:#75715e"># WRAPPER_EXTENSION（扩展）：app</span>
+<span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span><span style="color:#f92672">[</span> -n <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>WRAPPER_EXTENSION<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span><span style="color:#f92672">]</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;`xcrun --find actool`&#34;</span> <span style="color:#f92672">]</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#f92672">[</span> -n <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>XCASSET_FILES<span style="color:#66d9ef">:-</span><span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span>
+<span style="color:#66d9ef">then</span>
+  <span style="color:#75715e"># Find all other xcassets (this unfortunately includes those of path pods and other targets).</span>
+  <span style="color:#75715e"># 查找其他所有 xcassets</span>
+  OTHER_XCASSETS<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>find <span style="color:#e6db74">&#34;</span>$PWD<span style="color:#e6db74">&#34;</span> -iname <span style="color:#e6db74">&#34;*.xcassets&#34;</span> -type d<span style="color:#66d9ef">)</span>
+  <span style="color:#66d9ef">while</span> read line; <span style="color:#66d9ef">do</span>
+    <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span><span style="color:#f92672">[</span> $line !<span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>PODS_ROOT<span style="color:#e6db74">}</span><span style="color:#e6db74">*</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span><span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+      XCASSET_FILES<span style="color:#f92672">+=</span><span style="color:#f92672">(</span><span style="color:#e6db74">&#34;</span>$line<span style="color:#e6db74">&#34;</span><span style="color:#f92672">)</span>
+    <span style="color:#66d9ef">fi</span>
+  <span style="color:#66d9ef">done</span> <span style="color:#f92672">&lt;&lt;&lt;</span><span style="color:#e6db74">&#34;</span>$OTHER_XCASSETS<span style="color:#e6db74">&#34;</span>
 
-  if [ -z ${ASSETCATALOG_COMPILER_APPICON_NAME+x} ]; then
-    printf &quot;%s\0&quot; &quot;${XCASSET_FILES[@]}&quot; | xargs -0 xcrun actool --output-format human-readable-text --notices --warnings --platform &quot;${PLATFORM_NAME}&quot; --minimum-deployment-target &quot;${!DEPLOYMENT_TARGET_SETTING_NAME}&quot; ${TARGET_DEVICE_ARGS} --compress-pngs --compile &quot;${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot;
-  else
-    printf &quot;%s\0&quot; &quot;${XCASSET_FILES[@]}&quot; | xargs -0 xcrun actool --output-format human-readable-text --notices --warnings --platform &quot;${PLATFORM_NAME}&quot; --minimum-deployment-target &quot;${!DEPLOYMENT_TARGET_SETTING_NAME}&quot; ${TARGET_DEVICE_ARGS} --compress-pngs --compile &quot;${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}&quot; --app-icon &quot;${ASSETCATALOG_COMPILER_APPICON_NAME}&quot; --output-partial-info-plist &quot;${TARGET_TEMP_DIR}/assetcatalog_generated_info_cocoapods.plist&quot;
-  fi
-fi
-</code></pre>
-
-<p>因此最终的 <code>oc-demo-project-pod.app</code> 结构如下：</p>
-
-<pre><code class="language-shell">➜  oc-demo-project-pod.app tree
+  <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> -z <span style="color:#e6db74">${</span>ASSETCATALOG_COMPILER_APPICON_NAME+x<span style="color:#e6db74">}</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+    printf <span style="color:#e6db74">&#34;%s\0&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>XCASSET_FILES[@]<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> | xargs -0 xcrun actool --output-format human-readable-text --notices --warnings --platform <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>PLATFORM_NAME<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> --minimum-deployment-target <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>!DEPLOYMENT_TARGET_SETTING_NAME<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">${</span>TARGET_DEVICE_ARGS<span style="color:#e6db74">}</span> --compress-pngs --compile <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>BUILT_PRODUCTS_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
+  <span style="color:#66d9ef">else</span>
+    printf <span style="color:#e6db74">&#34;%s\0&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>XCASSET_FILES[@]<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> | xargs -0 xcrun actool --output-format human-readable-text --notices --warnings --platform <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>PLATFORM_NAME<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> --minimum-deployment-target <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>!DEPLOYMENT_TARGET_SETTING_NAME<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">${</span>TARGET_DEVICE_ARGS<span style="color:#e6db74">}</span> --compress-pngs --compile <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>BUILT_PRODUCTS_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>UNLOCALIZED_RESOURCES_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> --app-icon <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>ASSETCATALOG_COMPILER_APPICON_NAME<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> --output-partial-info-plist <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>TARGET_TEMP_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/assetcatalog_generated_info_cocoapods.plist</span><span style="color:#e6db74">&#34;</span>
+  <span style="color:#66d9ef">fi</span>
+<span style="color:#66d9ef">fi</span>
+</code></pre></div><p>因此最终的 <code>oc-demo-project-pod.app</code> 结构如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">➜  oc-demo-project-pod.app tree
 .
 ├── Base.lproj
 │   ├── LaunchScreen.storyboardc
@@ -912,401 +792,355 @@ fi
     ├── info-bundle.json
     └── oc-pod.json
 
-6 directories, 19 files
-</code></pre>
-
-<p>资源文件 Bundle 以及 JSON 文件被原封不动地挪动到 <code>oc-demo-project-pod.app</code> 下，而第三方和 Pods 中介的 <code>.a</code> 就已经被打入了可执行文件中，我们可以使用 <code>nm</code> 尝试打印其中的符号：</p>
-
-<pre><code class="language-shell">➜  oc-demo-project-pod.app nm oc-demo-project-pod | grep ObjC_Foo
-0000000100038a50 t -[ObjC_Foo foo]
-0000000100038b00 t -[ObjC_Foo resources]
-0000000100053220 S _OBJC_CLASS_$_ObjC_Foo
+<span style="color:#ae81ff">6</span> directories, <span style="color:#ae81ff">19</span> files
+</code></pre></div><p>资源文件 Bundle 以及 JSON 文件被原封不动地挪动到 <code>oc-demo-project-pod.app</code> 下，而第三方和 Pods 中介的 <code>.a</code> 就已经被打入了可执行文件中，我们可以使用 <code>nm</code> 尝试打印其中的符号：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">➜  oc-demo-project-pod.app nm oc-demo-project-pod | grep ObjC_Foo
+0000000100038a50 t -<span style="color:#f92672">[</span>ObjC_Foo foo<span style="color:#f92672">]</span>
+0000000100038b00 t -<span style="color:#f92672">[</span>ObjC_Foo resources<span style="color:#f92672">]</span>
+<span style="color:#ae81ff">0000000100053220</span> S _OBJC_CLASS_$_ObjC_Foo
 00000001000531f8 S _OBJC_METACLASS_$_ObjC_Foo
 
 ➜  oc-demo-project-pod.app nm oc-demo-project-pod | grep Pods
 0000000100052b90 S _OBJC_CLASS_$_PodsDummy_AFNetworking
 00000001000532c0 S _OBJC_CLASS_$_PodsDummy_Pods_oc_demo_project_pod
-0000000100053270 S _OBJC_CLASS_$_PodsDummy_oc_pod
+<span style="color:#ae81ff">0000000100053270</span> S _OBJC_CLASS_$_PodsDummy_oc_pod
 0000000100052b68 S _OBJC_METACLASS_$_PodsDummy_AFNetworking
-0000000100053298 S _OBJC_METACLASS_$_PodsDummy_Pods_oc_demo_project_pod
-0000000100053248 S _OBJC_METACLASS_$_PodsDummy_oc_pod
-</code></pre>
+<span style="color:#ae81ff">0000000100053298</span> S _OBJC_METACLASS_$_PodsDummy_Pods_oc_demo_project_pod
+<span style="color:#ae81ff">0000000100053248</span> S _OBJC_METACLASS_$_PodsDummy_oc_pod
+</code></pre></div><p>虽然资源均被拷贝到了 <code>.app</code> 下，但在代码中相应的获取方式却有一定差别：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">resources</span> {
+    <span style="color:#75715e">// s.resources
+</span><span style="color:#75715e"></span>    NSBundle <span style="color:#f92672">*</span>bundle <span style="color:#f92672">=</span> [NSBundle bundleForClass:[self <span style="color:#66d9ef">class</span>]];
+    NSString <span style="color:#f92672">*</span>path <span style="color:#f92672">=</span> [bundle pathForResource:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">info</span><span style="color:#e6db74">&#34;</span> ofType:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">json</span><span style="color:#e6db74">&#34;</span>];
+    NSData <span style="color:#f92672">*</span>data <span style="color:#f92672">=</span> [NSData dataWithContentsOfFile:path];
 
-<p>虽然资源均被拷贝到了 <code>.app</code> 下，但在代码中相应的获取方式却有一定差别：</p>
-
-<pre><code class="language-objectivec">- (void)resources {
-    // s.resources
-    NSBundle *bundle = [NSBundle bundleForClass:[self class]];
-    NSString *path = [bundle pathForResource:@&quot;info&quot; ofType:@&quot;json&quot;];
-    NSData *data = [NSData dataWithContentsOfFile:path];
-
-    if (data) {
-        NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
-        NSLog(@&quot;%@ - %@&quot;, dict[@&quot;blog&quot;], dict[@&quot;github&quot;]);
+    <span style="color:#66d9ef">if</span> (data) {
+        NSDictionary <span style="color:#f92672">*</span>dict <span style="color:#f92672">=</span> [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
+        NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@ - %@</span><span style="color:#e6db74">&#34;</span>, dict[<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">blog</span><span style="color:#e6db74">&#34;</span>], dict[<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">github</span><span style="color:#e6db74">&#34;</span>]);
     }
 
-    // s.resource_bundles
-    NSBundle *bundle2 = [NSBundle bundleWithPath:[[NSBundle mainBundle] pathForResource:@&quot;oc-pod&quot; ofType:@&quot;bundle&quot;]];
-    NSString *path2 = [bundle2 pathForResource:@&quot;oc-pod&quot; ofType:@&quot;json&quot;];
-    NSData *data2 = [NSData dataWithContentsOfFile:path2];
+    <span style="color:#75715e">// s.resource_bundles
+</span><span style="color:#75715e"></span>    NSBundle <span style="color:#f92672">*</span>bundle2 <span style="color:#f92672">=</span> [NSBundle bundleWithPath:[[NSBundle mainBundle] pathForResource:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">oc-pod</span><span style="color:#e6db74">&#34;</span> ofType:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">bundle</span><span style="color:#e6db74">&#34;</span>]];
+    NSString <span style="color:#f92672">*</span>path2 <span style="color:#f92672">=</span> [bundle2 pathForResource:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">oc-pod</span><span style="color:#e6db74">&#34;</span> ofType:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">json</span><span style="color:#e6db74">&#34;</span>];
+    NSData <span style="color:#f92672">*</span>data2 <span style="color:#f92672">=</span> [NSData dataWithContentsOfFile:path2];
 
-    if (data2) {
-        NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
-        NSLog(@&quot;%@ - %@&quot;, dict[@&quot;blog&quot;], dict[@&quot;github&quot;]);
+    <span style="color:#66d9ef">if</span> (data2) {
+        NSDictionary <span style="color:#f92672">*</span>dict <span style="color:#f92672">=</span> [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
+        NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@ - %@</span><span style="color:#e6db74">&#34;</span>, dict[<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">blog</span><span style="color:#e6db74">&#34;</span>], dict[<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">github</span><span style="color:#e6db74">&#34;</span>]);
     }
 }
-</code></pre>
-
-<h4 id="obj-c-工程与-swift-pod">Obj-C 工程与 Swift Pod</h4>
-
+</code></pre></div><h4 id="objc--swift-pod">Obj-C 工程与 Swift Pod</h4>
 <p>在 Obj-C 工程下引入 Swift Pod 与 Obj-C Pod 并无太多差别。不过有时可能会遇到 CocoaPods 提示下面这个问题，或者在编译时提示找不到许多 Swift 相关的符号：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>!<span style="color:#f92672">]</span> Unable to determine Swift version <span style="color:#66d9ef">for</span> the following pods:
 
-<pre><code class="language-shell">[!] Unable to determine Swift version for the following pods:
-
-- `swift-pod` does not specify a Swift version and none of the targets (`oc-demo-project-pod`) integrating it have the `SWIFT_VERSION` attribute set. Please contact the author or set the `SWIFT_VERSION` attribute in at least one of the targets that integrate this pod.
-</code></pre>
-
-<p>此时我们可以在 Obj-C 工程中新建一个占位 Swift 文件即可使其获得 Swift 能力：</p>
-
-<p><img src="/img/2019/libraries_in_ios/14.png" alt="14" /></p>
-
+- <span style="color:#e6db74">`</span>swift-pod<span style="color:#e6db74">`</span> does not specify a Swift version and none of the targets <span style="color:#f92672">(</span><span style="color:#e6db74">`</span>oc-demo-project-pod<span style="color:#e6db74">`</span><span style="color:#f92672">)</span> integrating it have the <span style="color:#e6db74">`</span>SWIFT_VERSION<span style="color:#e6db74">`</span> attribute set. Please contact the author or set the <span style="color:#e6db74">`</span>SWIFT_VERSION<span style="color:#e6db74">`</span> attribute in at least one of the targets that integrate this pod.
+</code></pre></div><p>此时我们可以在 Obj-C 工程中新建一个占位 Swift 文件即可使其获得 Swift 能力：</p>
+<p><img src="/img/2019/libraries_in_ios/14.png" alt="14"></p>
 <p>另外需要注意的是，Swift Pod 引入时需要使用 <code>@import</code>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">@import swift_pod;
 
-<pre><code class="language-objectivec">@import swift_pod;
-
-@implementation ViewController
-- (void)viewDidLoad {
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">ViewController</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">viewDidLoad</span> {
     [super viewDidLoad];
 
     [[[Swift_Foo alloc] init] foo];
-    NSLog(@&quot;%@&quot;, [[[Swift_Foo alloc] init] strings]);
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [[[Swift_Foo alloc] init] strings]);
 }
-@end
-</code></pre>
-
-<h4 id="swift-工程与-obj-c-pod">Swift 工程与 Obj-C Pod</h4>
-
+<span style="color:#66d9ef">@end</span>
+</code></pre></div><h4 id="swift--objc-pod">Swift 工程与 Obj-C Pod</h4>
 <p>Swift 工程依赖 Obj-C Pod 的方式与 Obj-C 工程一致。但需要注意的是，我们无法直接在 Swift 代码中 <code>import</code> Obj-C Pod。这里也需要桥接文件来引入，我们可以创建 Obj-C 类型的占位文件，并创建桥接文件，在其中引入暴露给 Swift 工程的头文件：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">//
+</span><span style="color:#75715e"></span><span style="color:#75715e">//  Use this file to import your target&#39;s public headers that you would like to expose to Swift.
+</span><span style="color:#75715e"></span><span style="color:#75715e">//
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">import &lt;oc-pod</span><span style="color:#75715e">/</span><span style="color:#75715e">ObjC_Foo.h&gt;</span><span style="color:#75715e">
+</span></code></pre></div><p>这样即可在 Swift 工程中使用：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
 
-<pre><code class="language-objectivec">//
-//  Use this file to import your target's public headers that you would like to expose to Swift.
-//
-
-#import &lt;oc-pod/ObjC_Foo.h&gt;
-</code></pre>
-
-<p>这样即可在 Swift 工程中使用：</p>
-
-<pre><code class="language-swift">import UIKit
-
-class ViewController: UIViewController {
-    override func viewDidLoad() {
-        super.viewDidLoad()
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ViewController</span>: UIViewController {
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">viewDidLoad</span>() {
+        <span style="color:#66d9ef">super</span>.viewDidLoad()
 
         ObjC_Foo().foo()
     }
 }
-</code></pre>
-
-<p>对于同样未开启 <code>use_frameworks</code> 的 Swift 工程来说，CocoaPods 处理资源的脚本和逻辑是一致的。</p>
-
-<h4 id="swift-工程与-swift-pod">Swift 工程与 Swift Pod</h4>
-
+</code></pre></div><p>对于同样未开启 <code>use_frameworks</code> 的 Swift 工程来说，CocoaPods 处理资源的脚本和逻辑是一致的。</p>
+<h4 id="swift--swift-pod">Swift 工程与 Swift Pod</h4>
 <p>Swift 工程依赖 Swift Pod 的方式则更加简单，只需要使用 <code>import</code> 引入 Pod 即可：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">swift_pod</span>
 
-<pre><code class="language-swift">import swift_pod
-
-class ViewController: UIViewController {
-    override func viewDidLoad() {
-        super.viewDidLoad()
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ViewController</span>: UIViewController {
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">viewDidLoad</span>() {
+        <span style="color:#66d9ef">super</span>.viewDidLoad()
 
         Swift_Foo().foo()
         print(Swift_Foo().strings())
     }
 }
-</code></pre>
-
-<h3 id="use-frameworks">use_frameworks!</h3>
-
-<h4 id="obj-c-工程-1">Obj-C 工程</h4>
-
+</code></pre></div><h3 id="useframeworks">use_frameworks!</h3>
+<h4 id="objc-1">Obj-C 工程</h4>
 <p>将 <code>use_frameworks!</code> 开启时，Pods 工程将以框架方式依赖：</p>
-
-<p><img src="/img/2019/libraries_in_ios/16.png" alt="16" /></p>
-
+<p><img src="/img/2019/libraries_in_ios/16.png" alt="16"></p>
 <p>在上面我们了解过 Framework，其中聚合了可执行文件以及资源等文件，因此其一般不再需要单独的脚本来处理资源，而是需要「[CP] Embed Pods Frameworks」来针对 Framework 进行操作：</p>
-
-<pre><code class="language-shell">#!/bin/sh
-set -e
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#75715e">#!/bin/sh
+</span><span style="color:#75715e"></span>set -e
 set -u
-set -o pipefail # 一些设置
+set -o pipefail <span style="color:#75715e"># 一些设置</span>
 
-# 错误处理
-function on_error {
-  echo &quot;$(realpath -mq &quot;${0}&quot;):$1: error: Unexpected failure&quot;
-}
-trap 'on_error $LINENO' ERR
+<span style="color:#75715e"># 错误处理</span>
+<span style="color:#66d9ef">function</span> on_error <span style="color:#f92672">{</span>
+  echo <span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>realpath -mq <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>0<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74">:</span>$1<span style="color:#e6db74">: error: Unexpected failure</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#f92672">}</span>
+trap <span style="color:#e6db74">&#39;on_error $LINENO&#39;</span> ERR
 
-# FRAMEWORKS_FOLDER_PATH（框架文件夹路径）：oc-demo-project-pod.app/Frameworks
-if [ -z ${FRAMEWORKS_FOLDER_PATH+x} ]; then
-  # If FRAMEWORKS_FOLDER_PATH is not set, then there's nowhere for us to copy
-  # frameworks to, so exit 0 (signalling the script phase was successful).
-  # FRAMEWORKS_FOLDER_PATH 未设置，则无需拷贝资源并退出
-  exit 0
-fi
+<span style="color:#75715e"># FRAMEWORKS_FOLDER_PATH（框架文件夹路径）：oc-demo-project-pod.app/Frameworks</span>
+<span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> -z <span style="color:#e6db74">${</span>FRAMEWORKS_FOLDER_PATH+x<span style="color:#e6db74">}</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+  <span style="color:#75715e"># If FRAMEWORKS_FOLDER_PATH is not set, then there&#39;s nowhere for us to copy</span>
+  <span style="color:#75715e"># frameworks to, so exit 0 (signalling the script phase was successful).</span>
+  <span style="color:#75715e"># FRAMEWORKS_FOLDER_PATH 未设置，则无需拷贝资源并退出</span>
+  exit <span style="color:#ae81ff">0</span>
+<span style="color:#66d9ef">fi</span>
 
-# CONFIGURATION_BUILD_DIR（配置构建目录）：/Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator
-# 递归创建框架路径
-echo &quot;mkdir -p ${CONFIGURATION_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot;
-mkdir -p &quot;${CONFIGURATION_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot;
+<span style="color:#75715e"># CONFIGURATION_BUILD_DIR（配置构建目录）：/Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator</span>
+<span style="color:#75715e"># 递归创建框架路径</span>
+echo <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">mkdir -p </span><span style="color:#e6db74">${</span>CONFIGURATION_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>FRAMEWORKS_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
+mkdir -p <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>CONFIGURATION_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>FRAMEWORKS_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
 
-# COCOAPODS_PARALLEL_CODE_SIGN（CocoaPods 并行签名）：false（默认）
-COCOAPODS_PARALLEL_CODE_SIGN=&quot;${COCOAPODS_PARALLEL_CODE_SIGN:-false}&quot;
+<span style="color:#75715e"># COCOAPODS_PARALLEL_CODE_SIGN（CocoaPods 并行签名）：false（默认）</span>
+COCOAPODS_PARALLEL_CODE_SIGN<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>COCOAPODS_PARALLEL_CODE_SIGN<span style="color:#66d9ef">:-</span>false<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
 
-# DT_TOOLCHAIN_DIR（工具链目录）：/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain
-# PLATFORM_NAME（目标平台名）：iphonesimulator
-# SWIFT_STDLIB_PATH（Swift 标准库路径）：/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator
-SWIFT_STDLIB_PATH=&quot;${DT_TOOLCHAIN_DIR}/usr/lib/swift/${PLATFORM_NAME}&quot;
+<span style="color:#75715e"># DT_TOOLCHAIN_DIR（工具链目录）：/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain</span>
+<span style="color:#75715e"># PLATFORM_NAME（目标平台名）：iphonesimulator</span>
+<span style="color:#75715e"># SWIFT_STDLIB_PATH（Swift 标准库路径）：/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator</span>
+SWIFT_STDLIB_PATH<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>DT_TOOLCHAIN_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/usr/lib/swift/</span><span style="color:#e6db74">${</span>PLATFORM_NAME<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
 
-# Used as a return value for each invocation of `strip_invalid_archs` function.
-# 作为每次调用 strip_invalid_archs 函数的返回值
-STRIP_BINARY_RETVAL=0
+<span style="color:#75715e"># Used as a return value for each invocation of `strip_invalid_archs` function.</span>
+<span style="color:#75715e"># 作为每次调用 strip_invalid_archs 函数的返回值</span>
+STRIP_BINARY_RETVAL<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>
 
-# 防止多个 target 同时拷贝相同的框架依赖
-# This protects against multiple targets copying the same framework dependency at the same time. The solution
-# was originally proposed here: https://lists.samba.org/archive/rsync/2008-February/020158.html
-RSYNC_PROTECT_TMP_FILES=(--filter &quot;P .*.??????&quot;)
+<span style="color:#75715e"># 防止多个 target 同时拷贝相同的框架依赖</span>
+<span style="color:#75715e"># This protects against multiple targets copying the same framework dependency at the same time. The solution</span>
+<span style="color:#75715e"># was originally proposed here: https://lists.samba.org/archive/rsync/2008-February/020158.html</span>
+RSYNC_PROTECT_TMP_FILES<span style="color:#f92672">=</span><span style="color:#f92672">(</span>--filter <span style="color:#e6db74">&#34;P .*.??????&#34;</span><span style="color:#f92672">)</span>
 
-# Copies and strips a vendored framework
-# 拷贝并删除 vendored 框架
-install_framework()
-{
-  # BUILT_PRODUCTS_DIR（构建产物目录）：/Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator
-  # if [ -r FILE ]; 如果文件 FILE 可读（r：read）则为真
-  if [ -r &quot;${BUILT_PRODUCTS_DIR}/$1&quot; ]; then
-    local source=&quot;${BUILT_PRODUCTS_DIR}/$1&quot;
-  elif [ -r &quot;${BUILT_PRODUCTS_DIR}/$(basename &quot;$1&quot;)&quot; ]; then
-    local source=&quot;${BUILT_PRODUCTS_DIR}/$(basename &quot;$1&quot;)&quot;
-  elif [ -r &quot;$1&quot; ]; then
-    local source=&quot;$1&quot;
-  fi
+<span style="color:#75715e"># Copies and strips a vendored framework</span>
+<span style="color:#75715e"># 拷贝并删除 vendored 框架</span>
+install_framework<span style="color:#f92672">(</span><span style="color:#f92672">)</span>
+<span style="color:#f92672">{</span>
+  <span style="color:#75715e"># BUILT_PRODUCTS_DIR（构建产物目录）：/Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator</span>
+  <span style="color:#75715e"># if [ -r FILE ]; 如果文件 FILE 可读（r：read）则为真</span>
+  <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> -r <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>BUILT_PRODUCTS_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span>$1<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+    local source<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>BUILT_PRODUCTS_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span>$1<span style="color:#e6db74">&#34;</span>
+  <span style="color:#66d9ef">elif</span> <span style="color:#f92672">[</span> -r <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>BUILT_PRODUCTS_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#66d9ef">$(</span>basename <span style="color:#e6db74">&#34;</span>$1<span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+    local source<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>BUILT_PRODUCTS_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#66d9ef">$(</span>basename <span style="color:#e6db74">&#34;</span>$1<span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span>
+  <span style="color:#66d9ef">elif</span> <span style="color:#f92672">[</span> -r <span style="color:#e6db74">&#34;</span>$1<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+    local source<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span>$1<span style="color:#e6db74">&#34;</span>
+  <span style="color:#66d9ef">fi</span>
 
-  local destination=&quot;${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}&quot;
+  local destination<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>TARGET_BUILD_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>FRAMEWORKS_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
 
-  # if [ -L FILE ]; 如果文件 FILE 是链接（L：Link）文件则为真
-  if [ -L &quot;${source}&quot; ]; then
-    echo &quot;Symlinked...&quot;
-    # 读取链接的真实文件
-    source=&quot;$(readlink &quot;${source}&quot;)&quot;
-  fi
+  <span style="color:#75715e"># if [ -L FILE ]; 如果文件 FILE 是链接（L：Link）文件则为真</span>
+  <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> -L <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>source<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+    echo <span style="color:#e6db74">&#34;Symlinked...&#34;</span>
+    <span style="color:#75715e"># 读取链接的真实文件</span>
+    source<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>readlink <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>source<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span>
+  <span style="color:#66d9ef">fi</span>
 
-  # Use filter instead of exclude so missing patterns don't throw errors.
-  echo &quot;rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter \&quot;- CVS/\&quot; --filter \&quot;- .svn/\&quot; --filter \&quot;- .git/\&quot; --filter \&quot;- .hg/\&quot; --filter \&quot;- Headers\&quot; --filter \&quot;- PrivateHeaders\&quot; --filter \&quot;- Modules\&quot; \&quot;${source}\&quot; \&quot;${destination}\&quot;&quot;
-  rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter &quot;- CVS/&quot; --filter &quot;- .svn/&quot; --filter &quot;- .git/&quot; --filter &quot;- .hg/&quot; --filter &quot;- Headers&quot; --filter &quot;- PrivateHeaders&quot; --filter &quot;- Modules&quot; &quot;${source}&quot; &quot;${destination}&quot;
+  <span style="color:#75715e"># Use filter instead of exclude so missing patterns don&#39;t throw errors.</span>
+  echo <span style="color:#e6db74">&#34;rsync --delete -av &#34;</span><span style="color:#e6db74">${</span>RSYNC_PROTECT_TMP_FILES[@]<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74"> --filter \&#34;- CVS/\&#34; --filter \&#34;- .svn/\&#34; --filter \&#34;- .git/\&#34; --filter \&#34;- .hg/\&#34; --filter \&#34;- Headers\&#34; --filter \&#34;- PrivateHeaders\&#34; --filter \&#34;- Modules\&#34; \&#34;</span><span style="color:#e6db74">${</span>source<span style="color:#e6db74">}</span><span style="color:#e6db74">\&#34; \&#34;</span><span style="color:#e6db74">${</span>destination<span style="color:#e6db74">}</span><span style="color:#e6db74">\&#34;</span><span style="color:#e6db74">&#34;</span>
+  rsync --delete -av <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>RSYNC_PROTECT_TMP_FILES[@]<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> --filter <span style="color:#e6db74">&#34;- CVS/&#34;</span> --filter <span style="color:#e6db74">&#34;- .svn/&#34;</span> --filter <span style="color:#e6db74">&#34;- .git/&#34;</span> --filter <span style="color:#e6db74">&#34;- .hg/&#34;</span> --filter <span style="color:#e6db74">&#34;- Headers&#34;</span> --filter <span style="color:#e6db74">&#34;- PrivateHeaders&#34;</span> --filter <span style="color:#e6db74">&#34;- Modules&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>source<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>destination<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
 
   local basename
-  # basename（基本名）：AFNetworking / oc_pod / swift_pod
-  # binary（二进制路径）
-  basename=&quot;$(basename -s .framework &quot;$1&quot;)&quot;
-  binary=&quot;${destination}/${basename}.framework/${basename}&quot;
+  <span style="color:#75715e"># basename（基本名）：AFNetworking / oc_pod / swift_pod</span>
+  <span style="color:#75715e"># binary（二进制路径）</span>
+  basename<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>basename -s .framework <span style="color:#e6db74">&#34;</span>$1<span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span>
+  binary<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>destination<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>basename<span style="color:#e6db74">}</span><span style="color:#e6db74">.framework/</span><span style="color:#e6db74">${</span>basename<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
 
-  if ! [ -r &quot;$binary&quot; ]; then
-    binary=&quot;${destination}/${basename}&quot;
-  elif [ -L &quot;${binary}&quot; ]; then
-    echo &quot;Destination binary is symlinked...&quot;
-    dirname=&quot;$(dirname &quot;${binary}&quot;)&quot;
-    binary=&quot;${dirname}/$(readlink &quot;${binary}&quot;)&quot;
-  fi
+  <span style="color:#66d9ef">if</span> ! <span style="color:#f92672">[</span> -r <span style="color:#e6db74">&#34;</span>$binary<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+    binary<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>destination<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>basename<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
+  <span style="color:#66d9ef">elif</span> <span style="color:#f92672">[</span> -L <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>binary<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+    echo <span style="color:#e6db74">&#34;Destination binary is symlinked...&#34;</span>
+    dirname<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>dirname <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>binary<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span>
+    binary<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>dirname<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#66d9ef">$(</span>readlink <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>binary<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span>
+  <span style="color:#66d9ef">fi</span>
 
-  # /Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator/oc-demo-project-pod.app/Frameworks/AFNetworking.framework/AFNetworking: Mach-O 64-bit dynamically linked shared library x86_64
-  # Strip invalid architectures so &quot;fat&quot; simulator / device frameworks work on device
-  if [[ &quot;$(file &quot;$binary&quot;)&quot; == *&quot;dynamically linked shared library&quot;* ]]; then
-    # 若为动态链接共享库，则删除无效架构
-    strip_invalid_archs &quot;$binary&quot;
-  fi
+  <span style="color:#75715e"># /Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator/oc-demo-project-pod.app/Frameworks/AFNetworking.framework/AFNetworking: Mach-O 64-bit dynamically linked shared library x86_64</span>
+  <span style="color:#75715e"># Strip invalid architectures so &#34;fat&#34; simulator / device frameworks work on device</span>
+  <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span><span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>file <span style="color:#e6db74">&#34;</span>$binary<span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">=</span><span style="color:#f92672">=</span> *<span style="color:#e6db74">&#34;dynamically linked shared library&#34;</span>* <span style="color:#f92672">]</span><span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+    <span style="color:#75715e"># 若为动态链接共享库，则删除无效架构</span>
+    strip_invalid_archs <span style="color:#e6db74">&#34;</span>$binary<span style="color:#e6db74">&#34;</span>
+  <span style="color:#66d9ef">fi</span>
 
-  # Resign the code if required by the build settings to avoid unstable apps
-  # 重签名 Build Settings 里设置为必须的代码，以避免造成 app 不稳定
-  code_sign_if_enabled &quot;${destination}/$(basename &quot;$1&quot;)&quot;
+  <span style="color:#75715e"># Resign the code if required by the build settings to avoid unstable apps</span>
+  <span style="color:#75715e"># 重签名 Build Settings 里设置为必须的代码，以避免造成 app 不稳定</span>
+  code_sign_if_enabled <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>destination<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#66d9ef">$(</span>basename <span style="color:#e6db74">&#34;</span>$1<span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span>
 
-  # Embed linked Swift runtime libraries. No longer necessary as of Xcode 7.
-  # 嵌入 Swift 运行时库，Xcode 7 之后不再需要。
-  if [ &quot;${XCODE_VERSION_MAJOR}&quot; -lt 7 ]; then
+  <span style="color:#75715e"># Embed linked Swift runtime libraries. No longer necessary as of Xcode 7.</span>
+  <span style="color:#75715e"># 嵌入 Swift 运行时库，Xcode 7 之后不再需要。</span>
+  <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>XCODE_VERSION_MAJOR<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> -lt <span style="color:#ae81ff">7</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
     local swift_runtime_libs
-    swift_runtime_libs=$(xcrun otool -LX &quot;$binary&quot; | grep --color=never @rpath/libswift | sed -E s/@rpath\\/\(.+dylib\).*/\\1/g | uniq -u)
-    for lib in $swift_runtime_libs; do
-      echo &quot;rsync -auv \&quot;${SWIFT_STDLIB_PATH}/${lib}\&quot; \&quot;${destination}\&quot;&quot;
-      rsync -auv &quot;${SWIFT_STDLIB_PATH}/${lib}&quot; &quot;${destination}&quot;
-      code_sign_if_enabled &quot;${destination}/${lib}&quot;
-    done
-  fi
-}
+    swift_runtime_libs<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>xcrun otool -LX <span style="color:#e6db74">&#34;</span>$binary<span style="color:#e6db74">&#34;</span> | grep --color<span style="color:#f92672">=</span>never @rpath/libswift | sed -E s/@rpath<span style="color:#ae81ff">\\</span>/<span style="color:#ae81ff">\(</span>.+dylib<span style="color:#ae81ff">\)</span>.*/<span style="color:#ae81ff">\\</span>1/g | uniq -u<span style="color:#66d9ef">)</span>
+    <span style="color:#66d9ef">for</span> lib in $swift_runtime_libs; <span style="color:#66d9ef">do</span>
+      echo <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">rsync -auv \&#34;</span><span style="color:#e6db74">${</span>SWIFT_STDLIB_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>lib<span style="color:#e6db74">}</span><span style="color:#e6db74">\&#34; \&#34;</span><span style="color:#e6db74">${</span>destination<span style="color:#e6db74">}</span><span style="color:#e6db74">\&#34;</span><span style="color:#e6db74">&#34;</span>
+      rsync -auv <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>SWIFT_STDLIB_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>lib<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>destination<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
+      code_sign_if_enabled <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>destination<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>lib<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
+    <span style="color:#66d9ef">done</span>
+  <span style="color:#66d9ef">fi</span>
+<span style="color:#f92672">}</span>
 
-# Copies and strips a vendored dSYM
-# 拷贝并删除 vendored dSYM
-install_dsym() {
-  local source=&quot;$1&quot;
-  if [ -r &quot;$source&quot; ]; then
-    # Copy the dSYM into a the targets temp dir.
-    echo &quot;rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter \&quot;- CVS/\&quot; --filter \&quot;- .svn/\&quot; --filter \&quot;- .git/\&quot; --filter \&quot;- .hg/\&quot; --filter \&quot;- Headers\&quot; --filter \&quot;- PrivateHeaders\&quot; --filter \&quot;- Modules\&quot; \&quot;${source}\&quot; \&quot;${DERIVED_FILES_DIR}\&quot;&quot;
-    rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter &quot;- CVS/&quot; --filter &quot;- .svn/&quot; --filter &quot;- .git/&quot; --filter &quot;- .hg/&quot; --filter &quot;- Headers&quot; --filter &quot;- PrivateHeaders&quot; --filter &quot;- Modules&quot; &quot;${source}&quot; &quot;${DERIVED_FILES_DIR}&quot;
+<span style="color:#75715e"># Copies and strips a vendored dSYM</span>
+<span style="color:#75715e"># 拷贝并删除 vendored dSYM</span>
+install_dsym<span style="color:#f92672">(</span><span style="color:#f92672">)</span> <span style="color:#f92672">{</span>
+  local source<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span>$1<span style="color:#e6db74">&#34;</span>
+  <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> -r <span style="color:#e6db74">&#34;</span>$source<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+    <span style="color:#75715e"># Copy the dSYM into a the targets temp dir.</span>
+    echo <span style="color:#e6db74">&#34;rsync --delete -av &#34;</span><span style="color:#e6db74">${</span>RSYNC_PROTECT_TMP_FILES[@]<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74"> --filter \&#34;- CVS/\&#34; --filter \&#34;- .svn/\&#34; --filter \&#34;- .git/\&#34; --filter \&#34;- .hg/\&#34; --filter \&#34;- Headers\&#34; --filter \&#34;- PrivateHeaders\&#34; --filter \&#34;- Modules\&#34; \&#34;</span><span style="color:#e6db74">${</span>source<span style="color:#e6db74">}</span><span style="color:#e6db74">\&#34; \&#34;</span><span style="color:#e6db74">${</span>DERIVED_FILES_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">\&#34;</span><span style="color:#e6db74">&#34;</span>
+    rsync --delete -av <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>RSYNC_PROTECT_TMP_FILES[@]<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> --filter <span style="color:#e6db74">&#34;- CVS/&#34;</span> --filter <span style="color:#e6db74">&#34;- .svn/&#34;</span> --filter <span style="color:#e6db74">&#34;- .git/&#34;</span> --filter <span style="color:#e6db74">&#34;- .hg/&#34;</span> --filter <span style="color:#e6db74">&#34;- Headers&#34;</span> --filter <span style="color:#e6db74">&#34;- PrivateHeaders&#34;</span> --filter <span style="color:#e6db74">&#34;- Modules&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>source<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>DERIVED_FILES_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
 
     local basename
-    basename=&quot;$(basename -s .framework.dSYM &quot;$source&quot;)&quot;
-    binary=&quot;${DERIVED_FILES_DIR}/${basename}.framework.dSYM/Contents/Resources/DWARF/${basename}&quot;
+    basename<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>basename -s .framework.dSYM <span style="color:#e6db74">&#34;</span>$source<span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span>
+    binary<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>DERIVED_FILES_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>basename<span style="color:#e6db74">}</span><span style="color:#e6db74">.framework.dSYM/Contents/Resources/DWARF/</span><span style="color:#e6db74">${</span>basename<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
 
-    # Strip invalid architectures so &quot;fat&quot; simulator / device frameworks work on device
-    if [[ &quot;$(file &quot;$binary&quot;)&quot; == *&quot;Mach-O &quot;*&quot;dSYM companion&quot;* ]]; then
-      strip_invalid_archs &quot;$binary&quot;
-    fi
+    <span style="color:#75715e"># Strip invalid architectures so &#34;fat&#34; simulator / device frameworks work on device</span>
+    <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span><span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>file <span style="color:#e6db74">&#34;</span>$binary<span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">=</span><span style="color:#f92672">=</span> *<span style="color:#e6db74">&#34;Mach-O &#34;</span>*<span style="color:#e6db74">&#34;dSYM companion&#34;</span>* <span style="color:#f92672">]</span><span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+      strip_invalid_archs <span style="color:#e6db74">&#34;</span>$binary<span style="color:#e6db74">&#34;</span>
+    <span style="color:#66d9ef">fi</span>
 
-    if [[ $STRIP_BINARY_RETVAL == 1 ]]; then
-      # Move the stripped file into its final destination.
-      echo &quot;rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter \&quot;- CVS/\&quot; --filter \&quot;- .svn/\&quot; --filter \&quot;- .git/\&quot; --filter \&quot;- .hg/\&quot; --filter \&quot;- Headers\&quot; --filter \&quot;- PrivateHeaders\&quot; --filter \&quot;- Modules\&quot; \&quot;${DERIVED_FILES_DIR}/${basename}.framework.dSYM\&quot; \&quot;${DWARF_DSYM_FOLDER_PATH}\&quot;&quot;
-      rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter &quot;- CVS/&quot; --filter &quot;- .svn/&quot; --filter &quot;- .git/&quot; --filter &quot;- .hg/&quot; --filter &quot;- Headers&quot; --filter &quot;- PrivateHeaders&quot; --filter &quot;- Modules&quot; &quot;${DERIVED_FILES_DIR}/${basename}.framework.dSYM&quot; &quot;${DWARF_DSYM_FOLDER_PATH}&quot;
-    else
-      # The dSYM was not stripped at all, in this case touch a fake folder so the input/output paths from Xcode do not reexecute this script because the file is missing.
-      touch &quot;${DWARF_DSYM_FOLDER_PATH}/${basename}.framework.dSYM&quot;
-    fi
-  fi
-}
+    <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span><span style="color:#f92672">[</span> $STRIP_BINARY_RETVAL <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">]</span><span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+      <span style="color:#75715e"># Move the stripped file into its final destination.</span>
+      echo <span style="color:#e6db74">&#34;rsync --delete -av &#34;</span><span style="color:#e6db74">${</span>RSYNC_PROTECT_TMP_FILES[@]<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74"> --filter \&#34;- CVS/\&#34; --filter \&#34;- .svn/\&#34; --filter \&#34;- .git/\&#34; --filter \&#34;- .hg/\&#34; --filter \&#34;- Headers\&#34; --filter \&#34;- PrivateHeaders\&#34; --filter \&#34;- Modules\&#34; \&#34;</span><span style="color:#e6db74">${</span>DERIVED_FILES_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>basename<span style="color:#e6db74">}</span><span style="color:#e6db74">.framework.dSYM\&#34; \&#34;</span><span style="color:#e6db74">${</span>DWARF_DSYM_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">\&#34;</span><span style="color:#e6db74">&#34;</span>
+      rsync --delete -av <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>RSYNC_PROTECT_TMP_FILES[@]<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> --filter <span style="color:#e6db74">&#34;- CVS/&#34;</span> --filter <span style="color:#e6db74">&#34;- .svn/&#34;</span> --filter <span style="color:#e6db74">&#34;- .git/&#34;</span> --filter <span style="color:#e6db74">&#34;- .hg/&#34;</span> --filter <span style="color:#e6db74">&#34;- Headers&#34;</span> --filter <span style="color:#e6db74">&#34;- PrivateHeaders&#34;</span> --filter <span style="color:#e6db74">&#34;- Modules&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>DERIVED_FILES_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>basename<span style="color:#e6db74">}</span><span style="color:#e6db74">.framework.dSYM</span><span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>DWARF_DSYM_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
+    <span style="color:#66d9ef">else</span>
+      <span style="color:#75715e"># The dSYM was not stripped at all, in this case touch a fake folder so the input/output paths from Xcode do not reexecute this script because the file is missing.</span>
+      touch <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>DWARF_DSYM_FOLDER_PATH<span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span>basename<span style="color:#e6db74">}</span><span style="color:#e6db74">.framework.dSYM</span><span style="color:#e6db74">&#34;</span>
+    <span style="color:#66d9ef">fi</span>
+  <span style="color:#66d9ef">fi</span>
+<span style="color:#f92672">}</span>
 
-# Copies the bcsymbolmap files of a vendored framework
-# 复制 vendored 框架的 bcsymbolmap 文件
-install_bcsymbolmap() {
-    local bcsymbolmap_path=&quot;$1&quot;
-    local destination=&quot;${BUILT_PRODUCTS_DIR}&quot;
-    echo &quot;rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter &quot;- CVS/&quot; --filter &quot;- .svn/&quot; --filter &quot;- .git/&quot; --filter &quot;- .hg/&quot; --filter &quot;- Headers&quot; --filter &quot;- PrivateHeaders&quot; --filter &quot;- Modules&quot; &quot;${bcsymbolmap_path}&quot; &quot;${destination}&quot;&quot;
-    rsync --delete -av &quot;${RSYNC_PROTECT_TMP_FILES[@]}&quot; --filter &quot;- CVS/&quot; --filter &quot;- .svn/&quot; --filter &quot;- .git/&quot; --filter &quot;- .hg/&quot; --filter &quot;- Headers&quot; --filter &quot;- PrivateHeaders&quot; --filter &quot;- Modules&quot; &quot;${bcsymbolmap_path}&quot; &quot;${destination}&quot;
-}
+<span style="color:#75715e"># Copies the bcsymbolmap files of a vendored framework</span>
+<span style="color:#75715e"># 复制 vendored 框架的 bcsymbolmap 文件</span>
+install_bcsymbolmap<span style="color:#f92672">(</span><span style="color:#f92672">)</span> <span style="color:#f92672">{</span>
+    local bcsymbolmap_path<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span>$1<span style="color:#e6db74">&#34;</span>
+    local destination<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>BUILT_PRODUCTS_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
+    echo <span style="color:#e6db74">&#34;rsync --delete -av &#34;</span><span style="color:#e6db74">${</span>RSYNC_PROTECT_TMP_FILES[@]<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34; --filter &#34;</span>- CVS/<span style="color:#e6db74">&#34; --filter &#34;</span>- .svn/<span style="color:#e6db74">&#34; --filter &#34;</span>- .git/<span style="color:#e6db74">&#34; --filter &#34;</span>- .hg/<span style="color:#e6db74">&#34; --filter &#34;</span>- Headers<span style="color:#e6db74">&#34; --filter &#34;</span>- PrivateHeaders<span style="color:#e6db74">&#34; --filter &#34;</span>- Modules<span style="color:#e6db74">&#34; &#34;</span><span style="color:#e6db74">${</span>bcsymbolmap_path<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34; &#34;</span><span style="color:#e6db74">${</span>destination<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;&#34;</span>
+    rsync --delete -av <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>RSYNC_PROTECT_TMP_FILES[@]<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> --filter <span style="color:#e6db74">&#34;- CVS/&#34;</span> --filter <span style="color:#e6db74">&#34;- .svn/&#34;</span> --filter <span style="color:#e6db74">&#34;- .git/&#34;</span> --filter <span style="color:#e6db74">&#34;- .hg/&#34;</span> --filter <span style="color:#e6db74">&#34;- Headers&#34;</span> --filter <span style="color:#e6db74">&#34;- PrivateHeaders&#34;</span> --filter <span style="color:#e6db74">&#34;- Modules&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>bcsymbolmap_path<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>destination<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#f92672">}</span>
 
-# Signs a framework with the provided identity
-# 使用提供的证明签名框架
-code_sign_if_enabled() {
-  if [ -n &quot;${EXPANDED_CODE_SIGN_IDENTITY:-}&quot; -a &quot;${CODE_SIGNING_REQUIRED:-}&quot; != &quot;NO&quot; -a &quot;${CODE_SIGNING_ALLOWED}&quot; != &quot;NO&quot; ]; then
-    # Use the current code_sign_identity
-    echo &quot;Code Signing $1 with Identity ${EXPANDED_CODE_SIGN_IDENTITY_NAME}&quot;
-    local code_sign_cmd=&quot;/usr/bin/codesign --force --sign ${EXPANDED_CODE_SIGN_IDENTITY} ${OTHER_CODE_SIGN_FLAGS:-} --preserve-metadata=identifier,entitlements '$1'&quot;
+<span style="color:#75715e"># Signs a framework with the provided identity</span>
+<span style="color:#75715e"># 使用提供的证明签名框架</span>
+code_sign_if_enabled<span style="color:#f92672">(</span><span style="color:#f92672">)</span> <span style="color:#f92672">{</span>
+  <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> -n <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>EXPANDED_CODE_SIGN_IDENTITY<span style="color:#66d9ef">:-</span><span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> -a <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>CODE_SIGNING_REQUIRED<span style="color:#66d9ef">:-</span><span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> !<span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;NO&#34;</span> -a <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>CODE_SIGNING_ALLOWED<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> !<span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;NO&#34;</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+    <span style="color:#75715e"># Use the current code_sign_identity</span>
+    echo <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Code Signing </span>$1<span style="color:#e6db74"> with Identity </span><span style="color:#e6db74">${</span>EXPANDED_CODE_SIGN_IDENTITY_NAME<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
+    local code_sign_cmd<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">/usr/bin/codesign --force --sign </span><span style="color:#e6db74">${</span>EXPANDED_CODE_SIGN_IDENTITY<span style="color:#e6db74">}</span><span style="color:#e6db74"> </span><span style="color:#e6db74">${</span>OTHER_CODE_SIGN_FLAGS<span style="color:#66d9ef">:-</span><span style="color:#e6db74">}</span><span style="color:#e6db74"> --preserve-metadata=identifier,entitlements &#39;</span>$1<span style="color:#e6db74">&#39;</span><span style="color:#e6db74">&#34;</span>
 
-    if [ &quot;${COCOAPODS_PARALLEL_CODE_SIGN}&quot; == &quot;true&quot; ]; then
-      code_sign_cmd=&quot;$code_sign_cmd &amp;&quot;
-    fi
-    echo &quot;$code_sign_cmd&quot;
-    eval &quot;$code_sign_cmd&quot;
-  fi
-}
+    <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>COCOAPODS_PARALLEL_CODE_SIGN<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;true&#34;</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+      code_sign_cmd<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span>$code_sign_cmd<span style="color:#e6db74"> &amp;</span><span style="color:#e6db74">&#34;</span>
+    <span style="color:#66d9ef">fi</span>
+    echo <span style="color:#e6db74">&#34;</span>$code_sign_cmd<span style="color:#e6db74">&#34;</span>
+    eval <span style="color:#e6db74">&#34;</span>$code_sign_cmd<span style="color:#e6db74">&#34;</span>
+  <span style="color:#66d9ef">fi</span>
+<span style="color:#f92672">}</span>
 
-# Strip invalid architectures
-# 删除无效架构函数
-strip_invalid_archs() {
-  binary=&quot;$1&quot;
-  # Get architectures for current target binary
-  # 获取当前二进制架构，x86_64 模拟器
-  binary_archs=&quot;$(lipo -info &quot;$binary&quot; | rev | cut -d ':' -f1 | awk '{$1=$1;print}' | rev)&quot;
+<span style="color:#75715e"># Strip invalid architectures</span>
+<span style="color:#75715e"># 删除无效架构函数</span>
+strip_invalid_archs<span style="color:#f92672">(</span><span style="color:#f92672">)</span> <span style="color:#f92672">{</span>
+  binary<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span>$1<span style="color:#e6db74">&#34;</span>
+  <span style="color:#75715e"># Get architectures for current target binary</span>
+  <span style="color:#75715e"># 获取当前二进制架构，x86_64 模拟器</span>
+  binary_archs<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>lipo -info <span style="color:#e6db74">&#34;</span>$binary<span style="color:#e6db74">&#34;</span> | rev | cut -d <span style="color:#e6db74">&#39;:&#39;</span> -f1 | awk <span style="color:#e6db74">&#39;{$1=$1;print}&#39;</span> | rev<span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span>
 
-  # Intersect them with the architectures we are building for
-  # 与目标架构取交集
-  intersected_archs=&quot;$(echo ${ARCHS[@]} ${binary_archs[@]} | tr ' ' '\n' | sort | uniq -d)&quot;
-  # If there are no archs supported by this binary then warn the user
-  # 如果交集为空，即没有支持的架构，则警告用户
-  if [[ -z &quot;$intersected_archs&quot; ]]; then
-    echo &quot;warning: [CP] Vendored binary '$binary' contains architectures ($binary_archs) none of which match the current build architectures ($ARCHS).&quot;
-    STRIP_BINARY_RETVAL=0
-    return
-  fi
-  stripped=&quot;&quot;
-  for arch in $binary_archs; do
-    if ! [[ &quot;${ARCHS}&quot; == *&quot;$arch&quot;* ]]; then
-      # Strip non-valid architectures in-place
-      # 删除无效架构
-      lipo -remove &quot;$arch&quot; -output &quot;$binary&quot; &quot;$binary&quot;
-      stripped=&quot;$stripped $arch&quot;
-    fi
-  done
-  if [[ &quot;$stripped&quot; ]]; then
-    echo &quot;Stripped $binary of architectures:$stripped&quot;
-  fi
-  STRIP_BINARY_RETVAL=1
-}
+  <span style="color:#75715e"># Intersect them with the architectures we are building for</span>
+  <span style="color:#75715e"># 与目标架构取交集</span>
+  intersected_archs<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>echo <span style="color:#e6db74">${</span>ARCHS[@]<span style="color:#e6db74">}</span> <span style="color:#e6db74">${</span>binary_archs[@]<span style="color:#e6db74">}</span> | tr <span style="color:#e6db74">&#39; &#39;</span> <span style="color:#e6db74">&#39;\n&#39;</span> | sort | uniq -d<span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span>
+  <span style="color:#75715e"># If there are no archs supported by this binary then warn the user</span>
+  <span style="color:#75715e"># 如果交集为空，即没有支持的架构，则警告用户</span>
+  <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span><span style="color:#f92672">[</span> -z <span style="color:#e6db74">&#34;</span>$intersected_archs<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span><span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+    echo <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">warning: [CP] Vendored binary &#39;</span>$binary<span style="color:#e6db74">&#39; contains architectures (</span>$binary_archs<span style="color:#e6db74">) none of which match the current build architectures (</span>$ARCHS<span style="color:#e6db74">).</span><span style="color:#e6db74">&#34;</span>
+    STRIP_BINARY_RETVAL<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>
+    <span style="color:#66d9ef">return</span>
+  <span style="color:#66d9ef">fi</span>
+  stripped<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;&#34;</span>
+  <span style="color:#66d9ef">for</span> arch in $binary_archs; <span style="color:#66d9ef">do</span>
+    <span style="color:#66d9ef">if</span> ! <span style="color:#f92672">[</span><span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>ARCHS<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">=</span><span style="color:#f92672">=</span> *<span style="color:#e6db74">&#34;</span>$arch<span style="color:#e6db74">&#34;</span>* <span style="color:#f92672">]</span><span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+      <span style="color:#75715e"># Strip non-valid architectures in-place</span>
+      <span style="color:#75715e"># 删除无效架构</span>
+      lipo -remove <span style="color:#e6db74">&#34;</span>$arch<span style="color:#e6db74">&#34;</span> -output <span style="color:#e6db74">&#34;</span>$binary<span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#34;</span>$binary<span style="color:#e6db74">&#34;</span>
+      stripped<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span>$stripped<span style="color:#e6db74"> </span>$arch<span style="color:#e6db74">&#34;</span>
+    <span style="color:#66d9ef">fi</span>
+  <span style="color:#66d9ef">done</span>
+  <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span><span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span>$stripped<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span><span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+    echo <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Stripped </span>$binary<span style="color:#e6db74"> of architectures:</span>$stripped<span style="color:#e6db74">&#34;</span>
+  <span style="color:#66d9ef">fi</span>
+  STRIP_BINARY_RETVAL<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
+<span style="color:#f92672">}</span>
 
-# CONFIGURATION：运行的 scheme 配置模式，Debug 或 Release
-# 目前 Debug 和 Release 模式处理一致
-# /Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator/AFNetworking/AFNetworking.framework
+<span style="color:#75715e"># CONFIGURATION：运行的 scheme 配置模式，Debug 或 Release</span>
+<span style="color:#75715e"># 目前 Debug 和 Release 模式处理一致</span>
+<span style="color:#75715e"># /Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator/AFNetworking/AFNetworking.framework</span>
 
-# /Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator/oc-pod/oc_pod.framework
-# /Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator/swift-pod/swift_pod.framework
-if [[ &quot;$CONFIGURATION&quot; == &quot;Debug&quot; ]]; then
-  install_framework &quot;${BUILT_PRODUCTS_DIR}/AFNetworking/AFNetworking.framework&quot;
-  install_framework &quot;${BUILT_PRODUCTS_DIR}/oc-pod/oc_pod.framework&quot;
-  install_framework &quot;${BUILT_PRODUCTS_DIR}/swift-pod/swift_pod.framework&quot;
-fi
-if [[ &quot;$CONFIGURATION&quot; == &quot;Release&quot; ]]; then
-  install_framework &quot;${BUILT_PRODUCTS_DIR}/AFNetworking/AFNetworking.framework&quot;
-  install_framework &quot;${BUILT_PRODUCTS_DIR}/oc-pod/oc_pod.framework&quot;
-  install_framework &quot;${BUILT_PRODUCTS_DIR}/swift-pod/swift_pod.framework&quot;
-fi
-if [ &quot;${COCOAPODS_PARALLEL_CODE_SIGN}&quot; == &quot;true&quot; ]; then
+<span style="color:#75715e"># /Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator/oc-pod/oc_pod.framework</span>
+<span style="color:#75715e"># /Users/kingcos/Library/Developer/Xcode/DerivedData/oc-demo-project-pod-gmhizsqflcuavpebfzsfyychzzuj/Build/Products/Debug-iphonesimulator/swift-pod/swift_pod.framework</span>
+<span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span><span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span>$CONFIGURATION<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Debug&#34;</span> <span style="color:#f92672">]</span><span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+  install_framework <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>BUILT_PRODUCTS_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/AFNetworking/AFNetworking.framework</span><span style="color:#e6db74">&#34;</span>
+  install_framework <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>BUILT_PRODUCTS_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/oc-pod/oc_pod.framework</span><span style="color:#e6db74">&#34;</span>
+  install_framework <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>BUILT_PRODUCTS_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/swift-pod/swift_pod.framework</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#66d9ef">fi</span>
+<span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span><span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span>$CONFIGURATION<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Release&#34;</span> <span style="color:#f92672">]</span><span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+  install_framework <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>BUILT_PRODUCTS_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/AFNetworking/AFNetworking.framework</span><span style="color:#e6db74">&#34;</span>
+  install_framework <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>BUILT_PRODUCTS_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/oc-pod/oc_pod.framework</span><span style="color:#e6db74">&#34;</span>
+  install_framework <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>BUILT_PRODUCTS_DIR<span style="color:#e6db74">}</span><span style="color:#e6db74">/swift-pod/swift_pod.framework</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#66d9ef">fi</span>
+<span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>COCOAPODS_PARALLEL_CODE_SIGN<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;true&#34;</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
   wait
-fi
-</code></pre>
-
-<p>使用 <code>use_frameworks!</code> 依赖的 Pod 库即可在 Obj-C 工程中使用 <code>@import</code> 引入，或者将共有头文件引入。需要注意的是，不同于上述非 <code>use_frameworks!</code> 情况，<code>#import</code> 是引入相对于 Framework 的头文件位置。对于 Swift Pod 则无不同：</p>
-
-<pre><code class="language-objectivec">#import &quot;ViewController.h&quot;
-
-//#import &lt;oc-pod/ObjC_Foo.h&gt; ❌，仅在非 `use_frameworks!` 下以文件夹相对路径引入而支持 `-`
-#import &lt;oc_pod/ObjC_Foo.h&gt;
-//#import &lt;ObjC_Foo.h&gt;
-//#import &quot;ObjC_Foo.h&quot;
-//@import oc_pod;
-
+<span style="color:#66d9ef">fi</span>
+</code></pre></div><p>使用 <code>use_frameworks!</code> 依赖的 Pod 库即可在 Obj-C 工程中使用 <code>@import</code> 引入，或者将共有头文件引入。需要注意的是，不同于上述非 <code>use_frameworks!</code> 情况，<code>#import</code> 是引入相对于 Framework 的头文件位置。对于 Swift Pod 则无不同：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &#34;ViewController.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">//#import &lt;oc-pod/ObjC_Foo.h&gt; ❌，仅在非 `use_frameworks!` 下以文件夹相对路径引入而支持 `-`
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;oc_pod</span><span style="color:#75715e">/</span><span style="color:#75715e">ObjC_Foo.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">//#import &lt;ObjC_Foo.h&gt;
+</span><span style="color:#75715e"></span><span style="color:#75715e">//#import &#34;ObjC_Foo.h&#34;
+</span><span style="color:#75715e"></span><span style="color:#75715e">//@import oc_pod;
+</span><span style="color:#75715e"></span>
 @import swift_pod;
 
-@interface ViewController ()
-@end
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">ViewController</span> ()
+<span style="color:#66d9ef">@end</span>
 
-@implementation ViewController
-- (void)viewDidLoad {
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">ViewController</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">viewDidLoad</span> {
     [super viewDidLoad];
 
     [[[ObjC_Foo alloc] init] foo];
 
     [[[Swift_Foo alloc] init] foo];
-    NSLog(@&quot;%@&quot;, [[[Swift_Foo alloc] init] strings]);
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [[[Swift_Foo alloc] init] strings]);
 }
-@end
-</code></pre>
-
-<h4 id="swift-工程-1">Swift 工程</h4>
-
+<span style="color:#66d9ef">@end</span>
+</code></pre></div><h4 id="swift-1">Swift 工程</h4>
 <p>Swift 工程下也是类似的，我们可以在桥接文件中使用 <code>@import</code> 引入，或者将共有头文件引入。但其实此时桥接文件本身即是多余的，我们只需要在 Swift 工程中直接使用 <code>import</code> 即可：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">swift_pod</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">oc_pod</span>
 
-<pre><code class="language-swift">import UIKit
-import swift_pod
-import oc_pod
-
-class ViewController: UIViewController {
-    override func viewDidLoad() {
-        super.viewDidLoad()
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ViewController</span>: UIViewController {
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">viewDidLoad</span>() {
+        <span style="color:#66d9ef">super</span>.viewDidLoad()
 
         ObjC_Foo().foo()
 
-//        Swift_Foo().foo()
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e"> </span><span style="color:#75715e">S</span><span style="color:#75715e">w</span><span style="color:#75715e">i</span><span style="color:#75715e">f</span><span style="color:#75715e">t</span><span style="color:#75715e">_</span><span style="color:#75715e">F</span><span style="color:#75715e">o</span><span style="color:#75715e">o</span><span style="color:#75715e">(</span><span style="color:#75715e">)</span><span style="color:#75715e">.</span><span style="color:#75715e">f</span><span style="color:#75715e">o</span><span style="color:#75715e">o</span><span style="color:#75715e">(</span><span style="color:#75715e">)</span>
         print(Swift_Foo().strings())
     }
 }
-</code></pre>
-
-<ul class="task-list">
+</code></pre></div><ul>
 <li>TODO:</li>
-<li><label><input type="checkbox" disabled class="task-list-item"> @import</label></li>
-<li><label><input type="checkbox" disabled class="task-list-item"> Module Map</label></li>
+<li><input disabled="" type="checkbox">@import</li>
+<li><input disabled="" type="checkbox">Module Map</li>
 </ul>
-
 <h2 id="reference">Reference</h2>
-
-<!-- - [Linkers and Loaders](https://book.douban.com/subject/1436811/) -->
-
+<!-- raw HTML omitted -->
 <ul>
 <li><a href="../../2018/dyld_shared_cache/">谈谈 iOS 中的 dyld_shared_cache - kingcos</a></li>
 <li><a href="/posts/2019/+load_in_ios/">iOS 中的 +load 方法 - kingcos</a></li>

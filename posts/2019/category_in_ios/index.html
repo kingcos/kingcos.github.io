@@ -162,9 +162,7 @@ Xcode 中已经为 Category 已经提供了模版来建立，只需要指定 Cat
     
 
     <div class="post-content">
-      
-
-<table>
+      <table>
 <thead>
 <tr>
 <th align="center">Date</th>
@@ -173,7 +171,6 @@ Xcode 中已经为 Category 已经提供了模版来建立，只需要指定 Cat
 <th align="center">Demo</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td align="center">2019-04-16</td>
@@ -181,14 +178,12 @@ Xcode 中已经为 Category 已经提供了模版来建立，只需要指定 Cat
 <td align="center">-</td>
 <td align="center">-</td>
 </tr>
-
 <tr>
 <td align="center">2019-04-13</td>
 <td align="center">首次提交</td>
 <td align="center"><a href="https://opensource.apple.com/tarballs/objc4/">objc4-750</a>、<a href="https://opensource.apple.com/tarballs/xnu/">xnu-4903.221.2</a></td>
 <td align="center"><a href="https://github.com/kingcos/Perspective/tree/writing/Posts/Focus/Category_in_Obj-C/">Category in iOS</a></td>
 </tr>
-
 <tr>
 <td align="center">2019-10-23</td>
 <td align="center">添加首图，细节微调</td>
@@ -197,1453 +192,1380 @@ Xcode 中已经为 Category 已经提供了模版来建立，只需要指定 Cat
 </tr>
 </tbody>
 </table>
-
-<p><img src="/img/2019/category_in_ios/0.png" alt="0" /></p>
-
+<p><img src="/img/2019/category_in_ios/0.png" alt="0"></p>
 <h2 id="preface">Preface</h2>
-
 <p>iOS 中的 Category 中文常译作分类、类别（为表述统一，本文将使用 Category 特指该技术）。我们经常会使用 Category 来对一个类进行扩展，使得在不破坏主类结构的同时可以具备更多的功能；也可以使用 Category 对一个类进行拆分，使得其结构更加清晰条理。本文将从 What - How - Why 谈谈 iOS 中 Category。</p>
-
 <h2 id="what">What</h2>
-
 <p>什么是 Category 呢？</p>
-
 <p>Category 是 Obj-C 语言中所提供的一项功能，它可以为 Obj-C 类添加额外的属性、方法，也可以遵守其他协议。</p>
-
-<p><img src="/img/2019/category_in_ios/1.png" alt="1" /></p>
-
+<p><img src="/img/2019/category_in_ios/1.png" alt="1"></p>
 <p>Xcode 中已经为 Category 已经提供了模版来建立，只需要指定 Category 的名称以及被添加 Category 类名即可。当然，我们也可以手动来自己建立，Category 的语法与类的声明与实现比较类似：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo</span> (Bar) <span style="color:#f92672">&lt;</span>SomeProtocol<span style="color:#f92672">&gt;</span>
+<span style="color:#f92672">-</span> (<span style="color:#66d9ef">void</span>)foo;
+<span style="color:#66d9ef">@end</span>
 
-<pre><code class="language-objectivec">@interface Foo (Bar) &lt;SomeProtocol&gt;
-- (void)foo;
-@end
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo</span> (Bar)
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span> {}
 
-@implementation Foo (Bar)
-- (void)foo {}
-
-- (void)someMethodFromProtocol {}
-@end
-</code></pre>
-
-<h2 id="how">How</h2>
-
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">someMethodFromProtocol</span> {}
+<span style="color:#66d9ef">@end</span>
+</code></pre></div><h2 id="how">How</h2>
 <p>Category 通常都有哪些用处呢？</p>
-
-<h3 id="解耦">解耦</h3>
-
+<h3 id="heading">解耦</h3>
 <p>假如有一个人（Person），他需要工作（Work）和生活（Life），而工作和生活所做的事情显然是不一样的，那么我们就可以使用 Category 将人的这它们进行解耦：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Person</span>
+<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">copy</span>) NSString <span style="color:#f92672">*</span>name;
+<span style="color:#66d9ef">@end</span>
 
-<pre><code class="language-objectivec">@interface Person
-@property (nonatomic, copy) NSString *name;
-@end
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Person</span>
+<span style="color:#66d9ef">@end</span>
 
-@implementation Person
-@end
+<span style="color:#75715e">// ---
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Person</span> (Life)
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">playWithPet</span>;
+<span style="color:#66d9ef">@end</span>
 
-// ---
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Person</span> (Life)
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">playWithPet</span> {}
+<span style="color:#66d9ef">@end</span>
 
-@interface Person (Life)
-- (void)playWithPet;
-@end
+<span style="color:#75715e">// ---
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Person</span> (Work)
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">codeForWork</span>;
+<span style="color:#66d9ef">@end</span>
 
-@implementation Person (Life)
-- (void)playWithPet {}
-@end
-
-// ---
-
-@interface Person (Work)
-- (void)codeForWork;
-@end
-
-@implementation Person (Work)
-- (void)codeForWork {}
-@end
-</code></pre>
-
-<p>这样，Person+Life 中可以定义与生活相关的方法，而 Person+Work 中将专注于工作。当人需要运动（Sports）时，只需要再为 Person 添加 Person+Sports 的 Category 即可，这并不需要改动主类本身从而实现了解耦。</p>
-
-<h3 id="私有化">私有化</h3>
-
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Person</span> (Work)
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">codeForWork</span> {}
+<span style="color:#66d9ef">@end</span>
+</code></pre></div><p>这样，Person+Life 中可以定义与生活相关的方法，而 Person+Work 中将专注于工作。当人需要运动（Sports）时，只需要再为 Person 添加 Person+Sports 的 Category 即可，这并不需要改动主类本身从而实现了解耦。</p>
+<h3 id="heading1">私有化</h3>
 <p>使用 Xcode 模版新建 Category 后，将会自动创建两个文件：ClassName+CategoryName.h &amp; ClassName+CategoryName.m。当我们不希望某个 Category 可以在外界访问时，只需要不把它作为公共头文件（Public Header）暴露出去即可，即实现了私有化。需要注意的是，同样可以实现私有化的方案是使用类扩展（Class Extension），其因语法相似但没有定义名称被很多人称为「匿名分类（Category）」。不过本质上说，Category 和类扩展是完全不同的：</p>
-
-<pre><code class="language-objectivec">// Class Extension
-@interface Person ()
-- (void)secret;
-@end
-</code></pre>
-
-<p>类扩展是可以定义在单独的 .h 或者 .m 中，其主要可以使得外界无法直接访问到定义的成员变量、属性或方法。关于类扩展与访问控制，可详见《<a href="/posts/2019/ivar_access_control_in_obj-c/">Obj-C 中成员变量和类的访问控制</a>》一文。</p>
-
-<h3 id="反私有化">「反私有化」</h3>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// Class Extension
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Person</span> ()
+<span style="color:#f92672">-</span> (<span style="color:#66d9ef">void</span>)secret;
+<span style="color:#66d9ef">@end</span>
+</code></pre></div><p>类扩展是可以定义在单独的 .h 或者 .m 中，其主要可以使得外界无法直接访问到定义的成员变量、属性或方法。关于类扩展与访问控制，可详见《<a href="/posts/2019/ivar_access_control_in_obj-c/">Obj-C 中成员变量和类的访问控制</a>》一文。</p>
+<h3 id="heading2">「反私有化」</h3>
 <p>Category 不仅可以私有化，其实也可以「反私有化」。如果我们希望调用一个没有声明的方法，此时就可以在其 Category 或者类扩展中声明该方法，再进行调用。当然，Obj-C 中方法调用本质是消息发送，只要我们知道了消息的发送者和接收者，即使没有声明也总有方法来发送消息。</p>
-
-<h3 id="多继承">「多继承」</h3>
-
+<h3 id="heading3">「多继承」</h3>
 <p>因为 Category 是支持遵守协议（Protocol）的，那么不同的 Category 就可以遵守不同的协议，实现类似「多继承」的特性。但为什么是加引号的「多继承」呢？因为这样的协议遵守只能获得方法的声明，却无法获得父类的具体实现。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@protocol</span> <span style="color:#a6e22e">LifeProtocol</span> <span style="color:#f92672">&lt;</span>NSObject<span style="color:#f92672">&gt;</span>
+<span style="color:#f92672">-</span> (<span style="color:#66d9ef">void</span>)playWithPet;
+<span style="color:#66d9ef">@end</span>
 
-<pre><code class="language-objectivec">@protocol LifeProtocol &lt;NSObject&gt;
-- (void)playWithPet;
-@end
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Person</span> (Life) <span style="color:#f92672">&lt;</span>LifeProtocol<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">@end</span>
 
-@interface Person (Life) &lt;LifeProtocol&gt;
-@end
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Person</span> (Life)
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">playWithPet</span> {}
+<span style="color:#66d9ef">@end</span>
 
-@implementation Person (Life)
-- (void)playWithPet {}
-@end
+<span style="color:#75715e">// ---
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">@protocol</span> <span style="color:#a6e22e">WorkProtocol</span> <span style="color:#f92672">&lt;</span>NSObject<span style="color:#f92672">&gt;</span>
+<span style="color:#f92672">-</span> (<span style="color:#66d9ef">void</span>) workHard;
+<span style="color:#66d9ef">@end</span>
 
-// ---
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Person</span> (Work) <span style="color:#f92672">&lt;</span>WorkProtocol<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">@end</span>
 
-@protocol WorkProtocol &lt;NSObject&gt;
-- (void) workHard;
-@end
-
-@interface Person (Work) &lt;WorkProtocol&gt;
-@end
-
-@implementation Person (Work)
-- (void)workHard {}
-@end
-</code></pre>
-
-<h2 id="why">Why</h2>
-
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Person</span> (Work)
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">workHard</span> {}
+<span style="color:#66d9ef">@end</span>
+</code></pre></div><h2 id="why">Why</h2>
 <p>Obj-C 中的 Category 底层是如何实现的呢？</p>
+<h3 id="heading4">结构</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// Person+Life.h
+</span><span style="color:#75715e"></span><span style="color:#75715e">/**
+</span><span style="color:#75715e"> LifeProtocol
+</span><span style="color:#75715e"> */</span>
+<span style="color:#66d9ef">@protocol</span> <span style="color:#a6e22e">LifeProtocol</span> <span style="color:#f92672">&lt;</span>NSObject<span style="color:#f92672">&gt;</span>
+<span style="color:#f92672">-</span> (<span style="color:#66d9ef">void</span>)eat;
+<span style="color:#66d9ef">@end</span>
 
-<h3 id="结构">结构</h3>
+<span style="color:#75715e">/**
+</span><span style="color:#75715e"> Person+Life
+</span><span style="color:#75715e"> */</span>
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Person</span> (Life) <span style="color:#f92672">&lt;</span>LifeProtocol<span style="color:#f92672">&gt;</span>
 
-<pre><code class="language-objectivec">// Person+Life.h
-/**
- LifeProtocol
- */
-@protocol LifeProtocol &lt;NSObject&gt;
-- (void)eat;
-@end
+<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">copy</span>) NSString <span style="color:#f92672">*</span>name;
 
-/**
- Person+Life
- */
-@interface Person (Life) &lt;LifeProtocol&gt;
+<span style="color:#75715e">// Instance method
+</span><span style="color:#75715e"></span>- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">run</span>;
 
-@property (nonatomic, copy) NSString *name;
+<span style="color:#75715e">// Class method
+</span><span style="color:#75715e"></span>+ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span>;
 
-// Instance method
-- (void)run;
+<span style="color:#75715e">// Protocol method
+</span><span style="color:#75715e"></span>- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">eat</span>;
 
-// Class method
-+ (void)foo;
+<span style="color:#66d9ef">@end</span>
+</code></pre></div><p>定义一个完整的 Person 类，它遵守了协议，存储了属性，并定义实现了对象方法和类方法。为了便于下面的分析，我们使用 <code>xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc Person+Life.m</code> 命令将 Person+Life.m 翻译为 C/C++ 代码（Person+Life.cpp），关于翻译 Obj-C 代码的细节，可详见《<a href="../obj-c_to_c++/">将 Obj-C 代码翻译为 C++ 代码</a>》一文。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// Person+Life.cpp
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_category_t</span> {
+	<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>name;                               <span style="color:#75715e">// 类名
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_class_t</span> <span style="color:#f92672">*</span>cls;                           <span style="color:#75715e">// 类指针
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_method_list_t</span> <span style="color:#f92672">*</span>instance_methods;  <span style="color:#75715e">// 对象方法列表指针
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_method_list_t</span> <span style="color:#f92672">*</span>class_methods;     <span style="color:#75715e">// 类方法列表指针
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_protocol_list_t</span> <span style="color:#f92672">*</span>protocols;       <span style="color:#75715e">// 协议列表指针
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_prop_list_t</span> <span style="color:#f92672">*</span>properties;          <span style="color:#75715e">// 属性列表指针
+</span><span style="color:#75715e"></span>};
 
-// Protocol method
-- (void)eat;
-
-@end
-</code></pre>
-
-<p>定义一个完整的 Person 类，它遵守了协议，存储了属性，并定义实现了对象方法和类方法。为了便于下面的分析，我们使用 <code>xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc Person+Life.m</code> 命令将 Person+Life.m 翻译为 C/C++ 代码（Person+Life.cpp），关于翻译 Obj-C 代码的细节，可详见《<a href="../obj-c_to_c++/">将 Obj-C 代码翻译为 C++ 代码</a>》一文。</p>
-
-<pre><code class="language-cpp">// Person+Life.cpp
-struct _category_t {
-	const char *name;                               // 类名
-	struct _class_t *cls;                           // 类指针
-	const struct _method_list_t *instance_methods;  // 对象方法列表指针
-	const struct _method_list_t *class_methods;     // 类方法列表指针
-	const struct _protocol_list_t *protocols;       // 协议列表指针
-	const struct _prop_list_t *properties;          // 属性列表指针
-};
-
-static struct _category_t _OBJC_$_CATEGORY_Person_$_Life __attribute__ ((used, section (&quot;__DATA,__objc_const&quot;))) =
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_category_t</span> _OBJC_<span style="color:#960050;background-color:#1e0010">$</span>_CATEGORY_Person_<span style="color:#960050;background-color:#1e0010">$</span>_Life __attribute__ ((used, section (<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">__DATA,__objc_const</span><span style="color:#e6db74">&#34;</span>))) <span style="color:#f92672">=</span>
 {
-	&quot;Person&quot;,
-	0, // &amp;OBJC_CLASS_$_Person,
-	(const struct _method_list_t *)&amp;_OBJC_$_CATEGORY_INSTANCE_METHODS_Person_$_Life,
-	(const struct _method_list_t *)&amp;_OBJC_$_CATEGORY_CLASS_METHODS_Person_$_Life,
-	(const struct _protocol_list_t *)&amp;_OBJC_CATEGORY_PROTOCOLS_$_Person_$_Life,
-	(const struct _prop_list_t *)&amp;_OBJC_$_PROP_LIST_Person_$_Life,
+	<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Person</span><span style="color:#e6db74">&#34;</span>,
+	<span style="color:#ae81ff">0</span>, <span style="color:#75715e">// &amp;OBJC_CLASS_$_Person,
+</span><span style="color:#75715e"></span>	(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_method_list_t</span> <span style="color:#f92672">*</span>)<span style="color:#f92672">&amp;</span>_OBJC_<span style="color:#960050;background-color:#1e0010">$</span>_CATEGORY_INSTANCE_METHODS_Person_<span style="color:#960050;background-color:#1e0010">$</span>_Life,
+	(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_method_list_t</span> <span style="color:#f92672">*</span>)<span style="color:#f92672">&amp;</span>_OBJC_<span style="color:#960050;background-color:#1e0010">$</span>_CATEGORY_CLASS_METHODS_Person_<span style="color:#960050;background-color:#1e0010">$</span>_Life,
+	(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_protocol_list_t</span> <span style="color:#f92672">*</span>)<span style="color:#f92672">&amp;</span>_OBJC_CATEGORY_PROTOCOLS_<span style="color:#960050;background-color:#1e0010">$</span>_Person_<span style="color:#960050;background-color:#1e0010">$</span>_Life,
+	(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_prop_list_t</span> <span style="color:#f92672">*</span>)<span style="color:#f92672">&amp;</span>_OBJC_<span style="color:#960050;background-color:#1e0010">$</span>_PROP_LIST_Person_<span style="color:#960050;background-color:#1e0010">$</span>_Life,
 };
 
-// 对象方法列表
-static struct /*_method_list_t*/ {
-	unsigned int entsize;  // sizeof(struct _objc_method)
-	unsigned int method_count;
-	struct _objc_method method_list[2];
-} _OBJC_$_CATEGORY_INSTANCE_METHODS_Person_$_Life __attribute__ ((used, section (&quot;__DATA,__objc_const&quot;))) = {
-	sizeof(_objc_method),
-	2,
-	{{(struct objc_selector *)&quot;run&quot;, &quot;v16@0:8&quot;, (void *)_I_Person_Life_run},
-	{(struct objc_selector *)&quot;eat&quot;, &quot;v16@0:8&quot;, (void *)_I_Person_Life_eat}}
+<span style="color:#75715e">// 对象方法列表
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">struct</span> <span style="color:#960050;background-color:#1e0010">/</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#a6e22e">_method_list_t</span><span style="color:#960050;background-color:#1e0010">*/</span> {
+	<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> entsize;  <span style="color:#75715e">// sizeof(struct _objc_method)
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> method_count;
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_objc_method</span> method_list[<span style="color:#ae81ff">2</span>];
+} _OBJC_<span style="color:#960050;background-color:#1e0010">$</span>_CATEGORY_INSTANCE_METHODS_Person_<span style="color:#960050;background-color:#1e0010">$</span>_Life __attribute__ ((used, section (<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">__DATA,__objc_const</span><span style="color:#e6db74">&#34;</span>))) <span style="color:#f92672">=</span> {
+	<span style="color:#66d9ef">sizeof</span>(_objc_method),
+	<span style="color:#ae81ff">2</span>,
+	{{(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">objc_selector</span> <span style="color:#f92672">*</span>)<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">run</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">v16@0:8</span><span style="color:#e6db74">&#34;</span>, (<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)_I_Person_Life_run},
+	{(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">objc_selector</span> <span style="color:#f92672">*</span>)<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">eat</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">v16@0:8</span><span style="color:#e6db74">&#34;</span>, (<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)_I_Person_Life_eat}}
 };
 
-// 类方法列表
-static struct /*_method_list_t*/ {
-	unsigned int entsize;  // sizeof(struct _objc_method)
-	unsigned int method_count;
-	struct _objc_method method_list[1];
-} _OBJC_$_CATEGORY_CLASS_METHODS_Person_$_Life __attribute__ ((used, section (&quot;__DATA,__objc_const&quot;))) = {
-	sizeof(_objc_method),
-	1,
-	{{(struct objc_selector *)&quot;foo&quot;, &quot;v16@0:8&quot;, (void *)_C_Person_Life_foo}}
+<span style="color:#75715e">// 类方法列表
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">struct</span> <span style="color:#960050;background-color:#1e0010">/</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#a6e22e">_method_list_t</span><span style="color:#960050;background-color:#1e0010">*/</span> {
+	<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> entsize;  <span style="color:#75715e">// sizeof(struct _objc_method)
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> method_count;
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_objc_method</span> method_list[<span style="color:#ae81ff">1</span>];
+} _OBJC_<span style="color:#960050;background-color:#1e0010">$</span>_CATEGORY_CLASS_METHODS_Person_<span style="color:#960050;background-color:#1e0010">$</span>_Life __attribute__ ((used, section (<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">__DATA,__objc_const</span><span style="color:#e6db74">&#34;</span>))) <span style="color:#f92672">=</span> {
+	<span style="color:#66d9ef">sizeof</span>(_objc_method),
+	<span style="color:#ae81ff">1</span>,
+	{{(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">objc_selector</span> <span style="color:#f92672">*</span>)<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">foo</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">v16@0:8</span><span style="color:#e6db74">&#34;</span>, (<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)_C_Person_Life_foo}}
 };
 
-// 协议列表
-static struct /*_protocol_list_t*/ {
-	long protocol_count;  // Note, this is 32/64 bit
-	struct _protocol_t *super_protocols[1];
-} _OBJC_CATEGORY_PROTOCOLS_$_Person_$_Life __attribute__ ((used, section (&quot;__DATA,__objc_const&quot;))) = {
-	1,
-	&amp;_OBJC_PROTOCOL_LifeProtocol
+<span style="color:#75715e">// 协议列表
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">struct</span> <span style="color:#960050;background-color:#1e0010">/</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#a6e22e">_protocol_list_t</span><span style="color:#960050;background-color:#1e0010">*/</span> {
+	<span style="color:#66d9ef">long</span> protocol_count;  <span style="color:#75715e">// Note, this is 32/64 bit
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_protocol_t</span> <span style="color:#f92672">*</span>super_protocols[<span style="color:#ae81ff">1</span>];
+} _OBJC_CATEGORY_PROTOCOLS_<span style="color:#960050;background-color:#1e0010">$</span>_Person_<span style="color:#960050;background-color:#1e0010">$</span>_Life __attribute__ ((used, section (<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">__DATA,__objc_const</span><span style="color:#e6db74">&#34;</span>))) <span style="color:#f92672">=</span> {
+	<span style="color:#ae81ff">1</span>,
+	<span style="color:#f92672">&amp;</span>_OBJC_PROTOCOL_LifeProtocol
 };
 
-// 属性列表
-static struct /*_prop_list_t*/ {
-	unsigned int entsize;  // sizeof(struct _prop_t)
-	unsigned int count_of_properties;
-	struct _prop_t prop_list[1];
-} _OBJC_$_PROP_LIST_Person_$_Life __attribute__ ((used, section (&quot;__DATA,__objc_const&quot;))) = {
-	sizeof(_prop_t),
-	1,
-	{{&quot;name&quot;,&quot;T@\&quot;NSString\&quot;,C,N&quot;}}
+<span style="color:#75715e">// 属性列表
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">struct</span> <span style="color:#960050;background-color:#1e0010">/</span><span style="color:#960050;background-color:#1e0010">*</span><span style="color:#a6e22e">_prop_list_t</span><span style="color:#960050;background-color:#1e0010">*/</span> {
+	<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> entsize;  <span style="color:#75715e">// sizeof(struct _prop_t)
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> count_of_properties;
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_prop_t</span> prop_list[<span style="color:#ae81ff">1</span>];
+} _OBJC_<span style="color:#960050;background-color:#1e0010">$</span>_PROP_LIST_Person_<span style="color:#960050;background-color:#1e0010">$</span>_Life __attribute__ ((used, section (<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">__DATA,__objc_const</span><span style="color:#e6db74">&#34;</span>))) <span style="color:#f92672">=</span> {
+	<span style="color:#66d9ef">sizeof</span>(_prop_t),
+	<span style="color:#ae81ff">1</span>,
+	{{<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">name</span><span style="color:#e6db74">&#34;</span>,<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">T@</span><span style="color:#ae81ff">\&#34;</span><span style="color:#e6db74">NSString</span><span style="color:#ae81ff">\&#34;</span><span style="color:#e6db74">,C,N</span><span style="color:#e6db74">&#34;</span>}}
 };
-</code></pre>
-
-<p>在翻译后的 C++ 源代码中，我们可以发现一个名称和 Category 相关的结构体定义：<code>_category_t</code>，该结构体表示了 Obj-C 中 Category 的实际结构；<code>_OBJC_$_CATEGORY_Person_$_Life</code> 则就是我们定义的 Person+Life Category。<code>_category_t</code> 结构体中存储了类名、类指针、对象方法列表指针、类方法列表指针、协议列表指针、以及属性列表指针，所以 Category 中支持遵守协议、声明属性、以及定义实现对象方法和类方法（不支持定义成员变量）。当然，在 Apple 开源的 objc4 中，也可以找到 <code>category_t</code> 结构体：</p>
-
-<pre><code class="language-cpp">// objc-runtime-new.h
-struct category_t {
-    const char *name;
+</code></pre></div><p>在翻译后的 C++ 源代码中，我们可以发现一个名称和 Category 相关的结构体定义：<code>_category_t</code>，该结构体表示了 Obj-C 中 Category 的实际结构；<code>_OBJC_$_CATEGORY_Person_$_Life</code> 则就是我们定义的 Person+Life Category。<code>_category_t</code> 结构体中存储了类名、类指针、对象方法列表指针、类方法列表指针、协议列表指针、以及属性列表指针，所以 Category 中支持遵守协议、声明属性、以及定义实现对象方法和类方法（不支持定义成员变量）。当然，在 Apple 开源的 objc4 中，也可以找到 <code>category_t</code> 结构体：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// objc-runtime-new.h
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">category_t</span> {
+    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>name;
     classref_t cls;
-    struct method_list_t *instanceMethods;
-    struct method_list_t *classMethods;
-    struct protocol_list_t *protocols;
-    struct property_list_t *instanceProperties;
-    // Fields below this point are not always present on disk.
-    // 以下内容并不能保证会在磁盘中展示
-    struct property_list_t *_classProperties;
+    <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">method_list_t</span> <span style="color:#f92672">*</span>instanceMethods;
+    <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">method_list_t</span> <span style="color:#f92672">*</span>classMethods;
+    <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">protocol_list_t</span> <span style="color:#f92672">*</span>protocols;
+    <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">property_list_t</span> <span style="color:#f92672">*</span>instanceProperties;
+    <span style="color:#75715e">// Fields below this point are not always present on disk.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 以下内容并不能保证会在磁盘中展示
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">property_list_t</span> <span style="color:#f92672">*</span>_classProperties;
 
-    method_list_t *methodsForMeta(bool isMeta) {
-        if (isMeta) return classMethods;
-        else return instanceMethods;
+    method_list_t <span style="color:#f92672">*</span><span style="color:#a6e22e">methodsForMeta</span>(<span style="color:#66d9ef">bool</span> isMeta) {
+        <span style="color:#66d9ef">if</span> (isMeta) <span style="color:#66d9ef">return</span> classMethods;
+        <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">return</span> instanceMethods;
     }
 
-    property_list_t *propertiesForMeta(bool isMeta, struct header_info *hi);
+    property_list_t <span style="color:#f92672">*</span><span style="color:#a6e22e">propertiesForMeta</span>(<span style="color:#66d9ef">bool</span> isMeta, <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">header_info</span> <span style="color:#f92672">*</span>hi);
 };
-</code></pre>
-
-<h3 id="实现原理">实现原理</h3>
-
+</code></pre></div><h3 id="heading5">实现原理</h3>
 <p>当我们的代码编译完，Category 中的信息就将被存储在 <code>category_t</code> 的结构体中，那么运行时的 Category 又会变成什么样呢？</p>
-
-<h4 id="what-1">What</h4>
-
+<h4 id="what1">What</h4>
 <p>我们尝试分别在 <code>Person</code> 主类、Person+Life 和 Person+Work Category 中定义并实现完全相同的 <code>smile</code> 方法。有个细节是，我们在 Category 中实现主类中已经实现的方法时，编译器会警告「Category is implementing a method which will also be implemented by its primary class」，这又是为什么呢？</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// Person.h
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Person</span> : <span style="color:#a6e22e">NSObject</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">smile</span>;
+<span style="color:#66d9ef">@end</span>
 
-<pre><code class="language-objectivec">// Person.h
-@interface Person : NSObject
-- (void)smile;
-@end
+<span style="color:#75715e">// Person+Life.h
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Person</span> (Life) <span style="color:#f92672">&lt;</span>LifeProtocol<span style="color:#f92672">&gt;</span>
+<span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>
+<span style="color:#f92672">-</span> (<span style="color:#66d9ef">void</span>)smile;
+<span style="color:#66d9ef">@end</span>
 
-// Person+Life.h
-@interface Person (Life) &lt;LifeProtocol&gt;
-// ...
+<span style="color:#75715e">// Person+Work.h
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Person</span> (Work)
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">smile</span>;
+<span style="color:#66d9ef">@end</span>
 
-- (void)smile;
-@end
-
-// Person+Work.h
-@interface Person (Work)
-- (void)smile;
-@end
-
-// main.m
-Person *p = [[Person alloc] init];
+<span style="color:#75715e">// main.m
+</span><span style="color:#75715e"></span>Person <span style="color:#f92672">*</span>p <span style="color:#f92672">=</span> [[Person alloc] init];
 [p smile];
 
-// OUTPUT:
-// Person (Work) - -[Person(Work) smile]
-</code></pre>
-
-<p>当我们运行程序，发现最终只输出了一句，并且是调用到了 Person+Work Category 中的方法。那么先说结论：<strong>当 Category 中实现了主类中同一个方法时，将总是调用 Category 中的方法（这也是为何编译器警告的原因）；当存在多个 Category 实现同一个方法时，将总是调用最后被编译的 Category 中的方法</strong>。如何查看文件的编译顺序呢？在 Xcode -「Build Phases」-「Compile Sources」中，靠前的即是最先被编译的：</p>
-
-<p><img src="/img/2019/category_in_ios/2.png" alt="2" /></p>
-
-<h4 id="why-1">Why</h4>
-
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Person (Work) - -[Person(Work) smile]
+</span></code></pre></div><p>当我们运行程序，发现最终只输出了一句，并且是调用到了 Person+Work Category 中的方法。那么先说结论：<strong>当 Category 中实现了主类中同一个方法时，将总是调用 Category 中的方法（这也是为何编译器警告的原因）；当存在多个 Category 实现同一个方法时，将总是调用最后被编译的 Category 中的方法</strong>。如何查看文件的编译顺序呢？在 Xcode -「Build Phases」-「Compile Sources」中，靠前的即是最先被编译的：</p>
+<p><img src="/img/2019/category_in_ios/2.png" alt="2"></p>
+<h4 id="why1">Why</h4>
 <p>为了证明上述结论，我们需要在 objc4 的源码中，从 Obj-C 运行时初始化的入口着手，即 <code>_objc_init</code>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// objc-os.mm
+</span><span style="color:#75715e"></span><span style="color:#75715e">/***********************************************************************
+</span><span style="color:#75715e">* _objc_init
+</span><span style="color:#75715e">* Bootstrap initialization. Registers our image notifier with dyld.
+</span><span style="color:#75715e">* 引导初始化。使用 dyld 注册镜像通知器。
+</span><span style="color:#75715e">* Called by libSystem BEFORE library initialization time
+</span><span style="color:#75715e">* 在库初始化时间之前由 libSystem 调用
+</span><span style="color:#75715e">**********************************************************************/</span>
 
-<pre><code class="language-objectivec">// objc-os.mm
-/***********************************************************************
-* _objc_init
-* Bootstrap initialization. Registers our image notifier with dyld.
-* 引导初始化。使用 dyld 注册镜像通知器。
-* Called by libSystem BEFORE library initialization time
-* 在库初始化时间之前由 libSystem 调用
-**********************************************************************/
-
-void _objc_init(void)
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">_objc_init</span>(<span style="color:#66d9ef">void</span>)
 {
-    static bool initialized = false;
-    if (initialized) return;
-    initialized = true;
+    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">bool</span> initialized <span style="color:#f92672">=</span> false;
+    <span style="color:#66d9ef">if</span> (initialized) <span style="color:#66d9ef">return</span>;
+    initialized <span style="color:#f92672">=</span> true;
 
-    // fixme defer initialization until an objc-using image is found?
-    environ_init();
+    <span style="color:#75715e">// fixme defer initialization until an objc-using image is found?
+</span><span style="color:#75715e"></span>    environ_init();
     tls_init();
     static_init();
     lock_init();
     exception_init();
 
-    // ➡️ dyld 注册通知；map_images：映射镜像，load_images：加载镜像，unmap_image：反映射镜像
-    _dyld_objc_notify_register(&amp;map_images, load_images, unmap_image);
+    <span style="color:#75715e">// ➡️ dyld 注册通知；map_images：映射镜像，load_images：加载镜像，unmap_image：反映射镜像
+</span><span style="color:#75715e"></span>    _dyld_objc_notify_register(<span style="color:#f92672">&amp;</span>map_images, load_images, unmap_image);
 }
 
-// objc-runtime-new.mm
-/***********************************************************************
-* map_images
-* Process the given images which are being mapped in by dyld.
-* 由 dyld 处理给定将要映射的镜像。
-* Calls ABI-agnostic code after taking ABI-specific locks.
-* 加上指定 ABI 锁后调用 ABI 无关（agnostic）的代码。
-*
-* Locking: write-locks runtimeLock
-* 锁：写锁 runtimeLock
-**********************************************************************/
-void
-map_images(unsigned count, const char * const paths[],
-           const struct mach_header * const mhdrs[])
+<span style="color:#75715e">// objc-runtime-new.mm
+</span><span style="color:#75715e"></span><span style="color:#75715e">/***********************************************************************
+</span><span style="color:#75715e">* map_images
+</span><span style="color:#75715e">* Process the given images which are being mapped in by dyld.
+</span><span style="color:#75715e">* 由 dyld 处理给定将要映射的镜像。
+</span><span style="color:#75715e">* Calls ABI-agnostic code after taking ABI-specific locks.
+</span><span style="color:#75715e">* 加上指定 ABI 锁后调用 ABI 无关（agnostic）的代码。
+</span><span style="color:#75715e">*
+</span><span style="color:#75715e">* Locking: write-locks runtimeLock
+</span><span style="color:#75715e">* 锁：写锁 runtimeLock
+</span><span style="color:#75715e">**********************************************************************/</span>
+<span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">map_images</span>(<span style="color:#66d9ef">unsigned</span> count, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> <span style="color:#66d9ef">const</span> paths[],
+           <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> mach_header <span style="color:#f92672">*</span> <span style="color:#66d9ef">const</span> mhdrs[])
 {
-    // 互斥锁
-    mutex_locker_t lock(runtimeLock);
-    // ➡️ map_images_nolock：映射镜像（无锁）
-    return map_images_nolock(count, paths, mhdrs);
+    <span style="color:#75715e">// 互斥锁
+</span><span style="color:#75715e"></span>    mutex_locker_t lock(runtimeLock);
+    <span style="color:#75715e">// ➡️ map_images_nolock：映射镜像（无锁）
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> map_images_nolock(count, paths, mhdrs);
 }
 
-// objc-os.mm
-void
-map_images_nolock(unsigned mhCount, const char * const mhPaths[],
-                  const struct mach_header * const mhdrs[])
+<span style="color:#75715e">// objc-os.mm
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">map_images_nolock</span>(<span style="color:#66d9ef">unsigned</span> mhCount, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> <span style="color:#66d9ef">const</span> mhPaths[],
+                  <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> mach_header <span style="color:#f92672">*</span> <span style="color:#66d9ef">const</span> mhdrs[])
 {
-    static bool firstTime = YES;
-    header_info *hList[mhCount];
+    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">bool</span> firstTime <span style="color:#f92672">=</span> YES;
+    header_info <span style="color:#f92672">*</span>hList[mhCount];
     uint32_t hCount;
-    size_t selrefCount = 0;
+    size_t selrefCount <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
 
-    // Perform first-time initialization if necessary.
-    // 必要时执行首次初始化。
-    // This function is called before ordinary library initializers.
-    // 在普通库构造方法之前调用该函数。
-    // fixme defer initialization until an objc-using image is found?
-    if (firstTime) {
+    <span style="color:#75715e">// Perform first-time initialization if necessary.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 必要时执行首次初始化。
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// This function is called before ordinary library initializers.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 在普通库构造方法之前调用该函数。
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// fixme defer initialization until an objc-using image is found?
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (firstTime) {
         preopt_init();
     }
 
-    // Xcode 中 OBJC_PRINT_IMAGES 环境变量值为 YES 时，将可在控制台打印该信息
-    // OPTION(PrintImages, OBJC_PRINT_IMAGES, &quot;log image and library names as they are loaded&quot;)
-    if (PrintImages) {
-        _objc_inform(&quot;IMAGES: processing %u newly-mapped images...\n&quot;, mhCount);
+    <span style="color:#75715e">// Xcode 中 OBJC_PRINT_IMAGES 环境变量值为 YES 时，将可在控制台打印该信息
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// OPTION(PrintImages, OBJC_PRINT_IMAGES, &#34;log image and library names as they are loaded&#34;)
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (PrintImages) {
+        _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">IMAGES: processing %u newly-mapped images...</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, mhCount);
     }
 
 
-    // Find all images with Objective-C metadata.
-    // 使用 Obj-C 元数据查找所有镜像。
-    hCount = 0;
+    <span style="color:#75715e">// Find all images with Objective-C metadata.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 使用 Obj-C 元数据查找所有镜像。
+</span><span style="color:#75715e"></span>    hCount <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
 
-    // Count classes. Size various table based on the total.
-    // 计算类。根据总数计算不同的表。
-    int totalClasses = 0;
-    int unoptimizedTotalClasses = 0;
+    <span style="color:#75715e">// Count classes. Size various table based on the total.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 计算类。根据总数计算不同的表。
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> totalClasses <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">int</span> unoptimizedTotalClasses <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
     {
-        uint32_t i = mhCount;
-        // 遍历 mach-o header
-        while (i--) {
-            const headerType *mhdr = (const headerType *)mhdrs[i];
+        uint32_t i <span style="color:#f92672">=</span> mhCount;
+        <span style="color:#75715e">// 遍历 mach-o header
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">while</span> (i<span style="color:#f92672">-</span><span style="color:#f92672">-</span>) {
+            <span style="color:#66d9ef">const</span> headerType <span style="color:#f92672">*</span>mhdr <span style="color:#f92672">=</span> (<span style="color:#66d9ef">const</span> headerType <span style="color:#f92672">*</span>)mhdrs[i];
 
-            // ➡️ addHeader：添加头部信息（计算类的总数、未优化的类总数）
-            auto hi = addHeader(mhdr, mhPaths[i], totalClasses, unoptimizedTotalClasses);
-            if (!hi) {
-                // no objc data in this entry
-                // 若 hi 为空，则该条目没有 Obj-C 数据
-                continue;
+            <span style="color:#75715e">// ➡️ addHeader：添加头部信息（计算类的总数、未优化的类总数）
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">auto</span> hi <span style="color:#f92672">=</span> addHeader(mhdr, mhPaths[i], totalClasses, unoptimizedTotalClasses);
+            <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>hi) {
+                <span style="color:#75715e">// no objc data in this entry
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// 若 hi 为空，则该条目没有 Obj-C 数据
+</span><span style="color:#75715e"></span>                <span style="color:#66d9ef">continue</span>;
             }
 
-            // 判断文件类型是否是可执行文件
-            // #define	MH_EXECUTE	0x2		/* demand paged executable file */
-            if (mhdr-&gt;filetype == MH_EXECUTE) {
-                // Size some data structures based on main executable's size
-                // 根据主可执行文件的大小调整一些数据结构的大小
-#if __OBJC2__
-                size_t count;
+            <span style="color:#75715e">// 判断文件类型是否是可执行文件
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// #define	MH_EXECUTE	0x2		/* demand paged executable file */
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (mhdr<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>filetype <span style="color:#f92672">=</span><span style="color:#f92672">=</span> MH_EXECUTE) {
+                <span style="color:#75715e">// Size some data structures based on main executable&#39;s size
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// 根据主可执行文件的大小调整一些数据结构的大小
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">if __OBJC2__</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>                size_t count;
 
-                // 在 __objc_selrefs 节获取 SEL 引用（此处可参考 Mach-O 或 Link Map 文件中 Sections 部分）
-                // GETSECT(_getObjc2SelectorRefs,        SEL,             &quot;__objc_selrefs&quot;);
-                _getObjc2SelectorRefs(hi, &amp;count);
-                selrefCount += count;
-                // 在 __objc_msgrefs 节获取消息引用
-                // GETSECT(_getObjc2MessageRefs,         message_ref_t,   &quot;__objc_msgrefs&quot;);
-                _getObjc2MessageRefs(hi, &amp;count);
-                selrefCount += count;
-#else
-                _getObjcSelectorRefs(hi, &amp;selrefCount);
-#endif
-
-#if SUPPORT_GC_COMPAT
-                // Halt if this is a GC app.
-                if (shouldRejectGCApp(hi)) {
+                <span style="color:#75715e">// 在 __objc_selrefs 节获取 SEL 引用（此处可参考 Mach-O 或 Link Map 文件中 Sections 部分）
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// GETSECT(_getObjc2SelectorRefs,        SEL,             &#34;__objc_selrefs&#34;);
+</span><span style="color:#75715e"></span>                _getObjc2SelectorRefs(hi, <span style="color:#f92672">&amp;</span>count);
+                selrefCount <span style="color:#f92672">+</span><span style="color:#f92672">=</span> count;
+                <span style="color:#75715e">// 在 __objc_msgrefs 节获取消息引用
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// GETSECT(_getObjc2MessageRefs,         message_ref_t,   &#34;__objc_msgrefs&#34;);
+</span><span style="color:#75715e"></span>                _getObjc2MessageRefs(hi, <span style="color:#f92672">&amp;</span>count);
+                selrefCount <span style="color:#f92672">+</span><span style="color:#f92672">=</span> count;
+<span style="color:#75715e">#</span><span style="color:#75715e">else</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>                _getObjcSelectorRefs(hi, <span style="color:#f92672">&amp;</span>selrefCount);
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">if SUPPORT_GC_COMPAT</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// Halt if this is a GC app.
+</span><span style="color:#75715e"></span>                <span style="color:#66d9ef">if</span> (shouldRejectGCApp(hi)) {
                     _objc_fatal_with_reason
                         (OBJC_EXIT_REASON_GC_NOT_SUPPORTED,
                          OS_REASON_FLAG_CONSISTENT_FAILURE,
-                         &quot;Objective-C garbage collection &quot;
-                         &quot;is no longer supported.&quot;);
+                         <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Objective-C garbage collection </span><span style="color:#e6db74">&#34;</span>
+                         <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">is no longer supported.</span><span style="color:#e6db74">&#34;</span>);
                 }
-#endif
-            }
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>            }
 
-            // hList 保存 hi 并 hCount 自增
-            hList[hCount++] = hi;
+            <span style="color:#75715e">// hList 保存 hi 并 hCount 自增
+</span><span style="color:#75715e"></span>            hList[hCount<span style="color:#f92672">+</span><span style="color:#f92672">+</span>] <span style="color:#f92672">=</span> hi;
 
-            if (PrintImages) {
-                _objc_inform(&quot;IMAGES: loading image for %s%s%s%s%s\n&quot;,
-                             hi-&gt;fname(),
-                             mhdr-&gt;filetype == MH_BUNDLE ? &quot; (bundle)&quot; : &quot;&quot;,
-                             hi-&gt;info()-&gt;isReplacement() ? &quot; (replacement)&quot; : &quot;&quot;,
-                             hi-&gt;info()-&gt;hasCategoryClassProperties() ? &quot; (has class properties)&quot; : &quot;&quot;,
-                             hi-&gt;info()-&gt;optimizedByDyld()?&quot; (preoptimized)&quot;:&quot;&quot;);
+            <span style="color:#66d9ef">if</span> (PrintImages) {
+                _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">IMAGES: loading image for %s%s%s%s%s</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,
+                             hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>fname(),
+                             mhdr<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>filetype <span style="color:#f92672">=</span><span style="color:#f92672">=</span> MH_BUNDLE <span style="color:#f92672">?</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74"> (bundle)</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>,
+                             hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>info()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isReplacement() <span style="color:#f92672">?</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74"> (replacement)</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>,
+                             hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>info()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>hasCategoryClassProperties() <span style="color:#f92672">?</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74"> (has class properties)</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>,
+                             hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>info()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>optimizedByDyld()<span style="color:#f92672">?</span><span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74"> (preoptimized)</span><span style="color:#e6db74">&#34;</span><span style="color:#f92672">:</span><span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>);
             }
         }
     }
 
-    // Perform one-time runtime initialization that must be deferred until
-    // the executable itself is found. This needs to be done before
-    // further initialization.
-    // (The executable may not be present in this infoList if the
-    // executable does not contain Objective-C code but Objective-C
-    // is dynamically loaded later.
-    // 在找到可执行文件本身之前必须延迟执行一次性运行时初始化。
-    // 这需要在进一步初始化之前完成。
-    // （如果可执行文件不包含 Obj-C 代码但 Obj-C 在之后动态加载，则 infoList 中可能不包含该可执行文件。）
-    if (firstTime) {
+    <span style="color:#75715e">// Perform one-time runtime initialization that must be deferred until
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// the executable itself is found. This needs to be done before
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// further initialization.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// (The executable may not be present in this infoList if the
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// executable does not contain Objective-C code but Objective-C
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// is dynamically loaded later.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 在找到可执行文件本身之前必须延迟执行一次性运行时初始化。
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 这需要在进一步初始化之前完成。
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// （如果可执行文件不包含 Obj-C 代码但 Obj-C 在之后动态加载，则 infoList 中可能不包含该可执行文件。）
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (firstTime) {
         sel_init(selrefCount);
         arr_init();
 
-#if SUPPORT_GC_COMPAT
-        // Reject any GC images linked to the main executable.
-        // We already rejected the app itself above.
-        // Images loaded after launch will be rejected by dyld.
-
-        for (uint32_t i = 0; i &lt; hCount; i++) {
-            auto hi = hList[i];
-            auto mh = hi-&gt;mhdr();
-            if (mh-&gt;filetype != MH_EXECUTE  &amp;&amp;  shouldRejectGCImage(mh)) {
+<span style="color:#75715e">#</span><span style="color:#75715e">if SUPPORT_GC_COMPAT</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Reject any GC images linked to the main executable.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// We already rejected the app itself above.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Images loaded after launch will be rejected by dyld.
+</span><span style="color:#75715e"></span>
+        <span style="color:#66d9ef">for</span> (uint32_t i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> hCount; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
+            <span style="color:#66d9ef">auto</span> hi <span style="color:#f92672">=</span> hList[i];
+            <span style="color:#66d9ef">auto</span> mh <span style="color:#f92672">=</span> hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>mhdr();
+            <span style="color:#66d9ef">if</span> (mh<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>filetype <span style="color:#f92672">!</span><span style="color:#f92672">=</span> MH_EXECUTE  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  shouldRejectGCImage(mh)) {
                 _objc_fatal_with_reason
                     (OBJC_EXIT_REASON_GC_NOT_SUPPORTED,
                      OS_REASON_FLAG_CONSISTENT_FAILURE,
-                     &quot;%s requires Objective-C garbage collection &quot;
-                     &quot;which is no longer supported.&quot;, hi-&gt;fname());
+                     <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%s requires Objective-C garbage collection </span><span style="color:#e6db74">&#34;</span>
+                     <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">which is no longer supported.</span><span style="color:#e6db74">&#34;</span>, hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>fname());
             }
         }
-#endif
-
-#if TARGET_OS_OSX
-        // Disable +initialize fork safety if the app is too old (&lt; 10.13).
-        // Disable +initialize fork safety if the app has a
-        //   __DATA,__objc_fork_ok section.
-
-        if (dyld_get_program_sdk_version() &lt; DYLD_MACOSX_VERSION_10_13) {
-            DisableInitializeForkSafety = true;
-            if (PrintInitializing) {
-                _objc_inform(&quot;INITIALIZE: disabling +initialize fork &quot;
-                             &quot;safety enforcement because the app is &quot;
-                             &quot;too old (SDK version &quot; SDK_FORMAT &quot;)&quot;,
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">if TARGET_OS_OSX</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Disable +initialize fork safety if the app is too old (&lt; 10.13).
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Disable +initialize fork safety if the app has a
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">//   __DATA,__objc_fork_ok section.
+</span><span style="color:#75715e"></span>
+        <span style="color:#66d9ef">if</span> (dyld_get_program_sdk_version() <span style="color:#f92672">&lt;</span> DYLD_MACOSX_VERSION_10_13) {
+            DisableInitializeForkSafety <span style="color:#f92672">=</span> true;
+            <span style="color:#66d9ef">if</span> (PrintInitializing) {
+                _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">INITIALIZE: disabling +initialize fork </span><span style="color:#e6db74">&#34;</span>
+                             <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">safety enforcement because the app is </span><span style="color:#e6db74">&#34;</span>
+                             <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">too old (SDK version </span><span style="color:#e6db74">&#34;</span> SDK_FORMAT <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>,
                              FORMAT_SDK(dyld_get_program_sdk_version()));
             }
         }
 
-        for (uint32_t i = 0; i &lt; hCount; i++) {
-            auto hi = hList[i];
-            auto mh = hi-&gt;mhdr();
-            if (mh-&gt;filetype != MH_EXECUTE) continue;
-            unsigned long size;
-            if (getsectiondata(hi-&gt;mhdr(), &quot;__DATA&quot;, &quot;__objc_fork_ok&quot;, &amp;size)) {
-                DisableInitializeForkSafety = true;
-                if (PrintInitializing) {
-                    _objc_inform(&quot;INITIALIZE: disabling +initialize fork &quot;
-                                 &quot;safety enforcement because the app has &quot;
-                                 &quot;a __DATA,__objc_fork_ok section&quot;);
+        <span style="color:#66d9ef">for</span> (uint32_t i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> hCount; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
+            <span style="color:#66d9ef">auto</span> hi <span style="color:#f92672">=</span> hList[i];
+            <span style="color:#66d9ef">auto</span> mh <span style="color:#f92672">=</span> hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>mhdr();
+            <span style="color:#66d9ef">if</span> (mh<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>filetype <span style="color:#f92672">!</span><span style="color:#f92672">=</span> MH_EXECUTE) <span style="color:#66d9ef">continue</span>;
+            <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span> size;
+            <span style="color:#66d9ef">if</span> (getsectiondata(hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>mhdr(), <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">__DATA</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">__objc_fork_ok</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">&amp;</span>size)) {
+                DisableInitializeForkSafety <span style="color:#f92672">=</span> true;
+                <span style="color:#66d9ef">if</span> (PrintInitializing) {
+                    _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">INITIALIZE: disabling +initialize fork </span><span style="color:#e6db74">&#34;</span>
+                                 <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">safety enforcement because the app has </span><span style="color:#e6db74">&#34;</span>
+                                 <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">a __DATA,__objc_fork_ok section</span><span style="color:#e6db74">&#34;</span>);
                 }
             }
-            break;  // assume only one MH_EXECUTE image
-        }
-#endif
-
+            <span style="color:#66d9ef">break</span>;  <span style="color:#75715e">// assume only one MH_EXECUTE image
+</span><span style="color:#75715e"></span>        }
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
     }
 
-    if (hCount &gt; 0) {
-        // ➡️ 读取镜像（传入 header_info 列表，数量，类的总数，未优化的类的总数）
-        _read_images(hList, hCount, totalClasses, unoptimizedTotalClasses);
+    <span style="color:#66d9ef">if</span> (hCount <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+        <span style="color:#75715e">// ➡️ 读取镜像（传入 header_info 列表，数量，类的总数，未优化的类的总数）
+</span><span style="color:#75715e"></span>        _read_images(hList, hCount, totalClasses, unoptimizedTotalClasses);
     }
 
-    // 第一次执行完毕后，置为 NO
-    firstTime = NO;
+    <span style="color:#75715e">// 第一次执行完毕后，置为 NO
+</span><span style="color:#75715e"></span>    firstTime <span style="color:#f92672">=</span> NO;
 }
 
-// objc-os.mm
-static header_info * addHeader(const headerType *mhdr, const char *path, int &amp;totalClasses, int &amp;unoptimizedTotalClasses)
+<span style="color:#75715e">// objc-os.mm
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> header_info <span style="color:#f92672">*</span> <span style="color:#a6e22e">addHeader</span>(<span style="color:#66d9ef">const</span> headerType <span style="color:#f92672">*</span>mhdr, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>path, <span style="color:#66d9ef">int</span> <span style="color:#f92672">&amp;</span>totalClasses, <span style="color:#66d9ef">int</span> <span style="color:#f92672">&amp;</span>unoptimizedTotalClasses)
 {
-    header_info *hi;
+    header_info <span style="color:#f92672">*</span>hi;
 
-    if (bad_magic(mhdr)) return NULL;
+    <span style="color:#66d9ef">if</span> (bad_magic(mhdr)) <span style="color:#66d9ef">return</span> NULL;
 
-    bool inSharedCache = false;
+    <span style="color:#66d9ef">bool</span> inSharedCache <span style="color:#f92672">=</span> false;
 
-    // Look for hinfo from the dyld shared cache.
-    // 在 dyld 共享缓存中寻找 hinfo（关于 dyld 共享缓存可参考文末「谈谈 iOS 中的 dyld_shared_cache」一文）。
-    // 为头部预优化 hinfo
-    hi = preoptimizedHinfoForHeader(mhdr);
-    if (hi) {
-        // Found an hinfo in the dyld shared cache.
-        // 在 dyld 共享缓存中找到 hinfo
-
-        // Weed out duplicates.
-        // 去除重复（若该 hi 已被加载，则返回空）。
-        if (hi-&gt;isLoaded()) {
-            return NULL;
+    <span style="color:#75715e">// Look for hinfo from the dyld shared cache.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 在 dyld 共享缓存中寻找 hinfo（关于 dyld 共享缓存可参考文末「谈谈 iOS 中的 dyld_shared_cache」一文）。
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 为头部预优化 hinfo
+</span><span style="color:#75715e"></span>    hi <span style="color:#f92672">=</span> preoptimizedHinfoForHeader(mhdr);
+    <span style="color:#66d9ef">if</span> (hi) {
+        <span style="color:#75715e">// Found an hinfo in the dyld shared cache.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 在 dyld 共享缓存中找到 hinfo
+</span><span style="color:#75715e"></span>
+        <span style="color:#75715e">// Weed out duplicates.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 去除重复（若该 hi 已被加载，则返回空）。
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isLoaded()) {
+            <span style="color:#66d9ef">return</span> NULL;
         }
 
-        inSharedCache = true;
+        inSharedCache <span style="color:#f92672">=</span> true;
 
-        // Initialize fields not set by the shared cache
-        // 初始化未由共享缓存设置的域
-        // hi-&gt;next is set by appendHeader
-        // hi-&gt;next 由 appendHeader 设置
-        // 设置已加载为 true
-        hi-&gt;setLoaded(true);
+        <span style="color:#75715e">// Initialize fields not set by the shared cache
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 初始化未由共享缓存设置的域
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// hi-&gt;next is set by appendHeader
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// hi-&gt;next 由 appendHeader 设置
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 设置已加载为 true
+</span><span style="color:#75715e"></span>        hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setLoaded(true);
 
-        // Xcode 中 OBJC_PRINT_PREOPTIMIZATION 环境变量值为 YES 时，将可在控制台打印该信息
-        // OPTION(PrintPreopt, OBJC_PRINT_PREOPTIMIZATION, &quot;log preoptimization courtesy of dyld shared cache&quot;)
-        if (PrintPreopt) {
-            _objc_inform(&quot;PREOPTIMIZATION: honoring preoptimized header info at %p for %s&quot;, hi, hi-&gt;fname());
+        <span style="color:#75715e">// Xcode 中 OBJC_PRINT_PREOPTIMIZATION 环境变量值为 YES 时，将可在控制台打印该信息
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// OPTION(PrintPreopt, OBJC_PRINT_PREOPTIMIZATION, &#34;log preoptimization courtesy of dyld shared cache&#34;)
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (PrintPreopt) {
+            _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">PREOPTIMIZATION: honoring preoptimized header info at %p for %s</span><span style="color:#e6db74">&#34;</span>, hi, hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>fname());
         }
 
-#if !__OBJC2__
-        _objc_fatal(&quot;shouldn't be here&quot;);
-#endif
-#if DEBUG
-        // Verify image_info
-        // DEBUG 模式校验 image_info
-        size_t info_size = 0;
-        const objc_image_info *image_info = _getObjcImageInfo(mhdr,&amp;info_size);
-        assert(image_info == hi-&gt;info());
-#endif
-    }
-    else
+<span style="color:#75715e">#</span><span style="color:#75715e">if !__OBJC2__</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>        _objc_fatal(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">shouldn&#39;t be here</span><span style="color:#e6db74">&#34;</span>);
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">if DEBUG</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Verify image_info
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// DEBUG 模式校验 image_info
+</span><span style="color:#75715e"></span>        size_t info_size <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+        <span style="color:#66d9ef">const</span> objc_image_info <span style="color:#f92672">*</span>image_info <span style="color:#f92672">=</span> _getObjcImageInfo(mhdr,<span style="color:#f92672">&amp;</span>info_size);
+        assert(image_info <span style="color:#f92672">=</span><span style="color:#f92672">=</span> hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>info());
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>    }
+    <span style="color:#66d9ef">else</span>
     {
-        // Didn't find an hinfo in the dyld shared cache.
-        // 在 dyld 共享缓存中未找到 hinfo。
-
-        // Weed out duplicates
-        // 去除重复
-        for (hi = FirstHeader; hi; hi = hi-&gt;getNext()) {
-            if (mhdr == hi-&gt;mhdr()) return NULL;
+        <span style="color:#75715e">// Didn&#39;t find an hinfo in the dyld shared cache.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 在 dyld 共享缓存中未找到 hinfo。
+</span><span style="color:#75715e"></span>
+        <span style="color:#75715e">// Weed out duplicates
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 去除重复
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">for</span> (hi <span style="color:#f92672">=</span> FirstHeader; hi; hi <span style="color:#f92672">=</span> hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>getNext()) {
+            <span style="color:#66d9ef">if</span> (mhdr <span style="color:#f92672">=</span><span style="color:#f92672">=</span> hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>mhdr()) <span style="color:#66d9ef">return</span> NULL;
         }
 
-        // Locate the __OBJC segment
-        // 定位 __OBJC 段（Segment）
-        size_t info_size = 0;
-        unsigned long seg_size;
-        // _getObjcImageInfo：内部实际是获取 __objc_imageinfo 数据（__DATA 或 __DATA_CONST 或 __DATA_DIRTY）节（Section）信息
-        const objc_image_info *image_info = _getObjcImageInfo(mhdr,&amp;info_size);
-        // getsegmentdata：获取 __OBJC 段数据
-        // #define	SEG_OBJC	&quot;__OBJC&quot;	/* objective-C runtime segment */
-        const uint8_t *objc_segment = getsegmentdata(mhdr,SEG_OBJC,&amp;seg_size);
-        // 若都没有获取到，返回空
-        if (!objc_segment  &amp;&amp;  !image_info) return NULL;
+        <span style="color:#75715e">// Locate the __OBJC segment
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 定位 __OBJC 段（Segment）
+</span><span style="color:#75715e"></span>        size_t info_size <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+        <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span> seg_size;
+        <span style="color:#75715e">// _getObjcImageInfo：内部实际是获取 __objc_imageinfo 数据（__DATA 或 __DATA_CONST 或 __DATA_DIRTY）节（Section）信息
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">const</span> objc_image_info <span style="color:#f92672">*</span>image_info <span style="color:#f92672">=</span> _getObjcImageInfo(mhdr,<span style="color:#f92672">&amp;</span>info_size);
+        <span style="color:#75715e">// getsegmentdata：获取 __OBJC 段数据
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// #define	SEG_OBJC	&#34;__OBJC&#34;	/* objective-C runtime segment */
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">const</span> uint8_t <span style="color:#f92672">*</span>objc_segment <span style="color:#f92672">=</span> getsegmentdata(mhdr,SEG_OBJC,<span style="color:#f92672">&amp;</span>seg_size);
+        <span style="color:#75715e">// 若都没有获取到，返回空
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>objc_segment  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  <span style="color:#f92672">!</span>image_info) <span style="color:#66d9ef">return</span> NULL;
 
-        // Allocate a header_info entry.
-        // 分配一个 header_info。
-        // Note we also allocate space for a single header_info_rw in the
-        // rw_data[] inside header_info.
-        // 注意我们在 header_info 内部的 rw_data[] 也为单个 header_info_rw 分配了空间。
-        hi = (header_info *)calloc(sizeof(header_info) + sizeof(header_info_rw), 1);
+        <span style="color:#75715e">// Allocate a header_info entry.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 分配一个 header_info。
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Note we also allocate space for a single header_info_rw in the
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// rw_data[] inside header_info.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 注意我们在 header_info 内部的 rw_data[] 也为单个 header_info_rw 分配了空间。
+</span><span style="color:#75715e"></span>        hi <span style="color:#f92672">=</span> (header_info <span style="color:#f92672">*</span>)calloc(<span style="color:#66d9ef">sizeof</span>(header_info) <span style="color:#f92672">+</span> <span style="color:#66d9ef">sizeof</span>(header_info_rw), <span style="color:#ae81ff">1</span>);
 
-        // Set up the new header_info entry.
-        // 设置新的 header_info。
-        hi-&gt;setmhdr(mhdr);
-#if !__OBJC2__
-        // mhdr must already be set
-        hi-&gt;mod_count = 0;
-        hi-&gt;mod_ptr = _getObjcModules(hi, &amp;hi-&gt;mod_count);
-#endif
-        // Install a placeholder image_info if absent to simplify code elsewhere
-        // 如果没有在其他地方简化代码则安装占位符 image_info
-        static const objc_image_info emptyInfo = {0, 0};
-        hi-&gt;setinfo(image_info ?: &amp;emptyInfo);
+        <span style="color:#75715e">// Set up the new header_info entry.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 设置新的 header_info。
+</span><span style="color:#75715e"></span>        hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setmhdr(mhdr);
+<span style="color:#75715e">#</span><span style="color:#75715e">if !__OBJC2__</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// mhdr must already be set
+</span><span style="color:#75715e"></span>        hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>mod_count <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+        hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>mod_ptr <span style="color:#f92672">=</span> _getObjcModules(hi, <span style="color:#f92672">&amp;</span>hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>mod_count);
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Install a placeholder image_info if absent to simplify code elsewhere
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 如果没有在其他地方简化代码则安装占位符 image_info
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">const</span> objc_image_info emptyInfo <span style="color:#f92672">=</span> {<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>};
+        hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setinfo(image_info <span style="color:#f92672">?</span><span style="color:#f92672">:</span> <span style="color:#f92672">&amp;</span>emptyInfo);
 
-        // 设置已加载为 true
-        hi-&gt;setLoaded(true);
-        hi-&gt;setAllClassesRealized(NO);
+        <span style="color:#75715e">// 设置已加载为 true
+</span><span style="color:#75715e"></span>        hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setLoaded(true);
+        hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setAllClassesRealized(NO);
     }
 
-#if __OBJC2__
-    {
-        size_t count = 0;
-        // 在 __objc_classlist 节获取类列表
-        // GETSECT(_getObjc2ClassList,           classref_t,      &quot;__objc_classlist&quot;);
-        if (_getObjc2ClassList(hi, &amp;count)) {
-            // totalClasses 设置为获取到的类数量
-            totalClasses += (int)count;
-            // 若获取的 header_info 不在共享缓存中，则视为未优化类，更新 unoptimizedTotalClasses
-            if (!inSharedCache) unoptimizedTotalClasses += count;
+<span style="color:#75715e">#</span><span style="color:#75715e">if __OBJC2__</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>    {
+        size_t count <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+        <span style="color:#75715e">// 在 __objc_classlist 节获取类列表
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// GETSECT(_getObjc2ClassList,           classref_t,      &#34;__objc_classlist&#34;);
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (_getObjc2ClassList(hi, <span style="color:#f92672">&amp;</span>count)) {
+            <span style="color:#75715e">// totalClasses 设置为获取到的类数量
+</span><span style="color:#75715e"></span>            totalClasses <span style="color:#f92672">+</span><span style="color:#f92672">=</span> (<span style="color:#66d9ef">int</span>)count;
+            <span style="color:#75715e">// 若获取的 header_info 不在共享缓存中，则视为未优化类，更新 unoptimizedTotalClasses
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>inSharedCache) unoptimizedTotalClasses <span style="color:#f92672">+</span><span style="color:#f92672">=</span> count;
         }
     }
-#endif
-
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
     appendHeader(hi);
 
-    return hi;
+    <span style="color:#66d9ef">return</span> hi;
 }
 
-// objc-runtime-new.mm
-/***********************************************************************
-* _read_images
-* Perform initial processing of the headers in the linked
-* list beginning with headerList.
-* 从 headerList 开始为链表中的头部执行初始处理。
-*
-* Called by: map_images_nolock
-* 由 map_images_nolock 调用
-*
-* Locking: runtimeLock acquired by map_images
-* 锁：由 map_images 获得的 runtimeLock
-**********************************************************************/
-void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int unoptimizedTotalClasses)
+<span style="color:#75715e">// objc-runtime-new.mm
+</span><span style="color:#75715e"></span><span style="color:#75715e">/***********************************************************************
+</span><span style="color:#75715e">* _read_images
+</span><span style="color:#75715e">* Perform initial processing of the headers in the linked
+</span><span style="color:#75715e">* list beginning with headerList.
+</span><span style="color:#75715e">* 从 headerList 开始为链表中的头部执行初始处理。
+</span><span style="color:#75715e">*
+</span><span style="color:#75715e">* Called by: map_images_nolock
+</span><span style="color:#75715e">* 由 map_images_nolock 调用
+</span><span style="color:#75715e">*
+</span><span style="color:#75715e">* Locking: runtimeLock acquired by map_images
+</span><span style="color:#75715e">* 锁：由 map_images 获得的 runtimeLock
+</span><span style="color:#75715e">**********************************************************************/</span>
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">_read_images</span>(header_info <span style="color:#f92672">*</span><span style="color:#f92672">*</span>hList, uint32_t hCount, <span style="color:#66d9ef">int</span> totalClasses, <span style="color:#66d9ef">int</span> unoptimizedTotalClasses)
 {
-    header_info *hi;
+    header_info <span style="color:#f92672">*</span>hi;
     uint32_t hIndex;
     size_t count;
     size_t i;
-    Class *resolvedFutureClasses = nil;
-    size_t resolvedFutureClassCount = 0;
-    static bool doneOnce;
+    <span style="color:#66d9ef">Class</span> <span style="color:#f92672">*</span>resolvedFutureClasses <span style="color:#f92672">=</span> nil;
+    size_t resolvedFutureClassCount <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">bool</span> doneOnce;
     TimeLogger ts(PrintImageTimes);
 
     runtimeLock.assertLocked();
 
-#define EACH_HEADER \
-    hIndex = 0;         \
-    hIndex &lt; hCount &amp;&amp; (hi = hList[hIndex]); \
-    hIndex++
+<span style="color:#75715e">#</span><span style="color:#75715e">define EACH_HEADER \</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">    hIndex = 0;         \</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">    hIndex &lt; hCount &amp;&amp; (hi = hList[hIndex]); \</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">    hIndex++</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>doneOnce) {
+        doneOnce <span style="color:#f92672">=</span> YES;
 
-    if (!doneOnce) {
-        doneOnce = YES;
-
-#if SUPPORT_NONPOINTER_ISA
-        // Disable non-pointer isa under some conditions.
-
-# if SUPPORT_INDEXED_ISA
-        // Disable nonpointer isa if any image contains old Swift code
-        for (EACH_HEADER) {
-            if (hi-&gt;info()-&gt;containsSwift()  &amp;&amp;
-                hi-&gt;info()-&gt;swiftVersion() &lt; objc_image_info::SwiftVersion3)
+<span style="color:#75715e">#</span><span style="color:#75715e">if SUPPORT_NONPOINTER_ISA</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Disable non-pointer isa under some conditions.
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e"> if SUPPORT_INDEXED_ISA</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Disable nonpointer isa if any image contains old Swift code
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">for</span> (EACH_HEADER) {
+            <span style="color:#66d9ef">if</span> (hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>info()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>containsSwift()  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>
+                hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>info()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>swiftVersion() <span style="color:#f92672">&lt;</span> objc_image_info<span style="color:#f92672">:</span><span style="color:#f92672">:</span>SwiftVersion3)
             {
-                DisableNonpointerIsa = true;
-                if (PrintRawIsa) {
-                    _objc_inform(&quot;RAW ISA: disabling non-pointer isa because &quot;
-                                 &quot;the app or a framework contains Swift code &quot;
-                                 &quot;older than Swift 3.0&quot;);
+                DisableNonpointerIsa <span style="color:#f92672">=</span> true;
+                <span style="color:#66d9ef">if</span> (PrintRawIsa) {
+                    _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">RAW ISA: disabling non-pointer isa because </span><span style="color:#e6db74">&#34;</span>
+                                 <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">the app or a framework contains Swift code </span><span style="color:#e6db74">&#34;</span>
+                                 <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">older than Swift 3.0</span><span style="color:#e6db74">&#34;</span>);
                 }
-                break;
+                <span style="color:#66d9ef">break</span>;
             }
         }
-# endif
-
-# if TARGET_OS_OSX
-        // Disable non-pointer isa if the app is too old
-        // (linked before OS X 10.11)
-        if (dyld_get_program_sdk_version() &lt; DYLD_MACOSX_VERSION_10_11) {
-            DisableNonpointerIsa = true;
-            if (PrintRawIsa) {
-                _objc_inform(&quot;RAW ISA: disabling non-pointer isa because &quot;
-                             &quot;the app is too old (SDK version &quot; SDK_FORMAT &quot;)&quot;,
+<span style="color:#75715e">#</span><span style="color:#75715e"> endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e"> if TARGET_OS_OSX</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Disable non-pointer isa if the app is too old
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// (linked before OS X 10.11)
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (dyld_get_program_sdk_version() <span style="color:#f92672">&lt;</span> DYLD_MACOSX_VERSION_10_11) {
+            DisableNonpointerIsa <span style="color:#f92672">=</span> true;
+            <span style="color:#66d9ef">if</span> (PrintRawIsa) {
+                _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">RAW ISA: disabling non-pointer isa because </span><span style="color:#e6db74">&#34;</span>
+                             <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">the app is too old (SDK version </span><span style="color:#e6db74">&#34;</span> SDK_FORMAT <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>,
                              FORMAT_SDK(dyld_get_program_sdk_version()));
             }
         }
 
-        // Disable non-pointer isa if the app has a __DATA,__objc_rawisa section
-        // New apps that load old extensions may need this.
-        for (EACH_HEADER) {
-            if (hi-&gt;mhdr()-&gt;filetype != MH_EXECUTE) continue;
-            unsigned long size;
-            if (getsectiondata(hi-&gt;mhdr(), &quot;__DATA&quot;, &quot;__objc_rawisa&quot;, &amp;size)) {
-                DisableNonpointerIsa = true;
-                if (PrintRawIsa) {
-                    _objc_inform(&quot;RAW ISA: disabling non-pointer isa because &quot;
-                                 &quot;the app has a __DATA,__objc_rawisa section&quot;);
+        <span style="color:#75715e">// Disable non-pointer isa if the app has a __DATA,__objc_rawisa section
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// New apps that load old extensions may need this.
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">for</span> (EACH_HEADER) {
+            <span style="color:#66d9ef">if</span> (hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>mhdr()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>filetype <span style="color:#f92672">!</span><span style="color:#f92672">=</span> MH_EXECUTE) <span style="color:#66d9ef">continue</span>;
+            <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span> size;
+            <span style="color:#66d9ef">if</span> (getsectiondata(hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>mhdr(), <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">__DATA</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">__objc_rawisa</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">&amp;</span>size)) {
+                DisableNonpointerIsa <span style="color:#f92672">=</span> true;
+                <span style="color:#66d9ef">if</span> (PrintRawIsa) {
+                    _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">RAW ISA: disabling non-pointer isa because </span><span style="color:#e6db74">&#34;</span>
+                                 <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">the app has a __DATA,__objc_rawisa section</span><span style="color:#e6db74">&#34;</span>);
                 }
             }
-            break;  // assume only one MH_EXECUTE image
-        }
-# endif
-
-#endif
-
-        if (DisableTaggedPointers) {
+            <span style="color:#66d9ef">break</span>;  <span style="color:#75715e">// assume only one MH_EXECUTE image
+</span><span style="color:#75715e"></span>        }
+<span style="color:#75715e">#</span><span style="color:#75715e"> endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+        <span style="color:#66d9ef">if</span> (DisableTaggedPointers) {
             disableTaggedPointers();
         }
 
         initializeTaggedPointerObfuscator();
 
-        if (PrintConnecting) {
-            _objc_inform(&quot;CLASS: found %d classes during launch&quot;, totalClasses);
+        <span style="color:#66d9ef">if</span> (PrintConnecting) {
+            _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">CLASS: found %d classes during launch</span><span style="color:#e6db74">&#34;</span>, totalClasses);
         }
 
-        // namedClasses
-        // Preoptimized classes don't go in this table.
-        // 4/3 is NXMapTable's load factor
-        int namedClassesSize =
-            (isPreoptimized() ? unoptimizedTotalClasses : totalClasses) * 4 / 3;
-        gdb_objc_realized_classes =
+        <span style="color:#75715e">// namedClasses
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Preoptimized classes don&#39;t go in this table.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 4/3 is NXMapTable&#39;s load factor
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">int</span> namedClassesSize <span style="color:#f92672">=</span>
+            (isPreoptimized() <span style="color:#f92672">?</span> unoptimizedTotalClasses : totalClasses) <span style="color:#f92672">*</span> <span style="color:#ae81ff">4</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">3</span>;
+        gdb_objc_realized_classes <span style="color:#f92672">=</span>
             NXCreateMapTable(NXStrValueMapPrototype, namedClassesSize);
 
-        allocatedClasses = NXCreateHashTable(NXPtrPrototype, 0, nil);
+        allocatedClasses <span style="color:#f92672">=</span> NXCreateHashTable(NXPtrPrototype, <span style="color:#ae81ff">0</span>, nil);
 
-        ts.log(&quot;IMAGE TIMES: first time tasks&quot;);
+        ts.log(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">IMAGE TIMES: first time tasks</span><span style="color:#e6db74">&#34;</span>);
     }
 
 
-    // Discover classes. Fix up unresolved future classes. Mark bundle classes.
+    <span style="color:#75715e">// Discover classes. Fix up unresolved future classes. Mark bundle classes.
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">for</span> (EACH_HEADER) {
+        classref_t <span style="color:#f92672">*</span>classlist <span style="color:#f92672">=</span> _getObjc2ClassList(hi, <span style="color:#f92672">&amp;</span>count);
 
-    for (EACH_HEADER) {
-        classref_t *classlist = _getObjc2ClassList(hi, &amp;count);
-
-        if (! mustReadClasses(hi)) {
-            // Image is sufficiently optimized that we need not call readClass()
-            continue;
+        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span> mustReadClasses(hi)) {
+            <span style="color:#75715e">// Image is sufficiently optimized that we need not call readClass()
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">continue</span>;
         }
 
-        bool headerIsBundle = hi-&gt;isBundle();
-        bool headerIsPreoptimized = hi-&gt;isPreoptimized();
+        <span style="color:#66d9ef">bool</span> headerIsBundle <span style="color:#f92672">=</span> hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isBundle();
+        <span style="color:#66d9ef">bool</span> headerIsPreoptimized <span style="color:#f92672">=</span> hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isPreoptimized();
 
-        for (i = 0; i &lt; count; i++) {
-            Class cls = (Class)classlist[i];
-            Class newCls = readClass(cls, headerIsBundle, headerIsPreoptimized);
+        <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> count; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
+            <span style="color:#66d9ef">Class</span> cls <span style="color:#f92672">=</span> (<span style="color:#66d9ef">Class</span>)classlist[i];
+            <span style="color:#66d9ef">Class</span> newCls <span style="color:#f92672">=</span> readClass(cls, headerIsBundle, headerIsPreoptimized);
 
-            if (newCls != cls  &amp;&amp;  newCls) {
-                // Class was moved but not deleted. Currently this occurs
-                // only when the new class resolved a future class.
-                // Non-lazily realize the class below.
-                resolvedFutureClasses = (Class *)
+            <span style="color:#66d9ef">if</span> (newCls <span style="color:#f92672">!</span><span style="color:#f92672">=</span> cls  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  newCls) {
+                <span style="color:#75715e">// Class was moved but not deleted. Currently this occurs
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// only when the new class resolved a future class.
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// Non-lazily realize the class below.
+</span><span style="color:#75715e"></span>                resolvedFutureClasses <span style="color:#f92672">=</span> (<span style="color:#66d9ef">Class</span> <span style="color:#f92672">*</span>)
                     realloc(resolvedFutureClasses,
-                            (resolvedFutureClassCount+1) * sizeof(Class));
-                resolvedFutureClasses[resolvedFutureClassCount++] = newCls;
+                            (resolvedFutureClassCount<span style="color:#f92672">+</span><span style="color:#ae81ff">1</span>) <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">Class</span>));
+                resolvedFutureClasses[resolvedFutureClassCount<span style="color:#f92672">+</span><span style="color:#f92672">+</span>] <span style="color:#f92672">=</span> newCls;
             }
         }
     }
 
-    ts.log(&quot;IMAGE TIMES: discover classes&quot;);
+    ts.log(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">IMAGE TIMES: discover classes</span><span style="color:#e6db74">&#34;</span>);
 
-    // Fix up remapped classes
-    // Class list and nonlazy class list remain unremapped.
-    // Class refs and super refs are remapped for message dispatching.
-
-    if (!noClassesRemapped()) {
-        for (EACH_HEADER) {
-            Class *classrefs = _getObjc2ClassRefs(hi, &amp;count);
-            for (i = 0; i &lt; count; i++) {
-                remapClassRef(&amp;classrefs[i]);
+    <span style="color:#75715e">// Fix up remapped classes
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Class list and nonlazy class list remain unremapped.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Class refs and super refs are remapped for message dispatching.
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>noClassesRemapped()) {
+        <span style="color:#66d9ef">for</span> (EACH_HEADER) {
+            <span style="color:#66d9ef">Class</span> <span style="color:#f92672">*</span>classrefs <span style="color:#f92672">=</span> _getObjc2ClassRefs(hi, <span style="color:#f92672">&amp;</span>count);
+            <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> count; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
+                remapClassRef(<span style="color:#f92672">&amp;</span>classrefs[i]);
             }
-            // fixme why doesn't test future1 catch the absence of this?
-            classrefs = _getObjc2SuperRefs(hi, &amp;count);
-            for (i = 0; i &lt; count; i++) {
-                remapClassRef(&amp;classrefs[i]);
+            <span style="color:#75715e">// fixme why doesn&#39;t test future1 catch the absence of this?
+</span><span style="color:#75715e"></span>            classrefs <span style="color:#f92672">=</span> _getObjc2SuperRefs(hi, <span style="color:#f92672">&amp;</span>count);
+            <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> count; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
+                remapClassRef(<span style="color:#f92672">&amp;</span>classrefs[i]);
             }
         }
     }
 
-    ts.log(&quot;IMAGE TIMES: remap classes&quot;);
+    ts.log(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">IMAGE TIMES: remap classes</span><span style="color:#e6db74">&#34;</span>);
 
-    // Fix up @selector references
-    static size_t UnfixedSelectors;
+    <span style="color:#75715e">// Fix up @selector references
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">static</span> size_t UnfixedSelectors;
     {
         mutex_locker_t lock(selLock);
-        for (EACH_HEADER) {
-            if (hi-&gt;isPreoptimized()) continue;
+        <span style="color:#66d9ef">for</span> (EACH_HEADER) {
+            <span style="color:#66d9ef">if</span> (hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isPreoptimized()) <span style="color:#66d9ef">continue</span>;
 
-            bool isBundle = hi-&gt;isBundle();
-            SEL *sels = _getObjc2SelectorRefs(hi, &amp;count);
-            UnfixedSelectors += count;
-            for (i = 0; i &lt; count; i++) {
-                const char *name = sel_cname(sels[i]);
-                sels[i] = sel_registerNameNoLock(name, isBundle);
+            <span style="color:#66d9ef">bool</span> isBundle <span style="color:#f92672">=</span> hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isBundle();
+            <span style="color:#66d9ef">SEL</span> <span style="color:#f92672">*</span>sels <span style="color:#f92672">=</span> _getObjc2SelectorRefs(hi, <span style="color:#f92672">&amp;</span>count);
+            UnfixedSelectors <span style="color:#f92672">+</span><span style="color:#f92672">=</span> count;
+            <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> count; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
+                <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>name <span style="color:#f92672">=</span> sel_cname(sels[i]);
+                sels[i] <span style="color:#f92672">=</span> sel_registerNameNoLock(name, isBundle);
             }
         }
     }
 
-    ts.log(&quot;IMAGE TIMES: fix up selector references&quot;);
+    ts.log(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">IMAGE TIMES: fix up selector references</span><span style="color:#e6db74">&#34;</span>);
 
-#if SUPPORT_FIXUP
-    // Fix up old objc_msgSend_fixup call sites
-    for (EACH_HEADER) {
-        message_ref_t *refs = _getObjc2MessageRefs(hi, &amp;count);
-        if (count == 0) continue;
+<span style="color:#75715e">#</span><span style="color:#75715e">if SUPPORT_FIXUP</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Fix up old objc_msgSend_fixup call sites
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (EACH_HEADER) {
+        message_ref_t <span style="color:#f92672">*</span>refs <span style="color:#f92672">=</span> _getObjc2MessageRefs(hi, <span style="color:#f92672">&amp;</span>count);
+        <span style="color:#66d9ef">if</span> (count <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) <span style="color:#66d9ef">continue</span>;
 
-        if (PrintVtables) {
-            _objc_inform(&quot;VTABLES: repairing %zu unsupported vtable dispatch &quot;
-                         &quot;call sites in %s&quot;, count, hi-&gt;fname());
+        <span style="color:#66d9ef">if</span> (PrintVtables) {
+            _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">VTABLES: repairing %zu unsupported vtable dispatch </span><span style="color:#e6db74">&#34;</span>
+                         <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">call sites in %s</span><span style="color:#e6db74">&#34;</span>, count, hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>fname());
         }
-        for (i = 0; i &lt; count; i++) {
-            fixupMessageRef(refs+i);
+        <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> count; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
+            fixupMessageRef(refs<span style="color:#f92672">+</span>i);
         }
     }
 
-    ts.log(&quot;IMAGE TIMES: fix up objc_msgSend_fixup&quot;);
-#endif
-
-    // Discover protocols. Fix up protocol refs.
-    for (EACH_HEADER) {
-        extern objc_class OBJC_CLASS_$_Protocol;
-        Class cls = (Class)&amp;OBJC_CLASS_$_Protocol;
+    ts.log(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">IMAGE TIMES: fix up objc_msgSend_fixup</span><span style="color:#e6db74">&#34;</span>);
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// Discover protocols. Fix up protocol refs.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (EACH_HEADER) {
+        <span style="color:#66d9ef">extern</span> objc_class OBJC_CLASS_<span style="color:#960050;background-color:#1e0010">$</span>_Protocol;
+        <span style="color:#66d9ef">Class</span> cls <span style="color:#f92672">=</span> (<span style="color:#66d9ef">Class</span>)<span style="color:#f92672">&amp;</span>OBJC_CLASS_<span style="color:#960050;background-color:#1e0010">$</span>_Protocol;
         assert(cls);
-        NXMapTable *protocol_map = protocols();
-        bool isPreoptimized = hi-&gt;isPreoptimized();
-        bool isBundle = hi-&gt;isBundle();
+        NXMapTable <span style="color:#f92672">*</span>protocol_map <span style="color:#f92672">=</span> protocols();
+        <span style="color:#66d9ef">bool</span> isPreoptimized <span style="color:#f92672">=</span> hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isPreoptimized();
+        <span style="color:#66d9ef">bool</span> isBundle <span style="color:#f92672">=</span> hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isBundle();
 
-        protocol_t **protolist = _getObjc2ProtocolList(hi, &amp;count);
-        for (i = 0; i &lt; count; i++) {
+        protocol_t <span style="color:#f92672">*</span><span style="color:#f92672">*</span>protolist <span style="color:#f92672">=</span> _getObjc2ProtocolList(hi, <span style="color:#f92672">&amp;</span>count);
+        <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> count; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
             readProtocol(protolist[i], cls, protocol_map,
                          isPreoptimized, isBundle);
         }
     }
 
-    ts.log(&quot;IMAGE TIMES: discover protocols&quot;);
+    ts.log(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">IMAGE TIMES: discover protocols</span><span style="color:#e6db74">&#34;</span>);
 
-    // Fix up @protocol references
-    // Preoptimized images may have the right
-    // answer already but we don't know for sure.
-    for (EACH_HEADER) {
-        protocol_t **protolist = _getObjc2ProtocolRefs(hi, &amp;count);
-        for (i = 0; i &lt; count; i++) {
-            remapProtocolRef(&amp;protolist[i]);
+    <span style="color:#75715e">// Fix up @protocol references
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Preoptimized images may have the right
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// answer already but we don&#39;t know for sure.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (EACH_HEADER) {
+        protocol_t <span style="color:#f92672">*</span><span style="color:#f92672">*</span>protolist <span style="color:#f92672">=</span> _getObjc2ProtocolRefs(hi, <span style="color:#f92672">&amp;</span>count);
+        <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> count; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
+            remapProtocolRef(<span style="color:#f92672">&amp;</span>protolist[i]);
         }
     }
 
-    ts.log(&quot;IMAGE TIMES: fix up @protocol references&quot;);
+    ts.log(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">IMAGE TIMES: fix up @protocol references</span><span style="color:#e6db74">&#34;</span>);
 
-    // Realize non-lazy classes (for +load methods and static instances)
-    for (EACH_HEADER) {
-        classref_t *classlist =
-            _getObjc2NonlazyClassList(hi, &amp;count);
-        for (i = 0; i &lt; count; i++) {
-            Class cls = remapClass(classlist[i]);
-            if (!cls) continue;
+    <span style="color:#75715e">// Realize non-lazy classes (for +load methods and static instances)
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (EACH_HEADER) {
+        classref_t <span style="color:#f92672">*</span>classlist <span style="color:#f92672">=</span>
+            _getObjc2NonlazyClassList(hi, <span style="color:#f92672">&amp;</span>count);
+        <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> count; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
+            <span style="color:#66d9ef">Class</span> cls <span style="color:#f92672">=</span> remapClass(classlist[i]);
+            <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>cls) <span style="color:#66d9ef">continue</span>;
 
-            // hack for class __ARCLite__, which didn't get this above
-#if TARGET_OS_SIMULATOR
-            if (cls-&gt;cache._buckets == (void*)&amp;_objc_empty_cache  &amp;&amp;
-                (cls-&gt;cache._mask  ||  cls-&gt;cache._occupied))
+            <span style="color:#75715e">// hack for class __ARCLite__, which didn&#39;t get this above
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">if TARGET_OS_SIMULATOR</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>cache._buckets <span style="color:#f92672">=</span><span style="color:#f92672">=</span> (<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)<span style="color:#f92672">&amp;</span>_objc_empty_cache  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>
+                (cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>cache._mask  <span style="color:#f92672">|</span><span style="color:#f92672">|</span>  cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>cache._occupied))
             {
-                cls-&gt;cache._mask = 0;
-                cls-&gt;cache._occupied = 0;
+                cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>cache._mask <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+                cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>cache._occupied <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
             }
-            if (cls-&gt;ISA()-&gt;cache._buckets == (void*)&amp;_objc_empty_cache  &amp;&amp;
-                (cls-&gt;ISA()-&gt;cache._mask  ||  cls-&gt;ISA()-&gt;cache._occupied))
+            <span style="color:#66d9ef">if</span> (cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ISA()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>cache._buckets <span style="color:#f92672">=</span><span style="color:#f92672">=</span> (<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)<span style="color:#f92672">&amp;</span>_objc_empty_cache  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>
+                (cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ISA()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>cache._mask  <span style="color:#f92672">|</span><span style="color:#f92672">|</span>  cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ISA()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>cache._occupied))
             {
-                cls-&gt;ISA()-&gt;cache._mask = 0;
-                cls-&gt;ISA()-&gt;cache._occupied = 0;
+                cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ISA()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>cache._mask <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+                cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ISA()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>cache._occupied <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
             }
-#endif
-
+<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
             addClassTableEntry(cls);
             realizeClass(cls);
         }
     }
 
-    ts.log(&quot;IMAGE TIMES: realize non-lazy classes&quot;);
+    ts.log(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">IMAGE TIMES: realize non-lazy classes</span><span style="color:#e6db74">&#34;</span>);
 
-    // Realize newly-resolved future classes, in case CF manipulates them
-    if (resolvedFutureClasses) {
-        for (i = 0; i &lt; resolvedFutureClassCount; i++) {
+    <span style="color:#75715e">// Realize newly-resolved future classes, in case CF manipulates them
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (resolvedFutureClasses) {
+        <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> resolvedFutureClassCount; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
             realizeClass(resolvedFutureClasses[i]);
-            resolvedFutureClasses[i]-&gt;setInstancesRequireRawIsa(false/*inherited*/);
+            resolvedFutureClasses[i]<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setInstancesRequireRawIsa(false<span style="color:#75715e">/*inherited*/</span>);
         }
         free(resolvedFutureClasses);
     }
 
-    ts.log(&quot;IMAGE TIMES: realize future classes&quot;);
+    ts.log(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">IMAGE TIMES: realize future classes</span><span style="color:#e6db74">&#34;</span>);
 
-    // ➡️ Category
-    // Discover categories.
-    // 发现 Category。
-    // 遍历 hList 中的 header_info
-    for (EACH_HEADER) {
-        // 在 __objc_catlist 节获取 Category 列表
-        // GETSECT(_getObjc2CategoryList,        category_t *,    &quot;__objc_catlist&quot;);
-        category_t **catlist =
-            _getObjc2CategoryList(hi, &amp;count);
-        bool hasClassProperties = hi-&gt;info()-&gt;hasCategoryClassProperties();
+    <span style="color:#75715e">// ➡️ Category
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Discover categories.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 发现 Category。
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 遍历 hList 中的 header_info
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (EACH_HEADER) {
+        <span style="color:#75715e">// 在 __objc_catlist 节获取 Category 列表
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// GETSECT(_getObjc2CategoryList,        category_t *,    &#34;__objc_catlist&#34;);
+</span><span style="color:#75715e"></span>        category_t <span style="color:#f92672">*</span><span style="color:#f92672">*</span>catlist <span style="color:#f92672">=</span>
+            _getObjc2CategoryList(hi, <span style="color:#f92672">&amp;</span>count);
+        <span style="color:#66d9ef">bool</span> hasClassProperties <span style="color:#f92672">=</span> hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>info()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>hasCategoryClassProperties();
 
-        // 遍历 Category
-        for (i = 0; i &lt; count; i++) {
-            // 获取第 i 个 Category，类型为 category_t
-            category_t *cat = catlist[i];
-            // 根据 Category 的 cls 重新映射类
-            Class cls = remapClass(cat-&gt;cls);
+        <span style="color:#75715e">// 遍历 Category
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> count; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
+            <span style="color:#75715e">// 获取第 i 个 Category，类型为 category_t
+</span><span style="color:#75715e"></span>            category_t <span style="color:#f92672">*</span>cat <span style="color:#f92672">=</span> catlist[i];
+            <span style="color:#75715e">// 根据 Category 的 cls 重新映射类
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">Class</span> cls <span style="color:#f92672">=</span> remapClass(cat<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>cls);
 
-            // 类为空时
-            if (!cls) {
-                // Category's target class is missing (probably weak-linked).
-                // Category 的目标类丢失（可能为弱链接）。
-                // Disavow any knowledge of this category.
-                // 否认对此 Category 的任何了解。
-                // 将 Category 置为 nil
-                catlist[i] = nil;
-                if (PrintConnecting) {
-                    _objc_inform(&quot;CLASS: IGNORING category \?\?\?(%s) %p with &quot;
-                                 &quot;missing weak-linked target class&quot;,
-                                 cat-&gt;name, cat);
+            <span style="color:#75715e">// 类为空时
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>cls) {
+                <span style="color:#75715e">// Category&#39;s target class is missing (probably weak-linked).
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// Category 的目标类丢失（可能为弱链接）。
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// Disavow any knowledge of this category.
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// 否认对此 Category 的任何了解。
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// 将 Category 置为 nil
+</span><span style="color:#75715e"></span>                catlist[i] <span style="color:#f92672">=</span> nil;
+                <span style="color:#66d9ef">if</span> (PrintConnecting) {
+                    _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">CLASS: IGNORING category </span><span style="color:#e6db74">\</span><span style="color:#e6db74">?</span><span style="color:#e6db74">\</span><span style="color:#e6db74">?</span><span style="color:#e6db74">\</span><span style="color:#e6db74">?(%s) %p with </span><span style="color:#e6db74">&#34;</span>
+                                 <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">missing weak-linked target class</span><span style="color:#e6db74">&#34;</span>,
+                                 cat<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>name, cat);
                 }
-                continue;
+                <span style="color:#66d9ef">continue</span>;
             }
 
-            // 类非空时
-
-            // Process this category.
-            // First, register the category with its target class.
-            // Then, rebuild the class's method lists (etc) if
-            // the class is realized.
-            // 处理该 Category。
-            // 首先，使用目标类注册 Category。
-            // 然后，如果实现了类，则重建类的方法列表（等）。
-            bool classExists = NO;
-            // 判断 Category 中存在对象方法、协议、或属性
-            if (cat-&gt;instanceMethods ||  cat-&gt;protocols
-                ||  cat-&gt;instanceProperties)
+            <span style="color:#75715e">// 类非空时
+</span><span style="color:#75715e"></span>
+            <span style="color:#75715e">// Process this category.
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// First, register the category with its target class.
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// Then, rebuild the class&#39;s method lists (etc) if
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// the class is realized.
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 处理该 Category。
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 首先，使用目标类注册 Category。
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 然后，如果实现了类，则重建类的方法列表（等）。
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">bool</span> classExists <span style="color:#f92672">=</span> NO;
+            <span style="color:#75715e">// 判断 Category 中存在对象方法、协议、或属性
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (cat<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>instanceMethods <span style="color:#f92672">|</span><span style="color:#f92672">|</span>  cat<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>protocols
+                <span style="color:#f92672">|</span><span style="color:#f92672">|</span>  cat<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>instanceProperties)
             {
-                // 记录未附加上的 Category
-                addUnattachedCategoryForClass(cat, cls, hi);
-                if (cls-&gt;isRealized()) {
-                    // ➡️ 如果实现了类，重建类
-                    remethodizeClass(cls);
-                    classExists = YES;
+                <span style="color:#75715e">// 记录未附加上的 Category
+</span><span style="color:#75715e"></span>                addUnattachedCategoryForClass(cat, cls, hi);
+                <span style="color:#66d9ef">if</span> (cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isRealized()) {
+                    <span style="color:#75715e">// ➡️ 如果实现了类，重建类
+</span><span style="color:#75715e"></span>                    remethodizeClass(cls);
+                    classExists <span style="color:#f92672">=</span> YES;
                 }
-                if (PrintConnecting) {
-                    _objc_inform(&quot;CLASS: found category -%s(%s) %s&quot;,
-                                 cls-&gt;nameForLogging(), cat-&gt;name,
-                                 classExists ? &quot;on existing class&quot; : &quot;&quot;);
+                <span style="color:#66d9ef">if</span> (PrintConnecting) {
+                    _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">CLASS: found category -%s(%s) %s</span><span style="color:#e6db74">&#34;</span>,
+                                 cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>nameForLogging(), cat<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>name,
+                                 classExists <span style="color:#f92672">?</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">on existing class</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>);
                 }
             }
 
-            // 判断 Category 中存在类方法、协议、或类属性
-            if (cat-&gt;classMethods  ||  cat-&gt;protocols
-                ||  (hasClassProperties &amp;&amp; cat-&gt;_classProperties))
+            <span style="color:#75715e">// 判断 Category 中存在类方法、协议、或类属性
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (cat<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>classMethods  <span style="color:#f92672">|</span><span style="color:#f92672">|</span>  cat<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>protocols
+                <span style="color:#f92672">|</span><span style="color:#f92672">|</span>  (hasClassProperties <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span> cat<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_classProperties))
             {
-                // 记录未附加上的 Category
-                addUnattachedCategoryForClass(cat, cls-&gt;ISA(), hi);
-                if (cls-&gt;ISA()-&gt;isRealized()) {
-                    // ➡️  如果实现了元类，重建元类
-                    remethodizeClass(cls-&gt;ISA());
+                <span style="color:#75715e">// 记录未附加上的 Category
+</span><span style="color:#75715e"></span>                addUnattachedCategoryForClass(cat, cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ISA(), hi);
+                <span style="color:#66d9ef">if</span> (cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ISA()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isRealized()) {
+                    <span style="color:#75715e">// ➡️  如果实现了元类，重建元类
+</span><span style="color:#75715e"></span>                    remethodizeClass(cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ISA());
                 }
-                if (PrintConnecting) {
-                    _objc_inform(&quot;CLASS: found category +%s(%s)&quot;,
-                                 cls-&gt;nameForLogging(), cat-&gt;name);
+                <span style="color:#66d9ef">if</span> (PrintConnecting) {
+                    _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">CLASS: found category +%s(%s)</span><span style="color:#e6db74">&#34;</span>,
+                                 cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>nameForLogging(), cat<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>name);
                 }
             }
         }
     }
 
-    ts.log(&quot;IMAGE TIMES: discover categories&quot;);
+    ts.log(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">IMAGE TIMES: discover categories</span><span style="color:#e6db74">&#34;</span>);
 
-    // Category discovery MUST BE LAST to avoid potential races
-    // when other threads call the new category code before
-    // this thread finishes its fixups.
-
-    // +load handled by prepare_load_methods()
-
-    if (DebugNonFragileIvars) {
+    <span style="color:#75715e">// Category discovery MUST BE LAST to avoid potential races
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// when other threads call the new category code before
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// this thread finishes its fixups.
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// +load handled by prepare_load_methods()
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">if</span> (DebugNonFragileIvars) {
         realizeAllClasses();
     }
 
 
-    // Print preoptimization statistics
-    if (PrintPreopt) {
-        static unsigned int PreoptTotalMethodLists;
-        static unsigned int PreoptOptimizedMethodLists;
-        static unsigned int PreoptTotalClasses;
-        static unsigned int PreoptOptimizedClasses;
+    <span style="color:#75715e">// Print preoptimization statistics
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (PrintPreopt) {
+        <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> PreoptTotalMethodLists;
+        <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> PreoptOptimizedMethodLists;
+        <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> PreoptTotalClasses;
+        <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> PreoptOptimizedClasses;
 
-        for (EACH_HEADER) {
-            if (hi-&gt;isPreoptimized()) {
-                _objc_inform(&quot;PREOPTIMIZATION: honoring preoptimized selectors &quot;
-                             &quot;in %s&quot;, hi-&gt;fname());
+        <span style="color:#66d9ef">for</span> (EACH_HEADER) {
+            <span style="color:#66d9ef">if</span> (hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isPreoptimized()) {
+                _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">PREOPTIMIZATION: honoring preoptimized selectors </span><span style="color:#e6db74">&#34;</span>
+                             <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">in %s</span><span style="color:#e6db74">&#34;</span>, hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>fname());
             }
-            else if (hi-&gt;info()-&gt;optimizedByDyld()) {
-                _objc_inform(&quot;PREOPTIMIZATION: IGNORING preoptimized selectors &quot;
-                             &quot;in %s&quot;, hi-&gt;fname());
+            <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>info()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>optimizedByDyld()) {
+                _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">PREOPTIMIZATION: IGNORING preoptimized selectors </span><span style="color:#e6db74">&#34;</span>
+                             <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">in %s</span><span style="color:#e6db74">&#34;</span>, hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>fname());
             }
 
-            classref_t *classlist = _getObjc2ClassList(hi, &amp;count);
-            for (i = 0; i &lt; count; i++) {
-                Class cls = remapClass(classlist[i]);
-                if (!cls) continue;
+            classref_t <span style="color:#f92672">*</span>classlist <span style="color:#f92672">=</span> _getObjc2ClassList(hi, <span style="color:#f92672">&amp;</span>count);
+            <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> count; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
+                <span style="color:#66d9ef">Class</span> cls <span style="color:#f92672">=</span> remapClass(classlist[i]);
+                <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>cls) <span style="color:#66d9ef">continue</span>;
 
-                PreoptTotalClasses++;
-                if (hi-&gt;isPreoptimized()) {
-                    PreoptOptimizedClasses++;
+                PreoptTotalClasses<span style="color:#f92672">+</span><span style="color:#f92672">+</span>;
+                <span style="color:#66d9ef">if</span> (hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isPreoptimized()) {
+                    PreoptOptimizedClasses<span style="color:#f92672">+</span><span style="color:#f92672">+</span>;
                 }
 
-                const method_list_t *mlist;
-                if ((mlist = ((class_ro_t *)cls-&gt;data())-&gt;baseMethods())) {
-                    PreoptTotalMethodLists++;
-                    if (mlist-&gt;isFixedUp()) {
-                        PreoptOptimizedMethodLists++;
+                <span style="color:#66d9ef">const</span> method_list_t <span style="color:#f92672">*</span>mlist;
+                <span style="color:#66d9ef">if</span> ((mlist <span style="color:#f92672">=</span> ((class_ro_t <span style="color:#f92672">*</span>)cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>data())<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>baseMethods())) {
+                    PreoptTotalMethodLists<span style="color:#f92672">+</span><span style="color:#f92672">+</span>;
+                    <span style="color:#66d9ef">if</span> (mlist<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isFixedUp()) {
+                        PreoptOptimizedMethodLists<span style="color:#f92672">+</span><span style="color:#f92672">+</span>;
                     }
                 }
-                if ((mlist=((class_ro_t *)cls-&gt;ISA()-&gt;data())-&gt;baseMethods())) {
-                    PreoptTotalMethodLists++;
-                    if (mlist-&gt;isFixedUp()) {
-                        PreoptOptimizedMethodLists++;
+                <span style="color:#66d9ef">if</span> ((mlist<span style="color:#f92672">=</span>((class_ro_t <span style="color:#f92672">*</span>)cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ISA()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>data())<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>baseMethods())) {
+                    PreoptTotalMethodLists<span style="color:#f92672">+</span><span style="color:#f92672">+</span>;
+                    <span style="color:#66d9ef">if</span> (mlist<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isFixedUp()) {
+                        PreoptOptimizedMethodLists<span style="color:#f92672">+</span><span style="color:#f92672">+</span>;
                     }
                 }
             }
         }
 
-        _objc_inform(&quot;PREOPTIMIZATION: %zu selector references not &quot;
-                     &quot;pre-optimized&quot;, UnfixedSelectors);
-        _objc_inform(&quot;PREOPTIMIZATION: %u/%u (%.3g%%) method lists pre-sorted&quot;,
+        _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">PREOPTIMIZATION: %zu selector references not </span><span style="color:#e6db74">&#34;</span>
+                     <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pre-optimized</span><span style="color:#e6db74">&#34;</span>, UnfixedSelectors);
+        _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">PREOPTIMIZATION: %u/%u (%.3g%%) method lists pre-sorted</span><span style="color:#e6db74">&#34;</span>,
                      PreoptOptimizedMethodLists, PreoptTotalMethodLists,
                      PreoptTotalMethodLists
-                     ? 100.0*PreoptOptimizedMethodLists/PreoptTotalMethodLists
-                     : 0.0);
-        _objc_inform(&quot;PREOPTIMIZATION: %u/%u (%.3g%%) classes pre-registered&quot;,
+                     <span style="color:#f92672">?</span> <span style="color:#ae81ff">100.0</span><span style="color:#f92672">*</span>PreoptOptimizedMethodLists<span style="color:#f92672">/</span>PreoptTotalMethodLists
+                     : <span style="color:#ae81ff">0.0</span>);
+        _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">PREOPTIMIZATION: %u/%u (%.3g%%) classes pre-registered</span><span style="color:#e6db74">&#34;</span>,
                      PreoptOptimizedClasses, PreoptTotalClasses,
                      PreoptTotalClasses
-                     ? 100.0*PreoptOptimizedClasses/PreoptTotalClasses
-                     : 0.0);
-        _objc_inform(&quot;PREOPTIMIZATION: %zu protocol references not &quot;
-                     &quot;pre-optimized&quot;, UnfixedProtocolReferences);
+                     <span style="color:#f92672">?</span> <span style="color:#ae81ff">100.0</span><span style="color:#f92672">*</span>PreoptOptimizedClasses<span style="color:#f92672">/</span>PreoptTotalClasses
+                     : <span style="color:#ae81ff">0.0</span>);
+        _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">PREOPTIMIZATION: %zu protocol references not </span><span style="color:#e6db74">&#34;</span>
+                     <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pre-optimized</span><span style="color:#e6db74">&#34;</span>, UnfixedProtocolReferences);
     }
 
-#undef EACH_HEADER
-}
+<span style="color:#75715e">#</span><span style="color:#75715e">undef EACH_HEADER</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>}
 
-// objc-runtime-new.mm
-/***********************************************************************
-* remethodizeClass
-* Attach outstanding categories to an existing class.
-* 将未完成的 Category 附加到现有类。
-* Fixes up cls's method list, protocol list, and property list.
-* 修复 cls 的方法列表、协议列表、以及属性列表。
-* Updates method caches for cls and its subclasses.
-* 更新 cls 以及其子类的方法缓存。
-* Locking: runtimeLock must be held by the caller
-* 锁：调用者必须持有 runtimeLock
-**********************************************************************/
-static void remethodizeClass(Class cls)
+<span style="color:#75715e">// objc-runtime-new.mm
+</span><span style="color:#75715e"></span><span style="color:#75715e">/***********************************************************************
+</span><span style="color:#75715e">* remethodizeClass
+</span><span style="color:#75715e">* Attach outstanding categories to an existing class.
+</span><span style="color:#75715e">* 将未完成的 Category 附加到现有类。
+</span><span style="color:#75715e">* Fixes up cls&#39;s method list, protocol list, and property list.
+</span><span style="color:#75715e">* 修复 cls 的方法列表、协议列表、以及属性列表。
+</span><span style="color:#75715e">* Updates method caches for cls and its subclasses.
+</span><span style="color:#75715e">* 更新 cls 以及其子类的方法缓存。
+</span><span style="color:#75715e">* Locking: runtimeLock must be held by the caller
+</span><span style="color:#75715e">* 锁：调用者必须持有 runtimeLock
+</span><span style="color:#75715e">**********************************************************************/</span>
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">remethodizeClass</span>(<span style="color:#66d9ef">Class</span> cls)
 {
-    // Category 列表
-    category_list *cats;
-    bool isMeta;
+    <span style="color:#75715e">// Category 列表
+</span><span style="color:#75715e"></span>    category_list <span style="color:#f92672">*</span>cats;
+    <span style="color:#66d9ef">bool</span> isMeta;
 
     runtimeLock.assertLocked();
 
-    // 是否为元类
-    isMeta = cls-&gt;isMetaClass();
+    <span style="color:#75715e">// 是否为元类
+</span><span style="color:#75715e"></span>    isMeta <span style="color:#f92672">=</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isMetaClass();
 
-    // Re-methodizing: check for more categories
-    // 重新方法化：检查更多的 Category
-    if ((cats = unattachedCategoriesForClass(cls, false/*not realizing*/))) {
-        if (PrintConnecting) {
-            _objc_inform(&quot;CLASS: attaching categories to class '%s' %s&quot;,
-                         cls-&gt;nameForLogging(), isMeta ? &quot;(meta)&quot; : &quot;&quot;);
+    <span style="color:#75715e">// Re-methodizing: check for more categories
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 重新方法化：检查更多的 Category
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> ((cats <span style="color:#f92672">=</span> unattachedCategoriesForClass(cls, false<span style="color:#75715e">/*not realizing*/</span>))) {
+        <span style="color:#66d9ef">if</span> (PrintConnecting) {
+            _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">CLASS: attaching categories to class &#39;%s&#39; %s</span><span style="color:#e6db74">&#34;</span>,
+                         cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>nameForLogging(), isMeta <span style="color:#f92672">?</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">(meta)</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>);
         }
 
-        // ➡️ 附加 Category（类/元类，Category，是否刷新缓存）
-        attachCategories(cls, cats, true /*flush caches*/);
+        <span style="color:#75715e">// ➡️ 附加 Category（类/元类，Category，是否刷新缓存）
+</span><span style="color:#75715e"></span>        attachCategories(cls, cats, true <span style="color:#75715e">/*flush caches*/</span>);
         free(cats);
     }
 }
 
-// objc-runtime-new.mm
-// Attach method lists and properties and protocols from categories to a class.
-// 将所有 Category 的方法列表、属性列表、协议列表附加到类上。
-// Assumes the categories in cats are all loaded and sorted by load order,
-// oldest categories first.
-// 假设 cats 中的 Category 都已加载并由加载顺序排序，则最后（编译）的 Category 排在最先。
-static void
-attachCategories(Class cls, category_list *cats, bool flush_caches)
+<span style="color:#75715e">// objc-runtime-new.mm
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Attach method lists and properties and protocols from categories to a class.
+</span><span style="color:#75715e"></span><span style="color:#75715e">// 将所有 Category 的方法列表、属性列表、协议列表附加到类上。
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Assumes the categories in cats are all loaded and sorted by load order,
+</span><span style="color:#75715e"></span><span style="color:#75715e">// oldest categories first.
+</span><span style="color:#75715e"></span><span style="color:#75715e">// 假设 cats 中的 Category 都已加载并由加载顺序排序，则最后（编译）的 Category 排在最先。
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">attachCategories</span>(<span style="color:#66d9ef">Class</span> cls, category_list <span style="color:#f92672">*</span>cats, <span style="color:#66d9ef">bool</span> flush_caches)
 {
-    if (!cats) return;
-    // ➡️ Xcode 中 OBJC_PRINT_REPLACED_METHODS 环境变量值为 YES 时，将可在控制台打印该信息
-    // OPTION(PrintReplacedMethods, OBJC_PRINT_REPLACED_METHODS, &quot;log methods replaced by category implementations&quot;)
-    if (PrintReplacedMethods) printReplacements(cls, cats);
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>cats) <span style="color:#66d9ef">return</span>;
+    <span style="color:#75715e">// ➡️ Xcode 中 OBJC_PRINT_REPLACED_METHODS 环境变量值为 YES 时，将可在控制台打印该信息
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// OPTION(PrintReplacedMethods, OBJC_PRINT_REPLACED_METHODS, &#34;log methods replaced by category implementations&#34;)
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (PrintReplacedMethods) printReplacements(cls, cats);
 
-    // 是否是元类
-    bool isMeta = cls-&gt;isMetaClass();
+    <span style="color:#75715e">// 是否是元类
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">bool</span> isMeta <span style="color:#f92672">=</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isMetaClass();
 
-    // fixme rearrange to remove these intermediate allocations
-    // 方法列表（指向指针的指针，存储了两维：eg. [[cat_1-&gt;method_a, cat_1-&gt;method_b], [cat_2-&gt;method_c, cat_2-&gt;method_d]]）
-    method_list_t **mlists = (method_list_t **)
-        malloc(cats-&gt;count * sizeof(*mlists));
-    // 属性列表
-    property_list_t **proplists = (property_list_t **)
-        malloc(cats-&gt;count * sizeof(*proplists));
-    // 协议列表
-    protocol_list_t **protolists = (protocol_list_t **)
-        malloc(cats-&gt;count * sizeof(*protolists));
+    <span style="color:#75715e">// fixme rearrange to remove these intermediate allocations
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 方法列表（指向指针的指针，存储了两维：eg. [[cat_1-&gt;method_a, cat_1-&gt;method_b], [cat_2-&gt;method_c, cat_2-&gt;method_d]]）
+</span><span style="color:#75715e"></span>    method_list_t <span style="color:#f92672">*</span><span style="color:#f92672">*</span>mlists <span style="color:#f92672">=</span> (method_list_t <span style="color:#f92672">*</span><span style="color:#f92672">*</span>)
+        malloc(cats<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>count <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(<span style="color:#f92672">*</span>mlists));
+    <span style="color:#75715e">// 属性列表
+</span><span style="color:#75715e"></span>    property_list_t <span style="color:#f92672">*</span><span style="color:#f92672">*</span>proplists <span style="color:#f92672">=</span> (property_list_t <span style="color:#f92672">*</span><span style="color:#f92672">*</span>)
+        malloc(cats<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>count <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(<span style="color:#f92672">*</span>proplists));
+    <span style="color:#75715e">// 协议列表
+</span><span style="color:#75715e"></span>    protocol_list_t <span style="color:#f92672">*</span><span style="color:#f92672">*</span>protolists <span style="color:#f92672">=</span> (protocol_list_t <span style="color:#f92672">*</span><span style="color:#f92672">*</span>)
+        malloc(cats<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>count <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(<span style="color:#f92672">*</span>protolists));
 
-    // Count backwards through cats to get newest categories first
-    int mcount = 0;
-    int propcount = 0;
-    int protocount = 0;
-    // i = Category 的个数
-    int i = cats-&gt;count;
-    bool fromBundle = NO;
-    // ➡️ 将所有 Category 中的方法、属性、协议提取出
-    // 倒数 i
-    while (i--) {
-        // entry = 一个 Category
-        auto&amp; entry = cats-&gt;list[i];
+    <span style="color:#75715e">// Count backwards through cats to get newest categories first
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> mcount <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">int</span> propcount <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#66d9ef">int</span> protocount <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    <span style="color:#75715e">// i = Category 的个数
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> cats<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>count;
+    <span style="color:#66d9ef">bool</span> fromBundle <span style="color:#f92672">=</span> NO;
+    <span style="color:#75715e">// ➡️ 将所有 Category 中的方法、属性、协议提取出
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 倒数 i
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">while</span> (i<span style="color:#f92672">-</span><span style="color:#f92672">-</span>) {
+        <span style="color:#75715e">// entry = 一个 Category
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">auto</span><span style="color:#f92672">&amp;</span> entry <span style="color:#f92672">=</span> cats<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>list[i];
 
-        // mlist = Category 中的方法列表
-        method_list_t *mlist = entry.cat-&gt;methodsForMeta(isMeta);
-        if (mlist) {
-            mlists[mcount++] = mlist;
-            fromBundle |= entry.hi-&gt;isBundle();
+        <span style="color:#75715e">// mlist = Category 中的方法列表
+</span><span style="color:#75715e"></span>        method_list_t <span style="color:#f92672">*</span>mlist <span style="color:#f92672">=</span> entry.cat<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>methodsForMeta(isMeta);
+        <span style="color:#66d9ef">if</span> (mlist) {
+            mlists[mcount<span style="color:#f92672">+</span><span style="color:#f92672">+</span>] <span style="color:#f92672">=</span> mlist;
+            fromBundle <span style="color:#f92672">|</span><span style="color:#f92672">=</span> entry.hi<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isBundle();
         }
 
-        // proplist = Category 中的属性列表
-        property_list_t *proplist =
-            entry.cat-&gt;propertiesForMeta(isMeta, entry.hi);
-        if (proplist) {
-            proplists[propcount++] = proplist;
+        <span style="color:#75715e">// proplist = Category 中的属性列表
+</span><span style="color:#75715e"></span>        property_list_t <span style="color:#f92672">*</span>proplist <span style="color:#f92672">=</span>
+            entry.cat<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>propertiesForMeta(isMeta, entry.hi);
+        <span style="color:#66d9ef">if</span> (proplist) {
+            proplists[propcount<span style="color:#f92672">+</span><span style="color:#f92672">+</span>] <span style="color:#f92672">=</span> proplist;
         }
 
-        // protolist = Category 中的协议列表
-        protocol_list_t *protolist = entry.cat-&gt;protocols;
-        if (protolist) {
-            protolists[protocount++] = protolist;
+        <span style="color:#75715e">// protolist = Category 中的协议列表
+</span><span style="color:#75715e"></span>        protocol_list_t <span style="color:#f92672">*</span>protolist <span style="color:#f92672">=</span> entry.cat<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>protocols;
+        <span style="color:#66d9ef">if</span> (protolist) {
+            protolists[protocount<span style="color:#f92672">+</span><span style="color:#f92672">+</span>] <span style="color:#f92672">=</span> protolist;
         }
     }
 
-    // rw = 类/元类对象的 class_rw_t *data()
-    auto rw = cls-&gt;data();
+    <span style="color:#75715e">// rw = 类/元类对象的 class_rw_t *data()
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">auto</span> rw <span style="color:#f92672">=</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>data();
 
     prepareMethodLists(cls, mlists, mcount, NO, fromBundle);
-    // ➡️ Category 方法列表 -&gt; 类/元类方法列表，方法列表数量（上述二维中第一维的大小）
-    rw-&gt;methods.attachLists(mlists, mcount);
+    <span style="color:#75715e">// ➡️ Category 方法列表 -&gt; 类/元类方法列表，方法列表数量（上述二维中第一维的大小）
+</span><span style="color:#75715e"></span>    rw<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>methods.attachLists(mlists, mcount);
     free(mlists);
-    if (flush_caches  &amp;&amp;  mcount &gt; 0) flushCaches(cls);
+    <span style="color:#66d9ef">if</span> (flush_caches  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  mcount <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) flushCaches(cls);
 
-    // ➡️ Category 属性列表 -&gt; 类/元类属性列表，属性列表数量（上述二维中第一维的大小）
-    rw-&gt;properties.attachLists(proplists, propcount);
+    <span style="color:#75715e">// ➡️ Category 属性列表 -&gt; 类/元类属性列表，属性列表数量（上述二维中第一维的大小）
+</span><span style="color:#75715e"></span>    rw<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>properties.attachLists(proplists, propcount);
     free(proplists);
 
-    // ➡️ Category 协议列表 -&gt; 类/元类协议列表，协议列表数量（上述二维中第一维的大小）
-    rw-&gt;protocols.attachLists(protolists, protocount);
+    <span style="color:#75715e">// ➡️ Category 协议列表 -&gt; 类/元类协议列表，协议列表数量（上述二维中第一维的大小）
+</span><span style="color:#75715e"></span>    rw<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>protocols.attachLists(protolists, protocount);
     free(protolists);
 }
 
-// objc-runtime-new.h
-class list_array_tt {
+<span style="color:#75715e">// objc-runtime-new.h
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> list_array_tt {
  public:
-    void attachLists(List* const * addedLists, uint32_t addedCount) {
-        if (addedCount == 0) return;
+    <span style="color:#66d9ef">void</span> attachLists(List<span style="color:#f92672">*</span> <span style="color:#66d9ef">const</span> <span style="color:#f92672">*</span> addedLists, uint32_t addedCount) {
+        <span style="color:#66d9ef">if</span> (addedCount <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) <span style="color:#66d9ef">return</span>;
 
-        if (hasArray()) {
-            // many lists -&gt; many lists
-            // oldCount = 原有的大小
-            uint32_t oldCount = array()-&gt;count;
-            // newCount = 原有 + 新增
-            uint32_t newCount = oldCount + addedCount;
-            // realloc 重新分配内存空间（扩容）
-            setArray((array_t *)realloc(array(), array_t::byteSize(newCount)));
-            // 设置为新大小
-            array()-&gt;count = newCount;
-            // array()-&gt;lists 为原有列表的指针
-            // 将指针指向的内存内容向后偏移 addedCount
-            // void    *memmove(void *__dst, const void *__src, size_t __len);
-            memmove(array()-&gt;lists + addedCount, array()-&gt;lists,
-                    oldCount * sizeof(array()-&gt;lists[0]));
-            // addedLists 为所有 Category 中相应列表（如方法列表等）的指针
-            // 将指针指向的内存内容拷贝到原有列表的指针地址处
-            // void    *memcpy(void *__dst, const void *__src, size_t __n);
-            memcpy(array()-&gt;lists, addedLists,
-                   addedCount * sizeof(array()-&gt;lists[0]));
+        <span style="color:#66d9ef">if</span> (hasArray()) {
+            <span style="color:#75715e">// many lists -&gt; many lists
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// oldCount = 原有的大小
+</span><span style="color:#75715e"></span>            uint32_t oldCount <span style="color:#f92672">=</span> array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>count;
+            <span style="color:#75715e">// newCount = 原有 + 新增
+</span><span style="color:#75715e"></span>            uint32_t newCount <span style="color:#f92672">=</span> oldCount <span style="color:#f92672">+</span> addedCount;
+            <span style="color:#75715e">// realloc 重新分配内存空间（扩容）
+</span><span style="color:#75715e"></span>            setArray((array_t <span style="color:#f92672">*</span>)realloc(array(), array_t<span style="color:#f92672">:</span><span style="color:#f92672">:</span>byteSize(newCount)));
+            <span style="color:#75715e">// 设置为新大小
+</span><span style="color:#75715e"></span>            array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>count <span style="color:#f92672">=</span> newCount;
+            <span style="color:#75715e">// array()-&gt;lists 为原有列表的指针
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 将指针指向的内存内容向后偏移 addedCount
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// void    *memmove(void *__dst, const void *__src, size_t __len);
+</span><span style="color:#75715e"></span>            memmove(array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>lists <span style="color:#f92672">+</span> addedCount, array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>lists,
+                    oldCount <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>lists[<span style="color:#ae81ff">0</span>]));
+            <span style="color:#75715e">// addedLists 为所有 Category 中相应列表（如方法列表等）的指针
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 将指针指向的内存内容拷贝到原有列表的指针地址处
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// void    *memcpy(void *__dst, const void *__src, size_t __n);
+</span><span style="color:#75715e"></span>            memcpy(array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>lists, addedLists,
+                   addedCount <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>lists[<span style="color:#ae81ff">0</span>]));
         }
-        else if (!list  &amp;&amp;  addedCount == 1) {
-            // 0 lists -&gt; 1 list
-            list = addedLists[0];
+        <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>list  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  addedCount <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>) {
+            <span style="color:#75715e">// 0 lists -&gt; 1 list
+</span><span style="color:#75715e"></span>            list <span style="color:#f92672">=</span> addedLists[<span style="color:#ae81ff">0</span>];
         }
-        else {
-            // 1 list -&gt; many lists
-            List* oldList = list;
-            uint32_t oldCount = oldList ? 1 : 0;
-            uint32_t newCount = oldCount + addedCount;
-            setArray((array_t *)malloc(array_t::byteSize(newCount)));
-            array()-&gt;count = newCount;
-            if (oldList) array()-&gt;lists[addedCount] = oldList;
-            memcpy(array()-&gt;lists, addedLists,
-                   addedCount * sizeof(array()-&gt;lists[0]));
+        <span style="color:#66d9ef">else</span> {
+            <span style="color:#75715e">// 1 list -&gt; many lists
+</span><span style="color:#75715e"></span>            List<span style="color:#f92672">*</span> oldList <span style="color:#f92672">=</span> list;
+            uint32_t oldCount <span style="color:#f92672">=</span> oldList <span style="color:#f92672">?</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>;
+            uint32_t newCount <span style="color:#f92672">=</span> oldCount <span style="color:#f92672">+</span> addedCount;
+            setArray((array_t <span style="color:#f92672">*</span>)malloc(array_t<span style="color:#f92672">:</span><span style="color:#f92672">:</span>byteSize(newCount)));
+            array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>count <span style="color:#f92672">=</span> newCount;
+            <span style="color:#66d9ef">if</span> (oldList) array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>lists[addedCount] <span style="color:#f92672">=</span> oldList;
+            memcpy(array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>lists, addedLists,
+                   addedCount <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(array()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>lists[<span style="color:#ae81ff">0</span>]));
         }
     }
 };
-</code></pre>
-
-<p>从 <code>realloc</code> 到 <code>memmove</code> 和 <code>memcpy</code> 部分可以参考下图：</p>
-
-<p><img src="/img/2019/category_in_ios/3.png" alt="3" /></p>
-
+</code></pre></div><p>从 <code>realloc</code> 到 <code>memmove</code> 和 <code>memcpy</code> 部分可以参考下图：</p>
+<p><img src="/img/2019/category_in_ios/3.png" alt="3"></p>
 <p>因此，对于 Category 在运行时将其中的方法、属性、协议加载到主类的过程搞明白后，之前的结论就水落石出。越靠后编译的 Category，其方法列表最终就越靠前。因此在调用时，虽然主类和其他 Category 中的方法并没有被覆盖，但会因为在前面已经被找到并调用而无法调用到。也是因为方法并没有被覆盖，如果我们在 Category 中仅声明却不实现，运行时仍将找到主类中的实现。从上面源码分析中我们也可以发现，在 Xcode 设置 <code>OBJC_PRINT_REPLACED_METHODS</code> 环境变量为 <code>YES</code> 后，就可以在运行时输出所有被替换的方法（若添加后仍未输出我们自定义类的替换信息，可以在尝试主类和所有 Category 中添加 <code>+ (void)load</code> 方法实现后重试）：</p>
-
 <pre><code>objc[17895]: REPLACED: -[Person smile]  by category Life  (IMP was 0x100001b90 (/Users/kingcos/Library/Developer/Xcode/DerivedData/Category_in_Obj-C-cgesibqaizbvgnckrzeofmpfkmmy/Build/Products/Debug/Category_in_Obj-C), now 0x100001b00 (/Users/kingcos/Library/Developer/Xcode/DerivedData/Category_in_Obj-C-cgesibqaizbvgnckrzeofmpfkmmy/Build/Products/Debug/Category_in_Obj-C))
 objc[17895]: REPLACED: -[Person smile]  by category Work  (IMP was 0x100001b00 (/Users/kingcos/Library/Developer/Xcode/DerivedData/Category_in_Obj-C-cgesibqaizbvgnckrzeofmpfkmmy/Build/Products/Debug/Category_in_Obj-C), now 0x100001b40 (/Users/kingcos/Library/Developer/Xcode/DerivedData/Category_in_Obj-C-cgesibqaizbvgnckrzeofmpfkmmy/Build/Products/Debug/Category_in_Obj-C))
-</code></pre>
-
-<p>第一条的替换，是指 Person+Life 替换了 Person 中的 <code>smile</code> 方法，而第二条指 Person+Work 再次替换了 Person+Life 中的 <code>smile</code> 方法，因此最终也由 Person+Work 中的方法被调用，最终也与我们的结论一致。</p>
-
-<h3 id="memmove-memcpy"><code>memmove</code> &amp; <code>memcpy</code></h3>
-
+</code></pre><p>第一条的替换，是指 Person+Life 替换了 Person 中的 <code>smile</code> 方法，而第二条指 Person+Work 再次替换了 Person+Life 中的 <code>smile</code> 方法，因此最终也由 Person+Work 中的方法被调用，最终也与我们的结论一致。</p>
+<h3 id="memmove--memcpy"><code>memmove</code> &amp; <code>memcpy</code></h3>
 <p>上一节中，Category 中内容列表与主类融合时，调用了 <code>memmove</code> 和 <code>memcpy</code> 函数，它们其实是 C 语言标准库中的函数，目的都是将一定长度的源内存地址的内容拷贝到目标内存地址中。在 Apple 开源的 XNU - libsyscall 中，<code>memmove</code> 和 <code>memcpy</code> 本质其实是一致的：</p>
-
-<pre><code class="language-c">// _libc_funcptr.c
-__attribute__((visibility(&quot;hidden&quot;)))
-void *
-memmove(void *dst, const void *src, size_t n)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// _libc_funcptr.c
+</span><span style="color:#75715e"></span>__attribute__((visibility(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">hidden</span><span style="color:#e6db74">&#34;</span>)))
+<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>
+memmove(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>dst, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>src, size_t n)
 {
-	return _libkernel_string_functions-&gt;memmove(dst, src, n);
+	<span style="color:#66d9ef">return</span> _libkernel_string_functions<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>memmove(dst, src, n);
 }
 
-__attribute__((visibility(&quot;hidden&quot;)))
-void *
-memcpy(void *dst, const void *src, size_t n)
+__attribute__((visibility(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">hidden</span><span style="color:#e6db74">&#34;</span>)))
+<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>
+memcpy(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>dst, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>src, size_t n)
 {
-	return _libkernel_string_functions-&gt;memmove(dst, src, n);
+	<span style="color:#66d9ef">return</span> _libkernel_string_functions<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>memmove(dst, src, n);
 }
 
-// _libc_funcptr.c
-/*
- * Upcalls to optimized libplatform string functions
- */
+<span style="color:#75715e">// _libc_funcptr.c
+</span><span style="color:#75715e"></span><span style="color:#75715e">/*
+</span><span style="color:#75715e"> * Upcalls to optimized libplatform string functions
+</span><span style="color:#75715e"> */</span>
 
-static const struct _libkernel_string_functions
-		_libkernel_generic_string_functions = {
-	.bzero = _libkernel_bzero,
-	.memmove = _libkernel_memmove,
-	.memset = _libkernel_memset,
-	.strchr = _libkernel_strchr,
-	.strcmp = _libkernel_strcmp,
-	.strcpy = _libkernel_strcpy,
-	.strlcpy = _libkernel_strlcpy,
-	.strlen = _libkernel_strlen,
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> _libkernel_string_functions
+		_libkernel_generic_string_functions <span style="color:#f92672">=</span> {
+	.bzero <span style="color:#f92672">=</span> _libkernel_bzero,
+	.memmove <span style="color:#f92672">=</span> _libkernel_memmove,
+	.memset <span style="color:#f92672">=</span> _libkernel_memset,
+	.strchr <span style="color:#f92672">=</span> _libkernel_strchr,
+	.strcmp <span style="color:#f92672">=</span> _libkernel_strcmp,
+	.strcpy <span style="color:#f92672">=</span> _libkernel_strcpy,
+	.strlcpy <span style="color:#f92672">=</span> _libkernel_strlcpy,
+	.strlen <span style="color:#f92672">=</span> _libkernel_strlen,
 };
-static _libkernel_string_functions_t _libkernel_string_functions =
-		&amp;_libkernel_generic_string_functions;
+<span style="color:#66d9ef">static</span> _libkernel_string_functions_t _libkernel_string_functions <span style="color:#f92672">=</span>
+		<span style="color:#f92672">&amp;</span>_libkernel_generic_string_functions;
 
-// memcpy.c
-/*
- * sizeof(word) MUST BE A POWER OF TWO
- * SO THAT wmask BELOW IS ALL ONES
- */
-typedef    int word;        /* &quot;word&quot; used for optimal copy speed &quot;字&quot;用作优化拷贝速度 */
+<span style="color:#75715e">// memcpy.c
+</span><span style="color:#75715e"></span><span style="color:#75715e">/*
+</span><span style="color:#75715e"> * sizeof(word) MUST BE A POWER OF TWO
+</span><span style="color:#75715e"> * SO THAT wmask BELOW IS ALL ONES
+</span><span style="color:#75715e"> */</span>
+<span style="color:#66d9ef">typedef</span>    <span style="color:#66d9ef">int</span> word;        <span style="color:#75715e">/* &#34;word&#34; used for optimal copy speed &#34;字&#34;用作优化拷贝速度 */</span>
 
-#define    wsize    sizeof(word)
-#define    wmask    (wsize - 1)
+<span style="color:#75715e">#</span><span style="color:#75715e">define    wsize    sizeof(word)</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define    wmask    (wsize - 1)</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">/*
+</span><span style="color:#75715e"> * Copy a block of memory, handling overlap.
+</span><span style="color:#75715e"> * 拷贝一块内存，并处理重叠部分。
+</span><span style="color:#75715e"> * This is the routine that actually implements
+</span><span style="color:#75715e"> * (the portable versions of) bcopy, memcpy, and memmove.
+</span><span style="color:#75715e"> * 这是个实际实现了（可移植版本的）bcopy、memcpy、以及 memmove 的例行程序。
+</span><span style="color:#75715e"> */</span>
 
-/*
- * Copy a block of memory, handling overlap.
- * 拷贝一块内存，并处理重叠部分。
- * This is the routine that actually implements
- * (the portable versions of) bcopy, memcpy, and memmove.
- * 这是个实际实现了（可移植版本的）bcopy、memcpy、以及 memmove 的例行程序。
- */
-
-// visibility(&quot;hidden&quot;)：隐藏函数符号
-__attribute__((visibility(&quot;hidden&quot;)))
-void * _libkernel_memmove(void *dst0, const void *src0, size_t length)
+<span style="color:#75715e">// visibility(&#34;hidden&#34;)：隐藏函数符号
+</span><span style="color:#75715e"></span>__attribute__((visibility(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">hidden</span><span style="color:#e6db74">&#34;</span>)))
+<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> _libkernel_memmove(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>dst0, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>src0, size_t length)
 {
-    // 保存一份目标、源，但源是常量，而目标是可变的
-    char *dst = dst0;
-    const char *src = src0;
+    <span style="color:#75715e">// 保存一份目标、源，但源是常量，而目标是可变的
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>dst <span style="color:#f92672">=</span> dst0;
+    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>src <span style="color:#f92672">=</span> src0;
     size_t t;
 
-    // 长度为 0 或目标等于源时，无需移动
-    if (length == 0 || dst == src)        /* nothing to do */
-        goto done;
+    <span style="color:#75715e">// 长度为 0 或目标等于源时，无需移动
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (length <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">|</span><span style="color:#f92672">|</span> dst <span style="color:#f92672">=</span><span style="color:#f92672">=</span> src)        <span style="color:#75715e">/* nothing to do */</span>
+        <span style="color:#66d9ef">goto</span> done;
 
-    /*
-     * Macros: loop-t-times; and loop-t-times, t&gt;0
-     * 定义循环宏，t 大于 0 时，循环 t 次
-     */
-#define    TLOOP(s) if (t) TLOOP1(s)
-#define    TLOOP1(s) do { s; } while (--t)
+    <span style="color:#75715e">/*
+</span><span style="color:#75715e">     * Macros: loop-t-times; and loop-t-times, t&gt;0
+</span><span style="color:#75715e">     * 定义循环宏，t 大于 0 时，循环 t 次
+</span><span style="color:#75715e">     */</span>
+<span style="color:#75715e">#</span><span style="color:#75715e">define    TLOOP(s) if (t) TLOOP1(s)</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define    TLOOP1(s) do { s; } while (--t)</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// 如果源 &gt; 目标（高地址 -&gt; 低地址，小端就是向前）
+</span><span style="color:#75715e"></span>    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">(unsigned long)dst: %lu; (unsigned long)src: %lu</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span>)dst, (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span>)src);
+    <span style="color:#66d9ef">if</span> ((<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span>)dst <span style="color:#f92672">&lt;</span> (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span>)src) {
+        <span style="color:#75715e">/*
+</span><span style="color:#75715e">         * Copy forward.
+</span><span style="color:#75715e">         * 正向拷贝。
+</span><span style="color:#75715e">         */</span>
+        <span style="color:#75715e">// typedef unsigned long           uintptr_t;
+</span><span style="color:#75715e"></span>        t <span style="color:#f92672">=</span> (uintptr_t)src;    <span style="color:#75715e">/* only need low bits 只需要低位 */</span>
+        printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">(t | (uintptr_t)dst) &amp; wmask: %lu</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, (t <span style="color:#f92672">|</span> (uintptr_t)dst) <span style="color:#f92672">&amp;</span> wmask);
+        <span style="color:#66d9ef">if</span> ((t <span style="color:#f92672">|</span> (uintptr_t)dst) <span style="color:#f92672">&amp;</span> wmask) {
+            <span style="color:#75715e">/*
+</span><span style="color:#75715e">             * Try to align operands.  This cannot be done
+</span><span style="color:#75715e">             * unless the low bits match.
+</span><span style="color:#75715e">             * 尝试对齐操作数。除非低位匹配，否则不可这样做。
+</span><span style="color:#75715e">             */</span>
+            <span style="color:#66d9ef">if</span> ((t <span style="color:#f92672">^</span> (uintptr_t)dst) <span style="color:#f92672">&amp;</span> wmask <span style="color:#f92672">|</span><span style="color:#f92672">|</span> length <span style="color:#f92672">&lt;</span> wsize)
+                t <span style="color:#f92672">=</span> length;
+            <span style="color:#66d9ef">else</span>
+                t <span style="color:#f92672">=</span> wsize <span style="color:#f92672">-</span> (t <span style="color:#f92672">&amp;</span> wmask);
+            length <span style="color:#f92672">-</span><span style="color:#f92672">=</span> t;
+            <span style="color:#75715e">//
+</span><span style="color:#75715e"></span><span style="color:#75715e">//            TLOOP1(*dst++ = *src++);
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">do</span> {
+                <span style="color:#f92672">*</span>dst<span style="color:#f92672">+</span><span style="color:#f92672">+</span> <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>src<span style="color:#f92672">+</span><span style="color:#f92672">+</span>;
+            } <span style="color:#66d9ef">while</span> (<span style="color:#f92672">-</span><span style="color:#f92672">-</span>t);
+        }
+        <span style="color:#75715e">/*
+</span><span style="color:#75715e">         * Copy whole words, then mop up any trailing bytes.
+</span><span style="color:#75715e">         * 拷贝整个字，然后删除所有尾字节。
+</span><span style="color:#75715e">         */</span>
+        t <span style="color:#f92672">=</span> length <span style="color:#f92672">/</span> wsize;
+        printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">t: %zu</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, t);
+<span style="color:#75715e">//        TLOOP(*(word *)dst = *(word *)src; src += wsize; dst += wsize);
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (t) {
+            <span style="color:#66d9ef">do</span> {
+                <span style="color:#75715e">// 更改指针指向的一个字长的内容（src -&gt; dst）
+</span><span style="color:#75715e"></span>                <span style="color:#f92672">*</span>(word <span style="color:#f92672">*</span>)dst <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>(word <span style="color:#f92672">*</span>)src;
+                <span style="color:#75715e">// dst &amp; src 向前移动一个字长
+</span><span style="color:#75715e"></span>                src <span style="color:#f92672">+</span><span style="color:#f92672">=</span> wsize;
+                dst <span style="color:#f92672">+</span><span style="color:#f92672">=</span> wsize;
+            } <span style="color:#66d9ef">while</span> (<span style="color:#f92672">-</span><span style="color:#f92672">-</span>t);
+        }
+        printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">(unsigned long)dst: %lu; (unsigned long)src: %lu</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span>)dst, (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span>)src);
 
-    // 如果源 &gt; 目标（高地址 -&gt; 低地址，小端就是向前）
-    printf(&quot;(unsigned long)dst: %lu; (unsigned long)src: %lu\n&quot;, (unsigned long)dst, (unsigned long)src);
-    if ((unsigned long)dst &lt; (unsigned long)src) {
-        /*
-         * Copy forward.
-         * 正向拷贝。
-         */
-        // typedef unsigned long           uintptr_t;
-        t = (uintptr_t)src;    /* only need low bits 只需要低位 */
-        printf(&quot;(t | (uintptr_t)dst) &amp; wmask: %lu\n&quot;, (t | (uintptr_t)dst) &amp; wmask);
-        if ((t | (uintptr_t)dst) &amp; wmask) {
-            /*
-             * Try to align operands.  This cannot be done
-             * unless the low bits match.
-             * 尝试对齐操作数。除非低位匹配，否则不可这样做。
-             */
-            if ((t ^ (uintptr_t)dst) &amp; wmask || length &lt; wsize)
-                t = length;
-            else
-                t = wsize - (t &amp; wmask);
-            length -= t;
-            //
-//            TLOOP1(*dst++ = *src++);
-            do {
-                *dst++ = *src++;
-            } while (--t);
+        t <span style="color:#f92672">=</span> length <span style="color:#f92672">&amp;</span> wmask;
+        printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">t: %zu</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, t);
+<span style="color:#75715e">//        TLOOP(*dst++ = *src++);
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (t) {
+            <span style="color:#66d9ef">do</span> {
+                <span style="color:#f92672">*</span>dst<span style="color:#f92672">+</span><span style="color:#f92672">+</span> <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>src<span style="color:#f92672">+</span><span style="color:#f92672">+</span>;
+            } <span style="color:#66d9ef">while</span> (<span style="color:#f92672">-</span><span style="color:#f92672">-</span>t);
         }
-        /*
-         * Copy whole words, then mop up any trailing bytes.
-         * 拷贝整个字，然后删除所有尾字节。
-         */
-        t = length / wsize;
-        printf(&quot;t: %zu\n&quot;, t);
-//        TLOOP(*(word *)dst = *(word *)src; src += wsize; dst += wsize);
-        if (t) {
-            do {
-                // 更改指针指向的一个字长的内容（src -&gt; dst）
-                *(word *)dst = *(word *)src;
-                // dst &amp; src 向前移动一个字长
-                src += wsize;
-                dst += wsize;
-            } while (--t);
+    } <span style="color:#66d9ef">else</span> {
+        <span style="color:#75715e">/*
+</span><span style="color:#75715e">         * Copy backwards.  Otherwise essentially the same.
+</span><span style="color:#75715e">         * Alignment works as before, except that it takes
+</span><span style="color:#75715e">         * (t&amp;wmask) bytes to align, not wsize-(t&amp;wmask).
+</span><span style="color:#75715e">         * 反向拷贝。否则基本一致。
+</span><span style="color:#75715e">         * 与之前一样对齐，除了它是以 (t&amp;wmask) 字节对齐，而非 wsize-(t&amp;wmask)。
+</span><span style="color:#75715e">         */</span>
+        src <span style="color:#f92672">+</span><span style="color:#f92672">=</span> length;
+        dst <span style="color:#f92672">+</span><span style="color:#f92672">=</span> length;
+        t <span style="color:#f92672">=</span> (uintptr_t)src;
+        printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">(t | (uintptr_t)dst) &amp; wmask: %lu</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, (t <span style="color:#f92672">|</span> (uintptr_t)dst) <span style="color:#f92672">&amp;</span> wmask);
+        <span style="color:#66d9ef">if</span> ((t <span style="color:#f92672">|</span> (uintptr_t)dst) <span style="color:#f92672">&amp;</span> wmask) {
+            <span style="color:#66d9ef">if</span> ((t <span style="color:#f92672">^</span> (uintptr_t)dst) <span style="color:#f92672">&amp;</span> wmask <span style="color:#f92672">|</span><span style="color:#f92672">|</span> length <span style="color:#f92672">&lt;</span><span style="color:#f92672">=</span> wsize)
+                t <span style="color:#f92672">=</span> length;
+            <span style="color:#66d9ef">else</span>
+                t <span style="color:#f92672">&amp;</span><span style="color:#f92672">=</span> wmask;
+            length <span style="color:#f92672">-</span><span style="color:#f92672">=</span> t;
+<span style="color:#75715e">//            TLOOP1(*--dst = *--src);
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">do</span> {
+                <span style="color:#f92672">*</span><span style="color:#f92672">-</span><span style="color:#f92672">-</span>dst <span style="color:#f92672">=</span> <span style="color:#f92672">*</span><span style="color:#f92672">-</span><span style="color:#f92672">-</span>src;
+            } <span style="color:#66d9ef">while</span> (<span style="color:#f92672">-</span><span style="color:#f92672">-</span>t);
         }
-        printf(&quot;(unsigned long)dst: %lu; (unsigned long)src: %lu\n&quot;, (unsigned long)dst, (unsigned long)src);
-
-        t = length &amp; wmask;
-        printf(&quot;t: %zu\n&quot;, t);
-//        TLOOP(*dst++ = *src++);
-        if (t) {
-            do {
-                *dst++ = *src++;
-            } while (--t);
-        }
-    } else {
-        /*
-         * Copy backwards.  Otherwise essentially the same.
-         * Alignment works as before, except that it takes
-         * (t&amp;wmask) bytes to align, not wsize-(t&amp;wmask).
-         * 反向拷贝。否则基本一致。
-         * 与之前一样对齐，除了它是以 (t&amp;wmask) 字节对齐，而非 wsize-(t&amp;wmask)。
-         */
-        src += length;
-        dst += length;
-        t = (uintptr_t)src;
-        printf(&quot;(t | (uintptr_t)dst) &amp; wmask: %lu\n&quot;, (t | (uintptr_t)dst) &amp; wmask);
-        if ((t | (uintptr_t)dst) &amp; wmask) {
-            if ((t ^ (uintptr_t)dst) &amp; wmask || length &lt;= wsize)
-                t = length;
-            else
-                t &amp;= wmask;
-            length -= t;
-//            TLOOP1(*--dst = *--src);
-            do {
-                *--dst = *--src;
-            } while (--t);
-        }
-        t = length / wsize;
-//        TLOOP(src -= wsize; dst -= wsize; *(word *)dst = *(word *)src);
-        if (t) {
-            do {
-                src -= wsize;
-                dst -= wsize;
-                *(word *)dst = *(word *)src;
-            } while (--t);
+        t <span style="color:#f92672">=</span> length <span style="color:#f92672">/</span> wsize;
+<span style="color:#75715e">//        TLOOP(src -= wsize; dst -= wsize; *(word *)dst = *(word *)src);
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (t) {
+            <span style="color:#66d9ef">do</span> {
+                src <span style="color:#f92672">-</span><span style="color:#f92672">=</span> wsize;
+                dst <span style="color:#f92672">-</span><span style="color:#f92672">=</span> wsize;
+                <span style="color:#f92672">*</span>(word <span style="color:#f92672">*</span>)dst <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>(word <span style="color:#f92672">*</span>)src;
+            } <span style="color:#66d9ef">while</span> (<span style="color:#f92672">-</span><span style="color:#f92672">-</span>t);
         }
 
-        t = length &amp; wmask;
-//        TLOOP(*--dst = *--src);
-        if (t) {
-            do {
-                *--dst = *--src;
-            } while (--t);
+        t <span style="color:#f92672">=</span> length <span style="color:#f92672">&amp;</span> wmask;
+<span style="color:#75715e">//        TLOOP(*--dst = *--src);
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (t) {
+            <span style="color:#66d9ef">do</span> {
+                <span style="color:#f92672">*</span><span style="color:#f92672">-</span><span style="color:#f92672">-</span>dst <span style="color:#f92672">=</span> <span style="color:#f92672">*</span><span style="color:#f92672">-</span><span style="color:#f92672">-</span>src;
+            } <span style="color:#66d9ef">while</span> (<span style="color:#f92672">-</span><span style="color:#f92672">-</span>t);
         }
     }
 done:
-    printf(&quot;(unsigned long)dst: %lu; (unsigned long)src: %lu\n&quot;, (unsigned long)dst, (unsigned long)src);
-    return (dst0);
+    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">(unsigned long)dst: %lu; (unsigned long)src: %lu</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span>)dst, (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span>)src);
+    <span style="color:#66d9ef">return</span> (dst0);
 }
-</code></pre>
+</code></pre></div><p>我已经将该函数移植到 Demo 中，可以尝试低地址拷贝到高地址，也可以将高地址拷贝到低地址：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// b -&gt; a
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> a <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>;
+<span style="color:#66d9ef">int</span> b <span style="color:#f92672">=</span> <span style="color:#ae81ff">20</span>;
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Before: a: %d, b: %d</span><span style="color:#e6db74">&#34;</span>, a, b);
+_libkernel_memmove(<span style="color:#f92672">&amp;</span>a, <span style="color:#f92672">&amp;</span>b, <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">int</span>));
+<span style="color:#75715e">// memmove(&amp;a, &amp;b, sizeof(int));
+</span><span style="color:#75715e"></span><span style="color:#75715e">// memcpy(&amp;a, &amp;b, sizeof(int));
+</span><span style="color:#75715e"></span>NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">After: a: %d, b: %d</span><span style="color:#e6db74">&#34;</span>, a, b);
 
-<p>我已经将该函数移植到 Demo 中，可以尝试低地址拷贝到高地址，也可以将高地址拷贝到低地址：</p>
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Before: a: 10, b: 20
+</span><span style="color:#75715e"></span><span style="color:#75715e">// After: a: 20, b: 20
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// c -&gt; d
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> c <span style="color:#f92672">=</span> <span style="color:#ae81ff">30</span>;
+<span style="color:#66d9ef">int</span> d <span style="color:#f92672">=</span> <span style="color:#ae81ff">40</span>;
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Before: c: %d, d: %d</span><span style="color:#e6db74">&#34;</span>, c, d);
+<span style="color:#75715e">// _libkernel_memmove2 是个简化版本的 _libkernel_memmove
+</span><span style="color:#75715e"></span>_libkernel_memmove2(<span style="color:#f92672">&amp;</span>d, <span style="color:#f92672">&amp;</span>c, <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">int</span>));
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">After: c: %d, d: %d</span><span style="color:#e6db74">&#34;</span>, c, d);
 
-<pre><code class="language-objectivec">// b -&gt; a
-int a = 10;
-int b = 20;
-NSLog(@&quot;Before: a: %d, b: %d&quot;, a, b);
-_libkernel_memmove(&amp;a, &amp;b, sizeof(int));
-// memmove(&amp;a, &amp;b, sizeof(int));
-// memcpy(&amp;a, &amp;b, sizeof(int));
-NSLog(@&quot;After: a: %d, b: %d&quot;, a, b);
-
-// OUTPUT:
-// Before: a: 10, b: 20
-// After: a: 20, b: 20
-
-// c -&gt; d
-int c = 30;
-int d = 40;
-NSLog(@&quot;Before: c: %d, d: %d&quot;, c, d);
-// _libkernel_memmove2 是个简化版本的 _libkernel_memmove
-_libkernel_memmove2(&amp;d, &amp;c, sizeof(int));
-NSLog(@&quot;After: c: %d, d: %d&quot;, c, d);
-
-// OUTPUT:
-// Before: c: 30, d: 40
-// After: c: 30, d: 30
-</code></pre>
-
-<p>但在有些编译器中，由于不同的标准库具体实现可能会有所不同。其中最主要的差别便是 <code>memcpy</code> 的实现通常并非一定是安全的，当源内存和目标内存存在重叠时，<code>memcpy</code> 将发生错误：</p>
-
-<pre><code class="language-c">#include &lt;stddef.h&gt; /* size_t */
-void *c_memcpy(void *dest, const void *src, size_t n)
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Before: c: 30, d: 40
+</span><span style="color:#75715e"></span><span style="color:#75715e">// After: c: 30, d: 30
+</span></code></pre></div><p>但在有些编译器中，由于不同的标准库具体实现可能会有所不同。其中最主要的差别便是 <code>memcpy</code> 的实现通常并非一定是安全的，当源内存和目标内存存在重叠时，<code>memcpy</code> 将发生错误：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#</span><span style="color:#75715e">include</span> <span style="color:#75715e">&lt;stddef.h&gt; /* size_t */</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">c_memcpy</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>dest, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>src, size_t n)
 {
-    char *dp = dest;
-    const char *sp = src;
-    while (n--)
-        *dp++ = *sp++;
-    return dest;
+    <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>dp <span style="color:#f92672">=</span> dest;
+    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>sp <span style="color:#f92672">=</span> src;
+    <span style="color:#66d9ef">while</span> (n<span style="color:#f92672">-</span><span style="color:#f92672">-</span>)
+        <span style="color:#f92672">*</span>dp<span style="color:#f92672">+</span><span style="color:#f92672">+</span> <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>sp<span style="color:#f92672">+</span><span style="color:#f92672">+</span>;
+    <span style="color:#66d9ef">return</span> dest;
 }
-</code></pre>
+</code></pre></div><p>上面是 C99 标准库中的实现。下面尝试下，将一个数组的前半截拷贝到其中间的地址，这样源地址与目标地址就出现了重叠部分。需要注意的是，开发者要保证内存是已经分配好的，如果目标地址无法容纳足够长的源地址内容长度，则仍将溢出，发生崩溃。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// e[0, 1] -&gt; e[1, 2]
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> e[<span style="color:#ae81ff">5</span>] <span style="color:#f92672">=</span> {<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>};
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Before: e[0]: %d, e[1]: %d, e[2]: %d, e[3]: %d, e[4]: %d</span><span style="color:#e6db74">&#34;</span>, e[<span style="color:#ae81ff">0</span>], e[<span style="color:#ae81ff">1</span>], e[<span style="color:#ae81ff">2</span>], e[<span style="color:#ae81ff">3</span>], e[<span style="color:#ae81ff">4</span>]);
+_libkernel_memmove3(<span style="color:#f92672">&amp;</span>e[<span style="color:#ae81ff">2</span>], <span style="color:#f92672">&amp;</span>e[<span style="color:#ae81ff">0</span>], <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">int</span>) <span style="color:#f92672">*</span> <span style="color:#ae81ff">3</span>);
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">After: e[0]: %d, e[1]: %d, e[2]: %d, e[3]: %d, e[4]: %d</span><span style="color:#e6db74">&#34;</span>, e[<span style="color:#ae81ff">0</span>], e[<span style="color:#ae81ff">1</span>], e[<span style="color:#ae81ff">2</span>], e[<span style="color:#ae81ff">3</span>], e[<span style="color:#ae81ff">4</span>]);
 
-<p>上面是 C99 标准库中的实现。下面尝试下，将一个数组的前半截拷贝到其中间的地址，这样源地址与目标地址就出现了重叠部分。需要注意的是，开发者要保证内存是已经分配好的，如果目标地址无法容纳足够长的源地址内容长度，则仍将溢出，发生崩溃。</p>
+<span style="color:#f92672">/</span> OUTPUT:
+<span style="color:#75715e">// Before: e[0]: 1, e[1]: 2, e[2]: 3, e[3]: 0, e[4]: 0
+</span><span style="color:#75715e"></span><span style="color:#75715e">// After: e[0]: 1, e[1]: 2, e[2]: 1, e[3]: 2, e[4]: 3
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// f[0, 1] -&gt; f[1, 2]
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> f[<span style="color:#ae81ff">5</span>] <span style="color:#f92672">=</span> {<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>};
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Before: f[0]: %d, f[1]: %d, f[2]: %d, f[3]: %d, f[4]: %d</span><span style="color:#e6db74">&#34;</span>, f[<span style="color:#ae81ff">0</span>], f[<span style="color:#ae81ff">1</span>], f[<span style="color:#ae81ff">2</span>], f[<span style="color:#ae81ff">3</span>], f[<span style="color:#ae81ff">4</span>]);
+v_memcpy(<span style="color:#f92672">&amp;</span>f[<span style="color:#ae81ff">2</span>], <span style="color:#f92672">&amp;</span>f[<span style="color:#ae81ff">0</span>], <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">int</span>) <span style="color:#f92672">*</span> <span style="color:#ae81ff">3</span>);
+NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">After: f[0]: %d, f[1]: %d, f[2]: %d, f[3]: %d, f[4]: %d</span><span style="color:#e6db74">&#34;</span>, f[<span style="color:#ae81ff">0</span>], f[<span style="color:#ae81ff">1</span>], f[<span style="color:#ae81ff">2</span>], f[<span style="color:#ae81ff">3</span>], f[<span style="color:#ae81ff">4</span>]);
 
-<pre><code class="language-objectivec">// e[0, 1] -&gt; e[1, 2]
-int e[5] = {1, 2, 3};
-NSLog(@&quot;Before: e[0]: %d, e[1]: %d, e[2]: %d, e[3]: %d, e[4]: %d&quot;, e[0], e[1], e[2], e[3], e[4]);
-_libkernel_memmove3(&amp;e[2], &amp;e[0], sizeof(int) * 3);
-NSLog(@&quot;After: e[0]: %d, e[1]: %d, e[2]: %d, e[3]: %d, e[4]: %d&quot;, e[0], e[1], e[2], e[3], e[4]);
-
-/ OUTPUT:
-// Before: e[0]: 1, e[1]: 2, e[2]: 3, e[3]: 0, e[4]: 0
-// After: e[0]: 1, e[1]: 2, e[2]: 1, e[3]: 2, e[4]: 3
-
-// f[0, 1] -&gt; f[1, 2]
-int f[5] = {1, 2, 3};
-NSLog(@&quot;Before: f[0]: %d, f[1]: %d, f[2]: %d, f[3]: %d, f[4]: %d&quot;, f[0], f[1], f[2], f[3], f[4]);
-v_memcpy(&amp;f[2], &amp;f[0], sizeof(int) * 3);
-NSLog(@&quot;After: f[0]: %d, f[1]: %d, f[2]: %d, f[3]: %d, f[4]: %d&quot;, f[0], f[1], f[2], f[3], f[4]);
-
-// OUTPUT:
-// Before: f[0]: 1, f[1]: 2, f[2]: 3, f[3]: 0, f[4]: 0
-// After: f[0]: 1, f[1]: 2, f[2]: 1, f[3]: 2, f[4]: 1
-</code></pre>
-
-<p>结果很明显，<code>c_memcpy</code>（C99 标准库实现的 <code>memcpy</code>）在重叠部分出现了差错，而 <code>memmove</code> 却能够正确的处理。这是因为在 <code>memmove</code> 内部会判断源地址和目标地址的大小，进而进行正向或反向拷贝，从而避免了丢弃数据。</p>
-
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// Before: f[0]: 1, f[1]: 2, f[2]: 3, f[3]: 0, f[4]: 0
+</span><span style="color:#75715e"></span><span style="color:#75715e">// After: f[0]: 1, f[1]: 2, f[2]: 1, f[3]: 2, f[4]: 1
+</span></code></pre></div><p>结果很明显，<code>c_memcpy</code>（C99 标准库实现的 <code>memcpy</code>）在重叠部分出现了差错，而 <code>memmove</code> 却能够正确的处理。这是因为在 <code>memmove</code> 内部会判断源地址和目标地址的大小，进而进行正向或反向拷贝，从而避免了丢弃数据。</p>
 <h2 id="reference">Reference</h2>
-
 <ul>
 <li><a href="../obj-c_to_c++/">将 Obj-C 代码翻译为 C++ 代码 - kingcos</a></li>
 <li><a href="/posts/2018/dyld_shared_cache/">谈谈 iOS 中的 dyld_shared_cache - kingcos</a></li>
