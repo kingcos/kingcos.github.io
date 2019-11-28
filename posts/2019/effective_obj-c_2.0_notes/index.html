@@ -138,7 +138,7 @@
       
       
       
-        <span class="post-read-time">— 27 min read</span>
+        <span class="post-read-time">— 29 min read</span>
       
     </div>
 
@@ -732,82 +732,169 @@ print(foo <span style="color:#66d9ef">is</span> FooSecond)
 <p>略；关于消息转发机制，可详见《<a href="../objc_msgsend">浅尝 objc_msgSend</a>》一文。</p>
 <h3 id="heading10">用「方法调配技术」调试「黑盒方法」</h3>
 <p>「方法调配技术」即 Method Swizzling，现在普遍称之为方法交换。如下，我们可以将 <code>Foo</code> 中的方法在其 <code>Swizzle</code> 分类的 <code>+load</code> 中进行交换：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;objc</span><span style="color:#75715e">/</span><span style="color:#75715e">runtime.h&gt;</span><span style="color:#75715e">
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;objc</span><span style="color:#75715e">/</span><span style="color:#75715e">runtime.h&gt;</span><span style="color:#75715e">
 </span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo</span> : <span style="color:#a6e22e">NSObject</span>
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span>;
+<span style="color:#75715e">// Foo_BASE 基类
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo_BASE</span> : <span style="color:#a6e22e">NSObject</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">a</span>;
 <span style="color:#66d9ef">@end</span>
 
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo</span>
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span> {
-    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">foo</span><span style="color:#e6db74">&#34;</span>);
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo_BASE</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">a</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">a - Foo_BASE - %@</span><span style="color:#e6db74">&#34;</span>, self);
 }
 <span style="color:#66d9ef">@end</span>
 
-<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo</span> (Swizzle)
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">newFoo</span>;
+<span style="color:#75715e">// Foo_SUB 子类
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo_SUB</span> : <span style="color:#a6e22e">Foo_BASE</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">b</span>;
 <span style="color:#66d9ef">@end</span>
 
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo</span> (Swizzle)
-+ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">load</span> {
-    <span style="color:#75715e">// 保证只交换一次
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">static</span> dispatch_once_t onceToken;
-    dispatch_once(<span style="color:#f92672">&amp;</span>onceToken, <span style="color:#f92672">^</span>{
-        Method m1 <span style="color:#f92672">=</span> class_getInstanceMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(foo));
-        Method m2 <span style="color:#f92672">=</span> class_getInstanceMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(newFoo));
-
-        method_exchangeImplementations(m1, m2);
-    });
-}
-
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">newFoo</span> {
-    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">newFoo</span><span style="color:#e6db74">&#34;</span>);
-}
-<span style="color:#66d9ef">@end</span>
-
-[[[Foo alloc] init] foo];
-[[[Foo alloc] init] newFoo];
-
-<span style="color:#75715e">// OUTPUT:
-</span><span style="color:#75715e"></span><span style="color:#75715e">// newFoo
-</span><span style="color:#75715e"></span><span style="color:#75715e">// foo
-</span></code></pre></div><p>通常，我们并不会交换既有的方法，而是当我们无法修改某些第三方库中的方法时，可以将其交换出，并执行相应的动作再调用回原来的方法。将要交换的方法通常放在分类中，下面则是一个反例：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo</span> : <span style="color:#a6e22e">NSObject</span>
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span>;
-<span style="color:#66d9ef">@end</span>
-
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo</span>
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span> {
-    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">foo</span><span style="color:#e6db74">&#34;</span>);
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo_SUB</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">b</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">b - Foo_SUB - %@</span><span style="color:#e6db74">&#34;</span>, self);
 }
 <span style="color:#66d9ef">@end</span>
 
 <span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Bar</span> : <span style="color:#a6e22e">NSObject</span>
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">more_foo</span>;
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">e</span>;
 <span style="color:#66d9ef">@end</span>
 
 <span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Bar</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">e</span> {
+    <span style="color:#75715e">// self 为 Foo_SUB
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// [self e];  -[Foo_SUB e]: unrecognized selector sent to instance 0x1007031e0
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// [self performSelector:NSSelectorFromString(@&#34;f&#34;)]; // EXC_BAD_ACCESS
+</span><span style="color:#75715e"></span>
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">e - Bar - %@</span><span style="color:#e6db74">&#34;</span>, self);
+}
+<span style="color:#66d9ef">@end</span>
+
+<span style="color:#75715e">// Foo_SUB (Extension) 分类
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo_SUB</span> (Extension)
+<span style="color:#66d9ef">@end</span>
+
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo_SUB</span> (Extension)
+
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">c</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">c - Foo_SUB - %@</span><span style="color:#e6db74">&#34;</span>, self);
+}
+
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">d</span> {
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">d - Foo_SUB - %@</span><span style="color:#e6db74">&#34;</span>, self);
+}
+
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">f</span> {
+    <span style="color:#75715e">// self 为 Bar
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// [self f]; // -[Bar f]: unrecognized selector sent to instance 0x102300290
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// [self performSelector:NSSelectorFromString(@&#34;e&#34;)]; // EXC_BAD_ACCESS
+</span><span style="color:#75715e"></span>
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">f - Foo_SUB - %@</span><span style="color:#e6db74">&#34;</span>, self);
+}
+
 + (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">load</span> {
     <span style="color:#66d9ef">static</span> dispatch_once_t onceToken;
     dispatch_once(<span style="color:#f92672">&amp;</span>onceToken, <span style="color:#f92672">^</span>{
-        Method m1 <span style="color:#f92672">=</span> class_getInstanceMethod([Foo <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(foo));
-        Method m2 <span style="color:#f92672">=</span> class_getInstanceMethod([Bar <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(more_foo));
+        <span style="color:#75715e">// 1. 交换 b &amp; c（b 来自本类，c 来自本类的分类）
+</span><span style="color:#75715e"></span>        {
+            Method m_b <span style="color:#f92672">=</span> class_getInstanceMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(b));
+            Method m_c <span style="color:#f92672">=</span> class_getInstanceMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(c));
 
-        method_exchangeImplementations(m1, m2);
+            <span style="color:#75715e">// 直接交换
+</span><span style="color:#75715e"></span>            method_exchangeImplementations(m_b, m_c);
+        }
+
+        <span style="color:#75715e">// 2. 交换 a &amp; d（a 来自基类，本类未实现，d 来自本类的分类）
+</span><span style="color:#75715e"></span>        {
+            Method m_a <span style="color:#f92672">=</span> class_getInstanceMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(a));
+            Method m_d <span style="color:#f92672">=</span> class_getInstanceMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(d));
+
+            <span style="color:#75715e">// 2-1. 交换 IMP
+</span><span style="color:#75715e"></span>            {
+                <span style="color:#75715e">// 为了防止基类的方法被改变，那么需要先为本类添加 m_a 方法（override）
+</span><span style="color:#75715e"></span>                class_addMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(a), method_getImplementation(m_a), method_getTypeEncoding(m_a));
+                <span style="color:#75715e">// 再获取本类中添加的方法
+</span><span style="color:#75715e"></span>                Method m_a_sub <span style="color:#f92672">=</span> class_getInstanceMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(a));
+                <span style="color:#75715e">// 交换
+</span><span style="color:#75715e"></span>                method_exchangeImplementations(m_a_sub, m_d);
+            }
+
+            <span style="color:#75715e">// 2-2. 替换方法
+</span><span style="color:#75715e"></span>            {
+                <span style="color:#75715e">// 为了防止基类的方法被改变，那么需要先为本类添加 m_a 方法（override），但 IMP 和 TypeEncoding 可直接使用 m_d 的信息
+</span><span style="color:#75715e"></span>                class_addMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(a), method_getImplementation(m_d), method_getTypeEncoding(m_d));
+                <span style="color:#75715e">// 再替代方法 d 方法的 IMP 和 TypeEncoding 为 m_a 的信息
+</span><span style="color:#75715e"></span>                class_replaceMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(d), method_getImplementation(m_a), method_getTypeEncoding(m_a));
+            }
+        }
+
+        <span style="color:#75715e">// 3. 交换 e &amp; f（e 来自 Bar 类，f 来自 Foo_SUB 类）
+</span><span style="color:#75715e"></span>        {
+            Method m_e <span style="color:#f92672">=</span> class_getInstanceMethod([Bar <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(e));
+            Method m_f <span style="color:#f92672">=</span> class_getInstanceMethod([Foo_SUB <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(f));
+
+            <span style="color:#75715e">// 直接交换
+</span><span style="color:#75715e"></span>            method_exchangeImplementations(m_e, m_f);
+
+            <span style="color:#75715e">// ⚠️ 需要注意的是：
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 1. 此时不能在相应的方法中再调用自身的方法，这与交换本类的两个方法不同。
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 比如此时的 `f` 方法，交换后是通过 `Bar` 实例对象调用（发送）的，隐式参数 `self` 为 `Bar` 类型，而该类的方法列表中根本不包含 `f` 方法，因此调用时即发生 Crash，反之 `e` 方法同理；
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 2. 此时也不能在相应的方法中再调用当前方法。
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 比如此时的 `e` 方法，交换后是通过 `Foo_SUB` 实例对象调用（发送）的，隐式参数 `self` 为 `Foo_SUB` 类型，该类中确实包含 `f` 方法，但由于其 IMP 已经被交换，调用后会再次进入当前 `e` 方法，从而造成死循环，反之 `f` 方法同理。
+</span><span style="color:#75715e"></span>        }
+
+        <span style="color:#75715e">// 4. 通用处理
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (false) {
+            Method m1 <span style="color:#f92672">=</span> class_getInstanceMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(b));
+            Method m2 <span style="color:#f92672">=</span> class_getInstanceMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(c));
+            
+            <span style="color:#66d9ef">if</span> (class_addMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(b), method_getImplementation(m2), method_getTypeEncoding(m2))) {
+                class_replaceMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(c), method_getImplementation(m1), method_getTypeEncoding(m1));
+            } <span style="color:#66d9ef">else</span> {
+                method_exchangeImplementations(m1, m2);
+            }
+        }
     });
 }
 
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">more_foo</span> {
-    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Do sth more...</span><span style="color:#e6db74">&#34;</span>);
-
-<span style="color:#75715e">//    [self performSelector:@selector(foo)]; // 死循环
-</span><span style="color:#75715e"></span>    [self more_foo]; <span style="color:#75715e">// 崩溃
-</span><span style="color:#75715e"></span>}
 <span style="color:#66d9ef">@end</span>
 
-[[[Foo alloc] init] foo];
-</code></pre></div><p>假设 <code>Foo</code> 中的 <code>foo</code> 方法我们无法直接对其进行修改，于是选择在 <code>Bar</code> 的 <code>+load</code> 中交换 <code>foo</code> 与 <code>more_foo</code>。因此交换后调用 <code>foo</code> 时，即调用了 <code>more_foo</code>，因此我们理所当然认为调用 <code>more_foo</code> 即调用了 <code>foo</code>，但实际情况是会发生崩溃：<code>-[Foo more_foo]: unrecognized selector sent to instance 0x6000025a4460</code>。这是因为在 <code>more_foo</code> 中的隐含参数 <code>self</code> 本质其实还是 <code>Foo</code> 类型的实例对象，而 <code>more_foo</code> 根本不在 <code>Foo</code> 中；而如果此时执行 <code>foo</code> 则因 <code>IMP</code> 交换则会一直陷入 <code>more_foo</code> 中而死循环。所以我们将交换的方法定义在分类中时，<code>self</code> 能够同时调用到本类和分类中的方法。</p>
-<h3 id="heading11">理解「类对象」的用意</h3>
+<span style="color:#66d9ef">int</span> main(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
+    <span style="color:#66d9ef">@autoreleasepool</span> {
+        {
+            Foo_SUB <span style="color:#f92672">*</span>f <span style="color:#f92672">=</span> [[Foo_SUB alloc] init];
+            [f b];
+            [f c];
+
+            <span style="color:#75715e">// c - Foo_SUB - &lt;Foo_SUB: 0x10051b090&gt;
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// b - Foo_SUB - &lt;Foo_SUB: 0x10051b090&gt;
+</span><span style="color:#75715e"></span>        }
+
+        {
+            Foo_SUB <span style="color:#f92672">*</span>f1 <span style="color:#f92672">=</span> [[Foo_SUB alloc] init];
+            [f1 a];
+            [f1 d];
+            <span style="color:#75715e">// d - Foo_SUB - &lt;Foo_SUB: 0x100505fd0&gt;
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// a - Foo_BASE - &lt;Foo_SUB: 0x100505fd0&gt;
+</span><span style="color:#75715e"></span>
+            Foo_BASE <span style="color:#f92672">*</span>f2 <span style="color:#f92672">=</span> [[Foo_BASE alloc] init];
+            [f2 a];
+            <span style="color:#75715e">// a - Foo_BASE - &lt;Foo_BASE: 0x1021008a0&gt;
+</span><span style="color:#75715e"></span>        }
+
+        {
+            Bar <span style="color:#f92672">*</span>b <span style="color:#f92672">=</span> [[Bar alloc] init];
+            Foo_SUB <span style="color:#f92672">*</span>f <span style="color:#f92672">=</span> [[Foo_SUB alloc] init];
+
+            [b e]; <span style="color:#75715e">// f - Foo_SUB - &lt;Bar: 0x103001f10&gt;
+</span><span style="color:#75715e"></span>            [f f]; <span style="color:#75715e">// e - Bar - &lt;Foo_SUB: 0x103000cc0&gt;
+</span><span style="color:#75715e"></span>        }
+    }
+}
+</code></pre></div><h3 id="heading11">理解「类对象」的用意</h3>
 <p>略；关于类对象，可详见《<a href="../objects_in_obj-c/">Obj-C 中的对象</a>》一文；关于内省，可详见《<a href="../type_introspection_and_reflection/">Obj-C &amp; Swift 的类型内省与反射</a>》一文；</p>
 <h2 id="-api-">接口与 API 设计</h2>
 <h3 id="heading12">用前缀避免命名空间冲突</h3>
