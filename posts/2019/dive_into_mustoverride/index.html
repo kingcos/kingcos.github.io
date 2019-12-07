@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    
+      <title>MustOverride 源码解读 :: iBlog</title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="Date Notes Source Code Commit / Tag     2019-12-07 首次提交 nicklockwood/MustOverride 1.1    Preface MustOverride 是 nicklockwood 多年前开源的一个 Obj-C 库。其作用正如其名「MustOverride」即可以使得子类必须重写父类中的某些方法，防止子类因未实现父类的某些方法而出现不可预知的错误。
+How 这个库的使用非常简单，如果是 CocoaPods 管理依赖的项目，直接通过 pod &#39;MustOverride&#39; 即可引入；之后引入 MustOverride.h 头文件并在需要必须子类重写的父类（或父类的分类）方法中放入 SUBCLASS_MUST_OVERRIDE; 宏即可：
+// Foo.m  #import &amp;#34;Foo.h&amp;#34;#import &amp;#34;MustOverride.h&amp;#34; @implementation Foo - (void)foo { SUBCLASS_MUST_OVERRIDE; } @end // Foo&#43;Ext.m #import &amp;#34;Foo&#43;Ext.h&amp;#34;#import &amp;#34;MustOverride.h&amp;#34; @implementation Foo (Ext) - (void)fooExt { SUBCLASS_MUST_OVERRIDE; } @end 这样，即使 Foo 父类及 SubFoo 子类的方法没有被调用到，只要子类没有实现相应的方法，程序也会在启动时立刻崩溃，便于第一时间发现问题："/>
+<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2019/dive_into_mustoverride/" />
+
+
+
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+<link rel="shortcut icon" href="/img/favicon.png">
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="MustOverride 源码解读"/>
+<meta name="twitter:description" content="[MustOverride](https://github.com/nicklockwood/MustOverride) 是 [nicklockwood](https://github.com/nicklockwood) 多年前开源的一个 Obj-C 库。其作用正如其名「MustOverride」即可以使得子类必须重写父类中的某些方法，防止子类因未实现父类的某些方法而出现不可预知的错误。"/>
+
+
+
+<meta property="og:title" content="MustOverride 源码解读" />
+<meta property="og:description" content="[MustOverride](https://github.com/nicklockwood/MustOverride) 是 [nicklockwood](https://github.com/nicklockwood) 多年前开源的一个 Obj-C 库。其作用正如其名「MustOverride」即可以使得子类必须重写父类中的某些方法，防止子类因未实现父类的某些方法而出现不可预知的错误。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/2019/dive_into_mustoverride/" />
+<meta property="article:published_time" content="2019-12-07T00:00:00+00:00" />
+<meta property="article:modified_time" content="2019-12-07T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+
+
+
+
+<script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  </head>
+  <body class="dark-theme">
+    <div class="container">
+      <header class="header">
+  <span class="header__inner">
+    <a href="/" class="logo" style="text-decoration: none;">
+  
+    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
+  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
+</svg>
+</span>
+    <span class="logo__text">kingcos.me</span>
+    <span class="logo__cursor"></span>
+  
+</a>
+
+    <span class="header__right">
+      
+        <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+        <span class="menu-trigger">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M0 0h24v24H0z" fill="none"/>
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+          </svg>
+        </span>
+      
+      <span class="theme-toggle">
+        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+
+      </span>
+    </span>
+  </span>
+</header>
+
+
+      <div class="content">
+        
+  <div class="post">
+    <h2 class="post-title"><a href="/posts/2019/dive_into_mustoverride/">MustOverride 源码解读</a></h2>
+    <div class="post-meta">
+      
+        <span class="post-date">
+            2019-12-07
+        </span>
+      
+      
+      
+        <span class="post-read-time">— 4 min read</span>
+      
+    </div>
+
+    
+      <span class="post-tags">
+        
+          #<a href="/tags/focus/">Focus</a>&nbsp;
+        
+          #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
+        
+          #<a href="/tags/c/c&#43;&#43;/">C/C&#43;&#43;</a>&nbsp;
+        
+      </span>
+    
+
+    
+
+    <div class="post-content">
+      <table>
+<thead>
+<tr>
+<th align="center">Date</th>
+<th align="center">Notes</th>
+<th align="center">Source Code</th>
+<th align="center">Commit / Tag</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">2019-12-07</td>
+<td align="center">首次提交</td>
+<td align="center"><a href="https://github.com/nicklockwood/MustOverride">nicklockwood/MustOverride</a></td>
+<td align="center">1.1</td>
+</tr>
+</tbody>
+</table>
+<h2 id="preface">Preface</h2>
+<p><a href="https://github.com/nicklockwood/MustOverride">MustOverride</a> 是 <a href="https://github.com/nicklockwood">nicklockwood</a> 多年前开源的一个 Obj-C 库。其作用正如其名「MustOverride」即可以使得子类必须重写父类中的某些方法，防止子类因未实现父类的某些方法而出现不可预知的错误。</p>
+<h2 id="how">How</h2>
+<p>这个库的使用非常简单，如果是 CocoaPods 管理依赖的项目，直接通过 <code>pod 'MustOverride'</code> 即可引入；之后引入 <code>MustOverride.h</code> 头文件并在需要必须子类重写的父类（或父类的分类）方法中放入 <code>SUBCLASS_MUST_OVERRIDE;</code> 宏即可：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// Foo.m
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">import &#34;Foo.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &#34;MustOverride.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo</span>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">foo</span> {
+    SUBCLASS_MUST_OVERRIDE;
+}
+<span style="color:#66d9ef">@end</span>
+
+<span style="color:#75715e">// Foo+Ext.m
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &#34;Foo+Ext.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &#34;MustOverride.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo</span> (Ext)
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">fooExt</span> {
+    SUBCLASS_MUST_OVERRIDE;
+}
+<span style="color:#66d9ef">@end</span>
+</code></pre></div><p>这样，即使 <code>Foo</code> 父类及 <code>SubFoo</code> 子类的方法没有被调用到，只要子类没有实现相应的方法，程序也会在启动时立刻崩溃，便于第一时间发现问题：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">*** Terminating app due to uncaught exception <span style="color:#e6db74">&#39;NSInternalInconsistencyException&#39;</span>, reason: <span style="color:#e6db74">&#39;2 method override errors:
+</span><span style="color:#e6db74">SubFoo does not implement required method -fooExt
+</span><span style="color:#e6db74">SubFoo does not implement required method -foo&#39;</span>
+</code></pre></div><h2 id="why">Why</h2>
+<h3 id="heading">结构</h3>
+<p>「MustOverride」库的结构很简单，只有以下两个文件以及不超过 200 行的代码，很容易着手：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">➜  MustOverride tree
+.
+├── MustOverride.h
+└── MustOverride.m
+
+<span style="color:#ae81ff">0</span> directories, <span style="color:#ae81ff">2</span> files
+</code></pre></div><h3 id="mustoverrideh">MustOverride.h</h3>
+<p>我们先从 <code>MustOverride.h</code> 开始：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">/**
+</span><span style="color:#75715e"> * Include this macro inside any class or instance method that MUST be overridden
+</span><span style="color:#75715e"> * by its subclass(es). The app will then crash immediately on launch with an
+</span><span style="color:#75715e"> * assertion if the method is not overridden (even if it is never called).
+</span><span style="color:#75715e"> */</span>
+<span style="color:#75715e">#</span><span style="color:#75715e">define SUBCLASS_MUST_OVERRIDE __attribute__((used, section(&#34;__DATA,MustOverride&#34; \</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">))) static const char *__must_override_entry__ = __func__</span><span style="color:#75715e">
+</span></code></pre></div><p>其中定义了我们前面示例中所用到的 <code>SUBCLASS_MUST_OVERRIDE</code> 宏，即简化了后面的指令 <code>__attribute__((used, section(&quot;__DATA,MustOverride&quot;))) static const char *__must_override_entry__ = __func__</code>，下面我们来仔细分析下这条指令。</p>
+<h4 id="attribute"><code>__attribute__</code></h4>
+<p><code>__attribute__</code> 是一个用于 GCC 或兼容 GCC 的编译器指令，可以使得开发者可以对编译器的一些属性进行设置，使得编译器可以支持更多的错误检查或高级优化等操作。正如其名，<code>__attribute__</code> 即属性，其根据修饰的对象不同分为函数属性、变量属性、类型属性等。当多个属性同时使用时，可以通过 <code>__attribute__ ((attribute-list))</code> 语法嵌套。</p>
+<p>目前 Xcode 使用 <code>clang</code> 编译器来编译 C/C++/Obj-C/Obj-C++ 代码，而 <code>clang</code> 也支持了 <code>__attribute__</code>，甚至还有一小部分的特有属性，关于这些特有属性可以详见文末 Reference 中的《Attributes in Clang - LLVM》文档。而这里的 <code>__attribute__((used, section(&quot;__DATA,MustOverride&quot;)))</code> 同时使用了 <code>used</code> 和 <code>section</code> 这两个常见的变量属性，我们可以在 GNU 官方文档中查到两者的内容：</p>
+<blockquote>
+<p><code>used</code></p>
+<p>This attribute, attached to a variable with static storage, means that the variable must be emitted even if it appears that the variable is not referenced.</p>
+<p>When applied to a static data member of a C++ class template, the attribute also means that the member is instantiated if the class itself is instantiated.</p>
+</blockquote>
+<p>在《<a href="https://kingcos.me/posts/2019/const_static_extern_in_cpp/">C/C++ 中的 const、static &amp; extern</a>》一文中，我们曾说过静态变量只在其编译单元内可见，最终可执行文件中的外部符号里并没有静态变量，而其实如果编译单元内根本没有使用到相关的静态变量，编译器默认会提示警告并将该变量进行优化：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// WARNING: Unused variable &#39;var1&#39;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>var1 <span style="color:#f92672">=</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>;
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
+    <span style="color:#66d9ef">@autoreleasepool</span> {
+        <span style="color:#75715e">// printf(&#34;%s\n&#34;, var1);
+</span><span style="color:#75715e"></span>    }
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>此时使用 <code>nm PATH/TO/MustOverrideDemo | grep var</code> 将没有输出。而如果我们将 <code>main</code> 函数中的注释打开，即使用到了该静态变量，最终可执行文件中将含有该符号：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">00000001000036e8 d _var1
+</code></pre></div><p>而 <code>__attribute__((used))</code> 变量属性将关闭编译器对于未使用的静态变量的优化：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>var1 <span style="color:#f92672">=</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>;
+__attribute__((used)) <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>var2 <span style="color:#f92672">=</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>;
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>var3 <span style="color:#a6e22e">__attribute__</span>((used)) <span style="color:#f92672">=</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span> ;
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
+    <span style="color:#66d9ef">@autoreleasepool</span> {
+        <span style="color:#75715e">// printf(&#34;%s\n&#34;, var1);
+</span><span style="color:#75715e"></span>    }
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+
+<span style="color:#75715e">// SHELL OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// ➜  MustOverride nm PATH/TO/MustOverrideDemo | grep var
+</span><span style="color:#75715e"></span><span style="color:#75715e">// 00000001000036d8 d _var2
+</span><span style="color:#75715e"></span><span style="color:#75715e">// 00000001000036e0 d _var3
+</span></code></pre></div><p>因此 <code>__attribute__((used)) static const char *__must_override_entry__ = __func__</code> 即声明一个静态常量 <code>__must_override_entry__</code> 为 <code>__func__</code>（编译器的预定义符，即函数名），并保证其不会被编译器优化。</p>
+<blockquote>
+<p><code>section (&quot;section-name&quot;)</code></p>
+<p>Normally, the compiler places the objects it generates in sections like <code>data</code> and <code>bss</code>. Sometimes, however, you need additional sections, or you need certain particular variables to appear in special sections, for example to map to special hardware. The section attribute specifies that a variable (or function) lives in a particular section. For example, this small program uses several specific section names:</p>
+</blockquote>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">struct</span> duart a <span style="color:#a6e22e">__attribute__</span> ((section (<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">DUART_A</span><span style="color:#e6db74">&#34;</span>))) <span style="color:#f92672">=</span> { <span style="color:#ae81ff">0</span> };
+<span style="color:#66d9ef">struct</span> duart b <span style="color:#a6e22e">__attribute__</span> ((section (<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">DUART_B</span><span style="color:#e6db74">&#34;</span>))) <span style="color:#f92672">=</span> { <span style="color:#ae81ff">0</span> };
+<span style="color:#66d9ef">char</span> stack[<span style="color:#ae81ff">10000</span>] __attribute__ ((section (<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">STACK</span><span style="color:#e6db74">&#34;</span>))) <span style="color:#f92672">=</span> { <span style="color:#ae81ff">0</span> };
+<span style="color:#66d9ef">int</span> init_data <span style="color:#a6e22e">__attribute__</span> ((section (<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">INITDATA</span><span style="color:#e6db74">&#34;</span>)));
+
+main()
+{
+  <span style="color:#75715e">/* Initialize stack pointer */</span>
+  init_sp (stack <span style="color:#f92672">+</span> <span style="color:#66d9ef">sizeof</span> (stack));
+
+  <span style="color:#75715e">/* Initialize initialized data */</span>
+  memcpy (<span style="color:#f92672">&amp;</span>init_data, <span style="color:#f92672">&amp;</span>data, <span style="color:#f92672">&amp;</span>edata <span style="color:#f92672">-</span> <span style="color:#f92672">&amp;</span>data);
+
+  <span style="color:#75715e">/* Turn on the serial ports */</span>
+  init_duart (<span style="color:#f92672">&amp;</span>a);
+  init_duart (<span style="color:#f92672">&amp;</span>b);
+}
+</code></pre></div><blockquote>
+<p>Use the <code>section</code> attribute with <em>global</em> variables and not <em>local</em> variables, as shown in the example.</p>
+<p>You may use the <code>section</code> attribute with initialized or uninitialized global variables but the linker requires each object be defined once, with the exception that uninitialized variables tentatively go in the <code>common</code> (or <code>bss</code>) section and can be multiply “defined”. Using the <code>section</code> attribute changes what section the variable goes into and may cause the linker to issue an error if an uninitialized variable has multiple definitions. You can force a variable to be initialized with the <code>-fno-common</code> flag or the <code>nocommon</code> attribute.</p>
+<p>Some file formats do not support arbitrary sections so the <code>section</code> attribute is not available on all platforms. If you need to map the entire contents of a module to a particular section, consider using the facilities of the linker instead.</p>
+</blockquote>
+<p>编译器通常会将不同类型（注：此处的类型指非狭义的数据结构类型）的变量放置在可执行文件内不同但特定的区域中，对于 iOS/macOS 项目的可执行文件 Mach-O 即放置在不同的段（Section）和节（Segment）中，比如全局变量变量通常是在数据段中。而 <code>__attribute__((section(&quot;name&quot;)))</code> 使得开发者可以将特定的变量存储在自定义的段和节内：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">__attribute__((section(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">__DATA,kingcos.me</span><span style="color:#e6db74">&#34;</span>))) <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>var4 <span style="color:#f92672">=</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>;
+__attribute__((section(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">__DATA,maimieng.com</span><span style="color:#e6db74">&#34;</span>))) <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>var5 <span style="color:#f92672">=</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">maimieng.com</span><span style="color:#e6db74">&#34;</span>;
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
+    <span style="color:#66d9ef">@autoreleasepool</span> {
+        printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, var4);
+    }
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>我们可以使用 MachOView 来查看可执行文件的信息：</p>
+<p><img src="/img/2019/dive_into_mustoverride/1.png" alt="1"></p>
+<p>其中确实存在了 <code>__DATA</code> 段的 <code>kingcos.me</code> 节，而这里 <code>var5</code> 的节并没有存在，这是因为编译器已经将其符号优化。</p>
+<p>因此 <code>MustOverride.h</code> 中定义了 <code>SUBCLASS_MUST_OVERRIDE</code> 宏，并结合了两个编译器的变量属性，将使用到该宏的方法名存储在 <code>__must_override_entry__</code> 静态常量中，并将该常量最终存储在可执行文件的数据区 <code>MustOverride</code> 段，即为 <code>#define SUBCLASS_MUST_OVERRIDE static const char *__must_override_entry__ __attribute__((used, section(&quot;__DATA,MustOverride&quot;))) = __func__;</code>。</p>
+<p><img src="/img/2019/dive_into_mustoverride/2.png" alt="2"></p>
+<h2 id="mustoverridem">MustOverride.m</h2>
+<p>那么将方法名存储在可执行文件的数据区 <code>MustOverride</code> 段有什么意义呢？</p>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="https://nshipster.com/__attribute__/"><code>__attribute__</code> - NSHipster</a></li>
+<li><a href="https://gcc.gnu.org/onlinedocs/gcc/Attribute-Syntax.html">Attribute Syntax - GNU</a></li>
+<li><a href="http://releases.llvm.org/9.0.0/tools/clang/docs/AttributeReference.html">Attributes in Clang - LLVM</a></li>
+<li><a href="https://kingcos.me/posts/2019/const_static_extern_in_cpp/">C/C++ 中的 const、static &amp; extern - kingcos</a></li>
+<li><a href="https://blog.sunnyxx.com/2016/05/14/clang-attributes/">Clang Attributes 黑魔法小记 - sunnyxx</a></li>
+</ul>
+
+    </div>
+    
+      <div class="pagination">
+        <div class="pagination__title">
+          <span class="pagination__title-h">Read other posts</span>
+          <hr />
+        </div>
+        <div class="pagination__buttons">
+          
+          
+            <span class="button next">
+              <a href="/posts/2019/obj-c_to_c&#43;&#43;/">
+                <span class="button__text">将 Obj-C 代码翻译为 C/C&#43;&#43; 代码</span>
+                <span class="button__icon">→</span>
+              </a>
+            </span>
+          
+        </div>
+      </div>
+    
+
+    
+
+    
+    
+    <div>
+      <div id="github-comment">
+      </div>
+
+      <script type="text/javascript">
+        function getUtterances(isDark) {
+          var utterances = document.createElement('script');
+          utterances.type = 'text/javascript';
+          utterances.async = true;
+          utterances.setAttribute('issue-term', "pathname")
+          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
+          utterances.setAttribute('label', "comments")
+          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
+          utterances.crossorigin = 'anonymous';
+          utterances.src = 'https://utteranc.es/client.js';
+
+          return utterances
+        }
+
+        var themeToggle = document.querySelector(".theme-toggle")
+        themeToggle.addEventListener("click", function () {
+          var getTheme = window.localStorage && window.localStorage.getItem("theme")
+          var divNode = document.getElementById('github-comment')
+          while(divNode.hasChildNodes()) {
+            divNode.removeChild(divNode.firstChild);
+          }
+          
+          
+          
+
+          
+          
+          
+          
+          
+          
+          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
+        })
+
+        var getTheme = window.localStorage && window.localStorage.getItem("theme")
+        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
+      </script>
+    </div>
+    
+
+    </div>
+
+      </div>
+
+      
+        <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+      
+    </div>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+
+    
+  </body>
+</html>
