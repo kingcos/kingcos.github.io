@@ -6,7 +6,7 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Source Code Commit / Tag     2019-12-07 首次提交 nicklockwood/MustOverride 1.1    Preface MustOverride 是 nicklockwood 多年前开源的一个 Obj-C 库。其作用正如其名「MustOverride」即可以使得子类必须重写父类中的某些方法，防止子类因未实现父类的某些方法而出现不可预知的错误。
+<meta name="description" content="Date Notes Source Code Commit / Tag     2019-12-07 首次提交 nicklockwood/MustOverride c63007e / 1.1    Preface MustOverride 是 nicklockwood 多年前开源的一个 Obj-C 库。其作用正如其名「MustOverride」即可以使得子类必须重写父类中的某些方法，防止子类因未实现父类的某些方法而出现不可预知的错误。
 How 这个库的使用非常简单，如果是 CocoaPods 管理依赖的项目，直接通过 pod &#39;MustOverride&#39; 即可引入；之后引入 MustOverride.h 头文件并在需要必须子类重写的父类（或父类的分类）方法中放入 SUBCLASS_MUST_OVERRIDE; 宏即可：
 // Foo.m  #import &amp;#34;Foo.h&amp;#34;#import &amp;#34;MustOverride.h&amp;#34; @implementation Foo - (void)foo { SUBCLASS_MUST_OVERRIDE; } @end // Foo&#43;Ext.m #import &amp;#34;Foo&#43;Ext.h&amp;#34;#import &amp;#34;MustOverride.h&amp;#34; @implementation Foo (Ext) - (void)fooExt { SUBCLASS_MUST_OVERRIDE; } @end 这样，即使 Foo 父类及 SubFoo 子类的方法没有被调用到，只要子类没有实现相应的方法，程序也会在启动时立刻崩溃，便于第一时间发现问题："/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
@@ -140,7 +140,7 @@ How 这个库的使用非常简单，如果是 CocoaPods 管理依赖的项目�
       
       
       
-        <span class="post-read-time">— 4 min read</span>
+        <span class="post-read-time">— 9 min read</span>
       
     </div>
 
@@ -152,6 +152,8 @@ How 这个库的使用非常简单，如果是 CocoaPods 管理依赖的项目�
           #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
         
           #<a href="/tags/c/c&#43;&#43;/">C/C&#43;&#43;</a>&nbsp;
+        
+          #<a href="/tags//">🌟</a>&nbsp;
         
       </span>
     
@@ -173,10 +175,11 @@ How 这个库的使用非常简单，如果是 CocoaPods 管理依赖的项目�
 <td align="center">2019-12-07</td>
 <td align="center">首次提交</td>
 <td align="center"><a href="https://github.com/nicklockwood/MustOverride">nicklockwood/MustOverride</a></td>
-<td align="center">1.1</td>
+<td align="center">c63007e / 1.1</td>
 </tr>
 </tbody>
 </table>
+<p><img src="/img/2019/dive_into_mustoverride/0.png" alt="0"></p>
 <h2 id="preface">Preface</h2>
 <p><a href="https://github.com/nicklockwood/MustOverride">MustOverride</a> 是 <a href="https://github.com/nicklockwood">nicklockwood</a> 多年前开源的一个 Obj-C 库。其作用正如其名「MustOverride」即可以使得子类必须重写父类中的某些方法，防止子类因未实现父类的某些方法而出现不可预知的错误。</p>
 <h2 id="how">How</h2>
@@ -225,14 +228,14 @@ How 这个库的使用非常简单，如果是 CocoaPods 管理依赖的项目�
 </span><span style="color:#75715e"></span><span style="color:#75715e">))) static const char *__must_override_entry__ = __func__</span><span style="color:#75715e">
 </span></code></pre></div><p>其中定义了我们前面示例中所用到的 <code>SUBCLASS_MUST_OVERRIDE</code> 宏，即简化了后面的指令 <code>__attribute__((used, section(&quot;__DATA,MustOverride&quot;))) static const char *__must_override_entry__ = __func__</code>，下面我们来仔细分析下这条指令。</p>
 <h4 id="attribute"><code>__attribute__</code></h4>
-<p><code>__attribute__</code> 是一个用于 GCC 或兼容 GCC 的编译器指令，可以使得开发者可以对编译器的一些属性进行设置，使得编译器可以支持更多的错误检查或高级优化等操作。正如其名，<code>__attribute__</code> 即属性，其根据修饰的对象不同分为函数属性、变量属性、类型属性等。当多个属性同时使用时，可以通过 <code>__attribute__ ((attribute-list))</code> 语法嵌套。</p>
-<p>目前 Xcode 使用 <code>clang</code> 编译器来编译 C/C++/Obj-C/Obj-C++ 代码，而 <code>clang</code> 也支持了 <code>__attribute__</code>，甚至还有一小部分的特有属性，关于这些特有属性可以详见文末 Reference 中的《Attributes in Clang - LLVM》文档。而这里的 <code>__attribute__((used, section(&quot;__DATA,MustOverride&quot;)))</code> 同时使用了 <code>used</code> 和 <code>section</code> 这两个常见的变量属性，我们可以在 GNU 官方文档中查到两者的内容：</p>
+<p><code>__attribute__</code> 是一个用于 GCC 或兼容 GCC 的编译器指令，可以让开发者对编译器的一些属性进行设置，使得编译器能够支持更多的错误检查或高级优化等操作。正如其名，<code>__attribute__</code> 即属性，其根据修饰对象的不同分为函数属性、变量属性、类型属性等。当多个属性同时使用时，可以通过 <code>__attribute__ ((attribute-list))</code> 语法嵌套使用。</p>
+<p>目前 Xcode 使用 <code>clang</code> 编译器来编译 C/C++/Obj-C/Obj-C++ 代码，而 <code>clang</code> 也支持了 <code>__attribute__</code> 语法，甚至还有一小部分的特有属性，关于这些特有属性可以详见文末 Reference 中的《Attributes in Clang - LLVM》文档。而这里的 <code>__attribute__((used, section(&quot;__DATA,MustOverride&quot;)))</code> 同时使用了 <code>used</code> 和 <code>section</code> 这两个常见的变量属性，我们可以在 GNU 官方文档中查到两者的内容：</p>
 <blockquote>
 <p><code>used</code></p>
 <p>This attribute, attached to a variable with static storage, means that the variable must be emitted even if it appears that the variable is not referenced.</p>
 <p>When applied to a static data member of a C++ class template, the attribute also means that the member is instantiated if the class itself is instantiated.</p>
 </blockquote>
-<p>在《<a href="https://kingcos.me/posts/2019/const_static_extern_in_cpp/">C/C++ 中的 const、static &amp; extern</a>》一文中，我们曾说过静态变量只在其编译单元内可见，最终可执行文件中的外部符号里并没有静态变量，而其实如果编译单元内根本没有使用到相关的静态变量，编译器默认会提示警告并将该变量进行优化：</p>
+<p>在《<a href="https://kingcos.me/posts/2019/const_static_extern_in_cpp/">C/C++ 中的 const、static &amp; extern</a>》一文中，我们曾经说过静态变量只在其编译单元内可见，最终可执行文件中的外部符号里并不会存在静态变量的符号，而其实如果编译单元内根本没有使用到某一静态变量，编译器默认会提示警告并将该静态变量进行优化：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
 </span><span style="color:#75715e"></span>
 <span style="color:#75715e">// WARNING: Unused variable &#39;var1&#39;
@@ -244,9 +247,10 @@ How 这个库的使用非常简单，如果是 CocoaPods 管理依赖的项目�
 </span><span style="color:#75715e"></span>    }
     <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
 }
-</code></pre></div><p>此时使用 <code>nm PATH/TO/MustOverrideDemo | grep var</code> 将没有输出。而如果我们将 <code>main</code> 函数中的注释打开，即使用到了该静态变量，最终可执行文件中将含有该符号：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">00000001000036e8 d _var1
-</code></pre></div><p>而 <code>__attribute__((used))</code> 变量属性将关闭编译器对于未使用的静态变量的优化：</p>
+</code></pre></div><p>比如此时的 <code>var1</code> 仅声明并定义但并没有代码使用到，我们可以通过 <code>nm PATH/TO/MustOverrideDemo | grep var</code> 命令发现可执行文件不存在该静态变量的符号。而如果我们将 <code>main</code> 函数中的注释打开，此时可执行文件中才会含有该符号：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">➜  MustOverride nm PATH/TO/MustOverrideDemo | grep var
+00000001000036e8 d _var1
+</code></pre></div><p>而 <code>__attribute__((used))</code> 变量属性正是可以将编译器对于未使用的静态变量的优化关闭：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
 </span><span style="color:#75715e"></span>
 <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>var1 <span style="color:#f92672">=</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>;
@@ -268,7 +272,6 @@ __attribute__((used)) <span style="color:#66d9ef">static</span> <span style="col
 <blockquote>
 <p><code>section (&quot;section-name&quot;)</code></p>
 <p>Normally, the compiler places the objects it generates in sections like <code>data</code> and <code>bss</code>. Sometimes, however, you need additional sections, or you need certain particular variables to appear in special sections, for example to map to special hardware. The section attribute specifies that a variable (or function) lives in a particular section. For example, this small program uses several specific section names:</p>
-</blockquote>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">struct</span> duart a <span style="color:#a6e22e">__attribute__</span> ((section (<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">DUART_A</span><span style="color:#e6db74">&#34;</span>))) <span style="color:#f92672">=</span> { <span style="color:#ae81ff">0</span> };
 <span style="color:#66d9ef">struct</span> duart b <span style="color:#a6e22e">__attribute__</span> ((section (<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">DUART_B</span><span style="color:#e6db74">&#34;</span>))) <span style="color:#f92672">=</span> { <span style="color:#ae81ff">0</span> };
 <span style="color:#66d9ef">char</span> stack[<span style="color:#ae81ff">10000</span>] __attribute__ ((section (<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">STACK</span><span style="color:#e6db74">&#34;</span>))) <span style="color:#f92672">=</span> { <span style="color:#ae81ff">0</span> };
@@ -286,12 +289,11 @@ main()
   init_duart (<span style="color:#f92672">&amp;</span>a);
   init_duart (<span style="color:#f92672">&amp;</span>b);
 }
-</code></pre></div><blockquote>
-<p>Use the <code>section</code> attribute with <em>global</em> variables and not <em>local</em> variables, as shown in the example.</p>
+</code></pre></div><p>Use the <code>section</code> attribute with <em>global</em> variables and not <em>local</em> variables, as shown in the example.</p>
 <p>You may use the <code>section</code> attribute with initialized or uninitialized global variables but the linker requires each object be defined once, with the exception that uninitialized variables tentatively go in the <code>common</code> (or <code>bss</code>) section and can be multiply “defined”. Using the <code>section</code> attribute changes what section the variable goes into and may cause the linker to issue an error if an uninitialized variable has multiple definitions. You can force a variable to be initialized with the <code>-fno-common</code> flag or the <code>nocommon</code> attribute.</p>
 <p>Some file formats do not support arbitrary sections so the <code>section</code> attribute is not available on all platforms. If you need to map the entire contents of a module to a particular section, consider using the facilities of the linker instead.</p>
 </blockquote>
-<p>编译器通常会将不同类型（注：此处的类型指非狭义的数据结构类型）的变量放置在可执行文件内不同但特定的区域中，对于 iOS/macOS 项目的可执行文件 Mach-O 即放置在不同的段（Section）和节（Segment）中，比如全局变量变量通常是在数据段中。而 <code>__attribute__((section(&quot;name&quot;)))</code> 使得开发者可以将特定的变量存储在自定义的段和节内：</p>
+<p>编译器通常会将不同类型（注：此处的类型指非狭义的数据结构类型）的变量放置在可执行文件内不同但特定的区域中。对于 iOS/macOS 项目的可执行文件 Mach-O 即放置在不同的段（Segment）和节（Section）中，比如全局变量通常是在数据段中。而 <code>__attribute__((section(&quot;name&quot;)))</code> 使得开发者可以将特定的变量存储在自定义的段和节内：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">__attribute__((section(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">__DATA,kingcos.me</span><span style="color:#e6db74">&#34;</span>))) <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>var4 <span style="color:#f92672">=</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>;
 __attribute__((section(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">__DATA,maimieng.com</span><span style="color:#e6db74">&#34;</span>))) <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>var5 <span style="color:#f92672">=</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">maimieng.com</span><span style="color:#e6db74">&#34;</span>;
 
@@ -301,20 +303,277 @@ __attribute__((section(<span style="color:#e6db74"></span><span style="color:#e6
     }
     <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
 }
-</code></pre></div><p>我们可以使用 MachOView 来查看可执行文件的信息：</p>
+</code></pre></div><p>我们可以使用 MachOView 来查看 Mach-O 文件中的信息：</p>
 <p><img src="/img/2019/dive_into_mustoverride/1.png" alt="1"></p>
-<p>其中确实存在了 <code>__DATA</code> 段的 <code>kingcos.me</code> 节，而这里 <code>var5</code> 的节并没有存在，这是因为编译器已经将其符号优化。</p>
-<p>因此 <code>MustOverride.h</code> 中定义了 <code>SUBCLASS_MUST_OVERRIDE</code> 宏，并结合了两个编译器的变量属性，将使用到该宏的方法名存储在 <code>__must_override_entry__</code> 静态常量中，并将该常量最终存储在可执行文件的数据区 <code>MustOverride</code> 段，即为 <code>#define SUBCLASS_MUST_OVERRIDE static const char *__must_override_entry__ __attribute__((used, section(&quot;__DATA,MustOverride&quot;))) = __func__;</code>。</p>
+<p>其中确实存在了 <code>__DATA</code> 段的 <code>kingcos.me</code> 节，而这里 <code>var5</code> 的节并没有存在，这是因为编译器已经将该未使用的静态变量进行了优化。</p>
+<p>因此 <code>MustOverride.h</code> 中定义了 <code>SUBCLASS_MUST_OVERRIDE</code> 宏，并结合了两个编译器的变量属性，将使用到该宏的方法名存储在 <code>__must_override_entry__</code> 静态常量中，并将该常量最终存储在可执行文件的数据段 <code>MustOverride</code> 节，即为 <code>#define SUBCLASS_MUST_OVERRIDE static const char *__must_override_entry__ __attribute__((used, section(&quot;__DATA,MustOverride&quot;))) = __func__;</code>。</p>
 <p><img src="/img/2019/dive_into_mustoverride/2.png" alt="2"></p>
-<h2 id="mustoverridem">MustOverride.m</h2>
-<p>那么将方法名存储在可执行文件的数据区 <code>MustOverride</code> 段有什么意义呢？</p>
+<h3 id="mustoverridem">MustOverride.m</h3>
+<p>那么将方法名独立存储在可执行文件的数据段 <code>MustOverride</code> 节有什么意义呢？这就需要从 <code>MustOverride.m</code> 开始着手。</p>
+<p><code>MustOverride.m</code> 中定义了 <code>MustOverride</code> 类，但其实目的只是为了使用到 <code>+load</code> 方法，使得程序启动时可以执行其它函数，是该库的入口；其中关于 <code>+load</code> 方法，可详见《<a href="../+load_in_ios/">iOS 中的 +load 方法</a>》一文。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// MustOverride.m
+</span><span style="color:#75715e"></span>
++ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">load</span>
+{
+    CheckOverrides();
+}
+</code></pre></div><p>在 <code>MustOverride</code> 的 <code>+load</code> 方法中调用了 <code>CheckOverrides()</code> C 语言静态函数。不过在具体说明该入口函数之前，我们先来看下另外两个在 <code>CheckOverrides()</code> 中使用到的辅助函数：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// MustOverride.m
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// 该类是否重写某个方法（该类是否实现某个方法）
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">BOOL</span> <span style="color:#a6e22e">ClassOverridesMethod</span>(<span style="color:#66d9ef">Class</span> cls, <span style="color:#66d9ef">SEL</span> selector)
+{
+    <span style="color:#75715e">// 声明存储方法总数的变量
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> numberOfMethods;
+    <span style="color:#75715e">// 获取该类的方法列表，并设置方法总数
+</span><span style="color:#75715e"></span>    Method <span style="color:#f92672">*</span>methods <span style="color:#f92672">=</span> class_copyMethodList(cls, <span style="color:#f92672">&amp;</span>numberOfMethods);
+    <span style="color:#75715e">// 遍历该类的所有方法
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> numberOfMethods; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>)
+    {
+        <span style="color:#75715e">// 若有方法与参数的某个方法一致，则代表该类实现了该方法
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (method_getName(methods[i]) <span style="color:#f92672">=</span><span style="color:#f92672">=</span> selector)
+        {
+            <span style="color:#75715e">// 释放
+</span><span style="color:#75715e"></span>            free(methods);
+            <span style="color:#66d9ef">return</span> YES;
+        }
+    }
+    <span style="color:#75715e">// 释放
+</span><span style="color:#75715e"></span>    free(methods);
+    <span style="color:#66d9ef">return</span> NO;
+}
+
+<span style="color:#75715e">// 获取某个类的所有子类
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> NSArray <span style="color:#f92672">*</span><span style="color:#a6e22e">SubclassesOfClass</span>(<span style="color:#66d9ef">Class</span> baseClass)
+{
+    <span style="color:#75715e">// 声明存储第一个类的指针
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">Class</span> <span style="color:#f92672">*</span>classes;
+    <span style="color:#75715e">// 声明存储类总数的变量
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> classCount;
+    <span style="color:#75715e">// 保证类列表的获取只需一次（在一个程序中该列表应当是不变的）
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">static</span> dispatch_once_t onceToken;
+    dispatch_once(<span style="color:#f92672">&amp;</span>onceToken, <span style="color:#f92672">^</span>{
+      <span style="color:#75715e">// 拷贝类列表
+</span><span style="color:#75715e"></span>      classes <span style="color:#f92672">=</span> objc_copyClassList(<span style="color:#f92672">&amp;</span>classCount);
+    });
+
+    <span style="color:#75715e">// 声明存储子类的可变数组
+</span><span style="color:#75715e"></span>    NSMutableArray <span style="color:#f92672">*</span>subclasses <span style="color:#f92672">=</span> [NSMutableArray array];
+    <span style="color:#75715e">// 遍历所有类
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> classCount; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>)
+    {
+        <span style="color:#75715e">// 存储当前遍历到的类
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">Class</span> cls <span style="color:#f92672">=</span> classes[i];
+        <span style="color:#66d9ef">Class</span> superclass <span style="color:#f92672">=</span> cls;
+        <span style="color:#75715e">// 当父类存在时
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">while</span> (superclass)
+        {
+            <span style="color:#75715e">// 如果父类与参数一致，说明 cls 是 baseClass 子类链之一
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (superclass <span style="color:#f92672">=</span><span style="color:#f92672">=</span> baseClass)
+            {
+                <span style="color:#75715e">// 存在子类数组中
+</span><span style="color:#75715e"></span>                [subclasses addObject:cls];
+                <span style="color:#75715e">// 去遍历下个类
+</span><span style="color:#75715e"></span>                <span style="color:#66d9ef">break</span>;
+            }
+            <span style="color:#75715e">// 找上一级父类（找到 NSObject 的父类 nil 为止）
+</span><span style="color:#75715e"></span>            superclass <span style="color:#f92672">=</span> class_getSuperclass(superclass);
+        }
+    }
+    <span style="color:#75715e">// 扫描完所有类，返回结果
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> subclasses;
+}
+</code></pre></div><p><code>ClassOverridesMethod()</code> 与 <code>SubclassesOfClass()</code> 两个独立封装的辅助函数使得 <code>CheckOverrides()</code> 函数可以设计得不会过长且功能独立：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// MustOverride.m
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">CheckOverrides</span>(<span style="color:#66d9ef">void</span>)
+{
+    <span style="color:#75715e">// 声明 Dl_info 结构体
+</span><span style="color:#75715e"></span>    Dl_info info;
+    <span style="color:#75715e">// 获取当前函数地址处的镜像信息并保存在 info 中
+</span><span style="color:#75715e"></span>    dladdr((<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)<span style="color:#f92672">&amp;</span>CheckOverrides, <span style="color:#f92672">&amp;</span>info);
+
+    <span style="color:#75715e">// 获取 Mach-O 头（基地址）
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> MustOverrideValue mach_header <span style="color:#f92672">=</span> (MustOverrideValue)info.dli_fbase;
+    <span style="color:#75715e">// 获取 Mach-O 中相应的节信息
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> MustOverrideSection <span style="color:#f92672">*</span>section <span style="color:#f92672">=</span> GetSectByNameFromHeader((<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)mach_header, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">__DATA</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">MustOverride</span><span style="color:#e6db74">&#34;</span>);
+    <span style="color:#75715e">// 如果未获取到则返回
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (section <span style="color:#f92672">=</span><span style="color:#f92672">=</span> NULL) <span style="color:#66d9ef">return</span>;
+
+    <span style="color:#75715e">// 声明存储错误信息的可变数组
+</span><span style="color:#75715e"></span>    NSMutableArray <span style="color:#f92672">*</span>failures <span style="color:#f92672">=</span> [NSMutableArray array];
+    <span style="color:#75715e">// 从 section-&gt;offset 偏移开始，每次循环跨越指向字符数组指针大小的范围，最终不超过偏移地址与节大小之和，即可遍历节中存储的信息
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (MustOverrideValue addr <span style="color:#f92672">=</span> section<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>offset; addr <span style="color:#f92672">&lt;</span> section<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>offset <span style="color:#f92672">+</span> section<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>size; addr <span style="color:#f92672">+</span><span style="color:#f92672">=</span> <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span><span style="color:#f92672">*</span>))
+    {
+        <span style="color:#75715e">// 取存储的 __func__ 信息并转换为 NSString，eg: @&#34;-[Foo(Ext) fooExt]&#34;
+</span><span style="color:#75715e"></span>        NSString <span style="color:#f92672">*</span>entry <span style="color:#f92672">=</span> <span style="color:#ae81ff">@(</span><span style="color:#f92672">*</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span><span style="color:#f92672">*</span>)(mach_header <span style="color:#f92672">+</span> addr)<span style="color:#ae81ff">)</span>;
+        <span style="color:#75715e">// 分割方法名，eg: [@&#34;Foo(Ext)&#34;, @&#34;fooExt&#34;]
+</span><span style="color:#75715e"></span>        NSArray <span style="color:#f92672">*</span>parts <span style="color:#f92672">=</span> [[entry substringWithRange:NSMakeRange(<span style="color:#ae81ff">2</span>, entry.length <span style="color:#f92672">-</span> <span style="color:#ae81ff">3</span>)] componentsSeparatedByString:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74"> </span><span style="color:#e6db74">&#34;</span>];
+        <span style="color:#75715e">// 取出类名
+</span><span style="color:#75715e"></span>        NSString <span style="color:#f92672">*</span>className <span style="color:#f92672">=</span> parts[<span style="color:#ae81ff">0</span>];
+        <span style="color:#75715e">// 针对分类特殊处理
+</span><span style="color:#75715e"></span>        NSRange categoryRange <span style="color:#f92672">=</span> [className rangeOfString:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">(</span><span style="color:#e6db74">&#34;</span>];
+        <span style="color:#66d9ef">if</span> (categoryRange.length)
+        {
+            <span style="color:#75715e">// 取出类名，eg: @&#34;Foo&#34;
+</span><span style="color:#75715e"></span>            className <span style="color:#f92672">=</span> [className substringToIndex:categoryRange.location];
+        }
+
+        <span style="color:#75715e">// 判断是否为类方法（是否以 + 开头）
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">BOOL</span> isClassMethod <span style="color:#f92672">=</span> [entry characterAtIndex:<span style="color:#ae81ff">0</span>] <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">+</span><span style="color:#e6db74">&#39;</span>;
+        <span style="color:#75715e">// 根据类名构造 Class
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">Class</span> cls <span style="color:#f92672">=</span> NSClassFromString(className);
+        <span style="color:#75715e">// 根据方法名构造 SEL
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">SEL</span> selector <span style="color:#f92672">=</span> NSSelectorFromString(parts[<span style="color:#ae81ff">1</span>]);
+
+        <span style="color:#75715e">// 遍历该类的所有子类
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">Class</span> subclass <span style="color:#66d9ef">in</span> SubclassesOfClass(cls))
+        {
+            <span style="color:#75715e">// 判断类中是否有重写的方法（如果是类方法，其存储在元类的方法列表中，则传入元类对象；否则传入类对象）
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>ClassOverridesMethod(isClassMethod <span style="color:#f92672">?</span> object_getClass(subclass) <span style="color:#f92672">:</span> subclass, selector))
+            {
+                <span style="color:#75715e">// 添加未重写的子类和方法信息
+</span><span style="color:#75715e"></span>                [failures addObject:[NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@ does not implement method %c%@ required by %@</span><span style="color:#e6db74">&#34;</span>,
+                                     subclass, isClassMethod <span style="color:#f92672">?</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">+</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">-</span><span style="color:#e6db74">&#39;</span>, parts[<span style="color:#ae81ff">1</span>], className]];
+            }
+        }
+    }
+
+    <span style="color:#75715e">// 若错误存在则触发断言，使程序终止
+</span><span style="color:#75715e"></span>    NSCAssert(failures.count <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@%@</span><span style="color:#e6db74">&#34;</span>,
+              failures.count <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">?</span> [NSString stringWithFormat:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%zd method override errors:</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, failures.count] <span style="color:#f92672">:</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">&#34;</span>,
+              [failures componentsJoinedByString:<span style="color:#e6db74">@&#34;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>]);
+}
+
+</code></pre></div><p><code>DL_info</code> 是定义在 <code>dlfcn.h</code> 中的结构体类型，由 <code>dladdr()</code> 函数填充：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// dlfcn.h
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">/*
+</span><span style="color:#75715e"> * Structure filled in by dladdr().
+</span><span style="color:#75715e"> */</span>
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">dl_info</span> {
+        <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span>      <span style="color:#f92672">*</span>dli_fname;     <span style="color:#75715e">/* Pathname of shared object */</span>
+        <span style="color:#66d9ef">void</span>            <span style="color:#f92672">*</span>dli_fbase;     <span style="color:#75715e">/* Base address of shared object */</span>
+        <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span>      <span style="color:#f92672">*</span>dli_sname;     <span style="color:#75715e">/* Name of nearest symbol */</span>
+        <span style="color:#66d9ef">void</span>            <span style="color:#f92672">*</span>dli_saddr;     <span style="color:#75715e">/* Address of nearest symbol */</span>
+} Dl_info;
+
+<span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">int</span> <span style="color:#a6e22e">dladdr</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>, Dl_info <span style="color:#f92672">*</span>);
+</code></pre></div><p>而关于 <code>dladdr()</code> 函数我们可以在 Terminal 通过 <code>man dladdr</code> 查阅 Manual 手册（如下）。该函数将通过 <code>dyld</code>（动态链接器）查询传入地址所在的镜像信息，并将其填充至 <code>DL_info</code> 结构体，其中 <code>dli_fbase</code> 为镜像的基地址，即 Mach-O 头部（<code>mach_header</code>）。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">DLADDR(3)                BSD Library Functions Manual                DLADDR(3)
+
+NAME
+     dladdr -- find the image containing a given address
+
+SYNOPSIS
+     #include &lt;dlfcn.h&gt;
+
+     int
+     dladdr(const void* addr, Dl_info* info);
+
+DESCRIPTION
+     The dladdr() function queries dyld (the dynamic linker) for information
+     about the image containing the address addr.  The information is returned
+     in the structure specified by info.  The structure contains at least the
+     following members:
+
+     const char* dli_fname     The pathname of the shared object containing
+                               the address.
+
+     void* dli_fbase           The base address (mach_header) at which the
+                               image is mapped into the address space of the
+                               calling process.
+
+     const char* dli_sname     The name of the nearest run-time symbol with a
+                               value less than or equal to addr.
+
+     void* dli_saddr           The value of the symbol returned in dli_sname.
+
+     The dladdr() function is available only in dynamically linked programs.
+
+ERRORS
+     If an image containing addr cannot be found, dladdr() returns 0.  On suc-cess, success,
+     cess, a non-zero value is returned.
+
+     If the image containing addr is found, but no nearest symbol was found,
+     the dli_sname and dli_saddr fields are set to NULL.
+
+SEE ALSO
+     dyld(3), dlopen(3)
+
+HISTORY
+     The dladdr() function first appeared in the Solaris operating system.
+
+AUTHORS
+     Mac OS X 10.3 incorporated the dlcompat package written by Jorge Acereda
+     &lt;jacereda@users.sourceforge.net&gt; and Peter O&#39;Gorman &lt;ogor-
+     man@users.sourceforge.net&gt;.
+
+     In Mac OS X 10.4, dlopen was rewritten to be a native part of dyld.
+
+     This man page was borrowed from FreeBSD and modified.
+
+BUGS
+     This implementation is almost bug-compatible with the Solaris implementa-tion. implementation.
+     tion.  The following bugs are present:
+
+     oo   Returning 0 as an indication of failure goes against long-standing
+         Unix tradition.
+
+BSD                           September 24, 2004                           BSD
+</code></pre></div><p>通过 <code>mach_header</code> 和具体的段和节信息，我们就可以读取到其中的内容，但这里需要注意的是，在不同架构的设备上，相应的函数和类型可能略有不同，我们这里以目前更为普及的 64 位系统为例：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// MustOverride.m
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#</span><span style="color:#75715e">ifdef __LP64__</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">typedef</span> uint64_t MustOverrideValue;
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> section_64 MustOverrideSection;
+<span style="color:#75715e">#</span><span style="color:#75715e">define GetSectByNameFromHeader getsectbynamefromheader_64</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">else</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">typedef</span> uint32_t MustOverrideValue;
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> section MustOverrideSection;
+<span style="color:#75715e">#</span><span style="color:#75715e">define GetSectByNameFromHeader getsectbynamefromheader</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// mach-o/getsect.h
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// 根据 Mach-O 头地址和段、节名获取节信息
+</span><span style="color:#75715e"></span><span style="color:#75715e">// getsectbyname,  getsectdata - get the section information for the named section
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> section_64 <span style="color:#f92672">*</span><span style="color:#a6e22e">getsectbynamefromheader_64</span>(
+    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> mach_header_64 <span style="color:#f92672">*</span>mhp,
+    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>segname,
+    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>sectname);
+</code></pre></div><p>节信息存储在 <code>section_64</code> 结构体中，通过 <code>offset</code> 偏移和 <code>mach_header</code> 可以取出其中第一个内容；由于我们在节中存储的实际上是指向字符数组的指针，指针在内存中占用的空间是固定的，即可顺位继续取出后续的内容；节中内容的总长度则可以由 <code>size</code> 得出：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// mach-o/loader.h
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">section_64</span> { <span style="color:#75715e">/* for 64-bit architectures */</span>
+	<span style="color:#66d9ef">char</span>		sectname[<span style="color:#ae81ff">16</span>];	<span style="color:#75715e">/* name of this section */</span>
+	<span style="color:#66d9ef">char</span>		segname[<span style="color:#ae81ff">16</span>];	<span style="color:#75715e">/* segment this section goes in */</span>
+	<span style="color:#66d9ef">uint64_t</span>	addr;		<span style="color:#75715e">/* memory address of this section */</span>
+	<span style="color:#66d9ef">uint64_t</span>	size;		<span style="color:#75715e">/* size in bytes of this section */</span>
+	<span style="color:#66d9ef">uint32_t</span>	offset;		<span style="color:#75715e">/* file offset of this section */</span>
+	<span style="color:#66d9ef">uint32_t</span>	align;		<span style="color:#75715e">/* section alignment (power of 2) */</span>
+	<span style="color:#66d9ef">uint32_t</span>	reloff;		<span style="color:#75715e">/* file offset of relocation entries */</span>
+	<span style="color:#66d9ef">uint32_t</span>	nreloc;		<span style="color:#75715e">/* number of relocation entries */</span>
+	<span style="color:#66d9ef">uint32_t</span>	flags;		<span style="color:#75715e">/* flags (section type and attributes)*/</span>
+	<span style="color:#66d9ef">uint32_t</span>	reserved1;	<span style="color:#75715e">/* reserved (for offset or index) */</span>
+	<span style="color:#66d9ef">uint32_t</span>	reserved2;	<span style="color:#75715e">/* reserved (for count or sizeof) */</span>
+	<span style="color:#66d9ef">uint32_t</span>	reserved3;	<span style="color:#75715e">/* reserved */</span>
+};
+</code></pre></div><p>这样综上，我们就可以在程序启动时读取到编译时已经存储在 Mach-O 中 <code>__DATA</code> 段 <code>MustOverride</code> 节的方法信息，并通过查询相应的方法是否被子类实现，在第一时间触发断言终止 app 运行。最后需要注意的是，<code>MustOverride.m</code> 其中的代码块几乎整体被 <code>#if DEBUG</code> 和 <code>#endif</code> 宏包裹，这意味着该库仅适用于 Debug 模式，可能会造成某些崩溃等影响，因此切忌 Release 模式下使用。</p>
+<h2 id="extension">Extension</h2>
+<p>经过以上的分析，我们可以发现「MustOverride」这个库其实并不复杂，但带给了我们一些思路。比如我们可以使用 <code>__attribute__</code> 在编译时刻写入 Mach-O 中一些内容，并在 app 启动或运行时读取，进而做一些操作。</p>
 <h2 id="reference">Reference</h2>
 <ul>
 <li><a href="https://nshipster.com/__attribute__/"><code>__attribute__</code> - NSHipster</a></li>
 <li><a href="https://gcc.gnu.org/onlinedocs/gcc/Attribute-Syntax.html">Attribute Syntax - GNU</a></li>
 <li><a href="http://releases.llvm.org/9.0.0/tools/clang/docs/AttributeReference.html">Attributes in Clang - LLVM</a></li>
-<li><a href="https://kingcos.me/posts/2019/const_static_extern_in_cpp/">C/C++ 中的 const、static &amp; extern - kingcos</a></li>
+<li><a href="../const_static_extern_in_cpp/">C/C++ 中的 const、static &amp; extern - kingcos</a></li>
 <li><a href="https://blog.sunnyxx.com/2016/05/14/clang-attributes/">Clang Attributes 黑魔法小记 - sunnyxx</a></li>
+<li><a href="../+load_in_ios/">iOS 中的 +load 方法 - kingcos</a></li>
+<li><a href="https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/dladdr.3.html">dladdr - iOS Manual Pages</a></li>
+<li><a href="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0491c/Caccache.html"><code>__attribute__((section(&quot;name&quot;))) variable attribute</code> - ARM</a></li>
+<li><a href="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0491c/BABCJJID.html"><code>__attribute__((used)) variable attribute</code> - ARM</a></li>
+<li><a href="https://tech.meituan.com/2018/12/06/waimai-ios-optimizing-startup.html">美团外卖 iOS App 冷启动治理 - 美团技术团队</a></li>
 </ul>
 
     </div>
