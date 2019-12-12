@@ -240,16 +240,16 @@ Xcode 中已经为 Category 已经提供了模版来建立，只需要指定 Cat
 - (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">codeForWork</span> {}
 <span style="color:#66d9ef">@end</span>
 </code></pre></div><p>这样，Person+Life 中可以定义与生活相关的方法，而 Person+Work 中将专注于工作。当人需要运动（Sports）时，只需要再为 Person 添加 Person+Sports 的 Category 即可，这并不需要改动主类本身从而实现了解耦。</p>
-<h3 id="heading1">私有化</h3>
+<h3 id="heading-1">私有化</h3>
 <p>使用 Xcode 模版新建 Category 后，将会自动创建两个文件：ClassName+CategoryName.h &amp; ClassName+CategoryName.m。当我们不希望某个 Category 可以在外界访问时，只需要不把它作为公共头文件（Public Header）暴露出去即可，即实现了私有化。需要注意的是，同样可以实现私有化的方案是使用类扩展（Class Extension），其因语法相似但没有定义名称被很多人称为「匿名分类（Category）」。不过本质上说，Category 和类扩展是完全不同的：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// Class Extension
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Person</span> ()
 <span style="color:#f92672">-</span> (<span style="color:#66d9ef">void</span>)secret;
 <span style="color:#66d9ef">@end</span>
 </code></pre></div><p>类扩展是可以定义在单独的 .h 或者 .m 中，其主要可以使得外界无法直接访问到定义的成员变量、属性或方法。关于类扩展与访问控制，可详见《<a href="/posts/2019/ivar_access_control_in_obj-c/">Obj-C 中成员变量和类的访问控制</a>》一文。</p>
-<h3 id="heading2">「反私有化」</h3>
+<h3 id="heading-2">「反私有化」</h3>
 <p>Category 不仅可以私有化，其实也可以「反私有化」。如果我们希望调用一个没有声明的方法，此时就可以在其 Category 或者类扩展中声明该方法，再进行调用。当然，Obj-C 中方法调用本质是消息发送，只要我们知道了消息的发送者和接收者，即使没有声明也总有方法来发送消息。</p>
-<h3 id="heading3">「多继承」</h3>
+<h3 id="heading-3">「多继承」</h3>
 <p>因为 Category 是支持遵守协议（Protocol）的，那么不同的 Category 就可以遵守不同的协议，实现类似「多继承」的特性。但为什么是加引号的「多继承」呢？因为这样的协议遵守只能获得方法的声明，却无法获得父类的具体实现。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@protocol</span> <span style="color:#a6e22e">LifeProtocol</span> <span style="color:#f92672">&lt;</span>NSObject<span style="color:#f92672">&gt;</span>
 <span style="color:#f92672">-</span> (<span style="color:#66d9ef">void</span>)playWithPet;
@@ -276,7 +276,7 @@ Xcode 中已经为 Category 已经提供了模版来建立，只需要指定 Cat
 <span style="color:#66d9ef">@end</span>
 </code></pre></div><h2 id="why">Why</h2>
 <p>Obj-C 中的 Category 底层是如何实现的呢？</p>
-<h3 id="heading4">结构</h3>
+<h3 id="heading-4">结构</h3>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// Person+Life.h
 </span><span style="color:#75715e"></span><span style="color:#75715e">/**
 </span><span style="color:#75715e"> LifeProtocol
@@ -385,9 +385,9 @@ Xcode 中已经为 Category 已经提供了模版来建立，只需要指定 Cat
 
     property_list_t <span style="color:#f92672">*</span><span style="color:#a6e22e">propertiesForMeta</span>(<span style="color:#66d9ef">bool</span> isMeta, <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">header_info</span> <span style="color:#f92672">*</span>hi);
 };
-</code></pre></div><h3 id="heading5">实现原理</h3>
+</code></pre></div><h3 id="heading-5">实现原理</h3>
 <p>当我们的代码编译完，Category 中的信息就将被存储在 <code>category_t</code> 的结构体中，那么运行时的 Category 又会变成什么样呢？</p>
-<h4 id="what1">What</h4>
+<h4 id="what-1">What</h4>
 <p>我们尝试分别在 <code>Person</code> 主类、Person+Life 和 Person+Work Category 中定义并实现完全相同的 <code>smile</code> 方法。有个细节是，我们在 Category 中实现主类中已经实现的方法时，编译器会警告「Category is implementing a method which will also be implemented by its primary class」，这又是为什么呢？</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// Person.h
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Person</span> : <span style="color:#a6e22e">NSObject</span>
@@ -414,7 +414,7 @@ Xcode 中已经为 Category 已经提供了模版来建立，只需要指定 Cat
 </span><span style="color:#75715e"></span><span style="color:#75715e">// Person (Work) - -[Person(Work) smile]
 </span></code></pre></div><p>当我们运行程序，发现最终只输出了一句，并且是调用到了 Person+Work Category 中的方法。那么先说结论：<strong>当 Category 中实现了主类中同一个方法时，将总是调用 Category 中的方法（这也是为何编译器警告的原因）；当存在多个 Category 实现同一个方法时，将总是调用最后被编译的 Category 中的方法</strong>。如何查看文件的编译顺序呢？在 Xcode -「Build Phases」-「Compile Sources」中，靠前的即是最先被编译的：</p>
 <p><img src="/img/2019/category_in_ios/2.png" alt="2"></p>
-<h4 id="why1">Why</h4>
+<h4 id="why-1">Why</h4>
 <p>为了证明上述结论，我们需要在 objc4 的源码中，从 Obj-C 运行时初始化的入口着手，即 <code>_objc_init</code>：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// objc-os.mm
 </span><span style="color:#75715e"></span><span style="color:#75715e">/***********************************************************************

@@ -383,7 +383,7 @@ How #import &amp;#34;ViewController.h&amp;#34; @interface Computer : NSObject @p
     NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">New: %@, old: %@ - isPrior %@ - %@ - %@</span><span style="color:#e6db74">&#34;</span>, change[NSKeyValueChangeNewKey], change[NSKeyValueChangeOldKey], change[NSKeyValueChangeNotificationIsPriorKey], keyPath, object);
 }
 </code></pre></div><p>需要注意的是，<code>addObserver</code> 方法中并不会对监听者、被监听者、以及上下文进行强引用，需要我们自己来保证不会被释放。</p>
-<h3 id="heading1">监听者得到通知</h3>
+<h3 id="heading-1">监听者得到通知</h3>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">NSObject</span>(NSKeyValueObserving)
 
 - (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">observeValueForKeyPath:</span>(nullable NSString <span style="color:#f92672">*</span>)keyPath <span style="color:#a6e22e">ofObject:</span>(nullable <span style="color:#66d9ef">id</span>)object <span style="color:#a6e22e">change:</span>(nullable NSDictionary<span style="color:#f92672">&lt;</span>NSKeyValueChangeKey, <span style="color:#66d9ef">id</span><span style="color:#f92672">&gt;</span> <span style="color:#f92672">*</span>)change <span style="color:#a6e22e">context:</span>(nullable <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)context;
@@ -407,9 +407,9 @@ FOUNDATION_EXPORT NSKeyValueChangeKey <span style="color:#66d9ef">const</span> N
     NSKeyValueChangeReplacement <span style="color:#f92672">=</span> <span style="color:#ae81ff">4</span>,
 };
 </code></pre></div><p><code>NSKeyValueChangeIndexesKey</code> 指变更的索引，类型为 <code>NSIndexSet</code>，仅当被监听对象为集合类型时，对应变更的索引集合。</p>
-<h3 id="heading2">移除监听者</h3>
+<h3 id="heading-2">移除监听者</h3>
 <p>KVO 给开发者带来个很强的自由性，但移除监听者中却有不少「坑」在这里的。</p>
-<h4 id="heading3">监听者销毁前移除监听者</h4>
+<h4 id="heading-3">监听者销毁前移除监听者</h4>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
 [self addObserver:cpt forKeyPath:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">number</span><span style="color:#e6db74">&#34;</span> options:NSKeyValueObservingOptionNew <span style="color:#f92672">|</span> NSKeyValueObservingOptionOld context:nil];
 <span style="color:#75715e">// [self removeObserver:cpt forKeyPath:@&#34;number&#34;];
@@ -435,10 +435,10 @@ self.number <span style="color:#f92672">+</span><span style="color:#f92672">=</s
 <p>而如果令监听者在销毁前移除监听，那么 Debug Memory Graph 会是这样：</p>
 <p><img src="/img/2019/KVO_in_iOS/3.png" alt=""></p>
 <p>即移除了之前我们加入的监听者，所以当我们继续执行，程序将不会发生崩溃。</p>
-<h4 id="heading4">被监听者销毁前移除监听者</h4>
+<h4 id="heading-4">被监听者销毁前移除监听者</h4>
 <p>由于 Apple 并没有将 KVO 开源，对于「移除监听者」我查阅了不少资料，并进行了实践。似乎在之前的系统版本中（具体不明），当未在被监听者销毁前移除监听者时，程序也将发生崩溃。但在最新的系统中，相同的测试代码却未发生崩溃。且在 Debug Memory Graph 可以看出，即使没有移除监听者，<code>NSKeyValueObservationInfo</code> 却也在被监听者销毁后销毁了。</p>
 <p>对于此，我也在 StackOverflow 中进行了提问，希望有明白这里细节的同学多多指点。如果有了答案，我在这里也将会进行补充。</p>
-<h4 id="context1">context</h4>
+<h4 id="context-1">context</h4>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// 添加两次 KVO
 </span><span style="color:#75715e"></span>[_cpt addObserver:self
        forKeyPath:NSStringFromSelector(<span style="color:#66d9ef">@selector</span>(buttonClickTimes))
@@ -461,7 +461,7 @@ self.number <span style="color:#f92672">+</span><span style="color:#f92672">=</s
 </span><span style="color:#75715e"></span><span style="color:#75715e">// kButtonClickTimesKVOContext1
 </span><span style="color:#75715e"></span><span style="color:#75715e">// ---
 </span></code></pre></div><p><code>context</code> 是 <code>removeObserver:forKeyPath:context:</code> 的参数，与添加监听者类似，用作区分通知。当我们尝试添加两次 KVO，并在点击方法中移除而不指定 <code>context</code>，监听者收到通知会打印相应的 <code>context</code> 名。从输出可以看出 <code>removeObserver:forKeyPath:</code> 并没有移除所有的监听者。根据官方的注释：建议使用 <code>removeObserver:forKeyPath:context:</code> 取代 <code>removeObserver:forKeyPath:</code>，因为后者并未指定 <code>context</code>，将会自动猜测 <code>context</code> 指针，从而可能导致不可预知的错误。</p>
-<h4 id="heading5">非被监听者移除监听者</h4>
+<h4 id="heading-5">非被监听者移除监听者</h4>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// &#39;NSRangeException&#39;, reason: &#39;Cannot remove an observer &lt;ViewController 0x7fa953c18bd0&gt; for the key path &#34;buttonClickTimes&#34; from &lt;Computer 0x6000007731e0&gt; because it is not registered as an observer.&#39;
 </span></code></pre></div><p>当我们在被监听者上移除监听者，被监听者将自动恢复为非被监听者，但当此时再次尝试移除监听者时，程序将发生崩溃。所以建议和 <code>try/catch</code> 一同使用，防止多次移除引起崩溃。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@try</span> {
@@ -526,7 +526,7 @@ self.number <span style="color:#f92672">+</span><span style="color:#f92672">=</s
 <p>如官方文档所述，<code>class</code> 方法返回了实例对象「真正」的类，而原因其实是因为 <code>NSKVONotifying_Computer</code> 是运行时为了实现 KVO 所自行生成的类，其目的是来管理和实现 KVO，但作为开发者，其实多数时候不必关心其内部细节，所以，在 <code>NSKVONotifying_Computer</code> 中，<code>class</code> 需要重写为返回其原本的类。</p>
 <h3 id="dealloc">dealloc</h3>
 <p><code>dealloc</code> 也比较容易理解，我们虽然无法得知其中的具体实现，但 <code>dealloc</code> 通常是做一些在对象销毁前的准备工作。<code>NSKVONotifying_Computer</code> 实现该方法也是为了在销毁前将其动态创建类和对象等资源进行回收等。</p>
-<h3 id="iskvoa">_isKVOA</h3>
+<h3 id="-iskvoa">_isKVOA</h3>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// LLDB:
 </span><span style="color:#75715e"></span><span style="color:#75715e">// (lldb) po (BOOL)[self.cpt _isKVOA]
 </span><span style="color:#75715e"></span><span style="color:#75715e">// YES

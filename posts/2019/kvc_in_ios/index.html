@@ -369,7 +369,7 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</s
 <p>⚠️ 注意</p>
 <p>官方文档中提到在上述第 2 步中，如果对象实现了 <code>get&lt;Key&gt;:range:</code> 方法，代理对象也会在合适的时机调用该方法以达到更好的性能。但我在尝试中，在 <code>objectIn&lt;Key&gt;AtIndex:</code> 或 <code>&lt;key&gt;AtIndexes:</code> 中有被实现的方法时，即会在 <code>countOf&lt;Key&gt;</code> 方法被调用后，调用 <code>get&lt;Key&gt;:range:</code> 方法，但会发生崩溃：「Thread 1: EXC_BAD_ACCESS」。具体的原因尚未查明，欢迎大家指教。</p>
 </blockquote>
-<h4 id="heading1">成员变量匹配</h4>
+<h4 id="heading-1">成员变量匹配</h4>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span> {
     <span style="color:#66d9ef">@public</span>
     NSString <span style="color:#f92672">*</span>_name;
@@ -420,7 +420,7 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</s
 <span style="color:#75715e">// OUTPUT:
 </span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer valueForUndefinedKey:]
 </span><span style="color:#75715e"></span><span style="color:#75715e">// (null)
-</span></code></pre></div><h5 id="heading2">总结</h5>
+</span></code></pre></div><h5 id="heading-2">总结</h5>
 <p>KVC <code>valueForKey:</code> 方法的调用确实深究起来比较复杂，画成图表更容易理解些：</p>
 <p><img src="/img/2019/KVC_in_iOS/1.png" alt=""></p>
 <h4 id="setvalueforkey">setValue:forKey:</h4>
@@ -491,7 +491,7 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</s
 </span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer valueForUndefinedKey:]
 </span><span style="color:#75715e"></span><span style="color:#75715e">// (null)
 </span></code></pre></div><h2 id="mutablevalueforkey">mutableValueForKey</h2>
-<h3 id="how1">How</h3>
+<h3 id="how-1">How</h3>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
 
 Speaker <span style="color:#f92672">*</span>s1 <span style="color:#f92672">=</span> [[Speaker alloc] init];
@@ -517,7 +517,7 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</s
 </span><span style="color:#75715e"></span><span style="color:#75715e">//     &#34;&lt;Speaker: 0x100502180&gt;&#34;
 </span><span style="color:#75715e"></span><span style="color:#75715e">// )
 </span></code></pre></div><p>对于对象中的集合类型 <code>NSArray</code>、<code>NSSet</code>、<code>NSOrderedSet</code>，KVC 提供了比 <code>setValue:forKey:</code> 和 <code>valueForKey:</code> 更便捷高效的 <code>mutableArrayValueForKey:</code>、<code>mutableSetValueForKey</code>、<code>mutableOrderedSetValueForKey:</code> 以及对应的 <code>KeyPath</code> 方法。它们都会返回一个可变（Mutable）类型的代理对象，在该代理对象上的操作将影响真实的属性值。</p>
-<h3 id="why1">Why</h3>
+<h3 id="why-1">Why</h3>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span> {
 	<span style="color:#66d9ef">@public</span>
 	NSMutableArray <span style="color:#f92672">*</span>_speakers;
@@ -639,7 +639,7 @@ s3.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">@20</
 </span><span style="color:#75715e"></span><span style="color:#75715e">// -[Computer valueForUndefinedKey:]
 </span><span style="color:#75715e"></span><span style="color:#75715e">// *** Terminating app due to uncaught exception &#39;NSUnknownKeyException&#39;, reason: &#39;[&lt;Computer 0x1005426d0&gt; valueForUndefinedKey:]: this class is not key value coding-compliant for the key speakers.&#39;
 </span></code></pre></div><p>但其实经过测试，对代理对象进行插入操作，将首先进入 <code>valueForUndefinedKey:</code>，若该 key 无法匹配，将抛出「NSUnknownKeyException」异常，若这一步骤未抛出异常，才将会进入到 <code>setValue:forUndefinedKey:</code>。原因我认为是当我们对代理对象进行插入操作时，首先要获得其中原本的元素，所以此时如果无法匹配，将抛出异常提前终止。</p>
-<h2 id="heading3">集合操作符</h2>
+<h2 id="heading-3">集合操作符</h2>
 <p>对于对象中的集合类型，KVC 提供了一些可以放置在键路径中的操作符，由 <code>@</code> 开头，整体结构为：<code>左键路径.@集合操作符.右键路径</code>，当然，左右键路径都可以根据需要选择是否忽略。集合操作符分为三种：聚合（Aggregation）操作符、数组操作符、嵌套（Nesting）操作符。</p>
 <!-- raw HTML omitted -->
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Speaker</span> : <span style="color:#a6e22e">NSObject</span>
@@ -743,7 +743,7 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</s
 </span><span style="color:#75715e"></span><span style="color:#75715e">//     8,
 </span><span style="color:#75715e"></span><span style="color:#75715e">//     1
 </span><span style="color:#75715e"></span><span style="color:#75715e">// )}
-</span></code></pre></div><h2 id="heading4">非对象属性</h2>
+</span></code></pre></div><h2 id="heading-4">非对象属性</h2>
 <p>当 KVC 中的 <code>valueForKey:</code> 或 <code>valueForKeyPath:</code> 获取到的值不是 Obj-C 对象时，将会以其值初始化 	<code>NSNumber</code> 对象（针对标量（Scalar））或 <code>NSValue</code> 对象（针对结构体）并返回。</p>
 <ul>
 <li>标量值</li>
@@ -815,7 +815,7 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Scree
 <span style="color:#75715e">// OUTPUT:
 </span><span style="color:#75715e"></span><span style="color:#75715e">// Screen size: 2560 * 1600
 </span><span style="color:#75715e"></span><span style="color:#75715e">// Screen inch: 13.3
-</span></code></pre></div><h2 id="heading5">属性校验</h2>
+</span></code></pre></div><h2 id="heading-5">属性校验</h2>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">static</span> NSString <span style="color:#f92672">*</span> <span style="color:#66d9ef">const</span> kKVCValidateErrorDomain <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">kKVCValidateErrorDomain</span><span style="color:#e6db74">&#34;</span>;
 
 <span style="color:#66d9ef">typedef</span> <span style="color:#a6e22e">NS_ENUM</span>(NSUInteger, KVCValidateError) {
