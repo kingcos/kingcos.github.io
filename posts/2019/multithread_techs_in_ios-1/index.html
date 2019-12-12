@@ -6,7 +6,7 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Swift Xcode     2019-03-08 首次提交 4.2 10.1    在 iOS 中的多线程（Multithreading）技术通常有以下几种实现方式：pthreads、NSThread、GCD、NSOperation。首先，我们来一起看一看 pthreads。
+<meta name="description" content="Date Notes Swift Xcode     2019-03-08 首次提交 4.2 10.1   2019-12-03 细节调整 - -    在 iOS 中的多线程（Multithreading）技术通常有以下几种实现方式：pthreads、NSThread、GCD、NSOperation。首先，我们来一起看一看 pthreads。
 Preface  POSIX Threads, usually referred to as pthreads, is an execution model that exists independently from a language, as well as a parallel execution model. It allows a program to control multiple different flows of work that overlap in time. Each flow of work is referred to as a thread, and creation and control over these flows is achieved by making calls to the POSIX Threads API."/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
@@ -176,6 +176,12 @@ Preface  POSIX Threads, usually referred to as pthreads, is an execution model t
 <td align="center">4.2</td>
 <td align="center">10.1</td>
 </tr>
+<tr>
+<td align="center">2019-12-03</td>
+<td align="center">细节调整</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
 </tbody>
 </table>
 <p>在 iOS 中的多线程（Multithreading）技术通常有以下几种实现方式：pthreads、<code>NSThread</code>、GCD、<code>NSOperation</code>。首先，我们来一起看一看 pthreads。</p>
@@ -186,10 +192,24 @@ Preface  POSIX Threads, usually referred to as pthreads, is an execution model t
 <p>译：</p>
 <p>POSIX（Portable Operating System Interface of UNIX，可移植操作系统接口）线程，即 pthreads，是一种不依赖于语言的执行模型，也称作并行（Parallel）执行模型。其允许一个程序控制多个时间重叠的不同工作流。每个工作流即为一个线程，通过调用 POSIX 线程 API 创建并控制这些流。</p>
 </blockquote>
-<p>如上所述，pthreads，即 POSIX Threads（后简称 pthreads）是一套跨平台的多线程 API。由 C 语言编写，在 Obj-C 中，<code>#import &lt;pthread.h&gt;</code> 即可引入 pthreads 相关的 API。但也由于是纯 C 的 API，使用起来不够友好，也需要手动管理线程的整个生命周期。</p>
+<p>如上所述，pthreads 即 POSIX Threads 是一套跨平台的多线程 API。其由 C 语言编写，在 Xcode 中，使用 <code>#import &lt;pthread.h&gt;</code> 即可引入 pthreads 相关的 API。但正是由于纯 C 的 API，使用起来不够友好，也需要手动管理线程的整个生命周期。</p>
 <h2 id="pthread-create"><code>pthread_create</code></h2>
-<p>pthreads 使用 <code>int pthread_create(pthread_t _Nullable * _Nonnull __restrict, const pthread_attr_t * _Nullable __restrict, void * _Nullable (* _Nonnull)(void * _Nullable), void * _Nullable __restrict);</code> 来创建线程。<code>_Nullable</code> 和 <code>_Nonnull</code> 是 Obj-C 桥接 Swift 可选（Optional）类型的标志，因此其实 pthreads API 在 Swift 中也可使用；<code>__restrict</code> 是 C99 标准引入的关键字，类似于 <code>restrict</code>，可以用在指针声明处，用于告诉编译器只有该指针本身才能修改指向的内容，便于编译器优化。去掉这些不影响函数本身的标志，补全参数名，即 <code>int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);</code>。下面将简单分析下该函数的四个参数。</p>
-<p>其中第一个参数是 <code>pthread_t *thread</code>。关于该参数实际意义，一种指整型（Integer）四字节的线程 ID，另一种指包含值和其他的抽象结构体，这种抽象有助于在一个进程（Process）中实现扩展到数千个线程，后者也可以称为 <code>pthread</code> 的句柄（Handle）。在 Obj-C 中，<code>pthread_t</code> 属于后者，其本质是 <code>_opaque_pthread_t</code>，一个不透明类型（Opaque Type）的结构体，即一种外界只需要知道其存在，而无需关心内部实现细节的数据类型。在函数中，该参数是作为指针传入的，总之我们可以简单将这个参数理解为线程的引用即可，通过它能找到线程的 ID 或者其他信息：</p>
+<p>pthreads 通过 <code>pthread_create</code> 函数来创建：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// pthreads.h
+</span><span style="color:#75715e"></span>
+__API_AVAILABLE(macos(<span style="color:#ae81ff">10.4</span>), ios(<span style="color:#ae81ff">2.0</span>))
+<span style="color:#75715e">#</span><span style="color:#75715e">if !_PTHREAD_SWIFT_IMPORTER_NULLABILITY_COMPAT</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> pthread_create(pthread_t _Nullable <span style="color:#f92672">*</span> _Nonnull __restrict,
+		<span style="color:#66d9ef">const</span> pthread_attr_t <span style="color:#f92672">*</span> _Nullable __restrict,
+		<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> _Nullable (<span style="color:#f92672">*</span> _Nonnull)(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> _Nullable),
+		<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> _Nullable __restrict);
+<span style="color:#75715e">#</span><span style="color:#75715e">else</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">pthread_create</span>(pthread_t <span style="color:#f92672">*</span> __restrict,
+		<span style="color:#66d9ef">const</span> pthread_attr_t <span style="color:#f92672">*</span> _Nullable __restrict,
+		<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span> _Nonnull)(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>), <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> _Nullable __restrict);
+<span style="color:#75715e">#</span><span style="color:#75715e">endif </span><span style="color:#75715e">// _PTHREAD_SWIFT_IMPORTER_NULLABILITY_COMPAT
+</span></code></pre></div><p>其中 <code>_Nullable</code> 和 <code>_Nonnull</code> 是 Obj-C 桥接 Swift 可选（Optional）类型的标志，因此其实 pthreads API 在 Swift 中也可使用；<code>__restrict</code> 是 C99 标准引入的关键字，类似于 <code>restrict</code>，可以用在指针声明处，用于告诉编译器只有该指针本身才能修改指向的内容，便于编译器优化。去掉这些不影响函数本身功能的标志，补全参数名，即 <code>int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);</code>，下面将简单分析下该函数的四个参数。</p>
+<p>其中第一个参数是 <code>pthread_t *thread</code>。关于该参数实际意义有两种说法，一种指整型（Integer）四字节的线程 ID，另一种指包含值和其他的抽象结构体，这种抽象有助于在一个进程（Process）中实现扩展到数千个线程，后者也可以称为 <code>pthread</code> 的句柄（Handle）。在 Obj-C 中，<code>pthread_t</code> 属于后者，其本质是 <code>_opaque_pthread_t</code>，一个不透明类型（Opaque Type）的结构体，即一种外界只需要知道其存在，而无需关心内部实现细节的数据类型。在函数中，该参数是作为指针传入的，总之我们可以简单将这个参数理解为线程的引用即可，通过它能找到线程的 ID 或者其他信息：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// sys/_pthread/_pthread_t.h
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">typedef</span> __darwin_pthread_t pthread_t;
 
