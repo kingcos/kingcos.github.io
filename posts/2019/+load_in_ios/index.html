@@ -906,7 +906,7 @@ load_method_t load_method <span style="color:#f92672">=</span> (load_method_t)cl
 </span><span style="color:#75715e"></span><span style="color:#75715e">// Person+Work +[Person(Work) load]
 </span><span style="color:#75715e"></span><span style="color:#75715e">// Hello, World!
 </span></code></pre></div><p>那么有了上述基础，当我们在一个类的子类的 +load 中 <code>[super load]</code> 又会调用到到底哪个类中呢（当然，在实际开发中这种情几乎不可能存在）？答案就是 <code>[super load]</code> 将调用到 <code>Person</code> 最后一个被编译的分类（<code>Person+Work</code>）中的 <code>+load</code> 方法，因为这里是消息发送，而不是通过方法指针。</p>
-<h3 id="objc-print-load-methods"><code>OBJC_PRINT_LOAD_METHODS</code></h3>
+<h3 id="objc-print-load-methods">OBJC_PRINT_LOAD_METHODS</h3>
 <p>在 objc4 的源码中提供了很多环境变量，方便我们 Debug 时输出一些内部源码的执行信息。<code>OBJC_PRINT_LOAD_METHODS</code> 即是 <code>+load</code> 相关的一个环境变量，将 <code>OBJC_PRINT_LOAD_METHODS</code> 在 Xcode 中设置为 <code>YES</code> 后，将会打印出很多 +load 方法执行时的信息。从下面的信息我们也可以得知，Obj-C 内也广泛使用了 +load，而因为我们自定义的类会在最晚被编译，因此也会在最晚去调用：</p>
 <!-- raw HTML omitted -->
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">objc[<span style="color:#ae81ff">63382</span>]<span style="color:#f92672">:</span> LOAD: <span style="color:#66d9ef">class</span> <span style="color:#960050;background-color:#1e0010">&#39;</span>NSObject<span style="color:#960050;background-color:#1e0010">&#39;</span> scheduled <span style="color:#66d9ef">for</span> <span style="color:#f92672">+</span>load
@@ -1131,7 +1131,7 @@ objc[<span style="color:#ae81ff">63382</span>]<span style="color:#f92672">:</spa
 </span><span style="color:#75715e"></span><span style="color:#75715e">// 2019-04-20 19:23:41.434564+0800 Load_Obj-C_iOS_Demo[63358:15371945] ------
 </span></code></pre></div><p>通过上面的分析，我们了解了 +load 在运行时初始化加载镜像时就会被调用，使得可以有机会预先做很多事情。但正是因为其加载的时机非常靠前，如果在 +load 方法中做比较复杂且在主线程的操作，将会影响 app 启动时间，降低用户体验。我们可以尝试建立一个 iOS app，在 +load 中 <code>sleep(3)</code> 模拟做比较复杂的操作，此时每次 app 冷启动都将会有 3 秒以上的时间才能进入 app 主页的控制器，极大的影响了启动时间。</p>
 <p>我们可以使用 <code>DYLD_PRINT_STATISTICS_DETAILS</code> 环境变量来控制输出启动统计的相关信息，就可以在 <code>total time in initializers and ObjC +load</code> 中发现 <code>Load_Obj-C_iOS_Demo : 3.0 seconds (74.4%)</code> 占用了大部分时间。</p>
-<pre><code>  total time: 4.0 seconds (100.0%)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">  total time: 4.0 seconds (100.0%)
   total images loaded:  258 (0 from dyld shared cache)
   total segments mapped: 767, into 102430 pages with 7398 pages pre-fetched
   total images loading time: 397.50 milliseconds (9.8%)
@@ -1149,7 +1149,7 @@ objc[<span style="color:#ae81ff">63382</span>]<span style="color:#f92672">:</spa
                          libSystem.B.dylib :   2.99 milliseconds (0.0%)
                 libMainThreadChecker.dylib :  10.24 milliseconds (0.2%)
                        Load_Obj-C_iOS_Demo : 3.0 seconds (74.4%)
-</code></pre><h3 id="swift">Swift</h3>
+</code></pre></div><h3 id="swift">Swift</h3>
 <p>与我们的老朋友 Obj-C 不同的是，Swift 是一门诞生即宣扬安全、快速、强壮的语言，因此其极大地削弱了 Runtime 这一概念，将大部分检查提前到编译时刻。因此 Swift 中普通的类无需继承自 <code>NSObject</code>，自然也不存在 +load。</p>
 <p>而当我们尝试在 Swift 5.x 中继承自 <code>NSObject</code> 来实现 +load 和 +initialize 时，却发现编译器现在已经不允许了：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span>: NSObject {

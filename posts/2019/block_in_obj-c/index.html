@@ -234,11 +234,11 @@ Prerequisites 匿名函数与 Block 匿名函数顾名思义，即不带名称�
     printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, arg);
 };
 </code></pre></div><p>在语法上，与 C 语言函数不同的是：Block 没有函数名以及 <code>^</code> 记号，后者作为特殊记号将便于查找。BNF（Backus Normal Form，又 Backus-Naur Form，译作巴科斯范式，又巴科斯-诺尔范式）是一种用来描述计算机编程语言语法符号集的规范，通过这个规范在识别每一条编程语言语句时即可构建抽象语法树，进而帮助编译，未来笔者将在编译原理相关内容中深入探究。Block 声明语法的 BNF 如下：</p>
-<pre><code>Block_literal_expression ::= ^ block_decl compound_statement_body
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">Block_literal_expression ::= ^ block_decl compound_statement_body
 block_decl ::=
 block_decl ::= parameter_list
 block_decl ::= type_expression
-</code></pre><p>因此通过上述 BNF 就能清晰的知道 Block 的几种声明语法：</p>
+</code></pre></div><p>因此通过上述 BNF 就能清晰的知道 Block 的几种声明语法：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// main_2
 </span><span style="color:#75715e"></span>
 <span style="color:#75715e">// 省略返回值 &amp; 参数
@@ -758,7 +758,7 @@ BlockType_1 blockAsReturnValue() {
 <p>⚠️</p>
 <p>在上一节中，我们可以从「翻译」后的 C++ 代码中看到 Block 内部的 <code>isa</code> 指针均默认指向了 <code>_NSConcreteStackBlock</code>，但其实在 macOS 的 Xcode 中运行时并不存在「翻译」这一步骤，因此我们最好使用运行时的方法来真正确定 Block 的具体类型。</p>
 </blockquote>
-<h3 id="--nsglobalblock--"><code>__NSGlobalBlock__</code></h3>
+<h3 id="--nsglobalblock--">__NSGlobalBlock__</h3>
 <p>内部没有访问外界<strong>自动变量</strong>的 Block 将在执行时不依赖上下文，该类型的 Block 属于 <code>__NSGlobalBlock__</code>，存储在内存的数据段（Data Section），该区域通常也会存放全局变量：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">int</span> globalVar_2 <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
 
@@ -789,7 +789,7 @@ BlockType_1 blockAsReturnValue() {
 </span><span style="color:#75715e"></span><span style="color:#75715e">// __NSGlobalBlock__
 </span><span style="color:#75715e"></span><span style="color:#75715e">// __NSGlobalBlock__
 </span></code></pre></div><p>对 <code>__NSGlobalBlock__</code> 类型的 Block 执行 <code>copy</code> 操作并不会将其拷贝至堆中，而是仍将返回 <code>__NSGlobalBlock__</code>。</p>
-<h3 id="--nsstackblock--"><code>__NSStackBlock__</code></h3>
+<h3 id="--nsstackblock--">__NSStackBlock__</h3>
 <h4 id="what-1">What</h4>
 <p>自动变量存储在内存的栈区，当 Block 内访问了外界的自动变量时会对其进行捕获，此时 Block 本身也被分配在栈区，属于 <code>__NSStackBlock__</code> 类型：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main_10</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
@@ -919,7 +919,7 @@ BlockType_1 blockAsReturnValue() {
     Desc <span style="color:#f92672">=</span> desc;
   }
 };
-</code></pre></div><h3 id="--nsmallocblock--"><code>__NSMallocBlock__</code></h3>
+</code></pre></div><h3 id="--nsmallocblock--">__NSMallocBlock__</h3>
 <h4 id="what-2">What</h4>
 <p><code>__NSMallocBlock__</code> 类型的 Block 存储在内存的堆区，堆区是通常用作动态分配（Malloc）的内存：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo_4</span> : <span style="color:#a6e22e">NSObject</span>
@@ -1063,7 +1063,7 @@ BlockType_2 <span style="color:#a6e22e">returnMallocBlock</span>() {
 
 <span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo_5</span>
 <span style="color:#66d9ef">@end</span>
-</code></pre></div><h4 id="--nsstackblock---"><code>__NSStackBlock__</code> 拷贝到堆上的细节</h4>
+</code></pre></div><h4 id="--nsstackblock---">__NSStackBlock__ 拷贝到堆上的细节</h4>
 <p>上一节提到，ARC 下，编译器会根据情况将 <code>__NSStackBlock__</code> 类型的 Block 自动 <code>copy</code> 到堆上，那么在「拷贝」时到底会发生什么呢？</p>
 <p>这里以返回一个 <code>__NSStackBlock__</code> 的函数为例：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">if __has_feature(objc_arc)</span><span style="color:#75715e">
@@ -1301,7 +1301,7 @@ NSArray <span style="color:#f92672">*</span><span style="color:#a6e22e">returnBl
 
     <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
 }
-</code></pre></div><h2 id="--block"><code>__block</code></h2>
+</code></pre></div><h2 id="--block">__block</h2>
 <h3 id="heading-7">本质</h3>
 <p>上面的例子中 Block 内部只是访问了外界的变量，接下来我们尝试下在 Block 内修改变量值：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// 静态全局变量
@@ -1502,7 +1502,7 @@ __Block_byref_autoArray_1 <span style="color:#f92672">*</span>__forwarding;
 }
 </code></pre></div><p><code>__block</code> 将 <code>autoVar</code> 封装到 <code>__Block_byref_autoVar_0</code> 结构体中，将 <code>autoArray</code> 封装到 <code>__Block_byref_autoArray_1</code> 结构体中，其中的 <code>isa</code> 指针标志着该结构体本质也属于 Obj-C 对象；<code>__forwarding</code> 指针指向了该结构体本身，在初始化时被赋值为声明的结构体的地址；<code>__size</code> 为该结构体的大小信息；<code>autoVar</code> 和 <code>autoArray</code> 为捕获的变量本身。因此捕获了 <code>__block</code> 变量的 Block 结构如下图所示：</p>
 <p><img src="/img/2019/block_in_obj-c/4.png" alt="4"></p>
-<h3 id="--forwarding"><code>__forwarding</code></h3>
+<h3 id="--forwarding">__forwarding</h3>
 <p>当 Block 被分配在栈上时，其内部使用到的 <code>__block</code> 变量也会被分配在栈上；当 Block 超出作用域被销毁时，<code>__block</code> 变量则也会被销毁。当 Block 从栈拷贝到堆上时，其内部使用到的 <code>__block</code> 变量也会同时被拷贝到堆上，并被堆上的 Block 持有。当多个 Block 使用同一个 <code>__block</code> 变量时，第一个被拷贝到堆上的 Block 会将其同时拷贝到堆上并被该 Block 持有；当其它 Block 被拷贝到堆上后，将持有该变量，引用计数递增。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main_18</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
     <span style="color:#66d9ef">void</span>(<span style="color:#f92672">^</span>block1)(<span style="color:#66d9ef">void</span>);
@@ -1900,7 +1900,7 @@ __Block_byref_weakF_4 <span style="color:#f92672">*</span>__forwarding;
 </span><span style="color:#75715e"></span><span style="color:#75715e">// 20
 </span></code></pre></div><p><img src="/img/2019/block_in_obj-c/5.png" alt="5"></p>
 <h3 id="arc">ARC</h3>
-<h4 id="--weak----unsafe-unretained"><code>__weak</code> &amp; <code>__unsafe_unretained</code></h4>
+<h4 id="--weak----unsafe-unretained">__weak &amp; __unsafe_unretained</h4>
 <p>想要打破循环引用，我们需要一个不增加引用计数的指向。那么到底更改哪个引用呢？我们仍以上图为例：</p>
 <ul>
 <li>1⃣️ 处的强引用是我们在初始化时 <code>Foo_9 *f = [[Foo_9 alloc] init];</code> 所赋予的，栈上的 <code>f</code> 指针存储了堆上的对象的内存地址；</li>
@@ -1950,7 +1950,7 @@ __Block_byref_weakF_4 <span style="color:#f92672">*</span>__forwarding;
 </span><span style="color:#75715e"></span><span style="color:#75715e">// 30
 </span><span style="color:#75715e"></span><span style="color:#75715e">// dealloc
 </span></code></pre></div><p>而 <code>__weak</code> &amp; <code>__unsafe_unretained</code> 的区别在于前者在指向的对象销毁时，指针将自动置为 <code>nil</code>（Autoniling），而后者将保留指向的内存地址。</p>
-<h4 id="--block-1"><code>__block</code></h4>
+<h4 id="--block-1">__block</h4>
 <p><code>__block</code> 变量由于可以在 Block 内直接更改，因此其也可以用来解除循环引用：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main_24</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
 <span style="color:#75715e">#</span><span style="color:#75715e">if __has_feature(objc_arc)</span><span style="color:#75715e">
@@ -2041,7 +2041,7 @@ __Block_byref_weakF_4 <span style="color:#f92672">*</span>__forwarding;
 <span style="color:#75715e">// OUTPUT:
 </span><span style="color:#75715e"></span><span style="color:#75715e">// &lt;Foo_9: 0x100532c60&gt;
 </span><span style="color:#75715e"></span><span style="color:#75715e">// dealloc
-</span></code></pre></div><h3 id="weakify--strongify"><code>@weakify</code> &amp; <code>@strongify</code></h3>
+</span></code></pre></div><h3 id="weakify--strongify">@weakify &amp; @strongify</h3>
 <!-- raw HTML omitted -->
 <!-- raw HTML omitted -->
 <h2 id="reference">Reference</h2>

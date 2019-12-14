@@ -670,9 +670,9 @@ Method <span style="color:#a6e22e">class_getInstanceMethod</span>(<span style="c
 </code></pre></div><p>追根溯源，我们可以看到 +initialize 的本质其实是 objc_msgSend，即消息发送机制，不同于 +load 直接根据 IMP 指针进行调用。这也就解释了在 Demo 中，我们首先尝试向 <code>Student</code> 类发送一个 <code>alloc</code> 消息，运行时会先找到父类 <code>Person</code> 的 +initialize 方法进行调用，而由于父类又存在分类，最后编译的 <code>Person+Work</code> 分类「覆盖」了其它分类和主类中相同的方法而得以调用；随后调用子类自身的 +initialize 方法，而 <code>Student+School</code> 分类「覆盖」了主类中相同的方法而得以调用；而向 <code>Programmer</code> 类手动发送 +load 消息时（当然，一般我们不会这么做），由于该类本身没有实现 +initialize 方法，因此最终通过父类的 <code>Person+Work</code> 分类调用了 +initialize 方法。</p>
 <p><img src="/img/2019/+initialize_in_iOS/1.png" alt=""></p>
 <p>如上所述，一个类的 +initialize 方法并不能保证只会被调用一次，所以如果我们不希望多次调用，可以在 +initialize 方法中进行判断 <code>self == [ClassName self]</code>。</p>
-<h2 id="objc-print-initialize-methods"><code>OBJC_PRINT_INITIALIZE_METHODS</code></h2>
+<h2 id="objc-print-initialize-methods">OBJC_PRINT_INITIALIZE_METHODS</h2>
 <p>为了便于 Debug 运行时的 +initialize 方法，将 <code>OBJC_PRINT_INITIALIZE_METHODS</code> 在 Xcode 中设置为 YES 后，可以打印出很多 + initialize 方法执行时的信息：</p>
-<pre><code>objc[23971]: INITIALIZE: thread 0x1000aa5c0: calling +[NSObject initialize]
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">objc[23971]: INITIALIZE: thread 0x1000aa5c0: calling +[NSObject initialize]
 objc[23971]: INITIALIZE: thread 0x1000aa5c0: finished +[NSObject initialize]
 objc[23971]: INITIALIZE: thread 0x1000aa5c0: NSObject is fully +initialized
 objc[23971]: INITIALIZE: thread 0x1000aa5c0: calling +[OS_dispatch_data initialize]
@@ -909,7 +909,7 @@ objc[23971]: INITIALIZE: thread 0x1000aa5c0: calling +[Programmer initialize]
 2019-05-01 00:07:04.814347+0800 Initialize_Demo[23971:21942131] Person+Work +[Person(Work) initialize]
 objc[23971]: INITIALIZE: thread 0x1000aa5c0: finished +[Programmer initialize]
 objc[23971]: INITIALIZE: thread 0x1000aa5c0: Programmer is fully +initialized
-</code></pre><h2 id="heading-1">开销</h2>
+</code></pre></div><h2 id="heading-1">开销</h2>
 <p>+initialize 方法不同于 +load 方法，不会使得程序将时间过多地浪费在启动过程中，因此我们可以将一些合适的操作下沉到 +initialize 中完成。但 +initialize 是以阻塞的方式被调用，也不适合做特别多繁重尤其是可能导致死锁的操作。</p>
 <h2 id="reference">Reference</h2>
 <ul>
