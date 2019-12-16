@@ -6,7 +6,7 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Swift Xcode     2019-03-08 首次提交 4.2 10.1   2019-12-14 内容重整 5.1 10.3    Preface 在现代计算机中，操作系统一般都会支持多进程（Process）以及多线程（Thread）技术，使得其可以同时运行多个程序且效率更高。而我们在开发 iOS app 中也时常需要利用到这些特性，以为用户提供更加良好的使用体验。通常来说，一个 iOS app 为一个进程，其中又至少有一个线程，即主线程；前者进程由操作系统创建我们很难干预，而线程则「自由」许多，可以为我们所用。iOS 中实现多线程（Multithreading）技术通常可以使用以下几种 API：pthreads、NSThread、GCD（Grand Central Dispatch）以及 NSOperation。由于多线程技术内容较多，我将把相关内容有效整理分割，并独立发文，本文作为该系列第一篇，先来看一看 pthreads。
+<meta name="description" content="Date Notes Swift Xcode     2019-03-08 首次提交 4.2 10.1   2019-12-14 内容重整 5.1 10.3    Preface 在现代计算机中，操作系统一般都会支持多进程（Process）以及多线程（Thread）技术，使得其可以同时运行多个程序且效率更高。而我们在开发 iOS app 中也时常需要利用到这些特性，以为用户提供更加良好的使用体验。通常来说，一个 iOS app 为一个进程，其中又至少有一个线程，即主线程；前者进程由操作系统创建我们很难干预，而线程则「自由」许多，可以为我们所用。由于多线程技术内容较多，我将把相关内容进行拆分，本文作为该系列第一篇，先从 pthreads 说起。
 What  POSIX Threads, usually referred to as pthreads, is an execution model that exists independently from a language, as well as a parallel execution model. It allows a program to control multiple different flows of work that overlap in time."/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
@@ -28,12 +28,12 @@ What  POSIX Threads, usually referred to as pthreads, is an execution model that
 
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="iOS 多线程技术实践之 pthreads（一）"/>
-<meta name="twitter:description" content="在现代计算机中，操作系统一般都会支持多进程以及多线程技术，使得其可以同时运行多个程序且效率更高。而我们在开发 iOS app 中也时常需要利用到这些特性，以为用户提供更加良好的使用体验。通常来说，一个 iOS app 为一个进程，其中又至少有一个线程，即主线程；前者进程由操作系统创建我们很难干预，而线程则「自由」许多，可以为我们所用。iOS 中实现多线程技术通常可以使用以下几种 API：pthreads、`NSThread`、GCD 以及 `NSOperation`。由于多线程技术内容较多，我将把相关内容有效整理分割，并独立发文，本文作为该系列第一篇，先来看一看 pthreads。"/>
+<meta name="twitter:description" content="在现代计算机中，操作系统一般都会支持多进程以及多线程技术，使得其可以同时运行多个程序且效率更高。而我们在开发 iOS app 中也时常需要利用到这些特性，以为用户提供更加良好的使用体验。通常来说，一个 iOS app 为一个进程，其中又至少有一个线程，即主线程；前者进程由操作系统创建我们很难干预，而线程则「自由」许多，可以为我们所用。由于多线程技术内容较多，我将把相关内容进行拆分，本文作为该系列第一篇，先从 pthreads 说起。"/>
 
 
 
 <meta property="og:title" content="iOS 多线程技术实践之 pthreads（一）" />
-<meta property="og:description" content="在现代计算机中，操作系统一般都会支持多进程以及多线程技术，使得其可以同时运行多个程序且效率更高。而我们在开发 iOS app 中也时常需要利用到这些特性，以为用户提供更加良好的使用体验。通常来说，一个 iOS app 为一个进程，其中又至少有一个线程，即主线程；前者进程由操作系统创建我们很难干预，而线程则「自由」许多，可以为我们所用。iOS 中实现多线程技术通常可以使用以下几种 API：pthreads、`NSThread`、GCD 以及 `NSOperation`。由于多线程技术内容较多，我将把相关内容有效整理分割，并独立发文，本文作为该系列第一篇，先来看一看 pthreads。" />
+<meta property="og:description" content="在现代计算机中，操作系统一般都会支持多进程以及多线程技术，使得其可以同时运行多个程序且效率更高。而我们在开发 iOS app 中也时常需要利用到这些特性，以为用户提供更加良好的使用体验。通常来说，一个 iOS app 为一个进程，其中又至少有一个线程，即主线程；前者进程由操作系统创建我们很难干预，而线程则「自由」许多，可以为我们所用。由于多线程技术内容较多，我将把相关内容进行拆分，本文作为该系列第一篇，先从 pthreads 说起。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/posts/2019/multithreading_techs_in_ios-1/" />
 <meta property="article:published_time" content="2019-12-14T00:00:00+00:00" />
@@ -139,7 +139,7 @@ What  POSIX Threads, usually referred to as pthreads, is an execution model that
       
       
       
-        <span class="post-read-time">— 10 min read</span>
+        <span class="post-read-time">— 11 min read</span>
       
     </div>
 
@@ -186,7 +186,7 @@ What  POSIX Threads, usually referred to as pthreads, is an execution model that
 </table>
 <p><img src="/img/2019/multithreading_techs_in_ios-1/0.png" alt="0"></p>
 <h2 id="preface">Preface</h2>
-<p>在现代计算机中，操作系统一般都会支持多进程（Process）以及多线程（Thread）技术，使得其可以同时运行多个程序且效率更高。而我们在开发 iOS app 中也时常需要利用到这些特性，以为用户提供更加良好的使用体验。通常来说，一个 iOS app 为一个进程，其中又至少有一个线程，即主线程；前者进程由操作系统创建我们很难干预，而线程则「自由」许多，可以为我们所用。iOS 中实现多线程（Multithreading）技术通常可以使用以下几种 API：pthreads、<code>NSThread</code>、GCD（Grand Central Dispatch）以及 <code>NSOperation</code>。由于多线程技术内容较多，我将把相关内容有效整理分割，并独立发文，本文作为该系列第一篇，先来看一看 pthreads。</p>
+<p>在现代计算机中，操作系统一般都会支持多进程（Process）以及多线程（Thread）技术，使得其可以同时运行多个程序且效率更高。而我们在开发 iOS app 中也时常需要利用到这些特性，以为用户提供更加良好的使用体验。通常来说，一个 iOS app 为一个进程，其中又至少有一个线程，即主线程；前者进程由操作系统创建我们很难干预，而线程则「自由」许多，可以为我们所用。由于多线程技术内容较多，我将把相关内容进行拆分，本文作为该系列第一篇，先从 pthreads 说起。</p>
 <h2 id="what">What</h2>
 <blockquote>
 <p>POSIX Threads, usually referred to as pthreads, is an execution model that exists independently from a language, as well as a parallel execution model. It allows a program to control multiple different flows of work that overlap in time. Each flow of work is referred to as a thread, and creation and control over these flows is achieved by making calls to the POSIX Threads API.</p>
@@ -337,7 +337,7 @@ __API_AVAILABLE(macos(<span style="color:#ae81ff">10.4</span>), ios(<span style=
 </span><span style="color:#75715e"></span>pthread_attr_destroy(<span style="color:#f92672">&amp;</span>attr);
 </code></pre></div><p>如果我们不太会去自定义这里的属性，可以将 <code>pthread_create</code> 中的该参数传 <code>NULL</code> 即可使用默认属性来创建线程。</p>
 <h3 id="pthread-create">pthread_create</h3>
-<p><code>pthread_create</code> 中的最后两个参数是 <code>void *(*start_routine) (void *)</code> 和 <code>void *arg</code>。<code>start_routine()</code> 是新线程运行时所执行的函数，<code>arg</code> 是传入 <code>start_routine()</code> 的唯一参数。当 <code>start_routine()</code> 执行终止或者线程被明确杀死，线程也将会终止；<code>pthread_create</code> 的返回值是 <code>int</code> 类型，当返回 <code>0</code> 时，创建成功，否则将返回错误码：</p>
+<p><code>pthread_create</code> 中的最后两个参数是 <code>void *(*start_routine) (void *)</code> 和 <code>void *arg</code>。<code>start_routine()</code> 是新线程运行时所执行的函数，<code>arg</code> 是传入 <code>start_routine()</code> 的唯一参数。当 <code>start_routine()</code> 执行终止或者线程被明确杀死，线程也将会终止；<code>pthread_create</code> 的返回值是 <code>int</code> 类型，当返回 <code>0</code> 时为成功，否则将返回错误码：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
 </span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;pthread.h&gt;</span><span style="color:#75715e">
 </span><span style="color:#75715e"></span>
@@ -384,6 +384,9 @@ __API_AVAILABLE(macos(<span style="color:#ae81ff">10.4</span>), ios(<span style=
         printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_2 error.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
     }
 
+    <span style="color:#75715e">// 人为休息 1 秒
+</span><span style="color:#75715e"></span>    sleep(<span style="color:#ae81ff">1</span>);
+
     <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
 }
 
@@ -413,11 +416,8 @@ __API_AVAILABLE(macos(<span style="color:#ae81ff">10.4</span>), ios(<span style=
 </span><span style="color:#75715e"></span>         pthread_create(<span style="color:#f92672">&amp;</span>threads[i], NULL, thread_func, i);
     }
 
-    <span style="color:#75715e">// 阻塞主线程，避免其结束导致其它线程如果有耗时操作而无法得到执行
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> N; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
-        <span style="color:#75715e">// 关于该函数详见下一节
-</span><span style="color:#75715e"></span>        pthread_join(threads[i], NULL);
-    }
+    <span style="color:#75715e">// 人为休息 1 秒
+</span><span style="color:#75715e"></span>    sleep(<span style="color:#ae81ff">1</span>);
 
     <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
 }
@@ -448,11 +448,8 @@ __API_AVAILABLE(macos(<span style="color:#ae81ff">10.4</span>), ios(<span style=
          pthread_create(<span style="color:#f92672">&amp;</span>threads[i], NULL, thread_func, <span style="color:#f92672">&amp;</span>i);
     }
 
-    <span style="color:#75715e">// 阻塞主线程，避免其结束导致其它线程如果有耗时操作而无法得到执行
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> N; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
-        <span style="color:#75715e">// 关于该函数详见下一节
-</span><span style="color:#75715e"></span>        pthread_join(threads[i], NULL);
-    }
+    <span style="color:#75715e">// 人为休息 1 秒
+</span><span style="color:#75715e"></span>    sleep(<span style="color:#ae81ff">1</span>);
 
     <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
 }
@@ -483,11 +480,8 @@ __API_AVAILABLE(macos(<span style="color:#ae81ff">10.4</span>), ios(<span style=
         pthread_create(<span style="color:#f92672">&amp;</span>threads[i], NULL, thread_func, (<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)(intptr_t)i);
     }
 
-    <span style="color:#75715e">// 阻塞主线程，避免其结束导致其它线程如果有耗时操作而无法得到执行
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> N; i<span style="color:#f92672">+</span><span style="color:#f92672">+</span>) {
-        <span style="color:#75715e">// 关于该函数详见下一节
-</span><span style="color:#75715e"></span>        pthread_join(threads[i], NULL);
-    }
+    <span style="color:#75715e">// 人为休息 1 秒
+</span><span style="color:#75715e"></span>    sleep(<span style="color:#ae81ff">1</span>);
 
     <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
 }
@@ -499,11 +493,7 @@ __API_AVAILABLE(macos(<span style="color:#ae81ff">10.4</span>), ios(<span style=
 </span><span style="color:#75715e"></span><span style="color:#75715e">// arg = 2
 </span><span style="color:#75715e"></span><span style="color:#75715e">// arg = 4
 </span></code></pre></div><h3 id="pthread-create-in-swift">pthread_create in Swift</h3>
-<p>如上文所述，pthreads API 在 Swift 中也可以使用。首先，我们需要通过桥接文件引入 <code>pthread.h</code> 头文件：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Multithreading_pthreads-Bridging-Header.h
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">#</span><span style="color:#75715e">import &lt;pthread.h&gt;</span><span style="color:#75715e">
-</span></code></pre></div><p>然后我们可以在 Swift 中 <code>pthread_create</code> 函数声明处发现，其四个参数均与 <code>Unsafe...Pointer</code> 相关的类型有关，这样的命名是因为 Swift 中的指针语法也被抽象为类型而非 <code>*</code>，并通过 <code>Unsafe</code> 告知开发者其中可能存在隐患。而这里由于 <code>pthread_create</code> 本质是一个 C 语言函数，但 Swift 又无法直接与 C/C++ 进行混编，因此需要做一些转换：</p>
+<p>如上文所述，pthreads API 在 Swift 中也可以使用。我们可以在 Swift 中 <code>pthread_create</code> 函数声明处发现，其四个参数均与 <code>Unsafe...Pointer</code> 相关的类型有关，这样的命名是因为 Swift 中的指针语法也被抽象为类型而非 <code>*</code>，并通过 <code>Unsafe</code> 告知开发者其中可能存在隐患。而这里由于 <code>pthread_create</code> 本质是一个 C 语言函数，但 Swift 又无法直接与 C/C++ 进行混编，因此需要做一些转换：</p>
 <table>
 <thead>
 <tr>
@@ -586,7 +576,7 @@ print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">result
     print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_1 error.</span><span style="color:#e6db74">&#34;</span>)
 }
 
-<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">声</span><span style="color:#75715e">明</span><span style="color:#75715e">线</span><span style="color:#75715e">程</span><span style="color:#75715e">属</span><span style="color:#75715e">性</span><span style="color:#75715e"> </span><span style="color:#75715e">a</span><span style="color:#75715e">t</span><span style="color:#75715e">t</span><span style="color:#75715e">r</span><span style="color:#75715e">，</span><span style="color:#75715e">注</span><span style="color:#75715e">意</span><span style="color:#75715e">这</span><span style="color:#75715e">里</span><span style="color:#75715e">需</span><span style="color:#75715e">要</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">声</span><span style="color:#75715e">明</span><span style="color:#75715e">线</span><span style="color:#75715e">程</span><span style="color:#75715e">属</span><span style="color:#75715e">性</span><span style="color:#75715e"> </span><span style="color:#75715e">a</span><span style="color:#75715e">t</span><span style="color:#75715e">t</span><span style="color:#75715e">r</span><span style="color:#75715e">，</span><span style="color:#75715e">注</span><span style="color:#75715e">意</span><span style="color:#75715e">这</span><span style="color:#75715e">里</span><span style="color:#75715e">需</span><span style="color:#75715e">要</span><span style="color:#75715e">使</span><span style="color:#75715e">用</span><span style="color:#75715e"> </span><span style="color:#75715e">p</span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">a</span><span style="color:#75715e">d</span><span style="color:#75715e">_</span><span style="color:#75715e">a</span><span style="color:#75715e">t</span><span style="color:#75715e">t</span><span style="color:#75715e">r</span><span style="color:#75715e">_</span><span style="color:#75715e">t</span><span style="color:#75715e"> </span><span style="color:#75715e">构</span><span style="color:#75715e">造</span>
 <span style="color:#66d9ef">var</span> attr = pthread_attr_t()
 <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">初</span><span style="color:#75715e">始</span><span style="color:#75715e">化</span><span style="color:#75715e">线</span><span style="color:#75715e">程</span><span style="color:#75715e">属</span><span style="color:#75715e">性</span>
 pthread_attr_init(&amp;attr)
@@ -601,6 +591,9 @@ print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">result
     print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_2 error.</span><span style="color:#e6db74">&#34;</span>)
 }
 
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">人</span><span style="color:#75715e">为</span><span style="color:#75715e">休</span><span style="color:#75715e">息</span><span style="color:#75715e"> </span><span style="color:#75715e">1</span><span style="color:#75715e"> </span><span style="color:#75715e">秒</span>
+sleep(<span style="color:#ae81ff">1</span>)
+
 <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">O</span><span style="color:#75715e">U</span><span style="color:#75715e">T</span><span style="color:#75715e">P</span><span style="color:#75715e">U</span><span style="color:#75715e">T</span><span style="color:#75715e">:</span>
 <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">s</span><span style="color:#75715e">u</span><span style="color:#75715e">l</span><span style="color:#75715e">t</span><span style="color:#75715e">_</span><span style="color:#75715e">1</span><span style="color:#75715e"> </span><span style="color:#75715e">-</span><span style="color:#75715e"> </span><span style="color:#75715e">0</span><span style="color:#75715e"> </span><span style="color:#75715e">-</span><span style="color:#75715e"> </span><span style="color:#75715e">O</span><span style="color:#75715e">p</span><span style="color:#75715e">t</span><span style="color:#75715e">i</span><span style="color:#75715e">o</span><span style="color:#75715e">n</span><span style="color:#75715e">a</span><span style="color:#75715e">l</span><span style="color:#75715e">(</span><span style="color:#75715e">0</span><span style="color:#75715e">x</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">7</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">2</span><span style="color:#75715e">c</span><span style="color:#75715e">d</span><span style="color:#75715e">8</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">)</span>
 <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">a</span><span style="color:#75715e">d</span><span style="color:#75715e">_</span><span style="color:#75715e">1</span><span style="color:#75715e"> </span><span style="color:#75715e">(</span><span style="color:#75715e">0</span><span style="color:#75715e">x</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">7</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">2</span><span style="color:#75715e">c</span><span style="color:#75715e">d</span><span style="color:#75715e">8</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">)</span><span style="color:#75715e"> </span><span style="color:#75715e">i</span><span style="color:#75715e">s</span><span style="color:#75715e"> </span><span style="color:#75715e">r</span><span style="color:#75715e">u</span><span style="color:#75715e">n</span><span style="color:#75715e">n</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">g</span><span style="color:#75715e">.</span>
@@ -608,8 +601,33 @@ print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">result
 <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">p</span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">a</span><span style="color:#75715e">d</span><span style="color:#75715e">_</span><span style="color:#75715e">c</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">a</span><span style="color:#75715e">t</span><span style="color:#75715e">e</span><span style="color:#75715e"> </span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">a</span><span style="color:#75715e">d</span><span style="color:#75715e">_</span><span style="color:#75715e">2</span><span style="color:#75715e"> </span><span style="color:#75715e">e</span><span style="color:#75715e">r</span><span style="color:#75715e">r</span><span style="color:#75715e">o</span><span style="color:#75715e">r</span><span style="color:#75715e">.</span>
 </code></pre></div><h2 id="heading-1">线程执行</h2>
 <!-- raw HTML omitted -->
-<h2 id="heading-2">线程间同步</h2>
-<p>pthreads API 中另外一个重要的 API 是 <code>pthread_join</code> 函数，其可以使得当前线程阻塞，等待另外一个线程结束并取得结果：</p>
+<h2 id="heading-2">线程同步</h2>
+<p>在上面代码示例中的 <code>main</code> 函数中，都有这么一句 <code>sleep(1)</code>，目的是让当前线程休息 1 秒，但这是为什么呢？我们可以尝试注释掉这一行 <code>sleep()</code> 函数的调用再运行一次：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;pthread.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">runForThread</span>(<span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>arg) {
+    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%s (%p) is running.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, arg, pthread_self());
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
+    <span style="color:#75715e">// 输出主线程信息
+</span><span style="color:#75715e"></span>    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">(%p) is running.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, pthread_self());
+
+    pthread_t <span style="color:#66d9ef">thread</span> <span style="color:#f92672">=</span> NULL;
+
+    <span style="color:#66d9ef">if</span> (pthread_create(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">thread</span>, NULL, (<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)runForThread, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">thread</span><span style="color:#e6db74">&#34;</span>) <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+        printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread error.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+    }
+
+    <span style="color:#75715e">// sleep(1);
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// (0x1000d2dc0) is running.
+</span></code></pre></div><p>此时将只有主线程的输出，而新创建的子线程 <code>thread</code> 却没有输出，这是因为主线程执行结束即代表程序结束， <code>thread</code> 子线程根本来不及去执行。所以 <code>sleep(1)</code> 其实是人为将主线程休眠 1 秒，等待子线程去执行，但这样硬核去休眠固定的时间并不是合理的操作。pthreads 为我们提供了 <code>pthread_join</code> API 来阻塞当前线程，等待目标线程执行完毕后再继续执行当前线程：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">PTHREAD_JOIN(3)          BSD Library Functions Manual          PTHREAD_JOIN(3)
 
 NAME
@@ -657,76 +675,82 @@ STANDARDS
      pthread_join() conforms to ISO/IEC 9945-1:1996 (``POSIX.1&#39;&#39;).
 
 BSD                              April 4, 1996                             BSD
-</code></pre></div><p>比如我们在主线程中尝试让其等待新线程的执行，并最终在主线程输出新线程的结果：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">
-</code></pre></div><p>这时就需要用到 <code>int pthread_join(pthread_t thread, void **value_ptr)</code> 函数了。<code>pthread_join</code> 函数的作用是阻塞当前线程的运行，直到传入的线程终止才继续执行，参数 <code>value_ptr</code> 则保存了传入线程的返回值。与 <code>pthread_create</code> 一样，当返回 <code>0</code> 时为成功，否则将返回错误码：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">
-</code></pre></div><hr>
-<p>那如何保证主线程在子线程还没有结束的时候，不执行完呢？首先可以想到的就是让主线程休息一会儿。在 <code>exit(3);</code> 之前加一句 <code>sleep(1);</code> 让主线程休眠一秒钟，这样子线程的程序就有足够的时间执行完。但这样真的好吗？如果子线程的执行时间小于一秒，那么我们的时间就浪费了；而当大于一秒时，这个方法就没用了。这时候就需要另外一个函数，<code>int pthread_join(pthread_t , void * _Nullable * _Nullable)</code>，即 <code>int pthread_join(pthread_t thread, void **retval);</code>，其作用是阻塞当前线程运行，直到参数线程 <code>thread</code> 终止，参数 <code>retval</code> 保存了线程函数的返回值。与 <code>pthread_create</code> 一样，当返回 <code>0</code> 时，参与成功，否则将返回错误码：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &#34;POSIXThreadManager.h&#34;</span><span style="color:#75715e">
+</code></pre></div><p><code>pthread_join</code> 函数在 Obj-C 下的声明如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// pthread.h
 </span><span style="color:#75715e"></span>
-<span style="color:#75715e">#</span><span style="color:#75715e">import &lt;pthread.h&gt;</span><span style="color:#75715e">
+__API_AVAILABLE(macos(<span style="color:#ae81ff">10.4</span>), ios(<span style="color:#ae81ff">2.0</span>))
+<span style="color:#66d9ef">int</span> pthread_join(pthread_t , <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> _Nullable <span style="color:#f92672">*</span> _Nullable)
+		__DARWIN_ALIAS_C(pthread_join);
+</code></pre></div><p>其中，第一个参数即等待的目标线程；第二个参数保存了线程函数的返回值；返回值是 <code>int</code> 类型，当返回 <code>0</code> 时为成功，否则将返回错误码。我们尝试使用 <code>pthread_join</code> 改写上面的代码示例：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;pthread.h&gt;</span><span style="color:#75715e">
 </span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">run_for_pthread_join_demo</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> arg) {
-    <span style="color:#75715e">// 返回参数
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// return arg;
-</span><span style="color:#75715e"></span>    pthread_exit(arg);
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">runForThread</span>(<span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>arg) {
+    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%s (%p) is running.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, arg, pthread_self());
 }
 
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">POSIXThreadManager</span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
+    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">(%p) is running.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, pthread_self());
 
-+ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">pthread_join_demo</span> {
-    <span style="color:#75715e">// 声明 thread_1 &amp; thread_2
-</span><span style="color:#75715e"></span>    pthread_t thread_1, thread_2;
+    pthread_t <span style="color:#66d9ef">thread</span> <span style="color:#f92672">=</span> NULL;
 
-    <span style="color:#75715e">// 创建 thread_1
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> result_1 <span style="color:#f92672">=</span> pthread_create(<span style="color:#f92672">&amp;</span>thread_1, NULL, run_for_pthread_join_demo, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">thread_1</span><span style="color:#e6db74">&#34;</span>);
-
-    <span style="color:#75715e">// 打印 thread_1 创建函数返回值 &amp; __opaque 属性的地址
-</span><span style="color:#75715e"></span>    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">result_1 - %d - %p</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, result_1, <span style="color:#f92672">&amp;</span>thread_1<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>__opaque);
-
-    <span style="color:#75715e">// 检查线程是否创建成功
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (result_1 <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
-        perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_1 error.</span><span style="color:#e6db74">&#34;</span>);
-        <span style="color:#75715e">// 线程创建失败退出码为 1
-</span><span style="color:#75715e"></span>        exit(<span style="color:#ae81ff">1</span>);
+    <span style="color:#66d9ef">if</span> (pthread_create(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">thread</span>, NULL, (<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)runForThread, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">thread</span><span style="color:#e6db74">&#34;</span>) <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+        printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread error.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
     }
 
-    <span style="color:#75715e">// 创建 thread_2
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> result_2 <span style="color:#f92672">=</span> pthread_create(<span style="color:#f92672">&amp;</span>thread_2, NULL, run_for_pthread_join_demo, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">thread_2</span><span style="color:#e6db74">&#34;</span>);
+    pthread_join(<span style="color:#66d9ef">thread</span>, NULL);
 
-    <span style="color:#75715e">// 打印 thread_2 创建函数返回值 &amp; __opaque 属性的地址
-</span><span style="color:#75715e"></span>    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">result_2 - %d - %p</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, result_2, <span style="color:#f92672">&amp;</span>thread_2<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>__opaque);
+    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">main thread exit.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
 
-    <span style="color:#66d9ef">if</span> (result_2 <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
-        perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread_2 error.</span><span style="color:#e6db74">&#34;</span>);
-        <span style="color:#75715e">// 线程创建失败退出码为 1
-</span><span style="color:#75715e"></span>        exit(<span style="color:#ae81ff">1</span>);
-    }
-
-    <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> result;
-    <span style="color:#66d9ef">if</span> (pthread_join(thread_1, <span style="color:#f92672">&amp;</span>result) <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
-        perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_join thread_1 error.</span><span style="color:#e6db74">&#34;</span>);
-    }
-    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%s</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, result);
-
-    <span style="color:#66d9ef">if</span> (pthread_join(thread_2, <span style="color:#f92672">&amp;</span>result) <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
-        perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_join thread_2 error.</span><span style="color:#e6db74">&#34;</span>);
-    }
-    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%s</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, result);
-
-    <span style="color:#75715e">// 主线程退出码为 3
-</span><span style="color:#75715e"></span>    exit(<span style="color:#ae81ff">3</span>);
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
 }
 
-<span style="color:#66d9ef">@end</span>
-</code></pre></div><p>这样主线程就能等待子线程全部执行完毕后再接着执行了，而且通过第二个参数也可以使我们在线程间进行数据传输。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// OUTPUT:
-</span><span style="color:#75715e"></span><span style="color:#75715e">// result_1 - 0 - 0x70000c9e5010 // 主线程输出
-</span><span style="color:#75715e"></span><span style="color:#75715e">// result_2 - 0 - 0x70000ca68010 // 主线程输出
-</span><span style="color:#75715e"></span><span style="color:#75715e">// thread_1 // 主线程拿到了子线程调用函数的返回值并输出
-</span><span style="color:#75715e"></span><span style="color:#75715e">// thread_2 // 主线程拿到了子线程调用函数的返回值并输出
-</span><span style="color:#75715e"></span><span style="color:#75715e">// Program ended with exit code: 3 // 主线程结束程序
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// (0x1000d2dc0) is running.
+</span><span style="color:#75715e"></span><span style="color:#75715e">// thread (0x70000289c000) is running.
+</span><span style="color:#75715e"></span><span style="color:#75715e">// main thread exit.
+</span></code></pre></div><p>这次主线程将一直等待 <code>thread</code> 线程结束后才继续执行。</p>
+<p>需要注意的是，<code>pthread_join</code> 的第二参数类型是 <code>void **</code>，因此传入的应当是 <code>void *</code> 变量的地址：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;pthread.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">runForThread</span>(<span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>arg) {
+    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%s (%p) is running.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, arg, pthread_self());
+
+    <span style="color:#75715e">// 使用 malloc 分配内存
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">double</span> <span style="color:#f92672">*</span>result <span style="color:#f92672">=</span> (<span style="color:#66d9ef">double</span> <span style="color:#f92672">*</span>)malloc(<span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">double</span>));
+    <span style="color:#f92672">*</span>result <span style="color:#f92672">=</span> <span style="color:#ae81ff">3.14</span>;
+
+    <span style="color:#66d9ef">return</span> (<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)result;
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
+    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">(%p) is running.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, pthread_self());
+
+    pthread_t <span style="color:#66d9ef">thread</span> <span style="color:#f92672">=</span> NULL;
+
+    <span style="color:#66d9ef">if</span> (pthread_create(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">thread</span>, NULL, (<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)runForThread, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">thread</span><span style="color:#e6db74">&#34;</span>) <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+        printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread error.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+    }
+
+    <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>result <span style="color:#f92672">=</span> NULL;
+    pthread_join(<span style="color:#66d9ef">thread</span>, <span style="color:#f92672">&amp;</span>result);
+
+    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">thread result - %lf</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">*</span>(<span style="color:#66d9ef">double</span> <span style="color:#f92672">*</span>)result);
+
+    <span style="color:#75715e">// 使用 free 释放内存
+</span><span style="color:#75715e"></span>    free(result);
+
+    printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">main thread exit.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// (0x1000d2dc0) is running.
+</span><span style="color:#75715e"></span><span style="color:#75715e">// thread (0x70000537e000) is running.
+</span><span style="color:#75715e"></span><span style="color:#75715e">// thread result - 3.140000
+</span><span style="color:#75715e"></span><span style="color:#75715e">// main thread exit.
 </span></code></pre></div><h2 id="semaphore">信号量（Semaphore）</h2>
 <p>信号量的概念很难从字面直接理解，常用的比喻是信号灯：一段马路（即资源）对车辆（即线程）的承载量是有限的，当承载量达到限度时，红灯会亮起阻止进入；当承载量未达到时，绿灯会亮起允许进入。关于互斥锁和信号量的区别，简而言之，互斥锁通常处理多个线程对一个资源的争夺，意味着总是按顺序获取和释放。而信号量则应当用在一个任务到另一个任务的信号，其中的任务要么发送信号要么等待信号。我在 <a href="https://github.com/kingcos/WWDCHelper">WWDCHelper</a> 中也用到了信号量，函数返回的数据需要等待下载任务完成后才可以得到，所以当下载任务完成后发送信号，等待的信号收到后便继续前行。</p>
 <p>我们创建两个线程，线程 2 中人为等待 1 秒代表处理任务，任务完成后发送信号，线程 1 中等待信号，等信号发出再执行自己的任务：</p>
@@ -803,6 +827,7 @@ BSD                              April 4, 1996                             BSD
 <li><a href="https://www.ibm.com/support/knowledgecenter/en/ssw_ibm_i_71/apis/concep17.htm">Thread ID vs. Pthread Handle (pthread_t) - IBM</a></li>
 <li><a href="https://developer.apple.com/documentation/swift/imported_c_and_objective-c_apis/using_imported_c_functions_in_swift">Using Imported C Functions in Swift - Apple</a></li>
 <li><a href="https://stackoverflow.com/questions/8487380/how-to-cast-an-integer-to-void-pointer">How to cast an integer to void pointer? - StackOverflow</a></li>
+<li><a href="https://developer.apple.com/library/archive/documentation/Performance/Conceptual/EnergyGuide-iOS">Energy Efficiency Guide for iOS Apps - Apple</a></li>
 </ul>
 <!-- raw HTML omitted -->
 <!-- raw HTML omitted -->
