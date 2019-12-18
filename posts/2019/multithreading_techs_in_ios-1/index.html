@@ -139,7 +139,7 @@ What  POSIX Threads, usually referred to as pthreads, is an execution model that
       
       
       
-        <span class="post-read-time">— 11 min read</span>
+        <span class="post-read-time">— 10 min read</span>
       
     </div>
 
@@ -612,6 +612,7 @@ sleep(<span style="color:#ae81ff">1</span>)
 </span><span style="color:#75715e"></span>
 pthread_attr_setschedpolicy(<span style="color:#f92672">&amp;</span>attr, SCHED_RR);
 </code></pre></div><h2 id="heading-2">线程同步</h2>
+<h3 id="pthread-join">pthread_join</h3>
 <p>在上面代码示例中的 <code>main</code> 函数中，都在末尾会有这么一句 <code>sleep(1)</code>，作用是让当前线程休息 1 秒，这是为什么呢？我们可以尝试注释掉这一行 <code>sleep()</code> 函数的调用再运行一次：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
 </span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;pthread.h&gt;</span><span style="color:#75715e">
@@ -719,7 +720,7 @@ __API_AVAILABLE(macos(<span style="color:#ae81ff">10.4</span>), ios(<span style=
 </span><span style="color:#75715e"></span><span style="color:#75715e">// (0x1000d2dc0) is running.
 </span><span style="color:#75715e"></span><span style="color:#75715e">// thread (0x70000289c000) is running.
 </span><span style="color:#75715e"></span><span style="color:#75715e">// main thread exit.
-</span></code></pre></div><p>这次主线程将一直等待 <code>thread</code> 子线程执行结束后才继续执行，这种两个或多个线程协作执行，可以称之为线程同步。当然，<code>pthread_join</code> 只是线程同步的一种方式，pthreads 中还提供了互斥锁（Mutex）、信号量、条件变量的方式，由于本文暂不会涉及锁相关的内容，关于互斥锁可详见后续内容。</p>
+</span></code></pre></div><p>这次主线程将一直等待 <code>thread</code> 子线程执行结束后才继续执行，这种两个或多个线程协作执行，可以称之为线程同步。当然，<code>pthread_join</code> 只是线程同步的一种方式。</p>
 <p><code>pthread_join</code> 中仍需注意的一点是，其第二个参数类型是 <code>void **</code>，因此传入的应当是 <code>void *</code> 变量的地址：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
 </span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;pthread.h&gt;</span><span style="color:#75715e">
@@ -763,78 +764,46 @@ __API_AVAILABLE(macos(<span style="color:#ae81ff">10.4</span>), ios(<span style=
 </span><span style="color:#75715e"></span><span style="color:#75715e">// thread (0x70000537e000) is running.
 </span><span style="color:#75715e"></span><span style="color:#75715e">// thread result - 3.140000
 </span><span style="color:#75715e"></span><span style="color:#75715e">// main thread exit.
-</span></code></pre></div><h2 id="heading-3">信号量</h2>
-<p>信号量（Semaphore）的概念很难从字面直接理解，其也被称为信号灯：一段马路（即资源）对车辆（即线程）的承载量是有限的，当承载量达到限度时，红灯会亮起阻止进入；当承载量未达到时，绿灯会亮起允许进入。关于互斥锁和信号量的区别，简而言之，互斥锁通常处理多个线程对一个资源的争夺，意味着总是按顺序获取和释放；而信号量则应当用在一个任务到另一个任务的信号，其中的任务要么发送信号要么等待信号。我在开发 <a href="https://github.com/kingcos/WWDCHelper">WWDCHelper</a> 命令行程序中也用到了信号量，函数返回的数据需要等待下载任务完成后才可以得到，所以当下载任务完成后发送信号，等待的信号收到后便继续前行。</p>
-<p>我们创建两个线程，<code>thread_2</code> 中人为等待 1 秒代表处理耗时任务，任务完成后发送信号，<code>thread_1</code> 中等待信号，等信号发出再执行自己的任务：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">#</span><span style="color:#75715e">import &lt;pthread.h&gt;</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;sys</span><span style="color:#75715e">/</span><span style="color:#75715e">semaphore.h&gt;</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">// 声明信号量
-</span><span style="color:#75715e"></span>sem_t <span style="color:#f92672">*</span> sem;
+</span></code></pre></div><p>Swift 下的 <code>pthread_join</code> 用法基本一致：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">runForThread</span>(<span style="color:#66d9ef">_</span> arg: UnsafeMutableRawPointer) -&gt; UnsafeMutableRawPointer? {
+    print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>decode<span style="color:#e6db74">(</span>arg<span style="color:#e6db74">)</span> <span style="color:#66d9ef">as</span> String<span style="color:#e6db74">)</span><span style="color:#e6db74"> (</span><span style="color:#e6db74">\(</span>pthread_self<span style="color:#e6db74">(</span><span style="color:#e6db74">)</span><span style="color:#e6db74">)</span><span style="color:#e6db74">) is running.</span><span style="color:#e6db74">&#34;</span>)
 
-<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">run_thread</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>arg) {
-    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">--- run_thread ---</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
-
-    sleep(<span style="color:#ae81ff">2</span>);
-
-    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">--- sem_post ---</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
-
-    <span style="color:#75715e">// 发射信号
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (sem_post(sem) <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
-        perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">sem_post error.</span><span style="color:#e6db74">&#34;</span>);
-        exit(<span style="color:#ae81ff">1</span>);
-    }
-
-    pthread_exit(NULL);
+    <span style="color:#66d9ef">return</span> encode(<span style="color:#ae81ff">3.14</span>)
 }
 
-<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
-    sem <span style="color:#f92672">=</span> sem_open(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>, O_CREAT, <span style="color:#ae81ff">0666</span>, <span style="color:#ae81ff">1</span>);
+print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">(</span><span style="color:#e6db74">\(</span>pthread_self<span style="color:#e6db74">(</span><span style="color:#e6db74">)</span><span style="color:#e6db74">)</span><span style="color:#e6db74">) is running.</span><span style="color:#e6db74">&#34;</span>)
 
-    <span style="color:#66d9ef">if</span> (sem <span style="color:#f92672">=</span><span style="color:#f92672">=</span> SEM_FAILED) {
-         perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">sem_open error</span><span style="color:#e6db74">&#34;</span>);
-         exit(<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>);
-    }
+<span style="color:#66d9ef">var</span> thread: pthread_t!
 
-    pthread_t <span style="color:#66d9ef">thread</span>;
-
-    <span style="color:#66d9ef">if</span> (pthread_create(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">thread</span>, NULL, run_thread, NULL) <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
-        printf(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread error.</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
-    }
-
-    <span style="color:#75715e">// 等待信号
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (sem_wait(sem) <span style="color:#f92672">!</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
-        perror(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">sem_wait error.</span><span style="color:#e6db74">&#34;</span>);
-        exit(<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>);
-    }
-
-    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">goon</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
-
-    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+<span style="color:#66d9ef">if</span> pthread_create(&amp;thread, <span style="color:#66d9ef">nil</span>, runForThread, encode(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">thread</span><span style="color:#e6db74">&#34;</span>)) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+    print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pthread_create thread error.</span><span style="color:#e6db74">&#34;</span>)
 }
 
-<span style="color:#75715e">// OUTPUT:
-</span><span style="color:#75715e"></span><span style="color:#75715e">// --- run_thread ---
-</span><span style="color:#75715e"></span><span style="color:#75715e">// --- sem_post ---
-</span><span style="color:#75715e"></span><span style="color:#75715e">// goon
-</span></code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// 关闭信号量
-</span><span style="color:#75715e"></span>sem_close(sem);
-<span style="color:#75715e">// 取消链接信号量
-</span><span style="color:#75715e"></span>sem_unlink(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>);
-</code></pre></div><!-- raw HTML omitted -->
+<span style="color:#66d9ef">var</span> res: UnsafeMutableRawPointer!
+pthread_join(thread, &amp;res)
+
+print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">res - </span><span style="color:#e6db74">\(</span>decode<span style="color:#e6db74">(</span>res<span style="color:#e6db74">)</span> <span style="color:#66d9ef">as</span> Double<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>)
+
+print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">main thread exit.</span><span style="color:#e6db74">&#34;</span>)
+
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">O</span><span style="color:#75715e">U</span><span style="color:#75715e">T</span><span style="color:#75715e">P</span><span style="color:#75715e">U</span><span style="color:#75715e">T</span><span style="color:#75715e">:</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">(</span><span style="color:#75715e">0</span><span style="color:#75715e">x</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">1</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">d</span><span style="color:#75715e">6</span><span style="color:#75715e">d</span><span style="color:#75715e">c</span><span style="color:#75715e">0</span><span style="color:#75715e">)</span><span style="color:#75715e"> </span><span style="color:#75715e">i</span><span style="color:#75715e">s</span><span style="color:#75715e"> </span><span style="color:#75715e">r</span><span style="color:#75715e">u</span><span style="color:#75715e">n</span><span style="color:#75715e">n</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">g</span><span style="color:#75715e">.</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">a</span><span style="color:#75715e">d</span><span style="color:#75715e"> </span><span style="color:#75715e">(</span><span style="color:#75715e">0</span><span style="color:#75715e">x</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">7</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">7</span><span style="color:#75715e">b</span><span style="color:#75715e">b</span><span style="color:#75715e">2</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">)</span><span style="color:#75715e"> </span><span style="color:#75715e">i</span><span style="color:#75715e">s</span><span style="color:#75715e"> </span><span style="color:#75715e">r</span><span style="color:#75715e">u</span><span style="color:#75715e">n</span><span style="color:#75715e">n</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">g</span><span style="color:#75715e">.</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">s</span><span style="color:#75715e"> </span><span style="color:#75715e">-</span><span style="color:#75715e"> </span><span style="color:#75715e">3</span><span style="color:#75715e">.</span><span style="color:#75715e">1</span><span style="color:#75715e">4</span>
+<span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">m</span><span style="color:#75715e">a</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e"> </span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">a</span><span style="color:#75715e">d</span><span style="color:#75715e"> </span><span style="color:#75715e">e</span><span style="color:#75715e">x</span><span style="color:#75715e">i</span><span style="color:#75715e">t</span><span style="color:#75715e">.</span>
+</code></pre></div><h3 id="heading-3">互斥锁</h3>
+<p>TODO</p>
+<!-- raw HTML omitted -->
+<h3 id="heading-4">条件变量</h3>
+<p>TODO</p>
 <h2 id="reference">Reference</h2>
 <ul>
-<li><a href="https://www.cs.nmsu.edu/~jcook/Tools/pthreads/library.html">NMSU - The Pthreads Library</a></li>
+<li><a href="https://en.wikipedia.org/wiki/pthreads">POSIX Threads - Wikipedia</a></li>
+<li><a href="https://www.cs.nmsu.edu/~jcook/Tools/pthreads/library.html">The Pthreads Library - NMSU</a></li>
 <li><a href="../nullability_in_obj-c/">[译] 在 Objective-C API 中指定可空性 - kingcos</a></li>
-<li><a href="https://en.wikipedia.org/wiki/Restrict">Wikipedia - restrict</a></li>
-<li><a href="https://stackoverflow.com/questions/34519/what-is-a-semaphore">StackOverflow - What is a semaphore?</a></li>
-<li><a href="https://barrgroup.com/Embedded-Systems/How-To/RTOS-Mutex-Semaphore">Michael Barr - Mutexes and Semaphores Demystified</a></li>
-<li><a href="https://see.stanford.edu/materials/icsppcs107/23-Concurrency-Examples.pdf">Stanford - Thread and Semaphore Examples</a></li>
-<li><a href="https://github.com/kingcos/WWDCHelper">WWDCHelper</a></li>
-<li><a href="https://stackoverflow.com/questions/1413785/sem-init-on-os-x">StackOverflow - sem_init on OS X</a></li>
-<li><a href="https://github.com/ZewoGraveyard/POSIX">GitHub - ZewoGraveyard/POSIX</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Restrict">restrict - Wikipedia</a></li>
+<li><a href="https://stackoverflow.com/questions/1413785/sem-init-on-os-x">sem_init on OS X - StackOverflow</a></li>
+<li><a href="https://github.com/ZewoGraveyard/POSIX">ZewoGraveyard/POSIX - GitHub</a></li>
 <li><a href="https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/">iOS Manual Pages - Apple</a></li>
 <li><a href="https://www.ibm.com/support/knowledgecenter/en/ssw_ibm_i_71/apis/concep17.htm">Thread ID vs. Pthread Handle (pthread_t) - IBM</a></li>
 <li><a href="https://developer.apple.com/documentation/swift/imported_c_and_objective-c_apis/using_imported_c_functions_in_swift">Using Imported C Functions in Swift - Apple</a></li>
@@ -844,6 +813,9 @@ __API_AVAILABLE(macos(<span style="color:#ae81ff">10.4</span>), ios(<span style=
 <li><a href="https://stackoverflow.com/questions/23051676/does-pthread-create-start-the-created-thread/23051731">Does pthread_create start the created thread? - StackOverflow</a></li>
 <li><a href="https://stackoverflow.com/questions/3649281/how-to-increase-thread-priority-in-pthreads">How to increase thread priority in pthreads? - StackOverflow</a></li>
 </ul>
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
 <!-- raw HTML omitted -->
 <!-- raw HTML omitted -->
 
