@@ -138,7 +138,7 @@
       
       
       
-        <span class="post-read-time">— 29 min read</span>
+        <span class="post-read-time">— 30 min read</span>
       
     </div>
 
@@ -150,8 +150,6 @@
           #<a href="/tags/ios/">iOS</a>&nbsp;
         
           #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
-        
-          #<a href="/tags//">🚧</a>&nbsp;
         
       </span>
     
@@ -211,7 +209,7 @@
 <h3 id="-objective-c-">了解 Objective-C 语言的起源</h3>
 <p>消息结构（Message Structure）的语言，运行时执行的代码由运行环境决定；函数调用（Function Calling）的语言，运行时所执行的代码由编译器决定，对于多态，则按照虚函数表（Virtual Method Table）寻找。</p>
 <p>运行时组件（Runtime Component） 本质上是一种与开发者所编写代码相链接的「动态库（Dynamic Library），这样的好处是只需要更新运行时组件（无需重新编译）即可提升程序性能。</p>
-<p>Obj-C 是 C 的超集；Obj-C 中的对象所占内存总是分配在堆空间（Heap Space）；而指向对象的指针所占内存总是分配在栈帧（Stack Frame）中；堆中的内存需要程序员自己管理，栈中的内存会在其栈帧弹出（Pop）时自动清理；创建对象相比创建结构体（C 结构体）需要额外开销，例如分配和释放堆内存等。</p>
+<p>Obj-C 是 C 的超集；Obj-C 中的对象所占内存总是分配在堆空间（Heap Space）；而指向对象的指针所占内存总是分配在栈帧（Stack Frame）中；堆中的内存需要开发者自己管理，栈中的内存会在其栈帧弹出（Pop）时自动清理；创建对象相比创建结构体（C 结构体）需要额外开销，例如分配和释放堆内存等。</p>
 <p><img src="/img/2019/effective_obj-c_2.0_notes/1.png" alt="1"></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// ⚠️ 由于 Obj-C 中的字符串（NSString）略有特殊，此处并未使用书中的 NSString 作为范例
 </span><span style="color:#75715e"></span><span style="color:#75715e">// 对象本身被分配在堆上；obj1 &amp; obj2 被分配在栈上
@@ -532,32 +530,136 @@ ImageSourceType type2 <span style="color:#f92672">=</span> ImageSourceTypeGaller
 
 self<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_foooo <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Foo</span><span style="color:#e6db74">&#34;</span>;
 NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [self foo]);
-</code></pre></div><p>原子性</p>
+</code></pre></div><p>1⃣️ 原子性</p>
 <ul>
-<li>在化学中，原子是不可分割的最小粒子，因此可以理解为一个原子操作是不会被中断的，即线程安全的（但这并不代表 <code>atomic</code> 的属性是线程安全的）；</li>
-<li>默认情况下（即不明确指定原子性时），由编译器所合成的方法（即 getter &amp; setter）会通过锁定机制确保其原子性（Atomicity）；</li>
-<li>自己实现的 getter &amp; setter 需要自己来保证相应的原子性（即自己实现时与声明的原子性没有关系）；</li>
-<li>若属性为 <code>nonatomic</code> 则不使用同步锁，iOS 中使用同步锁开销较大，可能带来性能问题，因此 <code>nonatomic</code> 性能会好点且 <code>atomic</code> 并不能保证操作是原子的，因此通常都使用 <code>nonatomic</code>。</li>
+<li>原子（Atom）是参与化学反应中最小的粒子，因此可以理解为一个原子性（Atomicity）的操作是不会被中断的，即保证线程安全；</li>
+<li>声明属性时，如果不明确指定原子性则为 <code>atomic</code>；</li>
+<li>开发者自己实现的 getter &amp; setter 需要自己来保证相应的原子性。</li>
 </ul>
-<p>读写权限</p>
+<p>那我们应当使用哪个修饰符呢？从源码来看，使用 <code>atomic</code> 或 <code>nonatomic</code> 修饰的属性会影响生成的 getter &amp; setter：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// objc4 - objc-accessors.mm
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// 属性锁 Map（专用于 atomic &amp; nonatomic）
+</span><span style="color:#75715e"></span>StripedMap<span style="color:#f92672">&lt;</span>spinlock_t<span style="color:#f92672">&gt;</span> PropertyLocks;
+
+<span style="color:#75715e">// getter
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">id</span> <span style="color:#a6e22e">objc_getProperty</span>(<span style="color:#66d9ef">id</span> self, <span style="color:#66d9ef">SEL</span> _cmd, ptrdiff_t offset, <span style="color:#66d9ef">BOOL</span> <span style="color:#66d9ef">atomic</span>) {
+    <span style="color:#75715e">// 偏移量为 0，即 isa
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (offset <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+        <span style="color:#75715e">// 直接返回类
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">return</span> object_getClass(self);
+    }
+
+    <span style="color:#75715e">// 根据 self 偏移，slot 指向成员变量的值
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Retain release world
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">id</span> <span style="color:#f92672">*</span>slot <span style="color:#f92672">=</span> (<span style="color:#66d9ef">id</span><span style="color:#f92672">*</span>) ((<span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>)self <span style="color:#f92672">+</span> offset);
+    <span style="color:#75715e">// nonatomic 下，直接返回
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#66d9ef">atomic</span>) <span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span>slot;
+
+    <span style="color:#75715e">// atomic 下，则先加自旋锁，持有值，最后解锁（锁与 setter 是同一个）
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Atomic retain release world
+</span><span style="color:#75715e"></span>    spinlock_t<span style="color:#f92672">&amp;</span> slotlock <span style="color:#f92672">=</span> PropertyLocks[slot];
+    slotlock.lock();
+    <span style="color:#66d9ef">id</span> value <span style="color:#f92672">=</span> objc_retain(<span style="color:#f92672">*</span>slot);
+    slotlock.unlock();
+
+    <span style="color:#75715e">// for performance, we (safely) issue the autorelease OUTSIDE of the spinlock.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> objc_autoreleaseReturnValue(value);
+}
+
+
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">inline</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">reallySetProperty</span>(<span style="color:#66d9ef">id</span> self, <span style="color:#66d9ef">SEL</span> _cmd, <span style="color:#66d9ef">id</span> newValue, ptrdiff_t offset, <span style="color:#66d9ef">bool</span> <span style="color:#66d9ef">atomic</span>, <span style="color:#66d9ef">bool</span> <span style="color:#66d9ef">copy</span>, <span style="color:#66d9ef">bool</span> mutableCopy) __attribute__((always_inline));
+
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">inline</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">reallySetProperty</span>(<span style="color:#66d9ef">id</span> self, <span style="color:#66d9ef">SEL</span> _cmd, <span style="color:#66d9ef">id</span> newValue, ptrdiff_t offset, <span style="color:#66d9ef">bool</span> <span style="color:#66d9ef">atomic</span>, <span style="color:#66d9ef">bool</span> <span style="color:#66d9ef">copy</span>, <span style="color:#66d9ef">bool</span> mutableCopy)
+{
+    <span style="color:#75715e">// 偏移量为 0，即 isa
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (offset <span style="color:#f92672">=</span><span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+        <span style="color:#75715e">// 设置对象的类，即 isa
+</span><span style="color:#75715e"></span>        object_setClass(self, newValue);
+        <span style="color:#66d9ef">return</span>;
+    }
+
+    <span style="color:#75715e">// 旧值
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">id</span> oldValue;
+    <span style="color:#75715e">// 根据 self 偏移，slot 指向成员变量的旧值
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">id</span> <span style="color:#f92672">*</span>slot <span style="color:#f92672">=</span> (<span style="color:#66d9ef">id</span><span style="color:#f92672">*</span>) ((<span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>)self <span style="color:#f92672">+</span> offset);
+
+    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">copy</span>) {
+        <span style="color:#75715e">// copy 属性
+</span><span style="color:#75715e"></span>        newValue <span style="color:#f92672">=</span> [newValue copyWithZone:nil];
+    } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (mutableCopy) {
+        <span style="color:#75715e">// 可变 copy
+</span><span style="color:#75715e"></span>        newValue <span style="color:#f92672">=</span> [newValue mutableCopyWithZone:nil];
+    } <span style="color:#66d9ef">else</span> {
+        <span style="color:#75715e">// 旧值等于新值，不执行操作
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">*</span>slot <span style="color:#f92672">=</span><span style="color:#f92672">=</span> newValue) <span style="color:#66d9ef">return</span>;
+        newValue <span style="color:#f92672">=</span> objc_retain(newValue);
+    }
+
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#66d9ef">atomic</span>) {
+        <span style="color:#75715e">// nonatomic 下，仅做简单赋值操作
+</span><span style="color:#75715e"></span>        oldValue <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>slot;
+        <span style="color:#f92672">*</span>slot <span style="color:#f92672">=</span> newValue;
+    } <span style="color:#66d9ef">else</span> {
+        <span style="color:#75715e">// atomic 下，则先加自旋锁，再赋值，最后解锁（锁与 getter 是同一个）
+</span><span style="color:#75715e"></span>        spinlock_t<span style="color:#f92672">&amp;</span> slotlock <span style="color:#f92672">=</span> PropertyLocks[slot];
+        slotlock.lock();
+        oldValue <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>slot;
+        <span style="color:#f92672">*</span>slot <span style="color:#f92672">=</span> newValue;
+        slotlock.unlock();
+    }
+
+    objc_release(oldValue);
+}
+
+<span style="color:#75715e">// setter
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">objc_setProperty</span>(<span style="color:#66d9ef">id</span> self, <span style="color:#66d9ef">SEL</span> _cmd, ptrdiff_t offset, <span style="color:#66d9ef">id</span> newValue, <span style="color:#66d9ef">BOOL</span> <span style="color:#66d9ef">atomic</span>, <span style="color:#66d9ef">signed</span> <span style="color:#66d9ef">char</span> shouldCopy)
+{
+    <span style="color:#66d9ef">bool</span> <span style="color:#66d9ef">copy</span> <span style="color:#f92672">=</span> (shouldCopy <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span> shouldCopy <span style="color:#f92672">!</span><span style="color:#f92672">=</span> MUTABLE_COPY);
+    <span style="color:#66d9ef">bool</span> mutableCopy <span style="color:#f92672">=</span> (shouldCopy <span style="color:#f92672">=</span><span style="color:#f92672">=</span> MUTABLE_COPY);
+    <span style="color:#75715e">// 实际调用 reallySetProperty ⬆️
+</span><span style="color:#75715e"></span>    reallySetProperty(self, _cmd, newValue, offset, <span style="color:#66d9ef">atomic</span>, <span style="color:#66d9ef">copy</span>, mutableCopy);
+}
+</code></pre></div><p>由上我们可以得出，<code>atomic</code> 在 getter 和 setter 内部是通过自旋锁来避免资源竞争而导致的线程不安全。但在实际使用中，我们可能并非都是通过 setter 来改变属性的值：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo</span> : <span style="color:#a6e22e">NSObject</span>
+<span style="color:#75715e">// 声明为 atomic
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">atomic</span>, <span style="color:#66d9ef">strong</span>) NSMutableArray <span style="color:#f92672">*</span>arr;
+<span style="color:#66d9ef">@end</span>
+
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo</span>
+<span style="color:#66d9ef">@end</span>
+
+Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span> [[Foo alloc] init];
+
+<span style="color:#75715e">// 1. 通过 setter 设置，满足线程安全
+</span><span style="color:#75715e"></span>foo.arr <span style="color:#f92672">=</span> [<span style="color:#ae81ff">@[</span><span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">github.com/kingcos</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">]</span> mutableCopy];
+
+<span style="color:#75715e">// 2. 通过 setter 设置，满足线程安全
+</span><span style="color:#75715e"></span>[foo setArr:[<span style="color:#ae81ff">@[</span><span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">github.com/kingcos</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">]</span> mutableCopy]];
+
+<span style="color:#75715e">// 3. 虽然是通过 getter 访问的 arr，但设置并未通过其 setter，线程不安全
+</span><span style="color:#75715e"></span>[foo.arr addObject:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">instagram.com/kingcos_v</span><span style="color:#e6db74">&#34;</span>];
+[foo.arr addObject:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">twitter.com/kingcos_v</span><span style="color:#e6db74">&#34;</span>];
+</code></pre></div><p>如 3 中的设置并未通过其 setter，因此 <code>atomic</code> 并不能使得属性完全满足线程安全，而 getter &amp; setter 又十分常用，加锁解锁的开销较大，所以我们通常都声明为 <code>nonatomic</code>，并在必要时在外界对属性的访问或设置加锁。</p>
+<p>2⃣️ 读写权限</p>
 <ul>
-<li><code>readwrite</code> 即拥有 getter &amp; setter，<code>readonly</code> 即仅拥有 <code>getter</code>；</li>
-<li><code>readwrite</code> 可以用在 <code>.h</code> 声明为 <code>readonly</code> 但内部类扩展中声明为 <code>readwrite</code> 来允许内部设置的情况。</li>
+<li>声明属性时，<code>readwrite</code> 为同时生成 getter &amp; setter，<code>readonly</code> 为仅生成 <code>getter</code>；</li>
+<li>外部 <code>.h</code> 中声明为 <code>readonly</code>，但内部类扩展中再次声明为 <code>readwrite</code> 时，<code>setter</code> 可以自动生成但不会暴露给外界。</li>
 </ul>
-<p>内存管理语义</p>
+<p>3⃣️ 内存管理语义</p>
 <ul>
-<li><code>assign</code>：setter 只会针对纯量类型（Scalar Type）例如 <code>CGFloat</code>、<code>NSInteger</code> 等的简单赋值操作；</li>
+<li><code>assign</code>：setter 只会针对纯量类型（Scalar Type）例如 <code>CGFloat</code>、<code>NSInteger</code> 等执行简单地赋值操作；</li>
 <li><code>strong</code>：定义一种拥有关系，为这种属性设置新值时，setter 会先保留新值，并释放旧值，然后再将新值设置上去；</li>
-<li><code>weak</code>：定义一种非拥有关系，为这种属性设置新值时，setter 既不保留新值，也不释放旧值，类似 <code>assign</code>，但当属性所指向的对象销毁时，属性值也会置为 <code>nil</code>；</li>
-<li><code>unsafe_unretained</code>：内存语义与 <code>assign</code> 相同，但适用于对象类型，定义一种非拥有（不保留）关系，但当属性所指向的对象销毁时，属性值<strong>不会</strong>自动置为 <code>nil</code>（Autoniling，与 <code>weak</code> 的差异）；</li>
-<li><code>copy</code>：类似 <code>strong</code>，但 setter 不保留新值，而是将其拷贝；当属性类型为 <code>NSString *</code> 时，可以使用 <code>copy</code> 保护其封装性，因为 setter 接收的新值有可能是指向 <code>NSMutableString</code> 的实例，若不拷贝则可能会被外界随时更改，因此需要拷贝为不可变的情况；</li>
+<li><code>weak</code>：定义一种<strong>非</strong>拥有关系，为这种属性设置新值时，setter 既不保留新值，也不释放旧值，类似 <code>assign</code>，但当属性所指向的对象销毁时，属性值会置为 <code>nil</code>；</li>
+<li><code>unsafe_unretained</code>：内存语义与 <code>assign</code> 相同，但适用于对象类型，定义一种非拥有（不保留）关系，但当属性所指向的对象销毁时，属性值<strong>不会</strong>自动置为 <code>nil</code>（Autoniling），这也是与 <code>weak</code> 的差异；</li>
+<li><code>copy</code>：类似 <code>strong</code>，但 setter 不保留新值，而是将其拷贝；当属性类型为 <code>NSString *</code> 时，可以使用 <code>copy</code> 保护其封装性，因为 setter 接收的新值有可能是指向 <code>NSMutableString</code> 的实例，若不拷贝则可能会被外界随时更改，因此需要拷贝为不可变的类型；</li>
 </ul>
-<p>方法名</p>
+<p>4⃣️ 方法名</p>
 <ul>
-<li><code>getter=&lt;name&gt;</code> 可以指定 getter 名称；</li>
-<li><code>setter=&lt;name&gt;</code> 可以指定 setter 名称；</li>
+<li><code>getter=&lt;name&gt;</code> 可以指定 getter 方法名；</li>
+<li><code>setter=&lt;name&gt;</code> 可以指定 setter 方法名；</li>
 </ul>
-<p>属性特性（Attribute）只在自动生成时有效，自己实现的 getter &amp; setter 要保证其具备相应的属性特性。</p>
+<p>属性特性（Attribute）只在自动生成时有效，开发者自己实现的 getter &amp; setter 要保证其具备相应的属性特性。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo</span> : <span style="color:#a6e22e">NSObject</span>
 <span style="color:#75715e">// 即使 readonly 也要注明 copy，因为在 init 中进行了 copy
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">copy</span>, <span style="color:#66d9ef">readonly</span>) NSString <span style="color:#f92672">*</span>bar;
@@ -850,7 +952,7 @@ print(foo <span style="color:#66d9ef">is</span> FooSecond)
 </span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (false) {
             Method m1 <span style="color:#f92672">=</span> class_getInstanceMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(b));
             Method m2 <span style="color:#f92672">=</span> class_getInstanceMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(c));
-            
+
             <span style="color:#66d9ef">if</span> (class_addMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(b), method_getImplementation(m2), method_getTypeEncoding(m2))) {
                 class_replaceMethod([self <span style="color:#66d9ef">class</span>], <span style="color:#66d9ef">@selector</span>(c), method_getImplementation(m1), method_getTypeEncoding(m1));
             } <span style="color:#66d9ef">else</span> {
@@ -2228,6 +2330,7 @@ arr <span style="color:#f92672">=</span> (<span style="color:#66d9ef">__bridge_t
 <li><a href="../bit_field_union_in_cpp/">C/C++ 中的位域与共用体 - kingcos</a></li>
 <li><a href="../category_in_ios/">iOS 中的 Category - kingcos</a></li>
 <li><a href="../block_in_obj-c/">Obj-C 中的 Block - kingcos</a></li>
+<li><a href="https://opensource.apple.com/tarballs/objc4/">objc4-756.2.tar.gz - Apple</a></li>
 </ul>
 
     </div>
