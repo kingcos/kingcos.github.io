@@ -601,9 +601,9 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</s
 </span><span style="color:#75715e"></span>        oldValue <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>slot;
         <span style="color:#f92672">*</span>slot <span style="color:#f92672">=</span> newValue;
     } <span style="color:#66d9ef">else</span> {
-        <span style="color:#75715e">// atomic 下，则先加自旋锁，再赋值，最后解锁（锁与 getter 是同一个）
-</span><span style="color:#75715e"></span>        spinlock_t<span style="color:#f92672">&amp;</span> slotlock <span style="color:#f92672">=</span> PropertyLocks[slot];
-        slotlock.lock();
+        <span style="color:#75715e">// atomic 下，则先加自旋锁（内部使用 os_unfair_lock 实现），再赋值，最后解锁（锁与 getter 是同一个）
+</span><span style="color:#75715e"></span>        <span style="color:#f92672">&amp;</span> slotlock <span style="color:#f92672">=</span> PropertyLocks[slot];
+        slotlock.lock();spinlock_t
         oldValue <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>slot;
         <span style="color:#f92672">*</span>slot <span style="color:#f92672">=</span> newValue;
         slotlock.unlock();
