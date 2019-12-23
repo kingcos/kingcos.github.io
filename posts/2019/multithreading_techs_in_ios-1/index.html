@@ -139,7 +139,7 @@ What  POSIX Threads, usually referred to as pthreads, is an execution model that
       
       
       
-        <span class="post-read-time">— 10 min read</span>
+        <span class="post-read-time">— 11 min read</span>
       
     </div>
 
@@ -811,11 +811,86 @@ print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">main t
 <li><a href="https://stackoverflow.com/questions/23051676/does-pthread-create-start-the-created-thread/23051731">Does pthread_create start the created thread? - StackOverflow</a></li>
 <li><a href="https://stackoverflow.com/questions/3649281/how-to-increase-thread-priority-in-pthreads">How to increase thread priority in pthreads? - StackOverflow</a></li>
 </ul>
-<!-- raw HTML omitted -->
-<!-- raw HTML omitted -->
-<!-- raw HTML omitted -->
-<!-- raw HTML omitted -->
-<!-- raw HTML omitted -->
+<!-- ## 信号量
+
+信号量（Semaphore）的概念很难从字面直接理解，其也被称为信号灯：一段马路（即资源）对车辆（即线程）的承载量是有限的，当承载量达到限度时，红灯会亮起阻止进入；当承载量未达到时，绿灯会亮起允许进入。关于互斥锁和信号量的区别，简而言之，互斥锁通常处理多个线程对一个资源的争夺，意味着总是按顺序获取和释放；而信号量则应当用在一个任务到另一个任务的信号，其中的任务要么发送信号要么等待信号。我在开发 [WWDCHelper](https://github.com/kingcos/WWDCHelper) 命令行程序中也用到了信号量，函数返回的数据需要等待下载任务完成后才可以得到，所以当下载任务完成后发送信号，等待的信号收到后便继续前行。
+
+我们创建两个线程，`thread_2` 中人为等待 1 秒代表处理耗时任务，任务完成后发送信号，`thread_1` 中等待信号，等信号发出再执行自己的任务：
+
+```objectivec
+#import <Foundation/Foundation.h>
+
+#import <pthread.h>
+#import <sys/semaphore.h>
+
+// 声明信号量
+sem_t * sem;
+
+void * run_thread(void *arg) {
+    NSLog(@"--- run_thread ---\n");
+
+    sleep(2);
+
+    NSLog(@"--- sem_post ---\n");
+
+    // 发射信号
+    if (sem_post(sem) != 0) {
+        perror("sem_post error.");
+        exit(1);
+    }
+
+    pthread_exit(NULL);
+}
+
+int main(int argc, const char * argv[]) {
+    sem = sem_open("kingcos.me", O_CREAT, 0666, 1);
+
+    if (sem == SEM_FAILED) {
+         perror("sem_open error");
+         exit(-1);
+    }
+
+    pthread_t thread;
+
+    if (pthread_create(&thread, NULL, run_thread, NULL) != 0) {
+        printf("pthread_create thread error.\n");
+    }
+
+    // 等待信号
+    if (sem_wait(sem) != 0) {
+        perror("sem_wait error.");
+        exit(-1);
+    }
+
+    NSLog(@"goon\n");
+
+    // 关闭信号量
+    sem_close(sem);
+    // 取消链接信号量
+    sem_unlink("kingcos.me");
+
+    return 0;
+}
+
+// OUTPUT:
+// --- run_thread ---
+// --- sem_post ---
+// goon
+``` -->
+<!-- PTHREAD_MUTEX_INITIALIZER -->
+<!-- https://developer.apple.com/library/archive/documentation/Performance/Conceptual/power_efficiency_guidelines_osx/PrioritizeWorkAtTheTaskLevel.html#//apple_ref/doc/uid/TP40013929-CH35-SW1
+https://developer.apple.com/library/archive/documentation/General/Conceptual/ConcurrencyProgrammingGuide/ThreadMigration/ThreadMigration.html
+
+
+
+- [StackOverflow - What is a semaphore?](https://stackoverflow.com/questions/34519/what-is-a-semaphore)
+- [Michael Barr - Mutexes and Semaphores Demystified](https://barrgroup.com/Embedded-Systems/How-To/RTOS-Mutex-Semaphore)
+- [Stanford - Thread and Semaphore Examples](https://see.stanford.edu/materials/icsppcs107/23-Concurrency-Examples.pdf)
+- [WWDCHelper](https://github.com/kingcos/WWDCHelper)
+
+http://www.cppblog.com/Solstice/archive/2013/09/09/203094.html
+https://gist.github.com/chenshuo/6430925
+-->
 
     </div>
     

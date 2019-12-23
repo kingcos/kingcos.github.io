@@ -140,7 +140,7 @@ Prerequisites 匿名函数与 Block 匿名函数顾名思义，即不带名称�
       
       
       
-        <span class="post-read-time">— 27 min read</span>
+        <span class="post-read-time">— 28 min read</span>
       
     </div>
 
@@ -186,8 +186,9 @@ Prerequisites 匿名函数与 Block 匿名函数顾名思义，即不带名称�
 <p><img src="/img/2019/block_in_obj-c/0.png" alt="0"></p>
 <h2 id="preface">Preface</h2>
 <p>从 OS X Snow Leopard 和 iOS 4 开始，Apple 引入了 Block 的概念。Obj-C 中的 Block 即通常意义上的匿名函数，而之所以引入是因为 C 语言中并不支持匿名函数。这使得 Block 在 Obj-C 中可以称为是一类公民（First-Class Citizen），既可以作为类的属性，也可以作为函数参数或返回值来传递。那么本文就将着眼于此，谈谈 Obj-C 中的 Block。</p>
-<!-- raw HTML omitted -->
-<!-- raw HTML omitted -->
+<!-- 当我们需要做一些异步行为时，总是希望能够在异步动作完成时可以在回调中执行额外的动作，那么此时我们就可以选择使用 Block 来作为 handler，其相较于 Delegate 更加简洁。
+
+对于设计 handler API，可参考《编写高质量 iOS 与 OS X 代码的 52 个有效方法》一书中所提到的，通常我们可以将成功与失败情况放在同一个 handler 中处理；另外我们可以仿照 `NSNotificationCenter` API，通过增加一个参数来让外界决定 handler 执行的队列。 -->
 <h2 id="prerequisites">Prerequisites</h2>
 <h3 id="-block">匿名函数与 Block</h3>
 <p>匿名函数顾名思义，即不带名称的函数，而 C 语言中即使是函数指针也仍然需要通过函数名来获得其地址：</p>
@@ -1844,10 +1845,85 @@ __Block_byref_weakF_4 <span style="color:#f92672">*</span>__forwarding;
 </span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
 }
 </code></pre></div><p>MRC 下需要注意的一点是，如上代码我们可能会以为 <code>block</code> 会对外界 <code>f</code> 进行持有，进而引用计数增加，所以在 <code>block</code> 声明后对 <code>f</code> 进行 <code>release</code>，最终在 <code>block</code> 执行后对其本身 <code>release</code>，<code>f</code> 在此时释放，调用 <code>dealloc</code>。然而此时却在 <code>block</code> 执行时发生了崩溃，这是因为 MRC 下的 <code>__Block_byref_xxx</code> 对于变量并不会进行持有操作，这也可被用来破解循环引用。</p>
-<!-- raw HTML omitted -->
-<!-- raw HTML omitted -->
-<!-- raw HTML omitted -->
-<!-- raw HTML omitted -->
+<!-- 这样，在 Block 内部改变变量值时，其实是更改了引用的结构体指向自身的变量值，而非直接修改值原本传递捕获的变量值。
+
+通过 `__Block_byref` 结构体，使得多个 Block 中可以使用同一个 `__block` 变量；一个 Block 也可传入多个 `__Block_byref` 结构体的地址来使用多个 `__block` 变量。
+-->
+<!-- ### 细节
+
+虽然 `__block` 将原本的自动变量封装到结构体中，但其实在使用时开发者几乎对此没有感知：
+
+```objectivec
+typedef void(^SomeBlock)(void);
+
+struct __block_impl {
+    void *isa;
+    int Flags;
+    int Reserved;
+    void *FuncPtr;
+};
+
+static struct __main_block_desc_0 {
+    size_t reserved;
+    size_t Block_size;
+//    void (*copy)(struct __main_block_impl_0*, struct __main_block_impl_0*);
+//    void (*dispose)(struct __main_block_impl_0*);
+};
+
+// 0x000000010050ab10
+struct __Block_byref_autoVar_0 {
+    void *__isa; // 8
+    struct __Block_byref_autoVar_0 *__forwarding; // 8
+    int __flags; // 4
+    int __size;  // 4
+    int autoVar; // 4 // 0x000000010050ab28 => 0x000000010050ab10 + 24
+};
+
+struct __main_block_impl_0 {
+    struct __block_impl impl;
+    struct __main_block_desc_0* Desc;
+    struct __Block_byref_autoVar_0 *autoVar; // by ref
+};
+
+int main(int argc, const char * argv[]) {
+    @autoreleasepool {
+        // 0x00007ffeefbff4d8
+        __block int autoVar = 0;
+        // 0x00007ffeefbff4bc
+        int autoVar2 = 0;
+
+        SomeBlock block = ^{
+            // block 中 __main_block_impl_0 结构体内部的 autoVar
+            // 0x000000010050ab28
+            autoVar = 10;
+        };
+        block();
+
+        // 将 block 转换为 __main_block_impl_0 结构体
+        struct __main_block_impl_0 *blockStruct = (__bridge struct __main_block_impl_0 *)block;
+
+        // block 中 __main_block_impl_0 结构体内部的 autoVar
+        // 0x000000010050ab28
+        NSLog(@"%p", &autoVar); // 0x10050ab28
+    }
+}
+
+// LLDB:
+// (lldb) p &autoVar
+// (int *) $0 = 0x00007ffeefbff4d8
+// (lldb) p &autoVar
+// (int *) $1 = 0x00000001007162b8
+// (lldb) p &autoVar
+// (int *) $2 = 0x000000010050ab28
+// (lldb) p &(blockStruct->autoVar)
+// (__Block_byref_autoVar_0 **) $3 = 0x000000010280f1d0
+// (lldb) p &(blockStruct->autoVar->autoVar)
+// (int *) $4 = 0x000000010050ab28
+// (lldb) p 0x000000010050ab28 - 0x000000010050ab10
+// (long) $5 = 24
+```
+
+```-->
 <h2 id="heading-9">循环引用</h2>
 <p>我们知道，Obj-C 通过引用计数来管理对象的内存，但其中的一个问题便是循环引用，即两个对象均以强引用互相指向对方，此时两个对象都将无法释放，导致内存泄漏：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">typedef</span> <span style="color:#a6e22e">void</span>(<span style="color:#f92672">^</span>BlockType_5)(<span style="color:#66d9ef">void</span>);
@@ -2042,8 +2118,27 @@ __Block_byref_weakF_4 <span style="color:#f92672">*</span>__forwarding;
 </span><span style="color:#75715e"></span><span style="color:#75715e">// &lt;Foo_9: 0x100532c60&gt;
 </span><span style="color:#75715e"></span><span style="color:#75715e">// dealloc
 </span></code></pre></div><h3 id="weakify--strongify">@weakify &amp; @strongify</h3>
-<!-- raw HTML omitted -->
-<!-- raw HTML omitted -->
+<!-- Hook Block：http://yulingtianxia.com/blog/2018/02/28/Hook-Objective-C-Block-with-Libffi/
+Block 题（Objective-C Blocks Quiz）：https://www.cnblogs.com/xiaochaozi/p/4075581.html（http://blog.sina.com.cn/s/blog_605409770102v0dc.html）
+总结：http://web.archive.org/web/20160712142025/http://rypress.com/tutorials/objective-c/blocks
+https://www.galloway.me.uk/2012/10/a-look-inside-blocks-episode-1/
+http://www.galloway.me.uk/2012/10/a-look-inside-blocks-episode-2/
+http://www.galloway.me.uk/2012/10/a-look-inside-blocks-episode-3/
+https://www.cnblogs.com/biosli/archive/2013/05/29/iOS_Objective-C_Block.html
+
+LLVM block private
+
+http://www.friday.com/bbum/2009/08/29/blocks-tips-tricks/
+http://www.friday.com/bbum/2009/08/29/basic-blocks/
+
+refer 里 so 的链接
+https://yebz.fun/2018/11/01/2018-10-31/
+
+https://www.zybuluo.com/MicroCai/note/57603
+
+https://gist.github.com/Skifary/497ad1ee4bf7f57d8093463cfabd1c1f
+
+https://www.jianshu.com/p/51b8a81db723 -->
 <h2 id="reference">Reference</h2>
 <ul>
 <li>
@@ -2057,8 +2152,8 @@ __Block_byref_weakF_4 <span style="color:#f92672">*</span>__forwarding;
 </li>
 <li>
 <p><a href="https://stackoverflow.com/questions/23334863/should-i-still-copy-block-copy-the-blocks-under-arc/23352604">Should I still copy/Block_copy the blocks under ARC? - StackOverflow</a></p>
-<!-- raw HTML omitted -->
-<!-- raw HTML omitted -->
+<!-- https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ProgrammingWithObjectiveC/WorkingwithBlocks/WorkingwithBlocks.html#//apple_ref/doc/uid/TP40011210-CH8-SW12
+http://yulingtianxia.com/blog/2018/02/28/Hook-Objective-C-Block-with-Libffi/ -->
 </li>
 </ul>
 

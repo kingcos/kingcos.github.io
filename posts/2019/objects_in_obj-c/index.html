@@ -6,7 +6,8 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Refer.     2019-03-18 首次提交 objc4-750   2019-08-18 抽离 isa 部分；重整文章结构 Obj-C 中的 isa 指针 - kingcos   2019-08-29 增加 class_rw_t 等细节 -   2019-12-23 细节微调 objc4-756.2    Preface Obj-C 中的对象分为实例对象（Instance Object）、类对象（Class Object）、以及元类对象（Meta-class Object）三种，本文将借助源码简单了解一下不同类型对象的真实构造。
+<meta name="description" content="Date Notes Refer.     2019-03-18 首次提交 objc4-750   2019-08-18 抽离 isa 部分；
+重整文章结构 Obj-C 中的 isa 指针 - kingcos   2019-08-29 增加 class_rw_t 等细节 -   2019-12-23 细节微调 objc4-756.2    Preface Obj-C 中的对象分为实例对象（Instance Object）、类对象（Class Object）、以及元类对象（Meta-class Object）三种，本文将借助源码简单了解一下不同类型对象的真实构造。
 为了方便下文举例，这里我们定义一个 EDdeviceProtocol 协议，并让继承自 NSObject 的 Computer 类遵守该协议：
 // EDdeviceProtocol 协议 @protocol EDdeviceProtocol - (void)powerOn; @end // Computer 类，继承自 NSObject，遵守 EDdeviceProtocol @interface Computer : NSObject &amp;lt;EDdeviceProtocol&amp;gt; { // 成员变量 @public int _memorySize; int _diskSize; } // 属性 @property (copy) NSString *model; // 实例方法 - (void)print:(NSString *)content; // 类方法 &#43; (NSString *)arch; @end @implementation Computer - (void)print:(NSString *)content { NSLog(@&amp;#34;Print content: %@."/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
@@ -177,7 +178,7 @@
 </tr>
 <tr>
 <td align="center">2019-08-18</td>
-<td align="center">抽离 <code>isa</code> 部分；<!-- raw HTML omitted -->重整文章结构</td>
+<td align="center">抽离 <code>isa</code> 部分；<br>重整文章结构</td>
 <td align="center"><a href="../isa_in_objc/">Obj-C 中的 isa 指针 - kingcos</a></td>
 </tr>
 <tr>
@@ -427,7 +428,8 @@ private:
     <span style="color:#75715e">// ...
 </span><span style="color:#75715e"></span>};
 </code></pre></div><p>由于 Obj-C 中的 <code>Class</code> 是一个不透明类型，但我们可以尝试一下将类对象的原始结构桥接到其中，首先需要将以下我整理好的内容放在 <code>.h</code> 引入，需要注意的是引入的实现文件需要支持 C++，即以 <code>.mm</code> 结尾：</p>
-<!-- raw HTML omitted -->
+<details>
+<summary>-> 点击此处即可查看完整内容 <-</summary>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">//
 </span><span style="color:#75715e"></span><span style="color:#75715e">//  class_details.h
 </span><span style="color:#75715e"></span><span style="color:#75715e">//  Powered by kingcos.me
@@ -577,7 +579,7 @@ private:
 };
 
 <span style="color:#75715e">#</span><span style="color:#75715e">endif </span><span style="color:#75715e">/* class_details_h */</span><span style="color:#75715e">
-</span></code></pre></div><!-- raw HTML omitted -->
+</span></code></pre></div></details>
 <p>我们仍以 <code>Computer</code> 类为例，将类或元类对象转换为其真实结构时，我们就能看到其中的细节了：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// main.mm
 </span><span style="color:#75715e"></span>
@@ -626,7 +628,7 @@ v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#
 };
 </code></pre></div><p>而与 <code>class_rw_t</code> 不同的是，<code>class_ro_t</code> 中的方法、属性、成员变量分别直接继承自 <code>method_list_t</code>、<code>ivar_list_t</code> 和 <code>property_list_t</code>， 少了一维。这是因为只读表只存储编译时（包括类本身和分类中）确定的内容，在运行时将不会再次附加其它的数据。</p>
 <p>为了证明上述结论，我们再简单了解一下类在首次初始化中所执行的 <code>realizeClass</code> 方法（注意，<code>realizeClass</code> 存在于 obj4-750，而在 Xcode 11.1 和 obj4-756.2 及之后该函数已被更名为 <code>realizeClassWithoutSwift</code> 且有部分差异，但由于主体部分未改变且变更不影响如下分析暂时略过）：</p>
-<!-- raw HTML omitted -->
+<!-- https://www.mikeash.com/pyblog/friday-qa-2010-02-26-futures.html -->
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// objc-runtime-new.h
 </span><span style="color:#75715e"></span>
 <span style="color:#75715e">// 类是未实现的未来类（关于 Future Class 我会在后续的文章中介绍）

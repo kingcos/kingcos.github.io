@@ -1211,7 +1211,7 @@ NSString <span style="color:#f92672">*</span><span style="color:#66d9ef">const</
     NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Error occurred!</span><span style="color:#e6db74">&#34;</span>);
 }
 </code></pre></div><p>ARC 下，编译器将把第二种方法签名中的 <code>NSError **</code> 转换为 <code>NSError *__autoreleasing *</code>，即指针所指向的对象将在方法执行完毕后自动释放，因为该方法不能保证调用者将其中创建的 <code>NSError</code> 释放，由此保证与大部分方法（除 <code>new</code> / <code>alloc</code> / <code>copy</code> / <code>mutableCopy</code> 开头的方法）返回值所具备的语义相同。</p>
-<!-- raw HTML omitted -->
+<!-- - [隐藏\_\_autoreleasing 属性变量(NSError \*\*)引起的 EXC_BAD_ACCESS 崩溃](https://www.jianshu.com/p/b16f36e98baf) -->
 <h3 id="-nscopying-">理解 NSCopying 协议</h3>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@protocol</span> <span style="color:#a6e22e">NSCopying</span>
 - (<span style="color:#66d9ef">id</span>)<span style="color:#a6e22e">copyWithZone:</span>(nullable NSZone <span style="color:#f92672">*</span>)zone;
@@ -1221,7 +1221,7 @@ NSString <span style="color:#f92672">*</span><span style="color:#66d9ef">const</
 - (<span style="color:#66d9ef">id</span>)<span style="color:#a6e22e">mutableCopyWithZone:</span>(nullable NSZone <span style="color:#f92672">*</span>)zone;
 <span style="color:#66d9ef">@end</span>
 </code></pre></div><p>当我们调用一个对象的 <code>copy</code> / <code>mutableCopy</code> 方法时，该类必须实现 <code>NSCopying</code> / <code>NSMutableCopying</code> 协议中的唯一方法，指定该类实例对象的拷贝逻辑，而 <code>copy</code> / <code>mutableCopy</code> 本身由 <code>NSObject</code> 实现。这里的 <code>NSZone</code> 官方解释是「A type used to identify and manage memory zones」，即用来识别和管理内存区域的类型，但目前已经基本废弃，无需关心（Zones are ignored on iOS and 64-bit runtime in macOS. You should not use zones in current development. - Apple Developer）。为了保持和系统提供类行为一致，约定 <code>copy</code> 将总是返回不可变版本，而 <code>mutableCopy</code> 总是返回可变版本，与调用者的类型无关（或者可提供一个 <code>immutableCopy</code> 的方法区分）。</p>
-<!-- raw HTML omitted -->
+<!-- http://cocoadev.com/wiki/NSZone -->
 <p>无论是浅拷贝（Shallow Copy）还是深拷贝（Deep Copy），对象本身都会重新创建，其中的标量也会直接复制，而针对于使用对象中的指针或地址指向的类型，前者仅仅拷贝指向地址，而后者则是将指向的数据也拷贝一份至新的内存地址。<code>Foundation</code> 中的集合类型默认执行浅拷贝（因为集合类型内部的属性并不一定都能拷贝），因此自定义类中我们也默认是浅拷贝，必要时定义类似 <code>deepCoby</code> 方法。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Rectangle</span> : <span style="color:#a6e22e">NSObject</span>
 <span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">assign</span>, <span style="color:#66d9ef">readonly</span>) <span style="color:#66d9ef">double</span> width;
@@ -1901,8 +1901,13 @@ NSArray <span style="color:#f92672">*</span>allKeys <span style="color:#f92672">
                                    <span style="color:#66d9ef">BOOL</span> <span style="color:#f92672">*</span> _Nonnull stop) {
     NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">&lt;%@&gt;</span><span style="color:#e6db74">&#34;</span>, obj);
 }];
-</code></pre></div><!-- raw HTML omitted -->
-<!-- raw HTML omitted -->
+</code></pre></div><!-- https://www.cnblogs.com/zenny-chen/p/3593106.html
+
+http://blog.leichunfeng.com/blog/2016/06/20/objective-c-fast-enumeration-implementation-principle/
+
+https://zhuanlan.zhihu.com/p/25837870
+
+https://www.jianshu.com/p/2ec49d525871 -->
 <ul>
 <li><a href="https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/Collections/Articles/Enumerators.html">Enumeration: Traversing a Collection’s Elements - Collections Programming Topics</a></li>
 <li><a href="https://www.mikeash.com/pyblog/friday-qa-2010-04-09-comparison-of-objective-c-enumeration-techniques.html">Friday Q&amp;A 2010-04-09: Comparison of Objective-C Enumeration Techniques - Mike Ash</a></li>
@@ -2186,7 +2191,7 @@ arr <span style="color:#f92672">=</span> (<span style="color:#66d9ef">__bridge_t
 </span><span style="color:#75715e"></span><span style="color:#75715e">// dealloc
 </span><span style="color:#75715e"></span><span style="color:#75715e">// 命中缓存
 </span><span style="color:#75715e"></span><span style="color:#75715e">// https://kingcos.me/
-</span></code></pre></div><!-- raw HTML omitted -->
+</span></code></pre></div><!-- https://github.com/AFNetworking/AFNetworking/issues/268 -->
 <h3 id="-initialize--load-">精简 initialize 与 load 实现代码</h3>
 <p>略；关于 +load，可详见《<a href="../block_in_obj-c">iOS 中的 +load 方法</a>》一文；关于 +initialize，可详见《<a href="../block_in_obj-c">iOS 中的 +initialize 方法</a>》一文。</p>
 <h3 id="-nsimer-">别忘了 NSimer 会保留其目标对象</h3>

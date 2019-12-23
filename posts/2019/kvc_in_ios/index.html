@@ -139,7 +139,7 @@ Basics How #import &amp;lt;Foundation/Foundation.h&amp;gt; @interface Speaker : 
       
       
       
-        <span class="post-read-time">— 9 min read</span>
+        <span class="post-read-time">— 10 min read</span>
       
     </div>
 
@@ -641,7 +641,62 @@ s3.volume <span style="color:#f92672">=</span> <span style="color:#ae81ff">@20</
 </span></code></pre></div><p>但其实经过测试，对代理对象进行插入操作，将首先进入 <code>valueForUndefinedKey:</code>，若该 key 无法匹配，将抛出「NSUnknownKeyException」异常，若这一步骤未抛出异常，才将会进入到 <code>setValue:forUndefinedKey:</code>。原因我认为是当我们对代理对象进行插入操作时，首先要获得其中原本的元素，所以此时如果无法匹配，将抛出异常提前终止。</p>
 <h2 id="heading-3">集合操作符</h2>
 <p>对于对象中的集合类型，KVC 提供了一些可以放置在键路径中的操作符，由 <code>@</code> 开头，整体结构为：<code>左键路径.@集合操作符.右键路径</code>，当然，左右键路径都可以根据需要选择是否忽略。集合操作符分为三种：聚合（Aggregation）操作符、数组操作符、嵌套（Nesting）操作符。</p>
-<!-- raw HTML omitted -->
+<table>
+    <tr>
+        <th>类型</th>
+        <th>操作符</th>
+        <th>作用</th>
+    </tr>
+    <tr>
+        <td rowspan="6" align="center">聚合操作符<br>（针对数组或集合类型，最终返回反应集合某个特性的单一值）</td>
+    </tr>
+    <tr>
+        <td><code>@avg</code></td>
+        <td>将数值转换为 <code>double</code> 类型求和并计算平均值（<code>nil</code> 值为 <code>0</code>），并返回 <code>NSNumber</code> 类型的实例</td>
+    </tr>
+    <tr>
+        <td><code>@count</code></td>
+        <td>计算集合类型中的对象数量，将忽略右键路径</td>
+    </tr>
+    <tr>
+        <td><code>@max</code></td>
+        <td>内部使用 <code>compare:</code> 方法比对出最大值（忽略 <code>nil</code> 值），并返回 <code>NSNumber</code> 类型的实例</td>
+    </tr>
+    <tr>
+        <td><code>@min</code></td>
+        <td>内部使用 <code>compare:</code> 方法比对出最小值（忽略 <code>nil</code> 值），并返回 <code>NSNumber</code> 类型的实例</td>
+    </tr>
+    <tr>
+        <td><code>@sum</code></td>
+        <td>将数值转换为 <code>double</code> 类型求和（<code>nil</code> 值为 <code>0</code>），并返回 <code>NSNumber</code> 类型的实例</td>
+    </tr>
+    <tr>
+        <td rowspan="3" align="center">数组操作符<br>（返回特定的对象数组）</td>
+    </tr>
+    <tr>
+        <td><code>@unionOfObjects</code></td>
+        <td>返回包含右键路径指定属性的对象数组（即值为 <code>nil</code> 时不会被包含进来）</td>
+    </tr>
+    <tr>
+        <td><code>@distinctUnionOfObjects</code></td>
+        <td>返回包含右键路径指定属性的对象数组（即值为 <code>nil</code> 时不会被包含进来），并去重</td>
+    </tr>
+    <tr>
+        <td rowspan="4" align="center">嵌套操作符<br>（嵌套意为包含集合的集合）</td>
+    </tr>
+    <tr>
+        <td><code>@unionOfArrays</code></td>
+        <td>返回调用数组中所有数组中包含右键路径指定属性的对象数组（当指定属性的值为 <code>nil</code> 时，对象将返回空）</td>
+    </tr>
+    <tr>
+        <td><code>@distinctUnionOfArrays</code></td>
+        <td>返回调用数组中所有数组中包含右键路径指定属性的对象数组（当指定属性的值为 <code>nil</code> 时，对象将返回空，多个空对象也会被去重），并去重</td>
+    </tr>
+    <tr>
+        <td><code>@distinctUnionOfSets</code></td>
+        <td>返回调用集合（Set）中所有集合（Set）中包含右键路径指定属性的对象数组（即值为 <code>nil</code> 时不会被包含进来，多个空对象也会被去重），并去重</td>
+    </tr>
+</table>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Speaker</span> : <span style="color:#a6e22e">NSObject</span>
 <span style="color:#75715e">// ⚠️ 注意：这里将 volume 改为 NSNumber * 类型，因为 int 时，属性将有默认值 0，不便于后续结果演示
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>) NSNumber <span style="color:#f92672">*</span>volume;
