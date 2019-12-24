@@ -138,7 +138,7 @@
       
       
       
-        <span class="post-read-time">— 30 min read</span>
+        <span class="post-read-time">— 31 min read</span>
       
     </div>
 
@@ -652,14 +652,54 @@ Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span>
 <li><code>strong</code>：定义一种拥有关系，为这种属性设置新值时，setter 会先保留新值，并释放旧值，然后再将新值设置上去；</li>
 <li><code>weak</code>：定义一种<strong>非</strong>拥有关系，为这种属性设置新值时，setter 既不保留新值，也不释放旧值，类似 <code>assign</code>，但当属性所指向的对象销毁时，属性值会置为 <code>nil</code>；</li>
 <li><code>unsafe_unretained</code>：内存语义与 <code>assign</code> 相同，但适用于对象类型，定义一种非拥有（不保留）关系，但当属性所指向的对象销毁时，属性值<strong>不会</strong>自动置为 <code>nil</code>（Autoniling），这也是与 <code>weak</code> 的差异；</li>
-<li><code>copy</code>：类似 <code>strong</code>，但 setter 不保留新值，而是将其拷贝；当属性类型为 <code>NSString *</code> 时，可以使用 <code>copy</code> 保护其封装性，因为 setter 接收的新值有可能是指向 <code>NSMutableString</code> 的实例，若不拷贝则可能会被外界随时更改，因此需要拷贝为不可变的类型；</li>
+<li><code>copy</code>：类似 <code>strong</code>，但 setter 不保留新值，而是将其拷贝；当属性类型为 <code>NSString *</code> 时，可以使用 <code>copy</code> 保护其封装性，因为 setter 接收的新值有可能是指向 <code>NSMutableString</code> 的实例，若不拷贝则可能会被外界随时更改，因此需要拷贝为不可变的类型。</li>
 </ul>
 <p>4⃣️ 方法名</p>
 <ul>
 <li><code>getter=&lt;name&gt;</code> 可以指定 getter 方法名；</li>
-<li><code>setter=&lt;name&gt;</code> 可以指定 setter 方法名；</li>
+<li><code>setter=&lt;name&gt;</code> 可以指定 setter 方法名。</li>
 </ul>
-<p>属性特性（Attribute）只在自动生成时有效，开发者自己实现的 getter &amp; setter 要保证其具备相应的属性特性。</p>
+<p>5⃣️ 类属性</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span> {
+    <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">var</span> bar: String?
+    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">var</span> baz = <span style="color:#ae81ff">0</span>
+}
+</code></pre></div><p>在 Swift 中的 <code>class</code> 里，我们可以自由定义归属于类的属性，即这些属性只在该类中存储一份。Apple 为了使得 Obj-C 与 Swift 兼容，在 2016 年 Swift 3.0 诞生时，Obj-C 属性增加了 <code>class</code> 修饰符。但需要注意的是，<code>class</code> 修饰后，该属性将不会自动合成：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo</span> : <span style="color:#a6e22e">NSObject</span>
+<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">class</span>, <span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">copy</span>) NSString <span style="color:#f92672">*</span>bar;
+<span style="color:#66d9ef">@end</span>
+
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo</span>
+<span style="color:#75715e">// 静态变量存储
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> NSString <span style="color:#f92672">*</span>_bar <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">&#34;</span>;
+
+<span style="color:#75715e">// 类方法 getter
+</span><span style="color:#75715e"></span>+ (NSString <span style="color:#f92672">*</span>)<span style="color:#a6e22e">bar</span> {
+    <span style="color:#66d9ef">return</span> _bar;
+}
+
+<span style="color:#75715e">// 类方法 setter
+</span><span style="color:#75715e"></span>+ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">setBar:</span>(NSString <span style="color:#f92672">*</span>)bar {
+    _bar <span style="color:#f92672">=</span> bar;
+}
+<span style="color:#66d9ef">@end</span>
+
+<span style="color:#66d9ef">int</span> main(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
+    Foo.bar <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>;
+
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [Foo bar]);
+
+    [Foo setBar:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">github.com/kingcos</span><span style="color:#e6db74">&#34;</span>];
+
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, Foo.bar);
+
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// kingcos.me
+</span><span style="color:#75715e"></span><span style="color:#75715e">// github.com/kingcos
+</span></code></pre></div><p>属性特性（Attribute）只在自动生成时有效，开发者自己实现的 getter &amp; setter 要保证其具备相应的属性特性。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo</span> : <span style="color:#a6e22e">NSObject</span>
 <span style="color:#75715e">// 即使 readonly 也要注明 copy，因为在 init 中进行了 copy
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">copy</span>, <span style="color:#66d9ef">readonly</span>) NSString <span style="color:#f92672">*</span>bar;
@@ -2336,6 +2376,7 @@ arr <span style="color:#f92672">=</span> (<span style="color:#66d9ef">__bridge_t
 <li><a href="../category_in_ios/">iOS 中的 Category - kingcos</a></li>
 <li><a href="../block_in_obj-c/">Obj-C 中的 Block - kingcos</a></li>
 <li><a href="https://opensource.apple.com/tarballs/objc4/">objc4-756.2.tar.gz - Apple</a></li>
+<li><a href="https://useyourloaf.com/blog/objective-c-class-properties/">Objective-C Class Properties - K Harrison</a></li>
 </ul>
 
     </div>

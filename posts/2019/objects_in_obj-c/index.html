@@ -141,7 +141,7 @@
       
       
       
-        <span class="post-read-time">— 8 min read</span>
+        <span class="post-read-time">— 10 min read</span>
       
     </div>
 
@@ -702,8 +702,104 @@ v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#
 </span><span style="color:#75715e"></span>        cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setData(rw);
     }
 
-    <span style="color:#75715e">// ...
+    <span style="color:#75715e">// ---
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 以下内容与 class_rw_t 相关性不大，仅供参考
 </span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// 是否为元类
+</span><span style="color:#75715e"></span>    isMeta <span style="color:#f92672">=</span> ro<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_META;
+
+    rw<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>version <span style="color:#f92672">=</span> isMeta <span style="color:#f92672">?</span> <span style="color:#ae81ff">7</span> <span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>;  <span style="color:#75715e">// old runtime went up to 6
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// Choose an index for this class.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 设置类的索引
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Sets cls-&gt;instancesRequireRawIsa if indexes no more indexes are available
+</span><span style="color:#75715e"></span>    cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>chooseClassArrayIndex();
+
+    <span style="color:#75715e">// 打印 Debug 信息
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (PrintConnecting) {
+        _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">CLASS: realizing class &#39;%s&#39;%s %p %p #%u</span><span style="color:#e6db74">&#34;</span>,
+                     cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>nameForLogging(), isMeta <span style="color:#f92672">?</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74"> (meta)</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>,
+                     (<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)cls, ro, cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>classArrayIndex());
+    }
+
+    <span style="color:#75715e">// 先实化父类，再实化类 / 元类，最后实化类本身
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Realize superclass and metaclass, if they aren&#39;t already.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// This needs to be done after RW_REALIZED is set above, for root classes.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// This needs to be done after class index is chosen, for root metaclasses.
+</span><span style="color:#75715e"></span>    supercls <span style="color:#f92672">=</span> realizeClass(remapClass(cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>superclass));
+    metacls <span style="color:#f92672">=</span> realizeClass(remapClass(cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ISA()));
+
+<span style="color:#75715e">#</span><span style="color:#75715e">if SUPPORT_NONPOINTER_ISA</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 通常为该逻辑
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// Disable non-pointer isa for some classes and/or platforms.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Set instancesRequireRawIsa.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">bool</span> instancesRequireRawIsa <span style="color:#f92672">=</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>instancesRequireRawIsa();
+    <span style="color:#66d9ef">bool</span> rawIsaIsInherited <span style="color:#f92672">=</span> false;
+    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">bool</span> hackedDispatch <span style="color:#f92672">=</span> false;
+
+    <span style="color:#66d9ef">if</span> (DisableNonpointerIsa) {
+        <span style="color:#75715e">// Non-pointer isa disabled by environment or app SDK version
+</span><span style="color:#75715e"></span>        instancesRequireRawIsa <span style="color:#f92672">=</span> true;
+    }
+    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>hackedDispatch  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  <span style="color:#f92672">!</span>(ro<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_META)  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>
+             <span style="color:#ae81ff">0</span> <span style="color:#f92672">=</span><span style="color:#f92672">=</span> strcmp(ro<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>name, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">OS_object</span><span style="color:#e6db74">&#34;</span>))
+    {
+        <span style="color:#75715e">// hack for libdispatch et al - isa also acts as vtable pointer
+</span><span style="color:#75715e"></span>        hackedDispatch <span style="color:#f92672">=</span> true;
+        instancesRequireRawIsa <span style="color:#f92672">=</span> true;
+    }
+    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (supercls  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  supercls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>superclass  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>
+             supercls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>instancesRequireRawIsa())
+    {
+        <span style="color:#75715e">// This is also propagated by addSubclass()
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// but nonpointer isa setup needs it earlier.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Special case: instancesRequireRawIsa does not propagate
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// from root class to root metaclass
+</span><span style="color:#75715e"></span>        instancesRequireRawIsa <span style="color:#f92672">=</span> true;
+        rawIsaIsInherited <span style="color:#f92672">=</span> true;
+    }
+
+    <span style="color:#66d9ef">if</span> (instancesRequireRawIsa) {
+        cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setInstancesRequireRawIsa(rawIsaIsInherited);
+    }
+<span style="color:#75715e">// SUPPORT_NONPOINTER_ISA
+</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// Update superclass and metaclass in case of remapping
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 在重新映射的情况下更新超类和元类
+</span><span style="color:#75715e"></span>    cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>superclass <span style="color:#f92672">=</span> supercls;
+    cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>initClassIsa(metacls);
+
+    <span style="color:#75715e">// Reconcile instance variable offsets / layout.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// This may reallocate class_ro_t, updating our ro variable.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 如果是父类，且非元类，调整实例变量，可能会重新分配 class_ro_t 并更新 ro 变量
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (supercls  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  <span style="color:#f92672">!</span>isMeta) reconcileInstanceVariables(cls, supercls, ro);
+
+    <span style="color:#75715e">// Set fastInstanceSize if it wasn&#39;t set already.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 设置实例大小
+</span><span style="color:#75715e"></span>    cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setInstanceSize(ro<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>instanceSize);
+
+    <span style="color:#75715e">// Copy some flags from ro to rw
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (ro<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_HAS_CXX_STRUCTORS) {
+        cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setHasCxxDtor();
+        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span> (ro<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_HAS_CXX_DTOR_ONLY)) {
+            cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setHasCxxCtor();
+        }
+    }
+
+    <span style="color:#75715e">// 设置子类 / 基类
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Connect this class to its superclass&#39;s subclass lists
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (supercls) {
+        addSubclass(supercls, cls);
+    } <span style="color:#66d9ef">else</span> {
+        addRootClass(cls);
+    }
+
+    <span style="color:#75715e">// Attach categories
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 真正去连接分类
+</span><span style="color:#75715e"></span>    methodizeClass(cls);
+
     <span style="color:#66d9ef">return</span> cls;
 }
 
