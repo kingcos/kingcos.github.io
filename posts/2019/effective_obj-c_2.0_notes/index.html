@@ -515,22 +515,55 @@ ImageSourceType type2 <span style="color:#f92672">=</span> ImageSourceTypeGaller
 <li>将实例变量当作一种存储偏移量所用的特殊变量，交由类对象保管，偏移量将在运行时查找，这样即使类定义变化了，也能找到正确的偏移量，甚至可以在运行时新增实例变量；</li>
 <li>尽量不要直接访问实例变量，而是通过 getter &amp; setter，Obj-C 中可以使用 <code>@property</code> 语法；</li>
 </ul>
-<p>自动合成（Autosynthesis）：编译器会自动为 Obj-C 中的属性便携其所需的方法，该过程由编译器在编译时刻执行；编译器还会自动为 Obj-C 中的属性添加适当类型的实例变量，并在属性名前加 <code>_</code> 前缀作为实例变量名。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// Some.h
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">@property</span> NSString <span style="color:#f92672">*</span>foo;
-<span style="color:#66d9ef">@property</span> NSString <span style="color:#f92672">*</span>bar;
+<p>自动合成（Autosynthesis）：编译器会自动为 Obj-C 中的属性编写其所需的方法，该过程由编译器在编译时刻执行；编译器还会自动为 Obj-C 中的属性添加适当类型的成员变量，并在属性名前加 <code>_</code> 前缀作为成员变量名：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// main.m
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">@protocol</span> <span style="color:#a6e22e">Bar</span> <span style="color:#f92672">&lt;</span>NSObject<span style="color:#f92672">&gt;</span>
+<span style="color:#75715e">// 实现协议中的属性将不会自动合成
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@property</span> NSString <span style="color:#f92672">*</span>bar;
+<span style="color:#66d9ef">@end</span>
 
-<span style="color:#75715e">// Some.m
-</span><span style="color:#75715e"></span><span style="color:#75715e">// @dynamic 将不会自动合成，也不会创建实例变量
-</span><span style="color:#75715e"></span><span style="color:#75715e">// 但使用 getter &amp; setter 可以编译，因为其相信会在运行时找到这些方法
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">@dynamic</span> bar;
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo</span> : <span style="color:#a6e22e">NSObject</span> <span style="color:#f92672">&lt;</span>Bar<span style="color:#f92672">&gt;</span> {
+<span style="color:#75715e">// 声明为 public
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@public</span>
+    NSString <span style="color:#f92672">*</span>bar;
+}
 
-<span style="color:#75715e">// @synthesize 指定了属性的实例变量名
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">@synthesize</span> foo <span style="color:#f92672">=</span> _foooo;
+<span style="color:#66d9ef">@property</span> NSString <span style="color:#f92672">*</span>foo;
+<span style="color:#66d9ef">@property</span> NSString <span style="color:#f92672">*</span>baz;
+<span style="color:#66d9ef">@end</span>
 
-self<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_foooo <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Foo</span><span style="color:#e6db74">&#34;</span>;
-NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, [self foo]);
-</code></pre></div><p>1⃣️ 原子性</p>
+<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo</span>
+<span style="color:#75715e">// @dynamic 将不会自动合成，即不会实现 getter &amp; setter，也不会创建实例变量
+</span><span style="color:#75715e"></span><span style="color:#75715e">// 但使用 getter &amp; setter 可以编译，因为其声明仍存在，且相信会在运行时动态找到这些方法
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@dynamic</span> baz;
+
+<span style="color:#75715e">// WARNING: Auto property synthesis will not synthesize property &#39;bar&#39; declared in protocol &#39;Bar&#39;
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// 生成 getter &amp; setter，以及成员变量 bar
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@synthesize</span> bar;
+<span style="color:#75715e">// 等同于指定属性的成员变量名为 bar（等号右侧）：
+</span><span style="color:#75715e"></span><span style="color:#75715e">// @synthesize bar = bar;
+</span><span style="color:#75715e"></span><span style="color:#75715e">// @synthesize bar = _bar;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@end</span>
+
+<span style="color:#66d9ef">int</span> main(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
+    <span style="color:#66d9ef">@autoreleasepool</span> {
+        Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span> [[Foo alloc] init];
+
+        foo.bar <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>;
+        NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, foo.bar);
+
+        <span style="color:#75715e">// 将 bar 声明为 public 后可以在外界访问
+</span><span style="color:#75715e"></span>        NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, foo<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>bar);
+    }
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+
+<span style="color:#75715e">// OUTPUT:
+</span><span style="color:#75715e"></span><span style="color:#75715e">// kingcos.me
+</span><span style="color:#75715e"></span><span style="color:#75715e">// kingcos.me
+</span></code></pre></div><p>1⃣️ 原子性</p>
 <ul>
 <li>原子（Atom）是参与化学反应中最小的粒子，因此可以理解为一个原子性（Atomicity）的操作是不会被中断的，即保证线程安全；</li>
 <li>声明属性时，如果不明确指定原子性则为 <code>atomic</code>；</li>
