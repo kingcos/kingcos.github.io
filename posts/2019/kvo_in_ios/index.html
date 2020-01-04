@@ -418,7 +418,7 @@ self.number <span style="color:#f92672">+</span><span style="color:#f92672">=</s
 
 <span style="color:#75715e">// Crash: Thread 1: EXC_BAD_ACCESS
 </span></code></pre></div><p>我们尝试下在监听者销毁后，对被监听者的值做出改变。这时程序将崩溃，为野指针错误。这说明在系统得知被监听者改变后，尝试去寻找监听者，但此时监听者已经被销毁，其保存的内存地址已经不再是监听者了，所以发生此错误。为了比较移除监听者的作用，首先我们在未移除的代码中 <code>self.number += 1;</code> 一行打个断点，查看 Debug Memory Graph：</p>
-<p><img src="/img/2019/KVO_in_iOS/1.png" alt=""></p>
+<p><img src="/img/2019/kvo_in_ios/1.png" alt=""></p>
 <p>其中有两个 <code>NSKeyValueObservationInfo</code> 对象，尝试将它们打印出来：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// LLDB:
 </span><span style="color:#75715e"></span><span style="color:#75715e">// Printing description of $6:
@@ -430,10 +430,10 @@ self.number <span style="color:#f92672">+</span><span style="color:#f92672">=</s
 </span><span style="color:#75715e"></span><span style="color:#75715e">// &lt;NSKeyValueObservance 0x60000198b840: Observer: 0x600001592720, Key path: number, Options: &lt;New: YES, Old: YES, Prior: NO&gt; Context: 0x0, Property: 0x60000198b7b0&gt;
 </span><span style="color:#75715e"></span><span style="color:#75715e">// )
 </span></code></pre></div><p>第一个 KVO 应该是系统在底层加入的，监听者是 <code>0x7fb98f4024e0</code>，查一下发现是 <code>UIScreen</code>，这里略过。</p>
-<p><img src="/img/2019/KVO_in_iOS/2.png" alt=""></p>
+<p><img src="/img/2019/kvo_in_ios/2.png" alt=""></p>
 <p>第二 KVO 就是我们加入的对 <code>number</code> 的监听。由于我们没有手动移除监听者，虽然监听者已经销毁，但监听关系仍然存在。所以当我们继续执行，程序将发生崩溃。</p>
 <p>而如果令监听者在销毁前移除监听，那么 Debug Memory Graph 会是这样：</p>
-<p><img src="/img/2019/KVO_in_iOS/3.png" alt=""></p>
+<p><img src="/img/2019/kvo_in_ios/3.png" alt=""></p>
 <p>即移除了之前我们加入的监听者，所以当我们继续执行，程序将不会发生崩溃。</p>
 <h4 id="heading-4">被监听者销毁前移除监听者</h4>
 <p>由于 Apple 并没有将 KVO 开源，对于「移除监听者」我查阅了不少资料，并进行了实践。似乎在之前的系统版本中（具体不明），当未在被监听者销毁前移除监听者时，程序也将发生崩溃。但在最新的系统中，相同的测试代码却未发生崩溃。且在 Debug Memory Graph 可以看出，即使没有移除监听者，<code>NSKeyValueObservationInfo</code> 却也在被监听者销毁后销毁了。</p>
@@ -536,11 +536,11 @@ self.number <span style="color:#f92672">+</span><span style="color:#f92672">=</s
 </span><span style="color:#75715e"></span><span style="color:#75715e">// (lldb) po [self.cpt methodForSelector:@selector(setButtonClickTimes:)]
 </span><span style="color:#75715e"></span><span style="color:#75715e">// (Foundation`_NSSetIntValueAndNotify)
 </span></code></pre></div><p><code>setButtonClickTimes:</code> 是 <code>NSKVONotifying_Computer</code> 中唯一和 <code>keyPath</code> 相关的方法。其 <code>IMP</code> 是 <code>Foundation</code> 中的 <code>_NSSetIntValueAndNotify</code>。注意观察该方法名，其中的 <code>Int</code> 其实是 <code>buttonClickTimes</code> 的类型，尝试在 <code>Foundation</code> 搜索一下类似的方法（<code>nm</code>，即 llvm symbol table dumper，LLVM 符号表 Dumper）：</p>
-<p><img src="/img/2019/KVO_in_iOS/4.png" alt=""></p>
+<p><img src="/img/2019/kvo_in_ios/4.png" alt=""></p>
 <p>为了能一探 <code>_NSSetIntValueAndNotify</code> 究竟，此处稍微暴力一点，使用 Hopper 将 <code>Foundation</code> 中的类 dump 出来。</p>
-<p><img src="/img/2019/KVO_in_iOS/5.png" alt=""></p>
+<p><img src="/img/2019/kvo_in_ios/5.png" alt=""></p>
 <p>其中能让我们比较熟悉的是 <code>willChangeValueForKey</code>，我们尝试在被监听者的该方法中个打个断点，就可以在 Xcode 中看到 <code>_NSSetIntValueAndNotify</code> 中先调用了 <code>willChangeValueForKey</code>，之后又调用了 <code>didChangeValueForKey</code>。</p>
-<p><img src="/img/2019/KVO_in_iOS/6.png" alt=""></p>
+<p><img src="/img/2019/kvo_in_ios/6.png" alt=""></p>
 <p>在 <code>didChangeValueForKey</code> 和 setter 中也加入断点，就可以发现它们的调用顺序是：<code>willChangeValueForKey</code> -&gt; <code>setButtonClickTimes</code> -&gt; <code>didChangeValueForKey</code>（并在其中通知监听者：<code>observeValueForKeyPath</code>）。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">willChangeValueForKey:</span>(NSString <span style="color:#f92672">*</span>)key {
     NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">willChangeValueForKey -&gt;</span><span style="color:#e6db74">&#34;</span>);
