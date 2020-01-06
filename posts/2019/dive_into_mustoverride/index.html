@@ -216,7 +216,7 @@ How 这个库的使用非常简单，如果是 CocoaPods 管理依赖的项目�
 </span><span style="color:#e6db74">SubFoo does not implement required method -fooExt
 </span><span style="color:#e6db74">SubFoo does not implement required method -foo&#39;</span>
 </code></pre></div><h2 id="why">Why</h2>
-<h3 id="heading">结构</h3>
+<h3 id="结构">结构</h3>
 <p>「MustOverride」库的结构很简单，只有以下两个文件以及不超过 200 行的代码，很容易着手：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">➜  MustOverride tree
 .
@@ -236,7 +236,7 @@ How 这个库的使用非常简单，如果是 CocoaPods 管理依赖的项目�
 <span style="color:#75715e">#</span><span style="color:#75715e">define SUBCLASS_MUST_OVERRIDE __attribute__((used, section(&#34;__DATA,MustOverride&#34; \</span><span style="color:#75715e">
 </span><span style="color:#75715e"></span><span style="color:#75715e">))) static const char *__must_override_entry__ = __func__</span><span style="color:#75715e">
 </span></code></pre></div><p>其中定义了我们前面示例中所用到的 <code>SUBCLASS_MUST_OVERRIDE</code> 宏，即简化了后面的指令 <code>__attribute__((used, section(&quot;__DATA,MustOverride&quot;))) static const char *__must_override_entry__ = __func__</code>，下面我们来仔细分析下这条指令。</p>
-<h4 id="--attribute--">__attribute__</h4>
+<h4 id="__attribute__">__attribute__</h4>
 <p><code>__attribute__</code> 是一个用于 GCC 或兼容 GCC 的编译器指令，可以让开发者对编译器的一些属性进行设置，使得编译器能够支持更多的错误检查或高级优化等操作。正如其名，<code>__attribute__</code> 即属性，其根据修饰对象的不同分为函数属性、变量属性、类型属性等。当多个属性同时使用时，可以通过 <code>__attribute__ ((attribute-list))</code> 语法嵌套使用。</p>
 <p>目前 Xcode 使用 <code>clang</code> 编译器来编译 C/C++/Obj-C/Obj-C++ 代码，而 <code>clang</code> 也支持了 <code>__attribute__</code> 语法，甚至还有一小部分的特有属性，关于这些特有属性可以详见文末 Reference 中的《Attributes in Clang - LLVM》文档。而这里的 <code>__attribute__((used, section(&quot;__DATA,MustOverride&quot;)))</code> 同时使用了 <code>used</code> 和 <code>section</code> 这两个常见的变量属性，我们可以在 GNU 官方文档中查到两者的内容：</p>
 <blockquote>
@@ -571,7 +571,7 @@ BSD                           September 24, 2004                           BSD
 </code></pre></div><p>这样综上，我们就可以在程序启动时读取到编译时已经存储在 Mach-O 中 <code>__DATA</code> 段 <code>MustOverride</code> 节的方法信息，并通过查询相应的方法是否被子类实现，在第一时间触发断言终止 app 运行。最后需要注意的是，<code>MustOverride.m</code> 其中的代码块几乎整体被 <code>#if DEBUG</code> 和 <code>#endif</code> 宏包裹，这意味着该库仅适用于 Debug 模式，可能会造成某些崩溃等影响，因此切忌 Release 模式下使用。</p>
 <h2 id="extension">Extension</h2>
 <p>经过以上的分析，我们可以发现「MustOverride」这个库其实并不复杂，但带给了我们一些思路。比如我们可以使用 <code>__attribute__</code> 在编译时刻写入 Mach-O 中一些内容，并在 app 启动或运行时读取，进而做一些操作。</p>
-<h3 id="heading-1">宏的拼接</h3>
+<h3 id="宏的拼接">宏的拼接</h3>
 <p>宏的拼接指我们可以将一个宏的多个部分进行拼接，进而达到整体使用它的效果。虽然我们可能很少用到宏的拼接，但这却带来不少的灵活性。比如如下我们将 <code>A</code>、<code>B</code> 和 <code>C</code> 通过 <code>##</code> 进行了拼接：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">define A &#34;aaa\n&#34;</span><span style="color:#75715e">
 </span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define B &#34;bbb\n&#34;</span><span style="color:#75715e">
@@ -607,7 +607,7 @@ BSD                           September 24, 2004                           BSD
 </span></code></pre></div><ul>
 <li><a href="https://gcc.gnu.org/onlinedocs/cpp/Concatenation.html">3.5 Concatenation - GNU</a></li>
 </ul>
-<h3 id="heading-2">计数宏</h3>
+<h3 id="计数宏">计数宏</h3>
 <p><code>__COUNTER__</code> 即计数宏，该宏会从 <code>0</code> 开始，每预编译一次便会自增 <code>1</code>：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">define COUNTER_MACRO printf(&#34;%d\n&#34;, __COUNTER__);</span><span style="color:#75715e">
 </span><span style="color:#75715e"></span>
@@ -628,7 +628,7 @@ BSD                           September 24, 2004                           BSD
 </span><span style="color:#75715e"></span><span style="color:#75715e">// 3
 </span><span style="color:#75715e"></span><span style="color:#75715e">// 4
 </span></code></pre></div><p>由于 <code>__COUNTER__</code> 宏的自增性，我们可以用其来定义一些避免重复的命名。</p>
-<h3 id="heading-3">汇编标签</h3>
+<h3 id="汇编标签">汇编标签</h3>
 <p>汇编标签即 Asm Labels，我们可以通过 <code>asm</code> 或 <code>__asm__</code> 指定该标签来自定义函数、变量等类型的汇编符号：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">int</span> demoVar1 <span style="color:#a6e22e">asm</span> (<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">someVar</span><span style="color:#e6db74">&#34;</span>) <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>;
 <span style="color:#66d9ef">int</span> demoVar2 <span style="color:#f92672">=</span> <span style="color:#ae81ff">20</span>;

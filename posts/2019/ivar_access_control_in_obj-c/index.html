@@ -182,7 +182,7 @@
 </table>
 <h2 id="preface">Preface</h2>
 <p>Obj-C 中的实例变量，即 Instance Variables，简称为 ivar。在面向对象的概念中，一个类的对外暴露决定了其所提供的能力，对子类则需要提供一定的扩展性，但有些时候我们不希望外界甚至子类知道一些细节，这时就用到了访问控制（Access Control）。在 C++、Java、Swift 等大多数高级语言中都有这样的概念，这次就来谈谈 Obj-C 中实例变量和类的访问控制。</p>
-<h2 id="heading">访问控制修饰符</h2>
+<h2 id="访问控制修饰符">访问控制修饰符</h2>
 <h3 id="public">@public</h3>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span> {
     <span style="color:#66d9ef">@public</span>
@@ -322,7 +322,7 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</s
 </ol>
 <p>这其实也就验证了官方文档中对于 <code>@private</code> 在镜像（Image）的描述。对于静态库，其在编译时刻即被载入，因此属于同一个镜像，可以正常编译并运行；而动态库只有在运行时才能被载入，并不是同一个镜像，因此访问时出现了链接错误。在 StackOverflow 上的一个问题中也提到了 Image（镜像），相关链接可在文末「Reference」中找到。</p>
 <p>关于静态库与动态库，之后会在独立篇章中讨论。</p>
-<h3 id="heading-1">类扩展</h3>
+<h3 id="类扩展">类扩展</h3>
 <p>在 Obj-C 的类扩展（Class Extension）中，我们可以定义一些不想暴露在外界（.h）的实例变量、属性、或方法，做到「物理」隔离。需要注意的是，定义在类扩展中的实例变量，默认为 <code>@private</code>，仅供本类使用。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// Person-Inner.h
 </span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &#34;Person.h&#34;</span><span style="color:#75715e">
@@ -357,7 +357,7 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</s
 }
 <span style="color:#66d9ef">@end</span>
 </code></pre></div><p>如上，对外我们只需要暴露 Person.h，而将类扩展所在的 Inner.h 不暴露为 Public Header 即可；或者也可以将类扩展直接定义在 .m 中。</p>
-<h2 id="symbols">符号（Symbols）</h2>
+<h2 id="符号symbols">符号（Symbols）</h2>
 <p><img src="/img/2019/ivar_access_control_in_obj-c/2.png" alt="2"></p>
 <p><code>nm</code> 是 macOS 自带的命令行程序，可以用来查看 Mach-O 文件的 LLVM 符号表，但默认情况将打印全部的符号，如果希望只显示外部的全局符号，可以使用 <code>-g</code> 参数。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// main.m
@@ -429,7 +429,7 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</s
 </span><span style="color:#75715e"></span><span style="color:#75715e">//                  U dyld_stub_binder
 </span></code></pre></div><p>在 64 位的 Obj-C 中，每个类以及实例变量的访问控制都有一个与之关联的符号，类或实例变量都会通过引用此符号来使用。类符号的格式为 <code>_OBJC_CLASS_$_ClassName</code> 和 <code>_OBJC_METACLASS_$_ClassName</code>，实例变量符号的格式为 <code>_OBJC_IVAR_$_ClassName.IvarName</code>。</p>
 <p>在 C/C++ 中也有类似的符号概念。</p>
-<h2 id="visibility">可见程度（Visibility）</h2>
+<h2 id="可见程度visibility">可见程度（Visibility）</h2>
 <p>在不明确指定的默认情况下，这些符号均是暴露给外界的。但 gcc 编译器都可以通过 <code>-fvisibility</code> 参数设定可见程度，但优先级低于直接在源代码中声明可见程度。<code>-fvisibility=default</code> 即默认可见程度，<code>-fvisibility=hidden</code>，使得编译源文件内未明确指定的符号隐藏。</p>
 <p><img src="/img/2019/ivar_access_control_in_obj-c/1.png" alt="1"></p>
 <blockquote>

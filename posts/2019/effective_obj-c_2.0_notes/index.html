@@ -205,8 +205,8 @@
 </table>
 <h2 id="preface">Preface</h2>
 <p>《编写高质量 iOS 与 OS X 代码的 52 个有效方法》原著名为《Effective Objective-C 2.0》，是类似笔者这样的 iOS 初级入门者必读书目之一。本文不仅是此书的阅读笔记，也有 Demo 代码等，较为独立的篇章内容则融入笔者以往的独立文章中。</p>
-<h2 id="-objective-c">熟悉 Objective-C</h2>
-<h3 id="-objective-c-">了解 Objective-C 语言的起源</h3>
+<h2 id="熟悉-objective-c">熟悉 Objective-C</h2>
+<h3 id="了解-objective-c-语言的起源">了解 Objective-C 语言的起源</h3>
 <p>消息结构（Message Structure）的语言，运行时执行的代码由运行环境决定；函数调用（Function Calling）的语言，运行时所执行的代码由编译器决定，对于多态，则按照虚函数表（Virtual Method Table）寻找。</p>
 <p>运行时组件（Runtime Component） 本质上是一种与开发者所编写代码相链接的「动态库（Dynamic Library），这样的好处是只需要更新运行时组件（无需重新编译）即可提升程序性能。</p>
 <p>Obj-C 是 C 的超集；Obj-C 中的对象所占内存总是分配在堆空间（Heap Space）；而指向对象的指针所占内存总是分配在栈帧（Stack Frame）中；堆中的内存需要开发者自己管理，栈中的内存会在其栈帧弹出（Pop）时自动清理；创建对象相比创建结构体（C 结构体）需要额外开销，例如分配和释放堆内存等。</p>
@@ -224,7 +224,7 @@ NSObject <span style="color:#f92672">*</span>obj2 <span style="color:#f92672">=<
 </span><span style="color:#75715e"></span><span style="color:#75715e">// (NSObject **) $2 = 0x00007ffeefbff508
 </span><span style="color:#75715e"></span><span style="color:#75715e">// (lldb) p &amp;obj2
 </span><span style="color:#75715e"></span><span style="color:#75715e">// (NSObject **) $3 = 0x00007ffeefbff500
-</span></code></pre></div><h3 id="heading">在类的头文件中尽量少引入其他头文件</h3>
+</span></code></pre></div><h3 id="在类的头文件中尽量少引入其他头文件">在类的头文件中尽量少引入其他头文件</h3>
 <p>当需要知道有一个类的存在时，而不关心其内部细节时，可以使用向前声明（Forward Declaring）告知编译器，即可以在 .h（头文件）中 <code>@class SomeClass</code>；而在 .m（实现文件）中引入实际的 .h；当在两个头文件中互相引入对方，则会导致「循环 引用（Chicken-Egg Situation，又称交叉引用）」，无法通过编译：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// A.h
 </span><span style="color:#75715e"></span>
@@ -254,7 +254,7 @@ NS_ASSUME_NONNULL_BEGIN
 NS_ASSUME_NONNULL_END
 </code></pre></div><p>将引入头文件的时机尽量延后，只有在确定有需要时才引入，否则会增加耦合度、拉长编译时间、产生相互依赖等问题。</p>
 <p>继承父类和遵循协议则不能使用向前声明，必须引入相应的头文件，因此协议最好声明在单独的头文件中；由于代理协议（Delegate Protocol）和遵守协议代理的类声明在一起时才有意义，最好在实现文件中声明类遵守了该代理协议，并将实现代码放在类扩展中；因此只需要在实现文件中引入包含代理协议的头文件即可，而不需要将其放在公共头文件（Public Header File）中。</p>
-<h3 id="heading-1">多用字面量语法，少用与之等价的方法</h3>
+<h3 id="多用字面量语法少用与之等价的方法">多用字面量语法，少用与之等价的方法</h3>
 <p>字面量（Literal）语法简化了 Obj-C 的部分 API：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">NSString <span style="color:#f92672">*</span>strValue <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">str</span><span style="color:#e6db74">&#34;</span>;
 NSNumber <span style="color:#f92672">*</span>intValue <span style="color:#f92672">=</span> <span style="color:#ae81ff">@1</span>;
@@ -279,7 +279,7 @@ mutableDictValue[<span style="color:#e6db74">@&#34;</span><span style="color:#e6
 <span style="color:#75715e">// { a = A; }
 </span><span style="color:#75715e"></span>NSDictionary <span style="color:#f92672">*</span>dictWithNilObject2 <span style="color:#f92672">=</span> [NSDictionary dictionaryWithObjectsAndKeys:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">A</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">a</span><span style="color:#e6db74">&#34;</span>, nilObj, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">C</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">c</span><span style="color:#e6db74">&#34;</span>, nil];
 </code></pre></div><p>除了字符串，字面量语法仅适用于 Foundation 框架中，即我们自定义继承自上述支持字面量的类时，将不再支持使用字面量。</p>
-<h3 id="-define-">多用类型常量，少用 #define 预处理指令</h3>
+<h3 id="多用类型常量少用-define-预处理指令">多用类型常量，少用 #define 预处理指令</h3>
 <p><code>#define</code> 预处理指令没有类型信息，且会在引用到包含该指令的所有文件中进行替换，因此更加推荐使用类型常量：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// 预处理指令（编译前进行直接替换）
 </span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define ANIMATION_DURATION 0.3</span><span style="color:#75715e">
@@ -405,7 +405,7 @@ mutableDictValue[<span style="color:#e6db74">@&#34;</span><span style="color:#e6
 <li>对于这些固定前缀的 <code>extern</code> 应当在其范围下使用，即 <code>FOUNDATION_*</code> 在 Foundation 框架内部使用，<code>UIKIT_*</code> 在 <code>UIKit</code> 内部使用，在我们自己的库内应当推荐自定义 <code>SOME_*</code> 来使用，而不是直接套用其它库内的宏定义；</li>
 <li>默认的 <code>extern</code> 由于可能不兼容 C++，那么在库中需要兼容 C++ 时应当使用 <code>extern &quot;C&quot;</code>。</li>
 </ul>
-<h3 id="heading-2">用枚举表示状态、选项、状态码</h3>
+<h3 id="用枚举表示状态选项状态码">用枚举表示状态、选项、状态码</h3>
 <p>Obj-C 中的枚举（<code>enum</code>）来自 C 语言，而 C++11 标准使得枚举可以定义其底层数据类型（Underlying Type）。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// 实现枚举所用的数据类型取决于编译器
 </span><span style="color:#75715e"></span><span style="color:#75715e">// 枚举的底层数据类型不是固定的，其二进制位（bit）的个数必须能完全表示下枚举编号
@@ -507,8 +507,8 @@ ImageSourceType type2 <span style="color:#f92672">=</span> ImageSourceTypeGaller
 </span><span style="color:#75715e"></span><span style="color:#75715e">// ERROR: Cannot initialize a variable of type &#39;FooDirection&#39; (aka &#39;Direction&#39;) with an rvalue of type &#39;int&#39;
 </span><span style="color:#75715e"></span><span style="color:#75715e">// FooDirection direct = Up | Left;
 </span></code></pre></div><p>Foundation 框架中枚举的辅助宏具备向后兼容（Backward Compatibility）能力，即根据目标平台决定相应的语法；凡是需要按位或操作来组合的枚举都应当使用 <code>NS_OPTIONS</code> 来定义；否则使用 <code>NS_ENUM</code>。</p>
-<h2 id="heading-3">对象、消息、运行期</h2>
-<h3 id="heading-4">理解「属性」这一概念</h3>
+<h2 id="对象消息运行期">对象、消息、运行期</h2>
+<h3 id="理解属性这一概念">理解「属性」这一概念</h3>
 <p>应用程序二进制接口（Application Binary Interface，即 ABI）定义了很多内容，其中有生成代码时所应遵循的规范。Obj-C 中实例变量（ivar）的内存布局在编译时刻固定，因此访问实例变量时，编译器会将其替换为偏移量（Offset），而偏移量是硬编码，表示其距离内存起始地址的长度；如果代码使用了编译时刻计算的偏移量，那么在修改类定义之后必须重新编译，即重新计算偏移量；</p>
 <p>对于旧的类定义链接了新的类定义会出现不兼容情况，Obj-C 的做法如下：</p>
 <ul>
@@ -749,7 +749,7 @@ Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span>
 }
 
 <span style="color:#66d9ef">@end</span>
-</code></pre></div><h3 id="heading-5">在对象内部尽量直接访问实例变量</h3>
+</code></pre></div><h3 id="在对象内部尽量直接访问实例变量">在对象内部尽量直接访问实例变量</h3>
 <p>直接访问实例变量（ivar）与通过属性（getter &amp; setter）访问的区别：</p>
 <ul>
 <li>直接访问不经过方法派发，速度更快；</li>
@@ -765,7 +765,7 @@ Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span>
         <span style="color:#66d9ef">return</span> _foo;
     }
 }
-</code></pre></div><h3 id="heading-6">理解「对象等同性」这一概念</h3>
+</code></pre></div><h3 id="理解对象等同性这一概念">理解「对象等同性」这一概念</h3>
 <p>对于 Obj-C 中的对象类型，<code>==</code> 比较的是两个指针本身的值（即存储的地址）是否一致。NSString 类中的 <code>isEqualToString:</code> 比 <code>isEqual:</code> 方法速度更快（但其实差别不大）。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">- (<span style="color:#66d9ef">BOOL</span>)<span style="color:#a6e22e">isEqual:</span>(<span style="color:#66d9ef">id</span>)object {
     <span style="color:#75715e">// 地址一致，则必然一样
@@ -843,7 +843,7 @@ NSMutableArray <span style="color:#f92672">*</span>arr2 <span style="color:#f926
 </span><span style="color:#75715e"></span><span style="color:#75715e">// {((1,2), (1,2))}
 </span><span style="color:#75715e"></span>[arr1 addObject:<span style="color:#ae81ff">@2</span>];
 NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, set);
-</code></pre></div><h3 id="heading-7">以「类族模式」隐藏实现细节</h3>
+</code></pre></div><h3 id="以类族模式隐藏实现细节">以「类族模式」隐藏实现细节</h3>
 <p>类族（Class Cluster，又称类簇）是一种隐藏抽象基类背后的实现细节的模式（例如 <code>UIButton</code> 的 <code>buttonWithType:</code> 类方法）。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">模</span><span style="color:#75715e">式</span><span style="color:#75715e">是</span><span style="color:#75715e">不</span><span style="color:#75715e">限</span><span style="color:#75715e">定</span><span style="color:#75715e">于</span><span style="color:#75715e">语</span><span style="color:#75715e">言</span><span style="color:#75715e">的</span><span style="color:#75715e">，</span><span style="color:#75715e">因</span><span style="color:#75715e">此</span><span style="color:#75715e">这</span><span style="color:#75715e">里</span><span style="color:#75715e">使</span><span style="color:#75715e">用</span><span style="color:#75715e">了</span><span style="color:#75715e"> </span><span style="color:#75715e">S</span><span style="color:#75715e">w</span><span style="color:#75715e">i</span><span style="color:#75715e">f</span><span style="color:#75715e">t</span><span style="color:#75715e"> </span><span style="color:#75715e">来</span><span style="color:#75715e">简</span><span style="color:#75715e">单</span><span style="color:#75715e">实</span><span style="color:#75715e">现</span>
 
@@ -897,13 +897,13 @@ print(foo <span style="color:#66d9ef">is</span> FooSecond)
 <li>子类应该定义自己的数据存储方式：类族只是定义了通用的接口，实际存储的方式则由背后具体的实体子类承担；</li>
 <li>子类应当覆写超类文档中指明需要覆写的方法：类族中的通用接口需要子类实现。</li>
 </ul>
-<h3 id="heading-8">在既有类中使用关联对象存放自定义数据</h3>
+<h3 id="在既有类中使用关联对象存放自定义数据">在既有类中使用关联对象存放自定义数据</h3>
 <p>略；关于关联对象，可详见《<a href="../associated_objects_in_ios">iOS 中的关联对象</a>》一文。</p>
-<h3 id="-objc-msgsend-">理解 objc_msgSend 的作用</h3>
+<h3 id="理解-objc_msgsend-的作用">理解 objc_msgSend 的作用</h3>
 <p>略；关于 objc_msgSend，可详见《<a href="../objc_msgsend">浅尝 objc_msgSend</a>》一文。</p>
-<h3 id="heading-9">理解消息转发机制</h3>
+<h3 id="理解消息转发机制">理解消息转发机制</h3>
 <p>略；关于消息转发机制，可详见《<a href="../objc_msgsend">浅尝 objc_msgSend</a>》一文。</p>
-<h3 id="heading-10">用「方法调配技术」调试「黑盒方法」</h3>
+<h3 id="用方法调配技术调试黑盒方法">用「方法调配技术」调试「黑盒方法」</h3>
 <p>「方法调配技术」即 Method Swizzling，现在普遍称之为方法交换：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
 </span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;objc</span><span style="color:#75715e">/</span><span style="color:#75715e">runtime.h&gt;</span><span style="color:#75715e">
@@ -1067,12 +1067,12 @@ print(foo <span style="color:#66d9ef">is</span> FooSecond)
 </span><span style="color:#75715e"></span>        }
     }
 }
-</code></pre></div><h3 id="heading-11">理解「类对象」的用意</h3>
+</code></pre></div><h3 id="理解类对象的用意">理解「类对象」的用意</h3>
 <p>略；关于类对象，可详见《<a href="../objects_in_obj-c/">Obj-C 中的对象</a>》一文；关于内省，可详见《<a href="../type_introspection_and_reflection/">Obj-C &amp; Swift 的类型内省与反射</a>》一文；</p>
-<h2 id="-api-">接口与 API 设计</h2>
-<h3 id="heading-12">用前缀避免命名空间冲突</h3>
+<h2 id="接口与-api-设计">接口与 API 设计</h2>
+<h3 id="用前缀避免命名空间冲突">用前缀避免命名空间冲突</h3>
 <p>Obj-C 没有命名空间（Namespace）机制；因此为了避免重复符号（Duplicate Symbol）错误，需在类名前加入前缀以区分。</p>
-<h3 id="heading-13">提供「全能初始化方法」</h3>
+<h3 id="提供全能初始化方法">提供「全能初始化方法」</h3>
 <p>全能初始化方法（Designated Initializer，又称指定初始化方法）指的是为对象提供必要信息以便其能完成工作的初始化方法。一个类可能不止有一个初始化方法，但通常将选择其中之一作为全能初始化方法，而其它初始化方法间接依赖它，这样可以保证初始化逻辑的统一。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Rectangle</span> : <span style="color:#a6e22e">NSObject</span>
 <span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">assign</span>, <span style="color:#66d9ef">readonly</span>) <span style="color:#66d9ef">double</span> width;
@@ -1144,7 +1144,7 @@ print(foo <span style="color:#66d9ef">is</span> FooSecond)
     <span style="color:#66d9ef">return</span> self;
 }
 <span style="color:#66d9ef">@end</span>
-</code></pre></div><h3 id="-description-">实现 description 方法</h3>
+</code></pre></div><h3 id="实现-description-方法">实现 description 方法</h3>
 <p>NSObject 子类可以重写 <code>description</code> 方法来描述实例，在打印（<code>NSLog</code>）实例信息时即可输出；也可重写 <code>debugDescription</code> 用来在控制台使用 LLDB <code>po</code> 命令输出：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// ...
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Rectangle</span>
@@ -1166,7 +1166,7 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</s
 </span><span style="color:#75715e"></span><span style="color:#75715e">// &lt;30.000000, 50.000000&gt;
 </span><span style="color:#75715e"></span><span style="color:#75715e">// (lldb) po rect
 </span><span style="color:#75715e"></span><span style="color:#75715e">// &lt;Rectangle: 0x6000037887e0&gt; &lt;30.000000, 50.000000&gt;
-</span></code></pre></div><h3 id="heading-14">尽量使用不可变对象</h3>
+</span></code></pre></div><h3 id="尽量使用不可变对象">尽量使用不可变对象</h3>
 <p>尽量将外界不能改变的属性对外声明为 <code>readonly</code>，此时将只存在 getter 而不存在 setter。我们可以在实现文件中直接通过访问成员变量来更改，也可将属性再次声明在类扩展中以通过 setter 更改。</p>
 <p>由于内存管理语义仅针对 setter，因此声明为 <code>readonly</code> 时也可使用默认的内存管理语义。<code>readonly</code> 并非是完全安全的，外部仍然可以通过 KVC、或者根据内存布局的偏移量直接访问修改。对于集合类型，我们可以将不可变属性本身作为 <code>readonly</code> 暴露在外，并通过额外方法使得外界可以添加或删除等操作集合；在内部则通过另外的可变类型属性作为具体实现，从而避免从底层直接修改对象中的数据：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Rectangle</span> : <span style="color:#a6e22e">NSObject</span>
@@ -1213,7 +1213,7 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</s
 Rectangle <span style="color:#f92672">*</span>rect1 <span style="color:#f92672">=</span> [[Rectangle alloc] initWithWidth:<span style="color:#ae81ff">10</span> height:<span style="color:#ae81ff">20</span>];
 Rectangle <span style="color:#f92672">*</span>rect2 <span style="color:#f92672">=</span> [[Rectangle alloc] initWithWidth:<span style="color:#ae81ff">10</span> height:<span style="color:#ae81ff">20</span>];
 [rect1 addElement:rect2];
-</code></pre></div><h3 id="heading-15">使用清晰而协调的命名方式</h3>
+</code></pre></div><h3 id="使用清晰而协调的命名方式">使用清晰而协调的命名方式</h3>
 <p>一些 Obj-C 的方法名十分冗长，但却语义化更加，这点 Swift 也继承了其优点，并适当精简方法名。方法的命名规则：</p>
 <ul>
 <li>若返回值是新创建的，那么方法名应当以返回值类型开始，也可加入对其修饰；</li>
@@ -1224,9 +1224,9 @@ Rectangle <span style="color:#f92672">*</span>rect2 <span style="color:#f92672">
 <li>使用输出参数（Out Parameter）保存返回值的方法可以使用 <code>get</code> 前缀。</li>
 </ul>
 <p>类与协议的名称尽量要加上前缀，以避免命名空间冲突。命名第一要务是确保其风格与代码框架相符合。</p>
-<h3 id="heading-16">为私有方法名加前缀</h3>
+<h3 id="为私有方法名加前缀">为私有方法名加前缀</h3>
 <p>私有方法除了不应对外声明，也应加上前缀与以区分。但不推荐单用一个下划线 <code>_</code> 作为前缀，因为系统库中有很多私有方法即是以 <code>_</code> 为前缀的。</p>
-<h3 id="-objective-c--1">理解 Objective-C 错误模型</h3>
+<h3 id="理解-objective-c-错误模型">理解 Objective-C 错误模型</h3>
 <p>异常（Exception）与错误（Error）在计算机中代表着完全不同的两种意义。</p>
 <p>异常安全（Exception Safe）指的是当抛出异常时，需要释放的资源或对象也能得到安全地释放。自动引用计数默认是非异常安全的，但可以通过 <code>-fobjc-arc-exceptions</code> 设置编译器以达到异常安全（详见下文「编写「异常安全代码时」留意内存管理问题」一节）。由于异常安全很难得到保证，因此推荐只在必要时（如重大错误）抛出异常，并终止程序，而不再考虑异常安全。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@throw</span> [NSException exceptionWithName:NSInternalInconsistencyException reason:<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Some reason.</span><span style="color:#e6db74">&#34;</span> userInfo:nil];
@@ -1283,7 +1283,7 @@ NSString <span style="color:#f92672">*</span><span style="color:#66d9ef">const</
 }
 </code></pre></div><p>ARC 下，编译器将把第二种方法签名中的 <code>NSError **</code> 转换为 <code>NSError *__autoreleasing *</code>，即指针所指向的对象将在方法执行完毕后自动释放，因为该方法不能保证调用者将其中创建的 <code>NSError</code> 释放，由此保证与大部分方法（除 <code>new</code> / <code>alloc</code> / <code>copy</code> / <code>mutableCopy</code> 开头的方法）返回值所具备的语义相同。</p>
 <!-- - [隐藏\_\_autoreleasing 属性变量(NSError \*\*)引起的 EXC_BAD_ACCESS 崩溃](https://www.jianshu.com/p/b16f36e98baf) -->
-<h3 id="-nscopying-">理解 NSCopying 协议</h3>
+<h3 id="理解-nscopying-协议">理解 NSCopying 协议</h3>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@protocol</span> <span style="color:#a6e22e">NSCopying</span>
 - (<span style="color:#66d9ef">id</span>)<span style="color:#a6e22e">copyWithZone:</span>(nullable NSZone <span style="color:#f92672">*</span>)zone;
 <span style="color:#66d9ef">@end</span>
@@ -1374,8 +1374,8 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">rect1
 </span><span style="color:#75715e"></span><span style="color:#75715e">// rect1 - &lt;Rectangle: 0x102a04150&gt;, rect2 - &lt;Rectangle: 0x102a04240&gt;
 </span></code></pre></div><p><img src="/img/2019/effective_obj-c_2.0_notes/3.png" alt="3"></p>
 <p>上图取自苹果官方文档中 <a href="https://developer.apple.com/library/archive/documentation/General/Conceptual/DevPedia-CocoaCore/ObjectCopying.html">Object copying - Cocoa Core Competencies</a> 一节。</p>
-<h2 id="heading-17">协议与分类</h2>
-<h3 id="heading-18">通过委托与数据源协议进行对象间通信</h3>
+<h2 id="协议与分类">协议与分类</h2>
+<h3 id="通过委托与数据源协议进行对象间通信">通过委托与数据源协议进行对象间通信</h3>
 <p>为了避免循环引用（Retain Cycle），遵守代理（Delegate）协议对象的内存管理语义需设置为 <code>weak</code> 或 <code>unsafe_unretained</code>（关于两者区别详见本文《理解「属性」这一概念》一节），而非 <code>strong</code>。代理协议中的方法通常只会在类内部使用，因此可以在类扩展（注：本文中称之为 Class-Continuation Category）中声明实现即可。代理协议中的方法通常使用 <code>@optional</code> 标记为可选，因为遵守代理协议的对象并非一定关心其中所有的方法，所以在调用回代理上的方法时一定要先使用类型信息查询方法进行确认，为了避免重复性调用查询方法，可使用位域来缓存结果，关于位域可详见《<a href="../bit_field_union_in_cpp/">C/C++ 中的位域与共用体</a>》一文。代理协议中的方法通常将调用者本身作为参数传回，以便根据不同的调用者执行不同的逻辑。数据源（DataSource）中，数据从代理对象中流向类；而调用者中，数据从调用者中流出至代理对象：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &#34;ViewController.h&#34;</span><span style="color:#75715e">
 </span><span style="color:#75715e"></span>
@@ -1483,13 +1483,13 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">rect1
 </span><span style="color:#75715e"></span><span style="color:#75715e">// https://kingcos.me
 </span><span style="color:#75715e"></span><span style="color:#75715e">// --------------------
 </span><span style="color:#75715e"></span><span style="color:#75715e">// willLog - [https://kingcos.me]
-</span></code></pre></div><h3 id="heading-19">将类的实现代码分散到便于管理的数个分类之中</h3>
+</span></code></pre></div><h3 id="将类的实现代码分散到便于管理的数个分类之中">将类的实现代码分散到便于管理的数个分类之中</h3>
 <p>使用分类机制可以将类的实现代码分成不同的功能块。比如 <code>NSURLRequest</code> 类提供向 URL 请求的功能，但从其命名中并不得知其使用的具体协议，而 HTTP 相关的方法定义在 <code>NSURLRequest</code> 的 <code>NSHTTPURLRequest</code> 分类中。<code>NSURLRequest</code> 中封装了一套操作 <code>CFURLRequest</code> 数据结构所需的 C 函数，且 Obj-C 并不支持方法的访问控制修饰符，将 <code>NSHTTPURLRequest</code> 定义为子类也不甚方便。定义在分类中的方法符号会带有分类信息，便于 Debug。通常，我们将无需暴露在外界的方法定义在带有 <code>Private</code> 的分类中，这样即使出现问题也能输出 <code>Private</code> 相关的信息。</p>
-<h3 id="heading-20">总是为第三方的分类名称加前缀</h3>
+<h3 id="总是为第三方的分类名称加前缀">总是为第三方的分类名称加前缀</h3>
 <p>向第三方分类中添加分类时，应为分类名称加上特有前缀以区分；分类中的方法也要加上特有前缀以区分。关于分类（Category），可详见《<a href="../category_in_ios/">iOS 中的 Category</a>》一文。</p>
-<h3 id="heading-21">勿在分类中声明属性</h3>
+<h3 id="勿在分类中声明属性">勿在分类中声明属性</h3>
 <p>分类中可以定义属性，但并不会生成成员变量以及 getter &amp; setter 的实现，因此建议在主接口或类扩展中封装所需的所有属性。</p>
-<h3 id="class-continuation-">使用「class-continuation 分类」隐藏实现细节</h3>
+<h3 id="使用class-continuation-分类隐藏实现细节">使用「class-continuation 分类」隐藏实现细节</h3>
 <p>class-continuation 分类现在通常称之为类扩展。类扩展中之所以可以定义方法和实例变量，这是由于 ABI 稳固的机制。利用类扩展可以将一些接口声明在实现文件中，以对外隐藏。其中比较一个比较特别的用例是将所需的 C++ 类等使用声明在类扩展中，这样无需声明在头文件中，可以避免其它引入的类必须使用 Obj-C++ 语法（即 <code>.mm</code> 文件）：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// CPPClass.hpp
 </span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">ifndef CPPClass_hpp</span><span style="color:#75715e">
@@ -1563,11 +1563,11 @@ NS_ASSUME_NONNULL_END
 
 <span style="color:#66d9ef">@end</span>
 </code></pre></div><p>类扩展也可以将头文件中声明为 <code>readonly</code> 的属性重新使用 <code>readwrite</code> 声明，以在类内部使用；类扩展通常也用来声明遵循外界无需知晓的协议。</p>
-<h3 id="heading-22">通过协议提供匿名对象</h3>
+<h3 id="通过协议提供匿名对象">通过协议提供匿名对象</h3>
 <p>在「通过委托与数据源协议进行对象间通信」一节中，<code>Foo</code> 的 <code>delegate</code> 所声明的类型为 <code>id &lt;FooDelegate&gt;</code>，即任何遵循 <code>FooDeelgate</code> 协议的类型即可，而非必须为某一具体类型，这种只限定协议的类的对象就是 Obj-C 中的匿名对象（Anonymous Object）。<code>NSDictionary</code> 中的键是 <code>id &lt;NSCopying&gt;</code> 类型，同理只要是遵循 <code>NSCopying</code> 协议的类的对象即可。使用匿名对象也可对外隐藏类型名称。</p>
 <p>有时对象类型并不重要，重要的是对象有没有实现某些方法，即可使用匿名类型（Anonymous Type）来表达这一概念。即便实现代码总是使用固定的类，但仍然写成遵循某种协议的匿名类型，以表明类型在此并不重要。</p>
-<h2 id="heading-23">内存管理</h2>
-<h3 id="heading-24">理解引用计数</h3>
+<h2 id="内存管理">内存管理</h2>
+<h3 id="理解引用计数">理解引用计数</h3>
 <p>Mac OS X 10.8 开始，垃圾回收（Garbage Collector）已经正式废弃，而 iOS 从未支持垃圾回收，一直使用引用计数（Reference Count，又称 Retain Count，保留计数）管理内存。在 MRC 下，<code>NSObject</code> 协议中的 <code>retain</code>、<code>release</code> 以及 <code>autorelease</code> 方法用来操作计数。当引用计数归零，系统将把对象占用的内存标记为可重用的。需要注意的是，这并不代表对象所占用的内存地址一定会被覆写，因此在引用计数降为 0 再调用时只是「可能」而非「一定」会崩溃。因此通常在 <code>release</code> 后将对象置为 <code>nil</code> 而避免悬挂指针（Dangling Pointer）：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span> [[Foo alloc] init];
 [foo <span style="color:#66d9ef">release</span>];
@@ -1596,7 +1596,7 @@ foo <span style="color:#f92672">=</span> nil; <span style="color:#75715e">// 将
 <span style="color:#75715e">// ...
 </span><span style="color:#75715e"></span>[_foo <span style="color:#66d9ef">release</span>];
 </code></pre></div><p>引用计数的概念应当理解为所执行的操作对于计数本身是增加了还是消减了，而非刻意追求为某个值。另外需要注意的是，查询引用计数的方法 <code>retainCount</code> 不推荐使用。</p>
-<h2 id="-arc-">以 ARC 简化引用计数</h2>
+<h2 id="以-arc-简化引用计数">以 ARC 简化引用计数</h2>
 <p>ARC 下调用 <code>retain</code>、<code>release</code>、<code>autorelease</code>、<code>dealloc</code> 方法时并不通过 Obj-C 的消息发送机制，而是直接调用其底层的 C 语言版本，因而性能更好。在 Obj-C 中，以 <code>alloc</code>、<code>new</code>、<code>copy</code> 和 <code>mutableCopy</code> 开头的方法返回的对象归调用者所有，即调用这些方法的代码同样要负责释放；反之则不归调用者所有，需要在内部自己处理，因此返回的对象会自动释放，但外界希望保活则需要调用者再次保留：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// ARC
 </span><span style="color:#75715e"></span>+ (Foo <span style="color:#f92672">*</span>)<span style="color:#a6e22e">newFoo</span> {
@@ -1682,7 +1682,7 @@ Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span>
 </span><span style="color:#75715e"></span>    free(_heapAllocatedMemoryBlob);   <span style="color:#75715e">// 手动释放 malloc() 分配在堆中的内存
 </span><span style="color:#75715e"></span>}
 </code></pre></div><p>MRC 下为了实现单例可以将 <code>release</code> 方法替换为空操作即可；但在 ARC 不可这样操作，因为这将干扰 ARC 本身。</p>
-<h3 id="-dealloc-">在 dealloc 方法中只释放引用并解除监听</h3>
+<h3 id="在-dealloc-方法中只释放引用并解除监听">在 dealloc 方法中只释放引用并解除监听</h3>
 <p>上一节中也提到了一些在 <code>dealloc</code> 方法中所应执行的操作，本节不再赘述。另外还要在其中将当前对象的 <code>NSNotificationCenter</code> 观察者移除，否则在其它地方发送通知时，接收者却已经销毁，将引发崩溃。</p>
 <p>需要注意的是，<code>dealloc</code> 中并不建议释放开销较大的资源，因为其调用的具体时机我们无法把握，从而容易导致出现内存泄漏。而建议是将释放方法独立，并由开发者保证在不使用资源时释放资源。但为了防止开发者忘记释放资源，我们仍可以在 <code>dealloc</code> 中根据是否释放过而去兜底释放资源，也可抛出异常。另外系统也不能保证每个对象的 <code>dealloc</code> 方法最终都会被调用，即程序终止时某些对象的 <code>dealloc</code> 方法系统可能就不再去调用了，因此当需要在程序终止时清理某些对象时，可以在 <code>AppDelegate</code> 中的相关方法中操作。</p>
 <p><code>dealloc</code> 方法调用时，对象的生命周期已经接近尾声，此时不应随便调用其它方法，尤其是异步方法、特定线程方法、属性 getter &amp; setter：</p>
@@ -1691,7 +1691,7 @@ Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span>
 <li>特定线程方法：调用 <code>dealloc</code> 方法的所在线程将执行最终的释放操作，令对象的引用计数归零；而某些方法必须在特定的线程里（比如主线程里）调用，但此时已经无法保证其会在正确的线程上正确运行，因为对象已经处于正在回收的状态；为指明此状况，运行时系统已经改动了对象的内部数据结构；</li>
 <li>属性 getter &amp; setter：getter &amp; setter 有可能会被重写，其中可能会做一些不受控制的操作；另外如果对象的属性处于 KVO 下，此时的改变将使用到即将回收的对象，这将可能导致很多问题。</li>
 </ol>
-<h3 id="heading-25">编写「异常安全代码时」留意内存管理问题</h3>
+<h3 id="编写异常安全代码时留意内存管理问题">编写「异常安全代码时」留意内存管理问题</h3>
 <p>纯 C 中不支持异常（Exception），而 C++ 和 Obj-C 均支持异常，且在 Xcode 中两者的异常是互相兼容的（可以互相捕获）。异常安全的代码使得异常抛出但并不会影响程序的继续运行，但这里就会出现内存管理的问题：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">ExceptionMaker</span> : <span style="color:#a6e22e">NSObject</span>
 - (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">generate</span>;
@@ -1736,9 +1736,9 @@ ExceptionMaker <span style="color:#f92672">*</span>maker;
 </span><span style="color:#75715e"></span>}
 </code></pre></div><p>ARC 下如果要自动处理则需要加入大量样板代码来跟踪待清理的对象，这样的弊端是会影响运行时性能，且会明显增大应用程序的大小，因此该自动处理默认是关闭的。但我们仍然可以通过 <code>-fobjc-arc-expection</code> 编译器标志来开启自动处理。如上文「理解 Objective-C 错误模型」一节中所述，默认不开启自动处理的原因是异常通常是发生严重错误终止程序才应抛出，自然也就无需再考虑内存泄漏问题。如果程序中有许多异常捕获操作时，应当考虑使用 <code>NSError</code> 来进行取代。</p>
 <p>另外在 Obj-C++ 模式时，编译器将自动打开 <code>-fobjc-arc-expection</code> 标志。这是因为 C++ 处理异常所用的代码与 ARC 实现的附加代码类似，因此 ARC 加入样板代码来安全处理异常所造成的性能损失可以接受，且 C++/Obj-C++ 可能需要频繁使用异常。</p>
-<h3 id="heading-26">以弱引用避免保留环</h3>
+<h3 id="以弱引用避免保留环">以弱引用避免保留环</h3>
 <p><code>weak</code> 弱引用可以自动清空，也可不自动清空。自动清空（Autonilling）是随着 ARC 引入的新特性，由运行时实现。</p>
-<h3 id="heading-27">以「自动释放池块」降低内存峰值</h3>
+<h3 id="以自动释放池块降低内存峰值">以「自动释放池块」降低内存峰值</h3>
 <p>自动释放池（Autorelease Pool）用于存放那些需要在稍后某个时刻释放的对象，清空自动释放池时，系统会向其中的对象发送 <code>release</code> 消息。GCD 机制中的线程默认都有自动释放池，每次执行事件循环（Event Loop）时，就会将其清空，因此这里我们不需要自己创建；通常只有在程序的 <code>main</code> 函数入口创建：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// main.m
 </span><span style="color:#75715e"></span>
@@ -1800,7 +1800,7 @@ NSAutoreleasePool <span style="color:#f92672">*</span>pool <span style="color:#f
 </span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> [foo autorelease];
 }
 </code></pre></div><p>自动释放池机制类似栈，内部需要放入自动释放池的对象将入栈，而清空自动释放池则相当于将其出栈。自动释放池的建立会带来一定开销，具体是否用来优化效率，需取决于具体情况。</p>
-<h3 id="heading-28">用「僵尸对象」调试内存管理问题</h3>
+<h3 id="用僵尸对象调试内存管理问题">用「僵尸对象」调试内存管理问题</h3>
 <p>「僵尸对象」功能指的是在运行时系统会将所有已回收的对象转化为僵尸对象，当其再次收到消息时将抛出异常。我们可以在 Xcode - Edit Schemes - Memory Management - Zombie Objects 来开启该功能：</p>
 <p><img src="/img/2019/effective_obj-c_2.0_notes/2.png" alt="2"></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">Bar <span style="color:#f92672">*</span>bar <span style="color:#f92672">=</span> [[Bar alloc] init];
@@ -1858,7 +1858,7 @@ NSAutoreleasePool <span style="color:#f92672">*</span>pool <span style="color:#f
     <span style="color:#75715e">// 终止程序
 </span><span style="color:#75715e"></span>    abort();
 }
-</code></pre></div><h3 id="-retaincount">不要使用 retainCount</h3>
+</code></pre></div><h3 id="不要使用-retaincount">不要使用 retainCount</h3>
 <p><code>retainCount</code> 是 MRC 下的方法，用来获取对象的引用计数，但其实引用计数的具体值开发者不应特别关心。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// MRC
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">while</span> ([obj retainCount]) {
@@ -1887,25 +1887,25 @@ NSAutoreleasePool <span style="color:#f92672">*</span>pool <span style="color:#f
 <span style="color:#75715e">// 1
 </span><span style="color:#75715e"></span>NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%lu</span><span style="color:#e6db74">&#34;</span>, (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span>)[num2 retainCount]);
 </code></pre></div><p>综上不建议使用 <code>retainCount</code> 方法。</p>
-<h2 id="heading-29">块与大中枢派发</h2>
-<h3 id="heading-30">理解「块」这一概念</h3>
+<h2 id="块与大中枢派发">块与大中枢派发</h2>
+<h3 id="理解块这一概念">理解「块」这一概念</h3>
 <p>略；关于 Block，可详见《<a href="../block_in_obj-c">Obj-C 中的 Block</a>》一文。</p>
-<h3 id="-typedef">为常用的块类型创建 <code>typedef</code></h3>
+<h3 id="为常用的块类型创建-typedef">为常用的块类型创建 <code>typedef</code></h3>
 <p>略；关于 Block，可详见《<a href="../block_in_obj-c">Obj-C 中的 Block</a>》一文。</p>
-<h3 id="-handler-">用 handler 块降低代码分散程度</h3>
+<h3 id="用-handler-块降低代码分散程度">用 handler 块降低代码分散程度</h3>
 <p>略；关于 Block，可详见《<a href="../block_in_obj-c">Obj-C 中的 Block</a>》一文。</p>
-<h3 id="heading-31">用块引用其所属对象时不要出现保留环</h3>
+<h3 id="用块引用其所属对象时不要出现保留环">用块引用其所属对象时不要出现保留环</h3>
 <p>略；关于 Block，可详见《<a href="../block_in_obj-c">Obj-C 中的 Block</a>》一文。</p>
-<h3 id="heading-32">多用派发队列，少用同步锁</h3>
-<h3 id="-gcd-performselector-">多用 GCD，少用 performSelector 系列方法</h3>
-<h3 id="-gcd-">掌握 GCD 及操作队列的时机</h3>
-<h3 id="-dispatch-group-">通过 Dispatch Group 机制，根据系统资源状况来执行任务</h3>
-<h3 id="-dispatch-once-">使用 dispatch_once 来执行只需运行一次的线程安全代码</h3>
-<h3 id="-dispatch-get-current-queue">不要使用 dispatch_get_current_queue</h3>
-<h2 id="heading-33">系统框架</h2>
-<h3 id="heading-34">熟悉系统框架</h3>
+<h3 id="多用派发队列少用同步锁">多用派发队列，少用同步锁</h3>
+<h3 id="多用-gcd少用-performselector-系列方法">多用 GCD，少用 performSelector 系列方法</h3>
+<h3 id="掌握-gcd-及操作队列的时机">掌握 GCD 及操作队列的时机</h3>
+<h3 id="通过-dispatch-group-机制根据系统资源状况来执行任务">通过 Dispatch Group 机制，根据系统资源状况来执行任务</h3>
+<h3 id="使用-dispatch_once-来执行只需运行一次的线程安全代码">使用 dispatch_once 来执行只需运行一次的线程安全代码</h3>
+<h3 id="不要使用-dispatch_get_current_queue">不要使用 dispatch_get_current_queue</h3>
+<h2 id="系统框架">系统框架</h2>
+<h3 id="熟悉系统框架">熟悉系统框架</h3>
 <p>略。</p>
-<h3 id="-for-">多用块枚举，少用 for 循环</h3>
+<h3 id="多用块枚举少用-for-循环">多用块枚举，少用 for 循环</h3>
 <p>遍历集合的方式有如下四种，之后可能会将此部分单独总结，此处不再赘述：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// 1⃣️ FOR-LOOP
 </span><span style="color:#75715e"></span>NSDictionary <span style="color:#f92672">*</span>dict <span style="color:#f92672">=</span> <span style="color:#ae81ff">@{</span><span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">A</span><span style="color:#e6db74">&#34;</span><span style="color:#f92672">:</span><span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">a</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">B</span><span style="color:#e6db74">&#34;</span><span style="color:#f92672">:</span><span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">C</span><span style="color:#e6db74">&#34;</span><span style="color:#f92672">:</span><span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">c</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span><span style="color:#f92672">:</span><span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">github.com/kingcos</span><span style="color:#e6db74">&#34;</span>,<span style="color:#ae81ff">}</span>;
@@ -1984,7 +1984,7 @@ https://www.jianshu.com/p/2ec49d525871 -->
 <li><a href="https://www.mikeash.com/pyblog/friday-qa-2010-04-09-comparison-of-objective-c-enumeration-techniques.html">Friday Q&amp;A 2010-04-09: Comparison of Objective-C Enumeration Techniques - Mike Ash</a></li>
 <li><a href="https://www.mikeash.com/pyblog/friday-qa-2010-04-16-implementing-fast-enumeration.html">Friday Q&amp;A 2010-04-16: Implementing Fast Enumeration - Mike Ash</a></li>
 </ul>
-<h3 id="-collection-">对自定义其内存管理语义的 collection 使用无缝桥接</h3>
+<h3 id="对自定义其内存管理语义的-collection-使用无缝桥接">对自定义其内存管理语义的 collection 使用无缝桥接</h3>
 <p>无缝桥接（Toll-Free Bridging）使得 <code>Foundation</code> 框架中的 Obj-C 类型可以与 <code>CoreFoundation</code> 框架里的 C 语言数据结构之间可以平滑转换。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">NSArray <span style="color:#f92672">*</span>arr <span style="color:#f92672">=</span> <span style="color:#ae81ff">@[</span><span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">A</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">github.com/kingcos</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">]</span>;
 
@@ -2084,7 +2084,7 @@ arr <span style="color:#f92672">=</span> (<span style="color:#66d9ef">__bridge_t
 </span><span style="color:#75715e"></span><span style="color:#75715e">// {
 </span><span style="color:#75715e"></span><span style="color:#75715e">//    &#34;&lt;Foo: 0x10059b3c0&gt;&#34; = foo;
 </span><span style="color:#75715e"></span><span style="color:#75715e">// }
-</span></code></pre></div><h3 id="-nscache--nsdictionary">构建缓存时选用 NSCache 而非 NSDictionary</h3>
+</span></code></pre></div><h3 id="构建缓存时选用-nscache-而非-nsdictionary">构建缓存时选用 NSCache 而非 NSDictionary</h3>
 <p>当网络数据过大或者其它某些情况，我们可能需要使用到数据结构来做缓存以优化用户体验，此时 <code>NSCache</code> 要比 <code>NSDictionary</code> 好，首先当系统资源即将耗尽时，前者可以按最久未使用（Lease Recently Used，LRU）算法自动删减缓存；其次 <code>NSCache</code> 对键不会做类似 <code>NSDictionary</code> 默认的拷贝操作，而是保留操作；而且 <code>NSCache</code> 是线程安全的，<code>NSDictionary</code> 则无此优势。</p>
 <p>开发者可以控制缓存删减其内容的时机，其中有两个尺度可供调整，其一是缓存中的对象总数，其二是所有对象的总开销。缓存的使用目的即是为了更快地响应用户操作，而如果开销值计算是耗时操作就显得本末倒置了，除非是已知数据大小的 <code>NSData</code> 对象。另外控制尺度并非完全严格，其仅对 <code>NSCache</code> 起指导作用。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">typedef</span> <span style="color:#a6e22e">void</span>(<span style="color:#f92672">^</span>HandlerBlock)(NSData <span style="color:#f92672">*</span>data);
@@ -2263,9 +2263,9 @@ arr <span style="color:#f92672">=</span> (<span style="color:#66d9ef">__bridge_t
 </span><span style="color:#75715e"></span><span style="color:#75715e">// 命中缓存
 </span><span style="color:#75715e"></span><span style="color:#75715e">// https://kingcos.me/
 </span></code></pre></div><!-- https://github.com/AFNetworking/AFNetworking/issues/268 -->
-<h3 id="-initialize--load-">精简 initialize 与 load 实现代码</h3>
+<h3 id="精简-initialize-与-load-实现代码">精简 initialize 与 load 实现代码</h3>
 <p>略；关于 +load，可详见《<a href="../block_in_obj-c">iOS 中的 +load 方法</a>》一文；关于 +initialize，可详见《<a href="../block_in_obj-c">iOS 中的 +initialize 方法</a>》一文。</p>
-<h3 id="-nsimer-">别忘了 NSimer 会保留其目标对象</h3>
+<h3 id="别忘了-nsimer-会保留其目标对象">别忘了 NSimer 会保留其目标对象</h3>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">NSTimer</span> (BlockCategory)
 + (NSTimer <span style="color:#f92672">*</span>)<span style="color:#a6e22e">bc_scheduledTimerWithTimeInterval:</span>(NSTimeInterval)interval
                                        <span style="color:#a6e22e">repeats:</span>(<span style="color:#66d9ef">BOOL</span>)repeats

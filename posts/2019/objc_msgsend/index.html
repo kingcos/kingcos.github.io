@@ -228,7 +228,7 @@ Why 在开始之前，先思考以下为什么 Obj-C 中方法调用的本质是
 </code></pre></div><p>综上，我们可以说 Obj-C 中方法调用的本质即是 <code>objc_msgSend</code>。</p>
 <h2 id="steps">Steps</h2>
 <p><code>objc_msgSend</code> 总共分为消息发送、动态方法解析、以及消息转发三大部分，下面我们就依次来研究一下。</p>
-<h3 id="heading">消息发送</h3>
+<h3 id="消息发送">消息发送</h3>
 <p><code>objc_msgSend</code> 中的第一个部分是消息发送，即对消息接收者发送一条方法消息，当接收者可以处理消息时将执行相应的方法，无法处理时则进入下一步骤。</p>
 <h4 id="where--why">Where &amp; Why</h4>
 <p>在 Apple 开源的 objc4 源码中，我们似乎只能在「message.h」中找到 <code>objc_msgSend</code> 的声明，其将消息接收者（即对象）作为第一个参数，将消息（即方法选择器）作为第二个参数，并将方法的参数追加在参数列表的最后：</p>
@@ -269,7 +269,7 @@ OBJC_EXPORT id _Nullable
 <li>C 语言无法实现一个保存未知参数且支持跳转到任一函数指针处的函数，对于 C 来说没有必要的特性来表示（引自 <a href="https://www.mikeash.com/pyblog/friday-qa-2017-06-30-dissecting-objc_msgsend-on-arm64.html">Dissecting objc_msgSend on ARM64 - Mike Ash</a>）。</li>
 </ol>
 <p>由于 <code>objc_msgSend</code> 整个流程比较复杂，下面我将尝试把流程分解为多个用例，逐个分析。</p>
-<h4 id="-nil-">当接收者为 <code>nil</code> 时</h4>
+<h4 id="当接收者为-nil-时">当接收者为 <code>nil</code> 时</h4>
 <p>当接收者为 <code>nil</code> 时，即 <code>[foo bar]</code> 中的 <code>foo</code> 为 <code>nil</code>：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">- (<span style="color:#66d9ef">IBAction</span>)<span style="color:#a6e22e">clickOnButton:</span>(UIButton <span style="color:#f92672">*</span>)sender {
     Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span> [[Foo alloc] init];
@@ -298,7 +298,7 @@ OBJC_EXPORT id _Nullable
 </span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x192bd823c</span> <span style="color:#960050;background-color:#1e0010">&lt;</span><span style="color:#960050;background-color:#1e0010">+</span><span style="color:#ae81ff">188</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movi</span>   <span style="color:#66d9ef">d2</span>, <span style="color:#75715e">#0000000000000000
 </span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x192bd8240</span> <span style="color:#960050;background-color:#1e0010">&lt;</span><span style="color:#960050;background-color:#1e0010">+</span><span style="color:#ae81ff">192</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movi</span>   <span style="color:#66d9ef">d3</span>, <span style="color:#75715e">#0000000000000000
 </span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x192bd8244</span> <span style="color:#960050;background-color:#1e0010">&lt;</span><span style="color:#960050;background-color:#1e0010">+</span><span style="color:#ae81ff">196</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">ret</span>
-</code></pre></div><h4 id="heading-1">方法缓存</h4>
+</code></pre></div><h4 id="方法缓存">方法缓存</h4>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">objc_class</span> <span style="color:#f92672">:</span> objc_object {
     <span style="color:#75715e">// Class ISA;
 </span><span style="color:#75715e"></span>    Class superclass;
@@ -357,7 +357,7 @@ OBJC_EXPORT id _Nullable
     <span style="color:#75715e">// ...
 </span><span style="color:#75715e"></span>};
 </code></pre></div><p><code>cache_t</code> 结构体中存储了指向 <code>bucket_t</code> 结构体（数组）的指针、<code>_mask</code>（表示散列表容量 - 1，详见下文源码）、以及 <code>_occupied</code>（表示已缓存方法的数量）。<code>bucket_t</code> 即缓存方法的散列表，方法名将作为键，<code>IMP</code> 即方法的内存地址将作为值。</p>
-<h4 id="heading-2">当未命中缓存时</h4>
+<h4 id="当未命中缓存时">当未命中缓存时</h4>
 <p>方法的首次调用或遇到缓存扩容后无法命中缓存，将进入 C 函数中搜索，并在找到方法后缓存在调用者本身的缓存中。因此我们仍从 <code>cmp p0, #0</code> 开始，但这次接收者并非 <code>nil</code> 所以不会跳入判空分支：</p>
 <p><img src="/img/2019/objc_msgsend/5.png" alt="5"></p>
 <p>到达 <code>bl __class_lookupMethodAndLoadCache3</code> 后将跳入 C 函数 <code>_class_lookupMethodAndLoadCache3</code> 中：</p>
@@ -757,10 +757,10 @@ cache_key_t <span style="color:#a6e22e">getKey</span>(SEL sel)
 </span><span style="color:#75715e"></span>    INIT_CACHE_SIZE      <span style="color:#f92672">=</span> (<span style="color:#ae81ff">1</span> <span style="color:#f92672">&lt;</span><span style="color:#f92672">&lt;</span> INIT_CACHE_SIZE_LOG2)
 };
 </code></pre></div><p>如上，消息发送的代码被分为两个部分：其一是快速路径（Fast Path），这一部分由汇编语言实现；其二是慢速路径（Slow Path），由 C 语言实现。当未命中缓存时，将调用 C 语言代码来查找方法列表，并缓存方法。</p>
-<h4 id="heading-3">当命中缓存时</h4>
+<h4 id="当命中缓存时">当命中缓存时</h4>
 <p>当方法被再次调用时，将可以命中缓存得以快速执行：</p>
 <p><img src="/img/2019/objc_msgsend/6.png" alt="6"></p>
-<h4 id="support-indexed-isa">SUPPORT_INDEXED_ISA</h4>
+<h4 id="support_indexed_isa">SUPPORT_INDEXED_ISA</h4>
 <p><code>SUPPORT_INDEXED_ISA</code>，即是否支持索引化 isa 我们可以在源码中找到这段定义的宏：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// objc-config.h
 </span><span style="color:#75715e"></span>
@@ -796,9 +796,9 @@ cache_key_t <span style="color:#a6e22e">getKey</span>(SEL sel)
   Builder.defineMacro(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">__ARM_ARCH_7K__</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">2</span><span style="color:#e6db74">&#34;</span>);
 </code></pre></div><p><code>__arm64__</code> 即是定义在目标为 ARM 64 架构 CPU 的代码中；<code>__LP64__</code> 则意味着 Long Pointer，该标志宏为 <code>1</code> 的代码中 <code>long int</code> 和指针类型（指针中存储的是内存地址，也即内存地址）的长度为 64 位（8 字节），<code>int</code> 为 32 位（4 字节）。</p>
 <p>综上，在 iOS 的真机设备中，<code>SUPPORT_INDEXED_ISA</code> 的值最终为 <code>0</code>。</p>
-<h4 id="heading-4">尾递归调用</h4>
+<h4 id="尾递归调用">尾递归调用</h4>
 <p>🚧</p>
-<h3 id="heading-5">动态方法解析</h3>
+<h3 id="动态方法解析">动态方法解析</h3>
 <h4 id="what">What</h4>
 <p>当一个类或元类自身及其所有父类中都没有相应的方法实现时，将尝试动态方法解析。即调用 <code>resolveInstanceMethod:</code> 或 <code>resolveClassMethod</code> 类方法（两者依次对应解析实例方法、类方法），如果我们在其中动态将方法添加，那么将可以执行到相应的方法中：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo</span> : <span style="color:#a6e22e">NSObject</span>
@@ -1190,7 +1190,7 @@ IMP <span style="color:#a6e22e">lookUpImpOrNil</span>(Class cls, SEL sel, id ins
 </span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (imp <span style="color:#f92672">=</span><span style="color:#f92672">=</span> _objc_msgForward_impcache) <span style="color:#66d9ef">return</span> nil;
     <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">return</span> imp;
 }
-</code></pre></div><h3 id="heading-6">消息转发</h3>
+</code></pre></div><h3 id="消息转发">消息转发</h3>
 <h4 id="what-1">What</h4>
 <p>当动态方法解析也无能为力时，将最终尝试消息转发。即 <code>- (id)forwardingTargetForSelector:(SEL)aSelector</code> 实例方法或 <code>+ (id)forwardingTargetForSelector:(SEL)aSelector</code> 类方法，如果我们将需要转发到的目标返回，那么目标就可以执行到转发的相同方法：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">FooBackup</span> : <span style="color:#a6e22e">NSObject</span>

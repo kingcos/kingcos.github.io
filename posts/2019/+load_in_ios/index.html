@@ -293,7 +293,7 @@ What iOS 中的 &#43;load 方法指的是 NSObject 中的 &#43; (void)load 类�
 </span><span style="color:#75715e"></span><span style="color:#75715e">// Hello, World!
 </span></code></pre></div><p>不需要更改 main.m，尝试运行程序，结果正如官方所述，即 <strong>+load 方法会在 <code>main</code> 函数之前被调用；且调用顺序总是先父类再子类再分类</strong>。</p>
 <h2 id="why">Why</h2>
-<h3 id="heading">实现原理</h3>
+<h3 id="实现原理">实现原理</h3>
 <blockquote>
 <p><strong>Obj-C 运行时的入口是哪里呢？</strong></p>
 <p>在 objc4 源码中有一个「libobjc.order」的文件，列举了该库方法符号的调用顺序，我们能看到第一个就是 <code>__objc_init</code>。编译时，C/C++ 方法前会被自动加上 <code>_</code> 前缀作为方法符号（这一点可以在分析 Link Map 或者 Mach-O 时证明），因此这里第一个本质就是 <code>_objc_init</code>。</p>
@@ -876,7 +876,7 @@ _category_getLoadMethod(Category cat)
 }
 </code></pre></div><p>上面的源码过程比较复杂，其实主要顺序就是先在 <code>prepare_load_methods</code> 中调用 <code>schedule_class_load</code>，先计划类的 +load 方法调用顺序，在其中会递归找到基类，并 <code>add_class_to_loadable_list</code> 将类中 +load 的 <code>IMP</code> 存储在 <code>loadable_classes</code>；之后在 <code>prepare_load_methods</code> 中调用 <code>add_category_to_loadable_list</code>，再将分类中 +load 的 <code>IMP</code> 存储在 <code>loadable_categories</code>；当类和分类的可加载列表确定后，预备（Prepare）工作完成；之后开始 <code>call_load_methods</code>，调用 <code>call_class_loads</code> 将类中的 +load 全部调用完毕，再调用 <code>call_category_loads</code> 将分类中的 +load 全部调用完毕。这也就完全符合了我们上述的结论，至于毫无关系的类之间以及分类相互之间的调用顺序，由于 <code>loadable_classes</code> 和 <code>loadable_categories</code> 的增加都是按顺序追加，即按照编译顺序来决定，先编译先调用。具体的编译顺序可以在 Xcode -「TARGETS」 -「Build Phases」-「Compile Sources」中找到。</p>
 <p><img src="/img/2019/+load_in_ios/2.png" alt="2"></p>
-<h3 id="imp--load">IMP 与 +load</h3>
+<h3 id="imp-与-load">IMP 与 +load</h3>
 <p>按照我们之前在「iOS 中的 Category」一篇所提到的，当分类中定义了和主类中相同的方法，那么在调用时将选择最后被编译的分类中的实现。因为在运行时，分类中的方法最终将附加到主类或主类元类的方法列表中，最终将返回第一个找到的方法。那么为什么 +load 如此特殊呢？</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// add_class_to_loadable_list
 </span><span style="color:#75715e"></span>loadable_classes[loadable_classes_used].cls <span style="color:#f92672">=</span> cls;
@@ -906,7 +906,7 @@ load_method_t load_method <span style="color:#f92672">=</span> (load_method_t)cl
 </span><span style="color:#75715e"></span><span style="color:#75715e">// Person+Work +[Person(Work) load]
 </span><span style="color:#75715e"></span><span style="color:#75715e">// Hello, World!
 </span></code></pre></div><p>那么有了上述基础，当我们在一个类的子类的 +load 中 <code>[super load]</code> 又会调用到到底哪个类中呢（当然，在实际开发中这种情几乎不可能存在）？答案就是 <code>[super load]</code> 将调用到 <code>Person</code> 最后一个被编译的分类（<code>Person+Work</code>）中的 <code>+load</code> 方法，因为这里是消息发送，而不是通过方法指针。</p>
-<h3 id="objc-print-load-methods">OBJC_PRINT_LOAD_METHODS</h3>
+<h3 id="objc_print_load_methods">OBJC_PRINT_LOAD_METHODS</h3>
 <p>在 objc4 的源码中提供了很多环境变量，方便我们 Debug 时输出一些内部源码的执行信息。<code>OBJC_PRINT_LOAD_METHODS</code> 即是 <code>+load</code> 相关的一个环境变量，将 <code>OBJC_PRINT_LOAD_METHODS</code> 在 Xcode 中设置为 <code>YES</code> 后，将会打印出很多 +load 方法执行时的信息。从下面的信息我们也可以得知，Obj-C 内也广泛使用了 +load，而因为我们自定义的类会在最晚被编译，因此也会在最晚去调用：</p>
 <details>
 <summary>-> 点击此处即可查看完整内容 <-</summary>
@@ -1114,7 +1114,7 @@ objc[<span style="color:#ae81ff">63382</span>]<span style="color:#f92672">:</spa
 <span style="color:#ae81ff">2019</span><span style="color:#f92672">-</span><span style="color:#ae81ff">04</span><span style="color:#f92672">-</span><span style="color:#ae81ff">20</span> <span style="color:#ae81ff">19</span><span style="color:#f92672">:</span><span style="color:#ae81ff">25</span><span style="color:#f92672">:</span><span style="color:#ae81ff">30.542535</span><span style="color:#f92672">+</span><span style="color:#ae81ff">0800</span> Load_Obj<span style="color:#f92672">-</span>C_Demo[<span style="color:#ae81ff">63382</span><span style="color:#f92672">:</span><span style="color:#ae81ff">15374262</span>] Hello, World<span style="color:#f92672">!</span>
 </code></pre></div></details>
 <h2 id="others">Others</h2>
-<h3 id="heading-1">开销</h3>
+<h3 id="开销">开销</h3>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Fruit</span> : <span style="color:#a6e22e">NSObject</span>
 
 <span style="color:#66d9ef">@end</span>

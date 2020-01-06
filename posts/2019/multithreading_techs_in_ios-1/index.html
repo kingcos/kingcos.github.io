@@ -196,7 +196,7 @@ What  POSIX Threads, usually referred to as pthreads, is an execution model that
 <p>&ndash; POSIX 线程，维基百科</p>
 </blockquote>
 <p>如上所述，pthreads 即 POSIX Threads，是一套跨平台的多线程 API，由 C 语言编写。在 Xcode 中，使用 <code>#import &lt;pthread.h&gt;</code> 即可引入 pthreads 相关的 API。但正是由于纯 C 的 API，使用起来不够友好，也需要手动管理线程的整个生命周期。</p>
-<h2 id="heading">线程创建</h2>
+<h2 id="线程创建">线程创建</h2>
 <p>想要开辟一条新的线程来执行任务，我们首先要知道如何创建线程。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">PTHREAD_CREATE(3)        BSD Library Functions Manual        PTHREAD_CREATE(3)
 
@@ -278,7 +278,7 @@ __API_AVAILABLE(macos(<span style="color:#ae81ff">10.4</span>), ios(<span style=
 <p>可以注意到的是，<code>pthread.h</code> 中关于 <code>pthread_create</code> 函数的声明使用了 <code>_PTHREAD_SWIFT_IMPORTER_NULLABILITY_COMPAT</code> 宏进行了区分。关于该宏以及其内部判断条件其实没有太多资料可以参考，但大体上可以理解是为了兼容 Swift 中的可选类型，但两种声明本质上并无其他区别。</p>
 </blockquote>
 <p>以 Obj-C 中实际使用的 <code>pthread_create(pthread_t _Nullable *restrict _Nonnull, const pthread_attr_t *restrict _Nullable, void * _Nullable (* _Nonnull)(void * _Nullable), void *restrict _Nullable)</code> 声明为例，其中 <code>_Nullable</code> 和 <code>_Nonnull</code> 是 Obj-C 桥接 Swift 可选（Optional）类型时是否隐式或显式可选的标志；<code>__restrict</code> 是 C99 标准引入的关键字，类似于 <code>restrict</code>，可以用在指针声明处，使得编译器将只能通过该指针本身修改指向的内容，便于其优化。去掉这些不影响函数本身功能的标志，补全参数名即 <code>int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg)</code>。</p>
-<h3 id="pthread-t">pthread_t</h3>
+<h3 id="pthread_t">pthread_t</h3>
 <p><code>pthread_create</code> 中的第一个参数是 <code>pthread_t *thread</code>，即指向 <code>pthread_t</code> 的指针。<code>pthread_t</code> 的本质是 <code>_opaque_pthread_t</code> 结构体，这里的 <code>opaque</code>（不透明）意味着外界通常无需关心其内部实现细节：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// sys/_pthread/_pthread_t.h
 </span><span style="color:#75715e"></span>
@@ -294,7 +294,7 @@ __API_AVAILABLE(macos(<span style="color:#ae81ff">10.4</span>), ios(<span style=
 
 <span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> _opaque_pthread_t <span style="color:#f92672">*</span>__darwin_pthread_t;
 </code></pre></div><p>我们可以将这个参数理解为线程的引用即可，当 <code>pthread_create</code> 成功创建好线程，传入的 <code>pthread_t</code> 地址即为一个新的线程。</p>
-<h3 id="pthread-attr-t">pthread_attr_t</h3>
+<h3 id="pthread_attr_t">pthread_attr_t</h3>
 <p><code>pthread_create</code> 中的第二个参数是 <code>const pthread_attr_t *attr</code>，即指向 <code>pthread_attr_t</code> 的指针。 <code>pthread_attr_t</code> 的本质是 <code>_opaque_pthread_attr_t</code> 结构体，也是一个不透明类型：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// sys/_pthread/_pthread_attr_t.h
 </span><span style="color:#75715e"></span>
@@ -333,7 +333,7 @@ __API_AVAILABLE(macos(<span style="color:#ae81ff">10.4</span>), ios(<span style=
 <span style="color:#75715e">// 使用完毕销毁
 </span><span style="color:#75715e"></span>pthread_attr_destroy(<span style="color:#f92672">&amp;</span>attr);
 </code></pre></div><p>如果我们不太会去自定义这里的属性，可以将 <code>pthread_create</code> 中的该参数传 <code>NULL</code> 即可使用默认属性来创建线程。</p>
-<h3 id="pthread-create">pthread_create</h3>
+<h3 id="pthread_create">pthread_create</h3>
 <p><code>pthread_create</code> 中的最后两个参数是 <code>void *(*start_routine) (void *)</code> 和 <code>void *arg</code>。<code>start_routine()</code> 是新线程运行时所执行的函数，<code>arg</code> 是传入 <code>start_routine()</code> 的唯一参数。当 <code>start_routine()</code> 执行终止或者线程被明确杀死，线程也将会终止；<code>pthread_create</code> 的返回值是 <code>int</code> 类型，当返回 <code>0</code> 时为成功，否则将返回错误码：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
 </span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;pthread.h&gt;</span><span style="color:#75715e">
@@ -489,7 +489,7 @@ __API_AVAILABLE(macos(<span style="color:#ae81ff">10.4</span>), ios(<span style=
 </span><span style="color:#75715e"></span><span style="color:#75715e">// arg = 1
 </span><span style="color:#75715e"></span><span style="color:#75715e">// arg = 2
 </span><span style="color:#75715e"></span><span style="color:#75715e">// arg = 4
-</span></code></pre></div><h3 id="pthread-create-in-swift">pthread_create in Swift</h3>
+</span></code></pre></div><h3 id="pthread_create-in-swift">pthread_create in Swift</h3>
 <p>如上文所述，pthreads API 在 Swift 中也可以使用。我们可以在 Swift 中 <code>pthread_create</code> 函数声明处发现，其四个参数均与 <code>Unsafe...Pointer</code> 相关的类型有关，这样的命名是因为 Swift 中的指针语法也被抽象为类型而非 <code>*</code>，并通过 <code>Unsafe</code> 告知开发者其中可能存在隐患。而这里由于 <code>pthread_create</code> 本质是一个 C 语言函数，但 Swift 又无法直接与 C/C++ 进行混编，因此需要做一些转换：</p>
 <table>
 <thead>
@@ -596,7 +596,7 @@ sleep(<span style="color:#ae81ff">1</span>)
 <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">a</span><span style="color:#75715e">d</span><span style="color:#75715e">_</span><span style="color:#75715e">1</span><span style="color:#75715e"> </span><span style="color:#75715e">(</span><span style="color:#75715e">0</span><span style="color:#75715e">x</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">7</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">2</span><span style="color:#75715e">c</span><span style="color:#75715e">d</span><span style="color:#75715e">8</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">)</span><span style="color:#75715e"> </span><span style="color:#75715e">i</span><span style="color:#75715e">s</span><span style="color:#75715e"> </span><span style="color:#75715e">r</span><span style="color:#75715e">u</span><span style="color:#75715e">n</span><span style="color:#75715e">n</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">g</span><span style="color:#75715e">.</span>
 <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">s</span><span style="color:#75715e">u</span><span style="color:#75715e">l</span><span style="color:#75715e">t</span><span style="color:#75715e">_</span><span style="color:#75715e">2</span><span style="color:#75715e"> </span><span style="color:#75715e">-</span><span style="color:#75715e"> </span><span style="color:#75715e">2</span><span style="color:#75715e">2</span><span style="color:#75715e"> </span><span style="color:#75715e">-</span><span style="color:#75715e"> </span><span style="color:#75715e">n</span><span style="color:#75715e">i</span><span style="color:#75715e">l</span>
 <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">p</span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">a</span><span style="color:#75715e">d</span><span style="color:#75715e">_</span><span style="color:#75715e">c</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">a</span><span style="color:#75715e">t</span><span style="color:#75715e">e</span><span style="color:#75715e"> </span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">a</span><span style="color:#75715e">d</span><span style="color:#75715e">_</span><span style="color:#75715e">2</span><span style="color:#75715e"> </span><span style="color:#75715e">e</span><span style="color:#75715e">r</span><span style="color:#75715e">r</span><span style="color:#75715e">o</span><span style="color:#75715e">r</span><span style="color:#75715e">.</span>
-</code></pre></div><h2 id="heading-1">线程执行</h2>
+</code></pre></div><h2 id="线程执行">线程执行</h2>
 <p>在「线程创建」一节中，我们可以发现 <code>pthread_create</code> 函数不仅创建了新的线程，其也会执行线程函数，而不像某些 API 的创建与执行是分开的。</p>
 <p>其实当 <code>pthread_create</code> 函数返回 <code>0</code> 时，它只能保证线程被成功创建，但并不能保证线程可以得到立即执行。只有当新的线程获得了 CPU 的时间片（Timeslice），其才可以得到执行。而是否能够优先获得时间片，则取决于线程的优先级。线程默认属性的调度策略是 <code>SCHED_OTHER</code>，该策略下没有优先级选择，因此我们可以通过 <code>pthread_attr_setschedpolicy</code> 更改调度策略：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// pthread/pthread_impl.h
@@ -611,8 +611,8 @@ sleep(<span style="color:#ae81ff">1</span>)
 <span style="color:#75715e">// main.m
 </span><span style="color:#75715e"></span>
 pthread_attr_setschedpolicy(<span style="color:#f92672">&amp;</span>attr, SCHED_RR);
-</code></pre></div><h2 id="heading-2">线程同步</h2>
-<h3 id="pthread-join">pthread_join</h3>
+</code></pre></div><h2 id="线程同步">线程同步</h2>
+<h3 id="pthread_join">pthread_join</h3>
 <p>在上面代码示例中的 <code>main</code> 函数中，都在末尾会有这么一句 <code>sleep(1)</code>，作用是让当前线程休息 1 秒，这是为什么呢？我们可以尝试注释掉这一行 <code>sleep()</code> 函数的调用再运行一次：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
 </span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;pthread.h&gt;</span><span style="color:#75715e">
@@ -791,9 +791,9 @@ print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">main t
 <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">a</span><span style="color:#75715e">d</span><span style="color:#75715e"> </span><span style="color:#75715e">(</span><span style="color:#75715e">0</span><span style="color:#75715e">x</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">7</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">7</span><span style="color:#75715e">b</span><span style="color:#75715e">b</span><span style="color:#75715e">2</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">0</span><span style="color:#75715e">)</span><span style="color:#75715e"> </span><span style="color:#75715e">i</span><span style="color:#75715e">s</span><span style="color:#75715e"> </span><span style="color:#75715e">r</span><span style="color:#75715e">u</span><span style="color:#75715e">n</span><span style="color:#75715e">n</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e">g</span><span style="color:#75715e">.</span>
 <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">s</span><span style="color:#75715e"> </span><span style="color:#75715e">-</span><span style="color:#75715e"> </span><span style="color:#75715e">3</span><span style="color:#75715e">.</span><span style="color:#75715e">1</span><span style="color:#75715e">4</span>
 <span style="color:#75715e">//</span><span style="color:#75715e"> </span><span style="color:#75715e">m</span><span style="color:#75715e">a</span><span style="color:#75715e">i</span><span style="color:#75715e">n</span><span style="color:#75715e"> </span><span style="color:#75715e">t</span><span style="color:#75715e">h</span><span style="color:#75715e">r</span><span style="color:#75715e">e</span><span style="color:#75715e">a</span><span style="color:#75715e">d</span><span style="color:#75715e"> </span><span style="color:#75715e">e</span><span style="color:#75715e">x</span><span style="color:#75715e">i</span><span style="color:#75715e">t</span><span style="color:#75715e">.</span>
-</code></pre></div><h3 id="heading-3">互斥锁</h3>
+</code></pre></div><h3 id="互斥锁">互斥锁</h3>
 <p>pthreads 中还提供了互斥锁（Mutex）来实现线程同步，但由于锁相关的内容将会统一整理，本文不再赘述。</p>
-<h3 id="heading-4">条件变量</h3>
+<h3 id="条件变量">条件变量</h3>
 <p>由于条件变量内容与互斥锁有所关联，一并统一整理，本文不再赘述。</p>
 <h2 id="reference">Reference</h2>
 <ul>
