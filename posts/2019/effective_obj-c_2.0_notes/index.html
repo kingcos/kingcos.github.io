@@ -138,7 +138,7 @@
       
       
       
-        <span class="post-read-time">— 31 min read</span>
+        <span class="post-read-time">— 32 min read</span>
       
     </div>
 
@@ -513,57 +513,95 @@ ImageSourceType type2 <span style="color:#f92672">=</span> ImageSourceTypeGaller
 <p>对于旧的类定义链接了新的类定义会出现不兼容情况，Obj-C 的做法如下：</p>
 <ul>
 <li>将实例变量当作一种存储偏移量所用的特殊变量，交由类对象保管，偏移量将在运行时查找，这样即使类定义变化了，也能找到正确的偏移量，甚至可以在运行时新增实例变量；</li>
-<li>尽量不要直接访问实例变量，而是通过 getter &amp; setter，Obj-C 中可以使用 <code>@property</code> 语法；</li>
+<li>尽量不要直接访问实例变量，而是通过 getter &amp; setter，Obj-C 中可以使用 <code>@property</code> 语法。</li>
 </ul>
-<p>自动合成（Autosynthesis）：编译器会自动为 Obj-C 中的属性编写其所需的方法，该过程由编译器在编译时刻执行；编译器还会自动为 Obj-C 中的属性添加适当类型的成员变量，并在属性名前加 <code>_</code> 前缀作为成员变量名：</p>
+<p>在 Xcode 4.4 之后，Obj-C 编译器 Clang 新增了自动合成（Autosynthesis）的特性。编译器默认会自动为 Obj-C 中的属性 <code>@property</code> 编写其所需的 getter &amp; setter 方法，另外还会添加适当类型的成员变量，并在属性名前加 <code>_</code> 前缀作为成员变量名，整个过程在编译时刻执行：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// main.m
 </span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">@protocol</span> <span style="color:#a6e22e">Bar</span> <span style="color:#f92672">&lt;</span>NSObject<span style="color:#f92672">&gt;</span>
-<span style="color:#75715e">// 实现协议中的属性将不会自动合成
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">@property</span> NSString <span style="color:#f92672">*</span>bar;
+<span style="color:#75715e">#</span><span style="color:#75715e">import &lt;Foundation</span><span style="color:#75715e">/</span><span style="color:#75715e">Foundation.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">@protocol</span> <span style="color:#a6e22e">SomeProtocol</span> <span style="color:#f92672">&lt;</span>NSObject<span style="color:#f92672">&gt;</span>
+
+<span style="color:#75715e">// 注意：实现协议中的属性将不会自动合成
+</span><span style="color:#75715e"></span><span style="color:#75715e">// WARNING: Auto property synthesis will not synthesize property &#39;propInProtocol1&#39; declared in protocol &#39;SomeProtocol&#39;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@property</span> NSString <span style="color:#f92672">*</span>propInProtocol1;
+<span style="color:#66d9ef">@property</span> NSString <span style="color:#f92672">*</span>propInProtocol2;
+
 <span style="color:#66d9ef">@end</span>
 
-<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo</span> : <span style="color:#a6e22e">NSObject</span> <span style="color:#f92672">&lt;</span>Bar<span style="color:#f92672">&gt;</span> {
-<span style="color:#75715e">// 声明为 public
+<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Foo</span> : <span style="color:#a6e22e">NSObject</span> <span style="color:#f92672">&lt;</span>SomeProtocol<span style="color:#f92672">&gt;</span> {
+<span style="color:#75715e">// 手动合成后，重新声明为 public
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">@public</span>
-    NSString <span style="color:#f92672">*</span>bar;
-}
+    NSString <span style="color:#f92672">*</span>propInProtocol2;
+    NSString <span style="color:#f92672">*</span>ivarForPropInClass3; <span style="color:#75715e">// 也可使用 @synthesize 手动合成
+</span><span style="color:#75715e"></span>}
 
-<span style="color:#66d9ef">@property</span> NSString <span style="color:#f92672">*</span>foo;
-<span style="color:#66d9ef">@property</span> NSString <span style="color:#f92672">*</span>baz;
+<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">copy</span>) NSString <span style="color:#f92672">*</span>propInClass1;
+<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">copy</span>) NSString <span style="color:#f92672">*</span>propInClass2;
+<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">copy</span>) NSString <span style="color:#f92672">*</span>propInClass3;
+<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">copy</span>, <span style="color:#66d9ef">readonly</span>) NSString <span style="color:#f92672">*</span>propInClass4;
+<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">copy</span>, <span style="color:#66d9ef">readonly</span>) NSString <span style="color:#f92672">*</span>propInClass5;
+
 <span style="color:#66d9ef">@end</span>
 
 <span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Foo</span>
-<span style="color:#75715e">// @dynamic 将不会自动合成，即不会实现 getter &amp; setter，也不会创建实例变量
+<span style="color:#75715e">// @dynamic 标注后将不会自动合成，即不会实现 getter &amp; setter，也不会创建实例变量
 </span><span style="color:#75715e"></span><span style="color:#75715e">// 但使用 getter &amp; setter 可以编译，因为其声明仍存在，且相信会在运行时动态找到这些方法
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">@dynamic</span> baz;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@dynamic</span> propInClass2;
 
-<span style="color:#75715e">// WARNING: Auto property synthesis will not synthesize property &#39;bar&#39; declared in protocol &#39;Bar&#39;
+<span style="color:#75715e">// 手动合成 getter &amp; setter，以及成员变量 bar
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">@synthesize</span> propInProtocol2; <span style="color:#75715e">// 也等同于显式指定属性的成员变量名为 bar：@synthesize bar = bar;
 </span><span style="color:#75715e"></span>
-<span style="color:#75715e">// 生成 getter &amp; setter，以及成员变量 bar
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">@synthesize</span> bar;
-<span style="color:#75715e">// 等同于指定属性的成员变量名为 bar（等号右侧）：
-</span><span style="color:#75715e"></span><span style="color:#75715e">// @synthesize bar = bar;
-</span><span style="color:#75715e"></span><span style="color:#75715e">// @synthesize bar = _bar;
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">@end</span>
-
-<span style="color:#66d9ef">int</span> main(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
-    <span style="color:#66d9ef">@autoreleasepool</span> {
-        Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span> [[Foo alloc] init];
-
-        foo.bar <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>;
-        NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, foo.bar);
-
-        <span style="color:#75715e">// 将 bar 声明为 public 后可以在外界访问
-</span><span style="color:#75715e"></span>        NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, foo<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>bar);
-    }
-    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+- (NSString <span style="color:#f92672">*</span>)<span style="color:#a6e22e">propInClass3</span> {
+    <span style="color:#75715e">// 当同时实现属性 getter &amp; setter 时，将不会自动合成成员变量
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// ERROR: Use of undeclared identifier &#39;_propInClass3&#39;; did you mean &#39;_propInClass1&#39;?
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// return _propInClass3;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> ivarForPropInClass3;
 }
 
-<span style="color:#75715e">// OUTPUT:
-</span><span style="color:#75715e"></span><span style="color:#75715e">// kingcos.me
-</span><span style="color:#75715e"></span><span style="color:#75715e">// kingcos.me
-</span></code></pre></div><ol>
+- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">setPropInClass3:</span>(NSString <span style="color:#f92672">*</span>)propInClass3 {
+    <span style="color:#75715e">// _propInClass3 = propInClass3;
+</span><span style="color:#75715e"></span>    ivarForPropInClass3 <span style="color:#f92672">=</span> propInClass3;
+
+    <span style="color:#75715e">// readonly 属性重写 getter 时，将不会自动合成成员变量
+</span><span style="color:#75715e"></span>    _propInClass4 <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>;
+    <span style="color:#75715e">// ERROR: Use of undeclared identifier &#39;_propInClass5&#39;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// _propInClass5 = @&#34;kingcos.me&#34;;
+</span><span style="color:#75715e"></span>}
+
+- (NSString <span style="color:#f92672">*</span>)<span style="color:#a6e22e">propInClass5</span> {
+    <span style="color:#66d9ef">return</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>;
+}
+
+<span style="color:#66d9ef">@end</span>
+
+<span style="color:#66d9ef">int</span> main(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
+    Foo <span style="color:#f92672">*</span>foo <span style="color:#f92672">=</span> [[Foo alloc] init];
+
+    <span style="color:#75715e">// CRASH: &#39;-[Foo setPropInProtocol1:]: unrecognized selector sent to instance 0x1005355f0&#39;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// foo.propInProtocol1 = @&#34;kingcos.me&#34;;
+</span><span style="color:#75715e"></span>
+    foo.propInProtocol2 <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>;
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, foo.propInProtocol2);
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, foo<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>propInProtocol2);
+
+    foo.propInClass1 <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>;
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, foo.propInClass1);
+    <span style="color:#75715e">// ERROR: Instance variable &#39;_propInClass1&#39; is private
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// NSLog(@&#34;%@&#34;, foo-&gt;_propInClass1);
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// CRASH: &#39;-[Foo setpropInClass2:]: unrecognized selector sent to instance 0x101b00710&#39;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// foo.propInClass2 = @&#34;kingcos.me&#34;;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// CRASH: &#39;-[Foo propInClass2]: unrecognized selector sent to instance 0x1009481e0&#39;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// NSLog(@&#34;%@&#34;, foo.propInClass2);
+</span><span style="color:#75715e"></span>
+    foo.propInClass3 <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">kingcos.me</span><span style="color:#e6db74">&#34;</span>;
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, foo.propInClass3);
+    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%@</span><span style="color:#e6db74">&#34;</span>, foo<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ivarForPropInClass3);
+
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><ol>
 <li>原子性</li>
 </ol>
 <p>原子（Atom）是参与化学反应中最小的粒子，因此可以理解为一个原子性（Atomicity）的操作是不会被中断的，即保证线程安全。声明属性时，如果不明确指定原子性则为 <code>atomic</code>。开发者自己实现的 getter &amp; setter 需要自己来保证相应的原子性。</p>
