@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    
+      <title>[译] Swift 编译器 :: iBlog</title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="作者 原文链接     Swift.org Swift Compiler    Swift 主仓库中包含了 Swift 编译器和标准库的源代码、相关组件，如 SourceKit（用于 IDE 集成），以及 Swift 回归测试套件和实现级别的文档。
+Swift 驱动库中包含了 Swift 编译器驱动（Driver）的新版实现，目的是替换现有编译器驱动以增强可扩展性、可维护性以及鲁棒性（Robust）。
+编译器架构 整体而言，Swift 编译器的主要职责在于将 Swift 源代码翻译为高效执行的机器码。但是 Swift 编译器的前端同样支持许多其它工具，包括与 IDE 集成的语法高亮、代码补全、以及其它便利的工具。本文提供了关于 Swift 编译器主要组件的自顶向下描述：
+ 解析（Parsing）：解析器是一个简易的递归下降解析器（在 lib/Parse 中实现），并带有完整手动编码词法分析器。 语义分析（Semantic Analysis）：语义分析阶段（在 lib/Sema 中实现）负责获取已解析的 AST（抽象语法树）并将其转换为格式正确且类型检查完备的 AST，以及在源代码中提示出现语义问题的警告或错误。语义分析包含类型推断，如果可以成功推导出类型，则表明此时从已经经过类型检查的最终 AST 生成代码是安全的。 Clang 导入器（Clang Importer）：Clang 导入器（在 lib/ClangImporter 中实现）负责导入 Clang 模块，并将导出的 C 或 Objective-C API 映射到相应的 Swift API 中。最终导入的 AST 可以被语义分析引用。 SIL 生成（SIL Generation）：Swift 中间语言（Swift Intermediate Language，SIL）是一门高级且专用于 Swift 的中间语言，适用于对 Swift 代码的进一步分析和优化。SIL 生成阶段（在 lib/SILGen 中实现）将经过类型检查的 AST 弱化为所谓的「原始」SIL。SIL 的设计在 docs/SIL."/>
+<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2020/swift_compiler_translation/" />
+
+
+
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+<link rel="shortcut icon" href="/img/favicon.png">
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="[译] Swift 编译器"/>
+<meta name="twitter:description" content="[Swift.org](https://swift.org) 上 [Swift Compiler](https://swift.org/swift-compiler) 一文的翻译。"/>
+
+
+
+<meta property="og:title" content="[译] Swift 编译器" />
+<meta property="og:description" content="[Swift.org](https://swift.org) 上 [Swift Compiler](https://swift.org/swift-compiler) 一文的翻译。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/2020/swift_compiler_translation/" />
+<meta property="article:published_time" content="2020-03-04T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-03-04T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+
+
+
+
+<script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  </head>
+  <body class="">
+    <div class="container">
+      <header class="header">
+  <span class="header__inner">
+    <a href="/" class="logo" style="text-decoration: none;">
+  
+    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
+  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
+</svg>
+</span>
+    <span class="logo__text">kingcos.me</span>
+    <span class="logo__cursor"></span>
+  
+</a>
+
+    <span class="header__right">
+      
+        <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+        <span class="menu-trigger">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M0 0h24v24H0z" fill="none"/>
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+          </svg>
+        </span>
+      
+      <span class="theme-toggle">
+        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+
+      </span>
+    </span>
+  </span>
+</header>
+
+
+      <div class="content">
+        
+  <div class="post">
+    <h2 class="post-title"><a href="/posts/2020/swift_compiler_translation/">[译] Swift 编译器</a></h2>
+    <div class="post-meta">
+      
+        <span class="post-date">
+            2020-03-04
+        </span>
+      
+      
+      
+        <span class="post-read-time">— 1 min read</span>
+      
+    </div>
+
+    
+      <span class="post-tags">
+        
+          #<a href="/tags/translation/">Translation</a>&nbsp;
+        
+          #<a href="/tags/swift/">Swift</a>&nbsp;
+        
+      </span>
+    
+
+    
+
+    <div class="post-content">
+      <table>
+<thead>
+<tr>
+<th align="center">作者</th>
+<th align="center">原文链接</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center"><a href="https://swift.org">Swift.org</a></td>
+<td align="center"><a href="https://swift.org/swift-compiler">Swift Compiler</a></td>
+</tr>
+</tbody>
+</table>
+<p><a href="https://github.com/apple/swift">Swift 主仓库</a>中包含了 Swift 编译器和标准库的源代码、相关组件，如 SourceKit（用于 IDE 集成），以及 Swift 回归测试套件和实现级别的文档。</p>
+<p><a href="https://github.com/apple/swift-driver">Swift 驱动库</a>中包含了 Swift 编译器驱动（Driver）的新版实现，目的是替换现有编译器驱动以增强可扩展性、可维护性以及鲁棒性（Robust）。</p>
+<h2 id="编译器架构">编译器架构</h2>
+<p>整体而言，Swift 编译器的主要职责在于将 Swift 源代码翻译为高效执行的机器码。但是 Swift 编译器的前端同样支持许多其它工具，包括与 IDE 集成的语法高亮、代码补全、以及其它便利的工具。本文提供了关于 Swift 编译器主要组件的自顶向下描述：</p>
+<ul>
+<li><strong>解析（Parsing）</strong>：解析器是一个简易的递归下降解析器（在 <a href="https://github.com/apple/swift/tree/master/lib/Parse">lib/Parse</a> 中实现），并带有完整手动编码词法分析器。</li>
+<li><strong>语义分析（Semantic Analysis）</strong>：语义分析阶段（在 <a href="https://github.com/apple/swift/tree/master/lib/Sema">lib/Sema</a> 中实现）负责获取已解析的 AST（抽象语法树）并将其转换为格式正确且类型检查完备的 AST，以及在源代码中提示出现语义问题的警告或错误。语义分析包含类型推断，如果可以成功推导出类型，则表明此时从已经经过类型检查的最终 AST 生成代码是安全的。</li>
+<li><strong>Clang 导入器（Clang Importer）</strong>：Clang 导入器（在 <a href="https://github.com/apple/swift/tree/master/lib/ClangImporter">lib/ClangImporter</a> 中实现）负责导入 Clang 模块，并将导出的 C 或 Objective-C API 映射到相应的 Swift API 中。最终导入的 AST 可以被语义分析引用。</li>
+<li><strong>SIL 生成（SIL Generation）</strong>：Swift 中间语言（Swift Intermediate Language，SIL）是一门高级且专用于 Swift 的中间语言，适用于对 Swift 代码的进一步分析和优化。SIL 生成阶段（在 <a href="https://github.com/apple/swift/tree/master/lib/SILGen">lib/SILGen</a> 中实现）将经过类型检查的 AST 弱化为所谓的「原始」SIL。SIL 的设计在 <a href="https://github.com/apple/swift/blob/master/docs/SIL.rst">docs/SIL.rst</a> 有所描述。</li>
+<li><strong>SIL 保证转换（SIL Guaranteed Transformations）</strong>：SIL 保证转换阶段（在 <a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/Mandatory">lib/SILOptimizer/Mandatory</a> 中实现）负责执行额外且影响程序正确性的数据流诊断（比如使用未初始化的变量）。这些转换的最终结果是「规范」SIL。</li>
+<li><strong>SIL 优化（SIL Optimizations）</strong>：SIL 优化阶段（在 <a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/Analysis">lib/Analysis</a>、<a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/ARC">lib/ARC</a>、<a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/LoopTransforms">lib/LoopTransforms</a> 以及 <a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/Transforms">lib/Transforms</a> 中实现）负责对程序执行额外的高级且专用于 Swift 的优化，包括（例如）自动引用计数优化、虚拟化、以及通用的专业化。</li>
+<li><strong>LLVM IR 生成（LLVM IR Generation）</strong>：IR 生成阶段（在 <a href="https://github.com/apple/swift/tree/master/lib/IRGen">lib/IRGen</a> 中实现）将 SIL 弱化为 LLVM LR，此时 LLVM 可以继续优化并生成机器码。</li>
+</ul>
+<hr>
+<h2 id="extension">Extension</h2>
+<ul>
+<li>上述 Swift 编译器架构即如下表：</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">   ┌──────────┐     ┌─────────┐     ┌────────────┐
+   │Swift Code│────▶│Swift AST│────▶│Raw Swift IL│──┐
+   └──────────┘     └─────────┘     └────────────┘  │
+                                                    │
+   ┌────────┐    ┌───────┐    ┌──────────────────┐  │
+┌──│Assembly│◀───│LLVM IR│◀───│Canonical Swift IL│◀─┘
+│  └────────┘    └───────┘    └──────────────────┘
+│
+│  ┌──────────┐
+└─▶│Executable│
+   └──────────┘
+</code></pre></div>
+    </div>
+    
+      <div class="pagination">
+        <div class="pagination__title">
+          <span class="pagination__title-h">Read other posts</span>
+          <hr />
+        </div>
+        <div class="pagination__buttons">
+          
+          
+            <span class="button next">
+              <a href="/posts/2020/swift_5/">
+                <span class="button__text">Swift 拾遗 - 枚举 Enum</span>
+                <span class="button__icon">→</span>
+              </a>
+            </span>
+          
+        </div>
+      </div>
+    
+
+    
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<table style="border: 0;">
+  <tr>
+  <td style="border: 0; width: 30%;">
+    <img src='/img/about/1.jpg'>
+  </td>
+  <td style="border: 0;">
+    <ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-9925978992661955"
+     data-ad-slot="3213735320"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+  </td>
+  </tr>
+</table>
+
+
+
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+
+    
+    
+    <div>
+      <div id="github-comment">
+      </div>
+
+      <script type="text/javascript">
+        function getUtterances(isDark) {
+          var utterances = document.createElement('script');
+          utterances.type = 'text/javascript';
+          utterances.async = true;
+          utterances.setAttribute('issue-term', "pathname")
+          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
+          utterances.setAttribute('label', "comments")
+          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
+          utterances.crossorigin = 'anonymous';
+          utterances.src = 'https://utteranc.es/client.js';
+
+          return utterances
+        }
+
+        var themeToggle = document.querySelector(".theme-toggle")
+        themeToggle.addEventListener("click", function () {
+          var getTheme = window.localStorage && window.localStorage.getItem("theme")
+          var divNode = document.getElementById('github-comment')
+          while(divNode.hasChildNodes()) {
+            divNode.removeChild(divNode.firstChild);
+          }
+          
+          
+          
+
+          
+          
+          
+          
+          
+          
+          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
+        })
+
+        var getTheme = window.localStorage && window.localStorage.getItem("theme")
+        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
+      </script>
+    </div>
+    
+
+    </div>
+
+      </div>
+
+      
+        <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+      
+    </div>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+
+    
+  </body>
+</html>

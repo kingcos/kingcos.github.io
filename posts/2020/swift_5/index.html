@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    
+      <title>Swift 拾遗 - 枚举 Enum :: iBlog</title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="Basic // 当枚举的原始值类型是 `Int`、`String`，Swift 会自动分配原始值 enum IntFoo: Int { case first } enum StrFoo: String { case first } print(IntFoo.first.rawValue) // 0 print(StrFoo.first.rawValue) // first // 递归枚举（Recursive enum）：即枚举的关联值类型使用到了该枚举类型本身 indirect enum IndirectBar { case first(Int) case second(IndirectBar) } enum Bar { case first(Int) indirect case second(Bar) } 内存布局 关联值 enum Foo { case first(Int, Int, Int, Int) // 4 个 Int 值，32 个字节 case second } // 枚举的关联值（Associated Value）占用枚举变量的内存 print(MemoryLayout&amp;lt;Foo&amp;gt;.size) // 33，实际占用（前 32 位存储关联值，第 33 位存储从 0 开始的次序值） print(MemoryLayout&amp;lt;Foo&amp;gt;."/>
+<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2020/swift_5/" />
+
+
+
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+<link rel="shortcut icon" href="/img/favicon.png">
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Swift 拾遗 - 枚举 Enum"/>
+<meta name="twitter:description" content="暂无"/>
+
+
+
+<meta property="og:title" content="Swift 拾遗 - 枚举 Enum" />
+<meta property="og:description" content="暂无" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/2020/swift_5/" />
+<meta property="article:published_time" content="2020-02-09T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-02-09T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+
+
+
+
+<script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  </head>
+  <body class="">
+    <div class="container">
+      <header class="header">
+  <span class="header__inner">
+    <a href="/" class="logo" style="text-decoration: none;">
+  
+    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
+  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
+</svg>
+</span>
+    <span class="logo__text">kingcos.me</span>
+    <span class="logo__cursor"></span>
+  
+</a>
+
+    <span class="header__right">
+      
+        <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+        <span class="menu-trigger">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M0 0h24v24H0z" fill="none"/>
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+          </svg>
+        </span>
+      
+      <span class="theme-toggle">
+        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+
+      </span>
+    </span>
+  </span>
+</header>
+
+
+      <div class="content">
+        
+  <div class="post">
+    <h2 class="post-title"><a href="/posts/2020/swift_5/">Swift 拾遗 - 枚举 Enum</a></h2>
+    <div class="post-meta">
+      
+        <span class="post-date">
+            2020-02-09
+        </span>
+      
+      
+      
+        <span class="post-read-time">— 5 min read</span>
+      
+    </div>
+
+    
+      <span class="post-tags">
+        
+          #<a href="/tags/swift/">Swift</a>&nbsp;
+        
+      </span>
+    
+
+    
+
+    <div class="post-content">
+      <h2 id="basic">Basic</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// 当枚举的原始值类型是 `Int`、`String`，Swift 会自动分配原始值</span>
+<span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">IntFoo</span>: Int {
+    <span style="color:#66d9ef">case</span> first
+}
+
+<span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">StrFoo</span>: String {
+    <span style="color:#66d9ef">case</span> first
+}
+
+print(IntFoo.first.rawValue) <span style="color:#75715e">// 0</span>
+print(StrFoo.first.rawValue) <span style="color:#75715e">// first</span>
+
+<span style="color:#75715e">// 递归枚举（Recursive enum）：即枚举的关联值类型使用到了该枚举类型本身</span>
+<span style="color:#66d9ef">indirect</span> <span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">IndirectBar</span> {
+    <span style="color:#66d9ef">case</span> first(Int)
+    <span style="color:#66d9ef">case</span> second(IndirectBar)
+}
+
+<span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Bar</span> {
+    <span style="color:#66d9ef">case</span> first(Int)
+    <span style="color:#66d9ef">indirect</span> <span style="color:#66d9ef">case</span> second(Bar)
+}
+</code></pre></div><h2 id="内存布局">内存布局</h2>
+<h3 id="关联值">关联值</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Foo</span> {
+    <span style="color:#66d9ef">case</span> first(Int, Int, Int, Int) <span style="color:#75715e">// 4 个 Int 值，32 个字节</span>
+    <span style="color:#66d9ef">case</span> second
+}
+
+<span style="color:#75715e">// 枚举的关联值（Associated Value）占用枚举变量的内存</span>
+print(MemoryLayout&lt;Foo&gt;.size)      <span style="color:#75715e">// 33，实际占用（前 32 位存储关联值，第 33 位存储从 0 开始的次序值）</span>
+print(MemoryLayout&lt;Foo&gt;.stride)    <span style="color:#75715e">// 40，实际分配</span>
+print(MemoryLayout&lt;Foo&gt;.alignment) <span style="color:#75715e">// 8 ，对齐参数</span>
+
+<span style="color:#66d9ef">var</span> foo = Foo.first(Int.max, Int.max, Int.max, Int.max)
+print(MemoryLayout.size(ofValue: foo)) <span style="color:#75715e">// 33</span>
+withUnsafePointer(to: &amp;foo) { print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>$0<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>) }
+<span style="color:#75715e">// Memory:</span>
+<span style="color:#75715e">// FF FF FF FF FF FF FF 7F FF FF FF FF FF FF FF 7F</span>
+<span style="color:#75715e">// FF FF FF FF FF FF FF 7F FF FF FF FF FF FF FF 7F</span>
+<span style="color:#75715e">// 00 00 00 00 00 00 00 00</span>
+<span style="color:#75715e">// ⬆️：第一个 case</span>
+
+foo = Foo.second
+print(MemoryLayout.size(ofValue: foo)) <span style="color:#75715e">// 33</span>
+<span style="color:#75715e">// Memory:</span>
+<span style="color:#75715e">// 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00</span>
+<span style="color:#75715e">// 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00</span>
+<span style="color:#75715e">// 01 00 00 00 00 00 00 00</span>
+<span style="color:#75715e">// ⬆️：第二个 case</span>
+</code></pre></div><h3 id="原始值">原始值</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Bar1</span>: Int {
+    <span style="color:#66d9ef">case</span> first = <span style="color:#ae81ff">1</span>
+    <span style="color:#66d9ef">case</span> second
+    <span style="color:#66d9ef">case</span> third
+}
+
+<span style="color:#75715e">// 枚举的原始值（Raw Value）不占用枚举变量的内存</span>
+print(MemoryLayout&lt;Bar1&gt;.size)      <span style="color:#75715e">// 1（最多约存储 256 个）</span>
+print(MemoryLayout&lt;Bar1&gt;.stride)    <span style="color:#75715e">// 1</span>
+print(MemoryLayout&lt;Bar1&gt;.alignment) <span style="color:#75715e">// 1</span>
+
+<span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Bar2</span> {
+    <span style="color:#66d9ef">case</span> test
+}
+
+<span style="color:#75715e">// 只有一个 case 且没有关联值时，无需额外存储空间来存储次序值</span>
+print(MemoryLayout&lt;Bar2&gt;.size)      <span style="color:#75715e">// 0</span>
+print(MemoryLayout&lt;Bar2&gt;.stride)    <span style="color:#75715e">// 1</span>
+print(MemoryLayout&lt;Bar2&gt;.alignment) <span style="color:#75715e">// 1</span>
+
+<span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Bar3</span> {
+    <span style="color:#66d9ef">case</span> test(Int)
+}
+
+<span style="color:#75715e">// 只有一个 case 且有关联值时，也无需额外存储空间来存储次序值</span>
+print(MemoryLayout&lt;Bar3&gt;.size)      <span style="color:#75715e">// 8</span>
+print(MemoryLayout&lt;Bar3&gt;.stride)    <span style="color:#75715e">// 8</span>
+print(MemoryLayout&lt;Bar3&gt;.alignment) <span style="color:#75715e">// 8</span>
+
+<span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Bar4</span> {
+    <span style="color:#66d9ef">case</span> test0(Int)
+    <span style="color:#66d9ef">case</span> test1
+}
+
+<span style="color:#75715e">// 有多个 case 且有关联值时，则需要额外的存储空间（不超过 256 个 case 时为额外一个字节来存储次序值）</span>
+print(MemoryLayout&lt;Bar4&gt;.size)      <span style="color:#75715e">// 9（8 + 1）</span>
+print(MemoryLayout&lt;Bar4&gt;.stride)    <span style="color:#75715e">// 16</span>
+print(MemoryLayout&lt;Bar4&gt;.alignment) <span style="color:#75715e">// 8</span>
+</code></pre></div><h3 id="较为复杂">较为复杂</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Baz1</span> {
+    <span style="color:#66d9ef">case</span> test0
+    <span style="color:#66d9ef">case</span> test1
+    <span style="color:#66d9ef">case</span> test2
+    <span style="color:#66d9ef">case</span> test3
+    <span style="color:#66d9ef">case</span> test4(Int)
+    <span style="color:#66d9ef">case</span> test5(Int, Int)
+    <span style="color:#66d9ef">case</span> test6(Int, Int, Bool, Int) <span style="color:#75715e">// 8, 8, 8, 8（注意顺序）</span>
+}
+
+print(MemoryLayout&lt;Baz1&gt;.size)      <span style="color:#75715e">// 32</span>
+print(MemoryLayout&lt;Baz1&gt;.stride)    <span style="color:#75715e">// 32</span>
+print(MemoryLayout&lt;Baz1&gt;.alignment) <span style="color:#75715e">// 8</span>
+
+<span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Baz2</span> {
+    <span style="color:#66d9ef">case</span> test0
+    <span style="color:#66d9ef">case</span> test1
+    <span style="color:#66d9ef">case</span> test2
+    <span style="color:#66d9ef">case</span> test3
+    <span style="color:#66d9ef">case</span> test4(Int)
+    <span style="color:#66d9ef">case</span> test5(Int, Int)
+    <span style="color:#66d9ef">case</span> test6(Int, Bool, Int)
+}
+
+print(MemoryLayout&lt;Baz2&gt;.size)      <span style="color:#75715e">// 25, Why?</span>
+print(MemoryLayout&lt;Baz2&gt;.stride)    <span style="color:#75715e">// 32</span>
+print(MemoryLayout&lt;Baz2&gt;.alignment) <span style="color:#75715e">// 8</span>
+
+<span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Baz3</span> {
+    <span style="color:#66d9ef">case</span> test0
+    <span style="color:#66d9ef">case</span> test1
+    <span style="color:#66d9ef">case</span> test2
+    <span style="color:#66d9ef">case</span> test3
+    <span style="color:#66d9ef">case</span> test4(Int)
+    <span style="color:#66d9ef">case</span> test5(Int, Int)
+    <span style="color:#66d9ef">case</span> test6(Int, Int, Int, Bool) <span style="color:#75715e">// 8, 8, 8, 1</span>
+}
+
+print(MemoryLayout&lt;Baz3&gt;.size)      <span style="color:#75715e">// 25</span>
+print(MemoryLayout&lt;Baz3&gt;.stride)    <span style="color:#75715e">// 32</span>
+print(MemoryLayout&lt;Baz3&gt;.alignment) <span style="color:#75715e">// 8</span>
+</code></pre></div><h3 id="枚举与-switch-case">枚举与 switch-case</h3>
+<ul>
+<li>比较次序值（成员值），将关联值大小的内存绑定到相应的变量</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Foo</span> {
+    <span style="color:#66d9ef">case</span> test1(Int, Int, Int)
+    <span style="color:#66d9ef">case</span> test2(Int, Int)
+    <span style="color:#66d9ef">case</span> test3(Int)
+    <span style="color:#66d9ef">case</span> test4(Bool)
+    <span style="color:#66d9ef">case</span> test5
+}
+
+print(MemoryLayout&lt;Foo&gt;.size)      <span style="color:#75715e">// 25</span>
+print(MemoryLayout&lt;Foo&gt;.stride)    <span style="color:#75715e">// 32</span>
+print(MemoryLayout&lt;Foo&gt;.alignment) <span style="color:#75715e">// 8</span>
+
+<span style="color:#66d9ef">let</span> foo = Foo.test1(<span style="color:#ae81ff">10</span>, <span style="color:#ae81ff">20</span>, <span style="color:#ae81ff">30</span>) <span style="color:#75715e">// BREAKPOINT ⚠️</span>
+<span style="color:#66d9ef">switch</span> foo {
+    <span style="color:#66d9ef">case</span> <span style="color:#66d9ef">let</span> .test1(v1, v2, v3):
+        print(<span style="color:#e6db74">&#34;test1&#34;</span>, v1, v2, v3)
+    <span style="color:#66d9ef">case</span> <span style="color:#66d9ef">let</span> .test2(v1, v2):
+        print(<span style="color:#e6db74">&#34;test2&#34;</span>, v1, v2)
+    <span style="color:#66d9ef">case</span> <span style="color:#66d9ef">let</span> .test3(v1):
+        print(<span style="color:#e6db74">&#34;test1&#34;</span>, v1)
+    <span style="color:#66d9ef">case</span> <span style="color:#66d9ef">let</span> .test4(v1):
+        print(<span style="color:#e6db74">&#34;test1&#34;</span>, v1)
+    <span style="color:#66d9ef">case</span> .test5:
+        print(<span style="color:#e6db74">&#34;test5&#34;</span>)
+    <span style="color:#66d9ef">break</span>;
+}
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">main</span>:
+<span style="color:#75715e">;   指令地址 &lt;+该行之前的所有指令占用的字节数&gt;: 指令
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ac0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ac1</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ac4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">xorl</span>   %eax, %eax
+<span style="color:#75715e">; let foo = Foo.test1(10, 20, 30)
+</span><span style="color:#75715e"></span><span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ac6</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">6</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0xa</span>, <span style="color:#ae81ff">0x1547</span>(%rip)        <span style="color:#75715e">; _dyld_private + 4
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000ad1</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">17</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x14</span>, <span style="color:#ae81ff">0x1544</span>(%rip)       <span style="color:#75715e">; demo.foo : demo.Foo + 4
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000adc</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">28</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x1e</span>, <span style="color:#ae81ff">0x1541</span>(%rip)       <span style="color:#75715e">; demo.foo : demo.Foo + 12
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000ae7</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">39</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movb</span>   <span style="color:#66d9ef">$0x0</span>, <span style="color:#ae81ff">0x1542</span>(%rip)        <span style="color:#75715e">; demo.foo : demo.Foo + 23
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000aee</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">46</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   %edi, -<span style="color:#ae81ff">0x4</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000af1</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">49</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rsi, -<span style="color:#ae81ff">0x10</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000af5</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">53</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000af6</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">54</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+</code></pre></div><ul>
+<li><code>rip</code> 寄存器为程序指令寄存器，其中存储了下一条待执行指令的地址；</li>
+<li><code>movq $0xa, 0x1547(%rip)</code>：将立即数 <code>10</code> 以 8 个字节存储到 <code>0x100000ad1 + 0x1547</code> 即 <code>0x100002018</code> 地址处；</li>
+<li><code>movq $0x14, 0x1544(%rip)</code>：将立即数 <code>20</code> 以 8 个字节存储到 <code>0x100000adc + 0x1544</code> 即 <code>0x100002020</code> 地址处；</li>
+<li><code>movq $0x1e, 0x1541(%rip)</code>：将立即数 <code>30</code> 以 8 个字节存储到 <code>0x100000ae7 + 0x1541</code> 即 <code>0x100002028</code> 地址处；</li>
+<li><code>movb $0x0, 0x1542(%rip)</code>：将枚举变量的次序值（成员值） <code>0</code> 以 1 个字节存储到 <code>0x100000aee + 0x1542</code> 即 <code>0x100002030</code> 地址处。</li>
+</ul>
+<pre><code class="language-llbd" data-lang="llbd">(lldb) x/1xb 0x100002018
+0x100002018: 0x00
+(lldb) si
+(lldb) x/1xb 0x100002018
+0x100002018: 0x0a
+(lldb) x/1xb 0x100002020
+0x100002020: 0x00
+(lldb) si
+(lldb) x/1xb 0x100002020
+0x100002020: 0x14
+(lldb) x/1xb 0x100002028
+0x100002028: 0x00
+(lldb) si
+(lldb) x/1xb 0x100002028
+0x100002028: 0x1e
+</code></pre><!--
+```asm
+; let foo = Foo.test1(10, 20, 30)
+;   指令地址 <+该行之前的所有指令占用的字节数>: 指令
+->  0x1000013b1 <+17>:  movaps 0x9b8(%rip), %xmm0                                   ; 1⃣️
+    0x1000013b8 <+24>:  movaps %xmm0, 0xec1(%rip)        ; demo.foo : demo.Foo      ; 2⃣️
+    0x1000013bf <+31>:  leaq   0xeba(%rip), %rdi         ; demo.foo : demo.Foo      ; 3⃣️
+    0x1000013c6 <+38>:  movq   $0x1e, 0xebf(%rip)        ; demo.foo : demo.Foo + 12 ; 4⃣️
+    0x1000013d1 <+49>:  movb   $0x0, 0xec0(%rip)         ; demo.foo : demo.Foo + 23 ; 5⃣️
+    0x1000013d8 <+56>:  leaq   -0x50(%rbp), %rsi
+```
+
+- `rip` 寄存器为程序指令寄存器，其中存储了下一条待执行指令的地址；
+- `movaps` 指令：Move Aligned Packed Single-Precision Floating-Point Values，即移动对齐的压缩单精度浮点值；
+- `xmm` 指 SSE（Streaming SIMD Extensions）指令集中 128 位的 8 个 `xmm` 寄存器；
+- 1⃣️ `movaps 0x9b8(%rip), %xmm0`：将 `rip` 即 `0x1000013b8` 加上 `0x9b8` 得到的地址（`0x100001D70`）存储在 `xmm0` 寄存器中；
+- 2⃣️ `movaps %xmm0, 0xec1(%rip)`：将 `xmm0` 即 `0x100001D70` 存储到 `0x1000013BF` 加上 `0xec1` 得到的地址（`0x100002280`）中；
+- 3⃣️ `leaq 0xeba(%rip), %rdi`：将 `rip` 即 `0x1000013c6` 加上 `0xeba` 得到的地址（`0x100002280`）直接存储在 `rdi` 寄存器中；
+- 4⃣️ `movq $0x1e, 0xebf(%rip)`：将 `30` 存储在 `0x1000013d1 + 0xebf`（`0x100002290`）地址中；
+- 5⃣️ `movb $0x0, 0xec0(%rip)`：将该枚举变量的次序值（成员值）`0` 存储在 `0x1000013d8 + 0xec0`（`0x100002298`）地址中。
+
+```lldb
+// movaps 0x9b8(%rip), %xmm0 执行前
+(lldb) register read xmm0
+    xmm0 = {0xff 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0xff 0xff 0x00}
+(lldb) x 0x100001D70
+0x100001d70: 0a 00 00 00 00 00 00 00 14 00 00 00 00 00 00 00  ................
+0x100001d80: 01 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00  ................
+(lldb) si
+// movaps 0x9b8(%rip), %xmm0 执行后
+(lldb) register read xmm0
+    xmm0 = {0x0a 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x14 0x00 0x00 0x00 0x00 0x00 0x00 0x00}
+
+// leaq 0xeba(%rip), %rdi 执行前
+(lldb) register read rdi
+     rdi = 0x0000000000000001
+(lldb) si
+// leaq 0xeba(%rip), %rdi 执行后
+(lldb) register read rdi
+     rdi = 0x0000000100002280  demo`demo.foo : demo.Foo
+
+// movaps %xmm0, 0xec1(%rip) 执行后
+(lldb) x/16xb 0x100002280
+0x100002280: 0x0a 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+0x100002288: 0x14 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+
+// movq $0x1e, 0xebf(%rip) 执行后
+(lldb) x/1xb 0x100002290
+0x100002290: 0x1e
+// movb $0x0, 0xec0(%rip) 执行后
+(lldb) x/1xb 0x100002298
+0x100002298: 0x00
+``` -->
+<h2 id="extension">Extension</h2>
+<h3 id="memorylayout">MemoryLayout</h3>
+<p><code>MemoryLayout</code> 的 <code>size</code>、<code>stride</code> &amp; <code>alignment</code>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// size：实际用到的空间大小</span>
+print(MemoryLayout&lt;Int&gt;.size)      <span style="color:#75715e">// 8</span>
+<span style="color:#75715e">// stride：分配占用的空间大小</span>
+print(MemoryLayout&lt;Int&gt;.stride)    <span style="color:#75715e">// 8</span>
+<span style="color:#75715e">// alignment：内存对齐参数（实际分配大小即其倍数）</span>
+print(MemoryLayout&lt;Int&gt;.alignment) <span style="color:#75715e">// 8</span>
+
+<span style="color:#66d9ef">var</span> intFoo = <span style="color:#ae81ff">100</span>
+print(MemoryLayout.size(ofValue: intFoo)) <span style="color:#75715e">// 8</span>
+
+withUnsafePointer(to: &amp;intFoo) { print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>$0<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>) } <span style="color:#75715e">// 打印值类型变量的内存地址</span>
+<span style="color:#75715e">// Memory:</span>
+<span style="color:#75715e">// 64 00 00 00 00 00 00 00（小端：高字节放在高位）</span>
+</code></pre></div>
+    </div>
+    
+      <div class="pagination">
+        <div class="pagination__title">
+          <span class="pagination__title-h">Read other posts</span>
+          <hr />
+        </div>
+        <div class="pagination__buttons">
+          
+            <span class="button previous">
+              <a href="/posts/2020/swift_compiler_translation/">
+                <span class="button__icon">←</span>
+                <span class="button__text">[译] Swift 编译器</span>
+              </a>
+            </span>
+          
+          
+            <span class="button next">
+              <a href="/posts/2020/swift_6/">
+                <span class="button__text">Swift 拾遗 - 结构体 Struct &amp; 类 Class</span>
+                <span class="button__icon">→</span>
+              </a>
+            </span>
+          
+        </div>
+      </div>
+    
+
+    
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<table style="border: 0;">
+  <tr>
+  <td style="border: 0; width: 30%;">
+    <img src='/img/about/1.jpg'>
+  </td>
+  <td style="border: 0;">
+    <ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-9925978992661955"
+     data-ad-slot="3213735320"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+  </td>
+  </tr>
+</table>
+
+
+
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+
+    
+    
+    <div>
+      <div id="github-comment">
+      </div>
+
+      <script type="text/javascript">
+        function getUtterances(isDark) {
+          var utterances = document.createElement('script');
+          utterances.type = 'text/javascript';
+          utterances.async = true;
+          utterances.setAttribute('issue-term', "pathname")
+          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
+          utterances.setAttribute('label', "comments")
+          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
+          utterances.crossorigin = 'anonymous';
+          utterances.src = 'https://utteranc.es/client.js';
+
+          return utterances
+        }
+
+        var themeToggle = document.querySelector(".theme-toggle")
+        themeToggle.addEventListener("click", function () {
+          var getTheme = window.localStorage && window.localStorage.getItem("theme")
+          var divNode = document.getElementById('github-comment')
+          while(divNode.hasChildNodes()) {
+            divNode.removeChild(divNode.firstChild);
+          }
+          
+          
+          
+
+          
+          
+          
+          
+          
+          
+          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
+        })
+
+        var getTheme = window.localStorage && window.localStorage.getItem("theme")
+        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
+      </script>
+    </div>
+    
+
+    </div>
+
+      </div>
+
+      
+        <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+      
+    </div>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+
+    
+  </body>
+</html>

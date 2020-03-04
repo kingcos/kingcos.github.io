@@ -183,7 +183,7 @@
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">objc_class</span> <span style="color:#f92672">*</span>Class;
 </code></pre></div><p>将 Obj-C 源码通过 <code>clang -rewrite-objc</code> 翻译为 C++（其实大部分为 C），可以发现 Obj-C 中的 <code>NSObject</code> 类其实就是 C 中的 <code>NSObject_IMPL</code> 结构体，其中只有一个成员变量，即 <code>isa</code>。<code>isa</code> 的类型是 <code>Class</code>，本质是一个指向 <code>objc_class</code> 结构体的指针。在 64 位系统中，指针占用 8 个字节（Byte），即 <code>NSObject</code> 的实例对象大小应该为 8 个字节。我们也可以尝试用 C 语言中的 <code>sizeof()</code> 运算符来证明这一点：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">NSObject <span style="color:#f92672">*</span>obj <span style="color:#f92672">=</span> [[NSObject alloc] init];
-NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%zd</span><span style="color:#e6db74">&#34;</span>, <span style="color:#66d9ef">sizeof</span>(NSObject <span style="color:#f92672">*</span>));
+NSLog(<span style="color:#e6db74">@&#34;%zd&#34;</span>, <span style="color:#66d9ef">sizeof</span>(NSObject <span style="color:#f92672">*</span>));
 <span style="color:#75715e">// 8
 </span></code></pre></div><p>但系统分配给 <code>NSObject</code> 实例对象的内存空间真的是 8 个字节吗？在 <code>NSObject</code> 对象初始化后，打个断点，运行程序。得到 <code>obj</code> 的内存地址，放在 Xcode - Debug - Debug Workflow - View Memory - Address 中进行查看。1 个字节为 8 位（Bit），为了便于观察，通常会使用十六进制代表二进制，即使用 1 个十六进制表示 4 个二进制，则 2 个十六进制即代表 1 个字节。观察图中上方红框处，除了 <code>obj</code> 对象实际使用的 8 个字节，其后面还有 8 个空（<code>00</code>）字节。这 8 个字节是否也是系统分配给 <code>obj</code> 的呢？</p>
 <p><img src="/img/2019/nsobject_in_ios/1.png" alt=""></p>
@@ -196,7 +196,7 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%zd</
 }
 
 <span style="color:#75715e">// Base class implementation of +alloc. cls is not nil.
-</span><span style="color:#75715e"></span><span style="color:#75715e">// Calls [cls allocWithZone:nil].
+</span><span style="color:#75715e">// Calls [cls allocWithZone:nil].
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">id</span>
 <span style="color:#a6e22e">_objc_rootAlloc</span>(<span style="color:#66d9ef">Class</span> cls)
 {
@@ -205,23 +205,23 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%zd</
 }
 
 <span style="color:#75715e">// Call [cls alloc] or [cls allocWithZone:nil], with appropriate 
-</span><span style="color:#75715e"></span><span style="color:#75715e">// shortcutting optimizations.
+</span><span style="color:#75715e">// shortcutting optimizations.
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> ALWAYS_INLINE <span style="color:#66d9ef">id</span>
 <span style="color:#a6e22e">callAlloc</span>(<span style="color:#66d9ef">Class</span> cls, <span style="color:#66d9ef">bool</span> checkNil, <span style="color:#66d9ef">bool</span> allocWithZone<span style="color:#f92672">=</span>false)
 {
-    <span style="color:#66d9ef">if</span> (slowpath(checkNil <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span> <span style="color:#f92672">!</span>cls)) <span style="color:#66d9ef">return</span> nil;
+    <span style="color:#66d9ef">if</span> (slowpath(checkNil <span style="color:#f92672">&amp;&amp;</span> <span style="color:#f92672">!</span>cls)) <span style="color:#66d9ef">return</span> nil;
 
-<span style="color:#75715e">#</span><span style="color:#75715e">if __OBJC2__</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (fastpath(<span style="color:#f92672">!</span>cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ISA()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>hasCustomAWZ())) {
+<span style="color:#75715e">#if __OBJC2__
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (fastpath(<span style="color:#f92672">!</span>cls<span style="color:#f92672">-&gt;</span>ISA()<span style="color:#f92672">-&gt;</span>hasCustomAWZ())) {
         <span style="color:#75715e">// No alloc/allocWithZone implementation. Go straight to the allocator.
 </span><span style="color:#75715e"></span>        <span style="color:#75715e">// fixme store hasCustomAWZ in the non-meta class and 
 </span><span style="color:#75715e"></span>        <span style="color:#75715e">// add it to canAllocFast&#39;s summary
-</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (fastpath(cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>canAllocFast())) {
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (fastpath(cls<span style="color:#f92672">-&gt;</span>canAllocFast())) {
             <span style="color:#75715e">// No ctors, raw isa, etc. Go straight to the metal.
-</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">bool</span> dtor <span style="color:#f92672">=</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>hasCxxDtor();
-            <span style="color:#66d9ef">id</span> obj <span style="color:#f92672">=</span> (<span style="color:#66d9ef">id</span>)calloc(<span style="color:#ae81ff">1</span>, cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>bits.fastInstanceSize());
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">bool</span> dtor <span style="color:#f92672">=</span> cls<span style="color:#f92672">-&gt;</span>hasCxxDtor();
+            <span style="color:#66d9ef">id</span> obj <span style="color:#f92672">=</span> (<span style="color:#66d9ef">id</span>)calloc(<span style="color:#ae81ff">1</span>, cls<span style="color:#f92672">-&gt;</span>bits.fastInstanceSize());
             <span style="color:#66d9ef">if</span> (slowpath(<span style="color:#f92672">!</span>obj)) <span style="color:#66d9ef">return</span> callBadAllocHandler(cls);
-            obj<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>initInstanceIsa(cls, dtor);
+            obj<span style="color:#f92672">-&gt;</span>initInstanceIsa(cls, dtor);
             <span style="color:#66d9ef">return</span> obj;
         }
         <span style="color:#66d9ef">else</span> {
@@ -232,7 +232,7 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%zd</
             <span style="color:#66d9ef">return</span> obj;
         }
     }
-<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+<span style="color:#75715e">#endif
 </span><span style="color:#75715e"></span>
     <span style="color:#75715e">// No shortcuts available.
 </span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (allocWithZone) <span style="color:#66d9ef">return</span> [cls allocWithZone:nil];
@@ -262,22 +262,22 @@ _class_createInstanceFromZone(<span style="color:#66d9ef">Class</span> cls, size
 {
     <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>cls) <span style="color:#66d9ef">return</span> nil;
 
-    assert(cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isRealized());
+    assert(cls<span style="color:#f92672">-&gt;</span>isRealized());
 
     <span style="color:#75715e">// Read class&#39;s info bits all at once for performance
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">bool</span> hasCxxCtor <span style="color:#f92672">=</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>hasCxxCtor();
-    <span style="color:#66d9ef">bool</span> hasCxxDtor <span style="color:#f92672">=</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>hasCxxDtor();
-    <span style="color:#66d9ef">bool</span> fast <span style="color:#f92672">=</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>canAllocNonpointer();
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">bool</span> hasCxxCtor <span style="color:#f92672">=</span> cls<span style="color:#f92672">-&gt;</span>hasCxxCtor();
+    <span style="color:#66d9ef">bool</span> hasCxxDtor <span style="color:#f92672">=</span> cls<span style="color:#f92672">-&gt;</span>hasCxxDtor();
+    <span style="color:#66d9ef">bool</span> fast <span style="color:#f92672">=</span> cls<span style="color:#f92672">-&gt;</span>canAllocNonpointer();
 
     <span style="color:#75715e">// ➡️ 调用 instanceSize，extraBytes == 0
-</span><span style="color:#75715e"></span>    size_t size <span style="color:#f92672">=</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>instanceSize(extraBytes);
+</span><span style="color:#75715e"></span>    size_t size <span style="color:#f92672">=</span> cls<span style="color:#f92672">-&gt;</span>instanceSize(extraBytes);
     <span style="color:#66d9ef">if</span> (outAllocatedSize) <span style="color:#f92672">*</span>outAllocatedSize <span style="color:#f92672">=</span> size;
 
     <span style="color:#66d9ef">id</span> obj;
-    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>zone  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  fast) {
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>zone  <span style="color:#f92672">&amp;&amp;</span>  fast) {
         obj <span style="color:#f92672">=</span> (<span style="color:#66d9ef">id</span>)calloc(<span style="color:#ae81ff">1</span>, size);
         <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>obj) <span style="color:#66d9ef">return</span> nil;
-        obj<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>initInstanceIsa(cls, hasCxxDtor);
+        obj<span style="color:#f92672">-&gt;</span>initInstanceIsa(cls, hasCxxDtor);
     } 
     <span style="color:#66d9ef">else</span> {
         <span style="color:#66d9ef">if</span> (zone) {
@@ -289,10 +289,10 @@ _class_createInstanceFromZone(<span style="color:#66d9ef">Class</span> cls, size
 
         <span style="color:#75715e">// Use raw pointer isa on the assumption that they might be 
 </span><span style="color:#75715e"></span>        <span style="color:#75715e">// doing something weird with the zone or RR.
-</span><span style="color:#75715e"></span>        obj<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>initIsa(cls);
+</span><span style="color:#75715e"></span>        obj<span style="color:#f92672">-&gt;</span>initIsa(cls);
     }
 
-    <span style="color:#66d9ef">if</span> (cxxConstruct <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span> hasCxxCtor) {
+    <span style="color:#66d9ef">if</span> (cxxConstruct <span style="color:#f92672">&amp;&amp;</span> hasCxxCtor) {
         obj <span style="color:#f92672">=</span> _objc_constructOrFree(obj, cls);
     }
 
@@ -316,15 +316,15 @@ _class_createInstanceFromZone(<span style="color:#66d9ef">Class</span> cls, size
 }
 
 <span style="color:#75715e">// objc-runtime-new.h
-</span><span style="color:#75715e"></span><span style="color:#75715e">// May be unaligned depending on class&#39;s ivars.
+</span><span style="color:#75715e">// May be unaligned depending on class&#39;s ivars.
 </span><span style="color:#75715e"></span>uint32_t <span style="color:#a6e22e">unalignedInstanceSize</span>() {
     assert(isRealized());
     <span style="color:#75715e">// ➡️ 调用 data
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> data()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ro<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>instanceSize;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> data()<span style="color:#f92672">-&gt;</span>ro<span style="color:#f92672">-&gt;</span>instanceSize;
 }
 
 <span style="color:#75715e">// objc-runtime-new.h
-</span><span style="color:#75715e"></span><span style="color:#75715e">// ➡️ 返回类中的读写数据
+</span><span style="color:#75715e">// ➡️ 返回类中的读写数据
 </span><span style="color:#75715e"></span>class_rw_t <span style="color:#f92672">*</span><span style="color:#a6e22e">data</span>() { 
     <span style="color:#66d9ef">return</span> bits.data();
 }
@@ -336,8 +336,8 @@ _class_createInstanceFromZone(<span style="color:#66d9ef">Class</span> cls, size
 }
 
 <span style="color:#75715e">// objc-runtime-new.h
-</span><span style="color:#75715e"></span><span style="color:#75715e">// data pointer
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define FAST_DATA_MASK          0x00007ffffffffff8UL</span><span style="color:#75715e">
+</span><span style="color:#75715e">// data pointer
+</span><span style="color:#75715e"></span><span style="color:#75715e">#define FAST_DATA_MASK          0x00007ffffffffff8UL
 </span><span style="color:#75715e"></span>
 <span style="color:#75715e">// ➡️ 类中的只读数据
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> class_ro_t <span style="color:#f92672">*</span>ro;
@@ -347,9 +347,9 @@ _class_createInstanceFromZone(<span style="color:#66d9ef">Class</span> cls, size
     uint32_t instanceStart;
     <span style="color:#75715e">// ➡️ 实例大小
 </span><span style="color:#75715e"></span>    uint32_t instanceSize;
-<span style="color:#75715e">#</span><span style="color:#75715e">ifdef __LP64__</span><span style="color:#75715e">
+<span style="color:#75715e">#ifdef __LP64__
 </span><span style="color:#75715e"></span>    uint32_t reserved;
-<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+<span style="color:#75715e">#endif
 </span><span style="color:#75715e"></span>
     <span style="color:#66d9ef">const</span> uint8_t <span style="color:#f92672">*</span> ivarLayout;
     
@@ -367,23 +367,23 @@ _class_createInstanceFromZone(<span style="color:#66d9ef">Class</span> cls, size
 };
 
 <span style="color:#75715e">// objc-os.h
-</span><span style="color:#75715e"></span><span style="color:#75715e">// ➡️ word_align 有两个实现，unalignedInstanceSize 返回 uint32_t
-</span><span style="color:#75715e"></span><span style="color:#75715e">// 所以这里的 word_align 为参数是 uint32_t 类型的一个
+</span><span style="color:#75715e">// ➡️ word_align 有两个实现，unalignedInstanceSize 返回 uint32_t
+</span><span style="color:#75715e">// 所以这里的 word_align 为参数是 uint32_t 类型的一个
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">inline</span> uint32_t <span style="color:#a6e22e">word_align</span>(uint32_t x) {
     <span style="color:#66d9ef">return</span> (x <span style="color:#f92672">+</span> WORD_MASK) <span style="color:#f92672">&amp;</span> <span style="color:#f92672">~</span>WORD_MASK;
 }
 
 <span style="color:#75715e">// __LP64__ 代表在 64 位时的情况
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">ifdef __LP64__</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">   define WORD_SHIFT 3UL</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#ifdef __LP64__
+</span><span style="color:#75715e">#   define WORD_SHIFT 3UL
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// ➡️ WORD_MASK
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">   define WORD_MASK 7UL</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">   define WORD_BITS 64</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">else</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">   define WORD_SHIFT 2UL</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">   define WORD_MASK 3UL</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">   define WORD_BITS 32</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#   define WORD_MASK 7UL
+</span><span style="color:#75715e">#   define WORD_BITS 64
+</span><span style="color:#75715e">#else
+</span><span style="color:#75715e">#   define WORD_SHIFT 2UL
+</span><span style="color:#75715e">#   define WORD_MASK 3UL
+</span><span style="color:#75715e">#   define WORD_BITS 32
+</span><span style="color:#75715e">#endif
 </span></code></pre></div><p>在 <code>word_align</code> 字长对齐的方法中，<code>WORD_MASK</code> 在 64 位下为无符号长整型（Unsigned Long）的 <code>7</code>，即二进制下为 <code>0b0111</code>，<code>~WORD_MASK</code> 即 <code>-0b1000</code>。将参数即实例大小加上 <code>WORD_MASK</code> 并对 <code>~WORD_MASK</code> 做按位与操作。保证了对齐后的大小均为 8 的倍数。而在 <code>instanceSize</code> 的后续步骤中，也注释表明了「CF 要求所有对象至少 16 字节」。所以到这里，我们可以认为 <code>NSObject</code> 的对象实际分配的空间为 16 字节。</p>
 <h2 id="class_getinstancesize">class_getInstanceSize</h2>
 <p><code>class_getInstanceSize</code> 是 Runtime 中的一个方法，可以获取传入实例类型的大小。</p>
@@ -409,13 +409,13 @@ OBJC_EXPORT size_t
 {
     <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>cls) <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
     <span style="color:#75715e">// ➡️ 调用 alignedInstanceSize
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>alignedInstanceSize();
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> cls<span style="color:#f92672">-&gt;</span>alignedInstanceSize();
 }
 </code></pre></div><h2 id="malloc_size">malloc_size</h2>
 <p>那有什么办法可以获取对象真正分配的内存空间呢？答案是 <code>malloc_size</code>。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#</span><span style="color:#75715e">import &lt;malloc</span><span style="color:#75715e">/</span><span style="color:#75715e">malloc.h&gt;</span><span style="color:#75715e">
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#import &lt;malloc/malloc.h&gt;
 </span><span style="color:#75715e"></span>
-NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%zd</span><span style="color:#e6db74">&#34;</span>, malloc_size((<span style="color:#66d9ef">__bridge</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)[[NSObject alloc] init]));
+NSLog(<span style="color:#e6db74">@&#34;%zd&#34;</span>, malloc_size((<span style="color:#66d9ef">__bridge</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)[[NSObject alloc] init]));
 <span style="color:#75715e">// 16
 </span></code></pre></div><p>因为 <code>malloc_size</code> 返回的是指针指向的内存地址大小，而 <code>class_getInstanceSize</code> 返回的则是类的实例的大小。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// malloc.h
@@ -444,12 +444,12 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%zd</
 };
 </code></pre></div><p>简单实践一下：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
-cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_memorySize <span style="color:#f92672">=</span> <span style="color:#ae81ff">16</span>;
-cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_diskSize <span style="color:#f92672">=</span> <span style="color:#ae81ff">512</span>;
+cpt<span style="color:#f92672">-&gt;</span>_memorySize <span style="color:#f92672">=</span> <span style="color:#ae81ff">16</span>;
+cpt<span style="color:#f92672">-&gt;</span>_diskSize <span style="color:#f92672">=</span> <span style="color:#ae81ff">512</span>;
 
 <span style="color:#75715e">// 将 cpt 指向 Computer Obj-C 类的指针转换为指向 Computer_IMPL 结构体的指针
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> Computer_IMPL <span style="color:#f92672">*</span>cptStruct <span style="color:#f92672">=</span> (<span style="color:#66d9ef">__bridge</span> <span style="color:#66d9ef">struct</span> Computer_IMPL <span style="color:#f92672">*</span>)(cpt);
-NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">cptStruct-&gt;_memorySize: %d, cptStruct-&gt;_diskSize: %d</span><span style="color:#e6db74">&#34;</span>, cptStruct<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_memorySize, cptStruct<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_diskSize);
+NSLog(<span style="color:#e6db74">@&#34;cptStruct-&gt;_memorySize: %d, cptStruct-&gt;_diskSize: %d&#34;</span>, cptStruct<span style="color:#f92672">-&gt;</span>_memorySize, cptStruct<span style="color:#f92672">-&gt;</span>_diskSize);
 <span style="color:#75715e">// cptStruct-&gt;_memorySize: 16, cptStruct-&gt;_diskSize: 512
 </span></code></pre></div><h2 id="自定义类的实例对象大小">自定义类的实例对象大小</h2>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span> {
@@ -487,34 +487,34 @@ NSObject <span style="color:#f92672">*</span>myCpt <span style="color:#f92672">=
 NSObject <span style="color:#f92672">*</span>myMac <span style="color:#f92672">=</span> [[Mac      alloc] init];
 NSObject <span style="color:#f92672">*</span>myPro <span style="color:#f92672">=</span> [[MacPro   alloc] init];
     
-NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">NSObject - Instance Size - %zd</span><span style="color:#e6db74">&#34;</span>, class_getInstanceSize([NSObject <span style="color:#66d9ef">class</span>]));
-NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">NSObject - Malloc Size   - %zd</span><span style="color:#e6db74">&#34;</span>, malloc_size((<span style="color:#66d9ef">__bridge</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)(myObj)));
+NSLog(<span style="color:#e6db74">@&#34;NSObject - Instance Size - %zd&#34;</span>, class_getInstanceSize([NSObject <span style="color:#66d9ef">class</span>]));
+NSLog(<span style="color:#e6db74">@&#34;NSObject - Malloc Size   - %zd&#34;</span>, malloc_size((<span style="color:#66d9ef">__bridge</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)(myObj)));
 
-NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Computer - Instance Size - %zd</span><span style="color:#e6db74">&#34;</span>, class_getInstanceSize([Computer <span style="color:#66d9ef">class</span>]));
-NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Computer - Malloc Size   - %zd</span><span style="color:#e6db74">&#34;</span>, malloc_size((<span style="color:#66d9ef">__bridge</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)(myCpt)));
+NSLog(<span style="color:#e6db74">@&#34;Computer - Instance Size - %zd&#34;</span>, class_getInstanceSize([Computer <span style="color:#66d9ef">class</span>]));
+NSLog(<span style="color:#e6db74">@&#34;Computer - Malloc Size   - %zd&#34;</span>, malloc_size((<span style="color:#66d9ef">__bridge</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)(myCpt)));
 
-NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Mac      - Instance Size - %zd</span><span style="color:#e6db74">&#34;</span>, class_getInstanceSize([Mac <span style="color:#66d9ef">class</span>]));
-NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Mac      - Malloc Size   - %zd</span><span style="color:#e6db74">&#34;</span>, malloc_size((<span style="color:#66d9ef">__bridge</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)(myMac)));
+NSLog(<span style="color:#e6db74">@&#34;Mac      - Instance Size - %zd&#34;</span>, class_getInstanceSize([Mac <span style="color:#66d9ef">class</span>]));
+NSLog(<span style="color:#e6db74">@&#34;Mac      - Malloc Size   - %zd&#34;</span>, malloc_size((<span style="color:#66d9ef">__bridge</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)(myMac)));
 
-NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">MacPro   - Instance Size - %zd</span><span style="color:#e6db74">&#34;</span>, class_getInstanceSize([MacPro <span style="color:#66d9ef">class</span>]));
-NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">MacPro   - Malloc Size   - %zd</span><span style="color:#e6db74">&#34;</span>, malloc_size((<span style="color:#66d9ef">__bridge</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)(myPro)));
+NSLog(<span style="color:#e6db74">@&#34;MacPro   - Instance Size - %zd&#34;</span>, class_getInstanceSize([MacPro <span style="color:#66d9ef">class</span>]));
+NSLog(<span style="color:#e6db74">@&#34;MacPro   - Malloc Size   - %zd&#34;</span>, malloc_size((<span style="color:#66d9ef">__bridge</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)(myPro)));
 
-NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">bool   size - %zd</span><span style="color:#e6db74">&#34;</span>, <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">bool</span>));
-NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">int    size - %zd</span><span style="color:#e6db74">&#34;</span>, <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">int</span>));
-NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">double size - %zd</span><span style="color:#e6db74">&#34;</span>, <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">double</span>));
+NSLog(<span style="color:#e6db74">@&#34;bool   size - %zd&#34;</span>, <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">bool</span>));
+NSLog(<span style="color:#e6db74">@&#34;int    size - %zd&#34;</span>, <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">int</span>));
+NSLog(<span style="color:#e6db74">@&#34;double size - %zd&#34;</span>, <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">double</span>));
 
 <span style="color:#75715e">// NSObject - Instance Size - 8
-</span><span style="color:#75715e"></span><span style="color:#75715e">// NSObject - Malloc Size   - 16
-</span><span style="color:#75715e"></span><span style="color:#75715e">// Computer - Instance Size - 16
-</span><span style="color:#75715e"></span><span style="color:#75715e">// Computer - Malloc Size   - 16
-</span><span style="color:#75715e"></span><span style="color:#75715e">// Mac      - Instance Size - 24
-</span><span style="color:#75715e"></span><span style="color:#75715e">// Mac      - Malloc Size   - 32
-</span><span style="color:#75715e"></span><span style="color:#75715e">// MacPro   - Instance Size - 32
-</span><span style="color:#75715e"></span><span style="color:#75715e">// MacPro   - Malloc Size   - 32
-</span><span style="color:#75715e"></span><span style="color:#75715e">// bool   size - 1
-</span><span style="color:#75715e"></span><span style="color:#75715e">// int    size - 4
-</span><span style="color:#75715e"></span><span style="color:#75715e">// double size - 8
-</span><span style="color:#75715e"></span><span style="color:#75715e">// Program ended with exit code: 0
+</span><span style="color:#75715e">// NSObject - Malloc Size   - 16
+</span><span style="color:#75715e">// Computer - Instance Size - 16
+</span><span style="color:#75715e">// Computer - Malloc Size   - 16
+</span><span style="color:#75715e">// Mac      - Instance Size - 24
+</span><span style="color:#75715e">// Mac      - Malloc Size   - 32
+</span><span style="color:#75715e">// MacPro   - Instance Size - 32
+</span><span style="color:#75715e">// MacPro   - Malloc Size   - 32
+</span><span style="color:#75715e">// bool   size - 1
+</span><span style="color:#75715e">// int    size - 4
+</span><span style="color:#75715e">// double size - 8
+</span><span style="color:#75715e">// Program ended with exit code: 0
 </span></code></pre></div><p>比较让人困惑的是 <code>myMac</code> 的实例大小与实际分配大小。<code>Mac</code> 除了自己的一个成员变量，还有两个继承自父类 <code>Computer</code> 的成员变量，以及一个继承自基类 <code>NSObject</code> 的 <code>isa</code>。在 64 位操作系统上，共计占用 8+4+4+1=17 字节，经过字长对齐后即 24 字节，与 <code>class_getInstanceSize</code> 返回的结果一致。但为什么最终 <code>malloc_size</code> 却是 32 字节呢？</p>
 <p>因为在分配内存时，除了字长对齐，还存在另外的内存对齐。其将按照 16 的倍数进行对齐：</p>
 <pre><code>// nano_zone_common.h
@@ -528,20 +528,20 @@ NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">doubl
 </span><span style="color:#75715e">   than this though. Note however that code and data structures are
 </span><span style="color:#75715e">   optimized for the case of 8-byte alignment.  */</span>
 <span style="color:#75715e">// long double 占用 16 字节，SIZE_SZ 即 sizeof(size_t)，在 Xcode 中为 8
-</span><span style="color:#75715e"></span><span style="color:#75715e">// 即 #define MALLOC_ALIGNMENT 16
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define MALLOC_ALIGNMENT (2 * SIZE_SZ &lt; __alignof__ (long double) \</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span><span style="color:#75715e">			  ? __alignof__ (long double) : 2 * SIZE_SZ)</span><span style="color:#75715e">
+</span><span style="color:#75715e">// 即 #define MALLOC_ALIGNMENT 16
+</span><span style="color:#75715e"></span><span style="color:#75715e">#define MALLOC_ALIGNMENT (2 * SIZE_SZ &lt; __alignof__ (long double) \
+</span><span style="color:#75715e">			  ? __alignof__ (long double) : 2 * SIZE_SZ)
 </span><span style="color:#75715e"></span>
 <span style="color:#75715e">// malloc/malloc-internal.h
 </span><span style="color:#75715e"></span><span style="color:#75715e">/* The corresponding word size.  */</span>
-<span style="color:#75715e">#</span><span style="color:#75715e">define SIZE_SZ (sizeof (INTERNAL_SIZE_T))</span><span style="color:#75715e">
+<span style="color:#75715e">#define SIZE_SZ (sizeof (INTERNAL_SIZE_T))
 </span><span style="color:#75715e"></span>
-<span style="color:#75715e">#</span><span style="color:#75715e">ifndef INTERNAL_SIZE_T</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e"> define INTERNAL_SIZE_T size_t</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+<span style="color:#75715e">#ifndef INTERNAL_SIZE_T
+</span><span style="color:#75715e"># define INTERNAL_SIZE_T size_t
+</span><span style="color:#75715e">#endif
 </span><span style="color:#75715e"></span>
 <span style="color:#75715e">// sysdeps/i386/malloc-alignment.h
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define MALLOC_ALIGNMENT 16</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#define MALLOC_ALIGNMENT 16
 </span></code></pre></div><h2 id="reference">Reference</h2>
 <ul>
 <li><a href="https://github.com/kingcos/Perspective/issues/72">将 Obj-C 代码翻译为 C++ 代码</a></li>

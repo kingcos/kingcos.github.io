@@ -223,16 +223,16 @@
 
 <span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
 - (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">print:</span>(NSString <span style="color:#f92672">*</span>)content {
-    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">Print content: %@.</span><span style="color:#e6db74">&#34;</span>, content);
+    NSLog(<span style="color:#e6db74">@&#34;Print content: %@.&#34;</span>, content);
 }
 
 <span style="color:#75715e">// 协议方法
 </span><span style="color:#75715e"></span>- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">powerOn</span> {
-    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span>, __func__);
+    NSLog(<span style="color:#e6db74">@&#34;%s&#34;</span>, __func__);
 }
 
 + (NSString <span style="color:#f92672">*</span>)<span style="color:#a6e22e">arch</span> {
-    <span style="color:#66d9ef">return</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">ARM 64</span><span style="color:#e6db74">&#34;</span>;
+    <span style="color:#66d9ef">return</span> <span style="color:#e6db74">@&#34;ARM 64&#34;</span>;
 }
 <span style="color:#66d9ef">@end</span>
 </code></pre></div><h2 id="实例对象">实例对象</h2>
@@ -241,22 +241,22 @@
 </span><span style="color:#75715e"></span>Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
 
 <span style="color:#75715e">// ERROR: Direct access to Objective-C&#39;s isa is deprecated in favor of object_getClass()
-</span><span style="color:#75715e"></span><span style="color:#75715e">// cpt-&gt;isa;
+</span><span style="color:#75715e">// cpt-&gt;isa;
 </span><span style="color:#75715e"></span>
-cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_memorySize <span style="color:#f92672">=</span> <span style="color:#ae81ff">16</span>;
-cpt<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>_diskSize <span style="color:#f92672">=</span> <span style="color:#ae81ff">512</span>;
+cpt<span style="color:#f92672">-&gt;</span>_memorySize <span style="color:#f92672">=</span> <span style="color:#ae81ff">16</span>;
+cpt<span style="color:#f92672">-&gt;</span>_diskSize <span style="color:#f92672">=</span> <span style="color:#ae81ff">512</span>;
 
-cpt.model <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">MacBook Pro 13&#39;</span><span style="color:#e6db74">&#34;</span>;
+cpt.model <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;MacBook Pro 13&#39;&#34;</span>;
 </code></pre></div><p>我们在程序结束前的 <code>return 0;</code> 一行打个断点，即可看到 <code>cpt</code> 指向的实例对象中存储的数据：</p>
 <p><img src="/img/2019/objects_in_obj-c/5.png" alt="5"></p>
 <p>其中存放了 <code>isa</code> 指针成员变量（但无法直接访问）以及其它成员变量的具体值。<code>isa</code> 并不是开发者自己定义的，而是继承自 <code>NSObject</code> 基类。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// NSObject.h
 </span><span style="color:#75715e"></span>
 <span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">NSObject</span> <span style="color:#f92672">&lt;</span>NSObject<span style="color:#f92672">&gt;</span> {
-<span style="color:#75715e">#</span><span style="color:#75715e">pragma clang diagnostic push</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">pragma clang diagnostic ignored &#34;-Wobjc-interface-ivars&#34;</span><span style="color:#75715e">
+<span style="color:#75715e">#pragma clang diagnostic push
+</span><span style="color:#75715e">#pragma clang diagnostic ignored &#34;-Wobjc-interface-ivars&#34;
 </span><span style="color:#75715e"></span>    <span style="color:#66d9ef">Class</span> isa  OBJC_ISA_AVAILABILITY;
-<span style="color:#75715e">#</span><span style="color:#75715e">pragma clang diagnostic pop</span><span style="color:#75715e">
+<span style="color:#75715e">#pragma clang diagnostic pop
 </span><span style="color:#75715e"></span>}
 </code></pre></div><h2 id="类对象">类对象</h2>
 <p>我们知道，只要创建的实例对象属于同一个类，那么它们就都可以调用该类的实例方法，因此这些方法其实并不需要每个实例对象都单独保存一份。在 Obj-C 中，实例方法存放在类对象中，类方法存储在元类对象中。与实例对象不同，类对象和元类对象并不需要开发者手动创建。类对象可以通过 <code>[cpt class]</code>、<code>[Computer class]</code> 或 Runtime API <code>object_getClass</code> 获取：</p>
@@ -266,12 +266,12 @@ cpt.model <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34
 <span style="color:#66d9ef">Class</span> cptClass3 <span style="color:#f92672">=</span> object_getClass(cpt);
 
 <span style="color:#75715e">// LLDB:
-</span><span style="color:#75715e"></span><span style="color:#75715e">// (lldb) p/x cptClass1
-</span><span style="color:#75715e"></span><span style="color:#75715e">// (Class) $0 = 0x00000001000013d0 Computer
-</span><span style="color:#75715e"></span><span style="color:#75715e">// (lldb) p/x cptClass2
-</span><span style="color:#75715e"></span><span style="color:#75715e">// (Class) $1 = 0x00000001000013d0 Computer
-</span><span style="color:#75715e"></span><span style="color:#75715e">// (lldb) p/x cptClass3
-</span><span style="color:#75715e"></span><span style="color:#75715e">// (Class) $2 = 0x00000001000013d0 Computer
+</span><span style="color:#75715e">// (lldb) p/x cptClass1
+</span><span style="color:#75715e">// (Class) $0 = 0x00000001000013d0 Computer
+</span><span style="color:#75715e">// (lldb) p/x cptClass2
+</span><span style="color:#75715e">// (Class) $1 = 0x00000001000013d0 Computer
+</span><span style="color:#75715e">// (lldb) p/x cptClass3
+</span><span style="color:#75715e">// (Class) $2 = 0x00000001000013d0 Computer
 </span></code></pre></div><p>类对象的类型是 <code>Class</code>，本质是指向 <code>objc_class</code> 结构体的指针。<code>objc_class</code> 结构体中存放了 <code>isa</code>、<code>superclass</code>、方法缓存、以及为该类实例对象所公用的一些信息：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// Object.mm
 </span><span style="color:#75715e"></span>
@@ -312,21 +312,21 @@ private:
     <span style="color:#75715e">// ...
 </span><span style="color:#75715e"></span>}
 
-<span style="color:#75715e">#</span><span style="color:#75715e">if !__LP64__</span><span style="color:#75715e">
+<span style="color:#75715e">#if !__LP64__
 </span><span style="color:#75715e"></span><span style="color:#75715e">// 非 64 位，跳过
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">elif 1</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#elif 1
 </span><span style="color:#75715e"></span><span style="color:#75715e">// class is a Swift class from the pre-stable Swift ABI
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define FAST_IS_SWIFT_LEGACY    (1UL&lt;&lt;0)</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#define FAST_IS_SWIFT_LEGACY    (1UL&lt;&lt;0)
 </span><span style="color:#75715e"></span><span style="color:#75715e">// class is a Swift class from the stable Swift ABI
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define FAST_IS_SWIFT_STABLE    (1UL&lt;&lt;1)</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#define FAST_IS_SWIFT_STABLE    (1UL&lt;&lt;1)
 </span><span style="color:#75715e"></span><span style="color:#75715e">// class or superclass has default retain/release/autorelease/retainCount/
-</span><span style="color:#75715e"></span><span style="color:#75715e">//   _tryRetain/_isDeallocating/retainWeakReference/allowsWeakReference
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define FAST_HAS_DEFAULT_RR     (1UL&lt;&lt;2)</span><span style="color:#75715e">
+</span><span style="color:#75715e">//   _tryRetain/_isDeallocating/retainWeakReference/allowsWeakReference
+</span><span style="color:#75715e"></span><span style="color:#75715e">#define FAST_HAS_DEFAULT_RR     (1UL&lt;&lt;2)
 </span><span style="color:#75715e"></span><span style="color:#75715e">// data pointer
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define FAST_DATA_MASK          0x00007ffffffffff8UL</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">else</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#define FAST_DATA_MASK          0x00007ffffffffff8UL
+</span><span style="color:#75715e">#else
 </span><span style="color:#75715e"></span><span style="color:#75715e">// 不会落到该 case 下，跳过
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#endif
 </span><span style="color:#75715e"></span>
 <span style="color:#66d9ef">struct</span> class_data_bits_t {
     <span style="color:#75715e">// Values are the FAST_ flags above.
@@ -431,17 +431,17 @@ private:
 <details>
 <summary>-> 点击此处即可查看完整内容 <-</summary>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">//
-</span><span style="color:#75715e"></span><span style="color:#75715e">//  class_details.h
-</span><span style="color:#75715e"></span><span style="color:#75715e">//  Powered by kingcos.me
-</span><span style="color:#75715e"></span><span style="color:#75715e">//
-</span><span style="color:#75715e"></span><span style="color:#75715e">//  Created by kingcos on 2019/8/31.
-</span><span style="color:#75715e"></span><span style="color:#75715e">//  Copyright © 2019 kingcos. All rights reserved.
-</span><span style="color:#75715e"></span><span style="color:#75715e">//
+</span><span style="color:#75715e">//  class_details.h
+</span><span style="color:#75715e">//  Powered by kingcos.me
+</span><span style="color:#75715e">//
+</span><span style="color:#75715e">//  Created by kingcos on 2019/8/31.
+</span><span style="color:#75715e">//  Copyright © 2019 kingcos. All rights reserved.
+</span><span style="color:#75715e">//
 </span><span style="color:#75715e"></span>
-<span style="color:#75715e">#</span><span style="color:#75715e">ifndef class_details_h</span><span style="color:#75715e">
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define class_details_h</span><span style="color:#75715e">
+<span style="color:#75715e">#ifndef class_details_h
+</span><span style="color:#75715e">#define class_details_h
 </span><span style="color:#75715e"></span>
-<span style="color:#75715e">#</span><span style="color:#75715e">define FAST_DATA_MASK          0x00007ffffffffff8UL</span><span style="color:#75715e">
+<span style="color:#75715e">#define FAST_DATA_MASK          0x00007ffffffffff8UL
 </span><span style="color:#75715e"></span>
 <span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_objc_class</span> <span style="color:#f92672">*</span>V_Class;
 <span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span> v_uintptr_t;
@@ -519,7 +519,7 @@ private:
 
     <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> name;
     v_method_list_t <span style="color:#f92672">*</span> baseMethodList;
-    v_protocol_list_t<span style="color:#f92672">*</span><span style="color:#f92672">*</span><span style="color:#f92672">*</span> <span style="color:#f92672">*</span> baseProtocols;
+    v_protocol_list_t<span style="color:#f92672">***</span> <span style="color:#f92672">*</span> baseProtocols;
     <span style="color:#66d9ef">const</span> v_ivar_list_t <span style="color:#f92672">*</span> ivars;
 
     <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">uint8_t</span> <span style="color:#f92672">*</span> weakIvarLayout;
@@ -578,13 +578,13 @@ private:
     }
 };
 
-<span style="color:#75715e">#</span><span style="color:#75715e">endif </span><span style="color:#75715e">/* class_details_h */</span><span style="color:#75715e">
+<span style="color:#75715e">#endif </span><span style="color:#75715e">/* class_details_h */</span><span style="color:#75715e">
 </span></code></pre></div></details>
 <p>我们仍以 <code>Computer</code> 类为例，将类或元类对象转换为其真实结构时，我们就能看到其中的细节了：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// main.mm
 </span><span style="color:#75715e"></span>
 V_Class cptClassObject <span style="color:#f92672">=</span> (<span style="color:#66d9ef">__bridge</span> V_Class)[Computer <span style="color:#66d9ef">class</span>];
-v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#f92672">=</span> cptClassObject<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>data();
+v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#f92672">=</span> cptClassObject<span style="color:#f92672">-&gt;</span>data();
 </code></pre></div><p><img src="/img/2019/objects_in_obj-c/4.png" alt="4"></p>
 <blockquote>
 <p>有心的同学可能会发现，这里的方法列表个数显示为 5，根据上面的 Obj-C 源码，应当是 <code>model</code> 属性自动生成的 getter &amp; setter，以及 <code>print:</code> 和 <code>arch</code>，那么怎么会多一个呢？其实这是由于定义属性，增加了一个名为 <code>.cxx_destruct</code> 的方法，关于此本文不再涉及，考虑放置在 <code>dealloc</code> 相关的文章中。</p>
@@ -606,9 +606,9 @@ v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#
     <span style="color:#66d9ef">uint32_t</span> instanceStart;
     <span style="color:#75715e">// 实例大小
 </span><span style="color:#75715e"></span>    <span style="color:#66d9ef">uint32_t</span> instanceSize;
-<span style="color:#75715e">#</span><span style="color:#75715e">ifdef __LP64__</span><span style="color:#75715e">
+<span style="color:#75715e">#ifdef __LP64__
 </span><span style="color:#75715e"></span>    <span style="color:#66d9ef">uint32_t</span> reserved;
-<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+<span style="color:#75715e">#endif
 </span><span style="color:#75715e"></span>
     <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">uint8_t</span> <span style="color:#f92672">*</span> ivarLayout;
 
@@ -631,16 +631,16 @@ v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// objc-runtime-new.h
 </span><span style="color:#75715e"></span>
 <span style="color:#75715e">// 类是未实现的 Future 类（关于 Future 类目前网上资料较少，Runtime 中有 objc_getFutureClass API，官方文档意为用作与 CoreFoundation 中类型无缝桥接（Toll-Free Bridging），比如 __NSCFArray 等，但该方法并未暴露在外界，即不允许开发者去调用）
-</span><span style="color:#75715e"></span><span style="color:#75715e">// class is unrealized future class - must never be set by compiler
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define RO_FUTURE             (1&lt;&lt;30)</span><span style="color:#75715e">
+</span><span style="color:#75715e">// class is unrealized future class - must never be set by compiler
+</span><span style="color:#75715e"></span><span style="color:#75715e">#define RO_FUTURE             (1&lt;&lt;30)
 </span><span style="color:#75715e"></span><span style="color:#75715e">// 类已实化
-</span><span style="color:#75715e"></span><span style="color:#75715e">// class is realized - must never be set by compiler
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define RO_REALIZED           (1&lt;&lt;31)</span><span style="color:#75715e">
+</span><span style="color:#75715e">// class is realized - must never be set by compiler
+</span><span style="color:#75715e"></span><span style="color:#75715e">#define RO_REALIZED           (1&lt;&lt;31)
 </span><span style="color:#75715e"></span>
 <span style="color:#75715e">// class_t-&gt;data is class_rw_t, not class_ro_t
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define RW_REALIZED           (1&lt;&lt;31)</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#define RW_REALIZED           (1&lt;&lt;31)
 </span><span style="color:#75715e"></span><span style="color:#75715e">// class is unresolved future class
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">define RW_FUTURE             (1&lt;&lt;30)</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#define RW_FUTURE             (1&lt;&lt;30)
 </span><span style="color:#75715e"></span>
 <span style="color:#75715e">// objc-runtime-new.mm
 </span><span style="color:#75715e"></span>
@@ -669,23 +669,23 @@ v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#
     <span style="color:#75715e">// 若为空，则返回
 </span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>cls) <span style="color:#66d9ef">return</span> nil;
     <span style="color:#75715e">// 若已经实化，则返回
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>isRealized()) <span style="color:#66d9ef">return</span> cls;
-    assert(cls <span style="color:#f92672">=</span><span style="color:#f92672">=</span> remapClass(cls));
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (cls<span style="color:#f92672">-&gt;</span>isRealized()) <span style="color:#66d9ef">return</span> cls;
+    assert(cls <span style="color:#f92672">==</span> remapClass(cls));
 
     <span style="color:#75715e">// fixme verify class is not in an un-dlopened part of the shared cache?
 </span><span style="color:#75715e"></span>
     <span style="color:#75715e">// 实化前，cls-&gt;data() 返回指向只读表的指针，因此可以强转
-</span><span style="color:#75715e"></span>    ro <span style="color:#f92672">=</span> (<span style="color:#66d9ef">const</span> class_ro_t <span style="color:#f92672">*</span>)cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>data();
+</span><span style="color:#75715e"></span>    ro <span style="color:#f92672">=</span> (<span style="color:#66d9ef">const</span> class_ro_t <span style="color:#f92672">*</span>)cls<span style="color:#f92672">-&gt;</span>data();
     <span style="color:#75715e">// 判断是否为未来的类（即 RO_FUTURE 标志着读写数据是否已经被分配）
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// 可读可写表和只读表的首个成员均为 flags 且 RO_FUTURE 与 RW_FUTURE 实际值相同
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (ro<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_FUTURE) {
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (ro<span style="color:#f92672">-&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_FUTURE) {
         <span style="color:#75715e">// This was a future class. rw data is already allocated.
 </span><span style="color:#75715e"></span>        <span style="color:#75715e">// 将数据赋值给可读可写表
-</span><span style="color:#75715e"></span>        rw <span style="color:#f92672">=</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>data();
+</span><span style="color:#75715e"></span>        rw <span style="color:#f92672">=</span> cls<span style="color:#f92672">-&gt;</span>data();
         <span style="color:#75715e">// 将可读可写表中的只读表赋值给只读表
-</span><span style="color:#75715e"></span>        ro <span style="color:#f92672">=</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>data()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ro;
+</span><span style="color:#75715e"></span>        ro <span style="color:#f92672">=</span> cls<span style="color:#f92672">-&gt;</span>data()<span style="color:#f92672">-&gt;</span>ro;
         <span style="color:#75715e">// 更新标记位
-</span><span style="color:#75715e"></span>        cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>changeInfo(RW_REALIZED<span style="color:#f92672">|</span>RW_REALIZING, RW_FUTURE);
+</span><span style="color:#75715e"></span>        cls<span style="color:#f92672">-&gt;</span>changeInfo(RW_REALIZED<span style="color:#f92672">|</span>RW_REALIZING, RW_FUTURE);
     } <span style="color:#66d9ef">else</span> {
         <span style="color:#75715e">// 通常为该逻辑
 </span><span style="color:#75715e"></span>
@@ -694,46 +694,46 @@ v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#
 </span><span style="color:#75715e"></span>        <span style="color:#75715e">// 分配空间
 </span><span style="color:#75715e"></span>        rw <span style="color:#f92672">=</span> (class_rw_t <span style="color:#f92672">*</span>)calloc(<span style="color:#66d9ef">sizeof</span>(class_rw_t), <span style="color:#ae81ff">1</span>);
         <span style="color:#75715e">// 将可读可写表中的只读表指针指向只读表指针
-</span><span style="color:#75715e"></span>        rw<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ro <span style="color:#f92672">=</span> ro;
+</span><span style="color:#75715e"></span>        rw<span style="color:#f92672">-&gt;</span>ro <span style="color:#f92672">=</span> ro;
         <span style="color:#75715e">// 更新标记位，实化且正在实化
-</span><span style="color:#75715e"></span>        rw<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>flags <span style="color:#f92672">=</span> RW_REALIZED<span style="color:#f92672">|</span>RW_REALIZING;
+</span><span style="color:#75715e"></span>        rw<span style="color:#f92672">-&gt;</span>flags <span style="color:#f92672">=</span> RW_REALIZED<span style="color:#f92672">|</span>RW_REALIZING;
         <span style="color:#75715e">// 将可读可写表写回类中
-</span><span style="color:#75715e"></span>        cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setData(rw);
+</span><span style="color:#75715e"></span>        cls<span style="color:#f92672">-&gt;</span>setData(rw);
     }
 
     <span style="color:#75715e">// ---
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// 以下内容与 class_rw_t 相关性不大，仅供参考
 </span><span style="color:#75715e"></span>
     <span style="color:#75715e">// 是否为元类
-</span><span style="color:#75715e"></span>    isMeta <span style="color:#f92672">=</span> ro<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_META;
+</span><span style="color:#75715e"></span>    isMeta <span style="color:#f92672">=</span> ro<span style="color:#f92672">-&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_META;
 
-    rw<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>version <span style="color:#f92672">=</span> isMeta <span style="color:#f92672">?</span> <span style="color:#ae81ff">7</span> <span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>;  <span style="color:#75715e">// old runtime went up to 6
+    rw<span style="color:#f92672">-&gt;</span>version <span style="color:#f92672">=</span> isMeta <span style="color:#f92672">?</span> <span style="color:#ae81ff">7</span> <span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>;  <span style="color:#75715e">// old runtime went up to 6
 </span><span style="color:#75715e"></span>
     <span style="color:#75715e">// Choose an index for this class.
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// 设置类的索引
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// Sets cls-&gt;instancesRequireRawIsa if indexes no more indexes are available
-</span><span style="color:#75715e"></span>    cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>chooseClassArrayIndex();
+</span><span style="color:#75715e"></span>    cls<span style="color:#f92672">-&gt;</span>chooseClassArrayIndex();
 
     <span style="color:#75715e">// 打印 Debug 信息
 </span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (PrintConnecting) {
-        _objc_inform(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">CLASS: realizing class &#39;%s&#39;%s %p %p #%u</span><span style="color:#e6db74">&#34;</span>,
-                     cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>nameForLogging(), isMeta <span style="color:#f92672">?</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74"> (meta)</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>,
-                     (<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)cls, ro, cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>classArrayIndex());
+        _objc_inform(<span style="color:#e6db74">&#34;CLASS: realizing class &#39;%s&#39;%s %p %p #%u&#34;</span>,
+                     cls<span style="color:#f92672">-&gt;</span>nameForLogging(), isMeta <span style="color:#f92672">?</span> <span style="color:#e6db74">&#34; (meta)&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;&#34;</span>,
+                     (<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)cls, ro, cls<span style="color:#f92672">-&gt;</span>classArrayIndex());
     }
 
     <span style="color:#75715e">// 先实化父类，再实化类 / 元类，最后实化类本身
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// Realize superclass and metaclass, if they aren&#39;t already.
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// This needs to be done after RW_REALIZED is set above, for root classes.
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// This needs to be done after class index is chosen, for root metaclasses.
-</span><span style="color:#75715e"></span>    supercls <span style="color:#f92672">=</span> realizeClass(remapClass(cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>superclass));
-    metacls <span style="color:#f92672">=</span> realizeClass(remapClass(cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>ISA()));
+</span><span style="color:#75715e"></span>    supercls <span style="color:#f92672">=</span> realizeClass(remapClass(cls<span style="color:#f92672">-&gt;</span>superclass));
+    metacls <span style="color:#f92672">=</span> realizeClass(remapClass(cls<span style="color:#f92672">-&gt;</span>ISA()));
 
-<span style="color:#75715e">#</span><span style="color:#75715e">if SUPPORT_NONPOINTER_ISA</span><span style="color:#75715e">
+<span style="color:#75715e">#if SUPPORT_NONPOINTER_ISA
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// 通常为该逻辑
 </span><span style="color:#75715e"></span>
     <span style="color:#75715e">// Disable non-pointer isa for some classes and/or platforms.
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// Set instancesRequireRawIsa.
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">bool</span> instancesRequireRawIsa <span style="color:#f92672">=</span> cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>instancesRequireRawIsa();
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">bool</span> instancesRequireRawIsa <span style="color:#f92672">=</span> cls<span style="color:#f92672">-&gt;</span>instancesRequireRawIsa();
     <span style="color:#66d9ef">bool</span> rawIsaIsInherited <span style="color:#f92672">=</span> false;
     <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">bool</span> hackedDispatch <span style="color:#f92672">=</span> false;
 
@@ -741,15 +741,15 @@ v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#
         <span style="color:#75715e">// Non-pointer isa disabled by environment or app SDK version
 </span><span style="color:#75715e"></span>        instancesRequireRawIsa <span style="color:#f92672">=</span> true;
     }
-    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>hackedDispatch  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  <span style="color:#f92672">!</span>(ro<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_META)  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>
-             <span style="color:#ae81ff">0</span> <span style="color:#f92672">=</span><span style="color:#f92672">=</span> strcmp(ro<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>name, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">OS_object</span><span style="color:#e6db74">&#34;</span>))
+    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>hackedDispatch  <span style="color:#f92672">&amp;&amp;</span>  <span style="color:#f92672">!</span>(ro<span style="color:#f92672">-&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_META)  <span style="color:#f92672">&amp;&amp;</span>
+             <span style="color:#ae81ff">0</span> <span style="color:#f92672">==</span> strcmp(ro<span style="color:#f92672">-&gt;</span>name, <span style="color:#e6db74">&#34;OS_object&#34;</span>))
     {
         <span style="color:#75715e">// hack for libdispatch et al - isa also acts as vtable pointer
 </span><span style="color:#75715e"></span>        hackedDispatch <span style="color:#f92672">=</span> true;
         instancesRequireRawIsa <span style="color:#f92672">=</span> true;
     }
-    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (supercls  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  supercls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>superclass  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>
-             supercls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>instancesRequireRawIsa())
+    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (supercls  <span style="color:#f92672">&amp;&amp;</span>  supercls<span style="color:#f92672">-&gt;</span>superclass  <span style="color:#f92672">&amp;&amp;</span>
+             supercls<span style="color:#f92672">-&gt;</span>instancesRequireRawIsa())
     {
         <span style="color:#75715e">// This is also propagated by addSubclass()
 </span><span style="color:#75715e"></span>        <span style="color:#75715e">// but nonpointer isa setup needs it earlier.
@@ -760,30 +760,30 @@ v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#
     }
 
     <span style="color:#66d9ef">if</span> (instancesRequireRawIsa) {
-        cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setInstancesRequireRawIsa(rawIsaIsInherited);
+        cls<span style="color:#f92672">-&gt;</span>setInstancesRequireRawIsa(rawIsaIsInherited);
     }
 <span style="color:#75715e">// SUPPORT_NONPOINTER_ISA
-</span><span style="color:#75715e"></span><span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#75715e">#endif
 </span><span style="color:#75715e"></span>
     <span style="color:#75715e">// Update superclass and metaclass in case of remapping
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// 在重新映射的情况下更新超类和元类
-</span><span style="color:#75715e"></span>    cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>superclass <span style="color:#f92672">=</span> supercls;
-    cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>initClassIsa(metacls);
+</span><span style="color:#75715e"></span>    cls<span style="color:#f92672">-&gt;</span>superclass <span style="color:#f92672">=</span> supercls;
+    cls<span style="color:#f92672">-&gt;</span>initClassIsa(metacls);
 
     <span style="color:#75715e">// Reconcile instance variable offsets / layout.
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// This may reallocate class_ro_t, updating our ro variable.
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// 如果是父类，且非元类，调整实例变量，可能会重新分配 class_ro_t 并更新 ro 变量
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (supercls  <span style="color:#f92672">&amp;</span><span style="color:#f92672">&amp;</span>  <span style="color:#f92672">!</span>isMeta) reconcileInstanceVariables(cls, supercls, ro);
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (supercls  <span style="color:#f92672">&amp;&amp;</span>  <span style="color:#f92672">!</span>isMeta) reconcileInstanceVariables(cls, supercls, ro);
 
     <span style="color:#75715e">// Set fastInstanceSize if it wasn&#39;t set already.
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">// 设置实例大小
-</span><span style="color:#75715e"></span>    cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setInstanceSize(ro<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>instanceSize);
+</span><span style="color:#75715e"></span>    cls<span style="color:#f92672">-&gt;</span>setInstanceSize(ro<span style="color:#f92672">-&gt;</span>instanceSize);
 
     <span style="color:#75715e">// Copy some flags from ro to rw
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (ro<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_HAS_CXX_STRUCTORS) {
-        cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setHasCxxDtor();
-        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span> (ro<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_HAS_CXX_DTOR_ONLY)) {
-            cls<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>setHasCxxCtor();
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (ro<span style="color:#f92672">-&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_HAS_CXX_STRUCTORS) {
+        cls<span style="color:#f92672">-&gt;</span>setHasCxxDtor();
+        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span> (ro<span style="color:#f92672">-&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_HAS_CXX_DTOR_ONLY)) {
+            cls<span style="color:#f92672">-&gt;</span>setHasCxxCtor();
         }
     }
 
@@ -805,7 +805,7 @@ v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#
 <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">objc_class</span> <span style="color:#f92672">:</span> objc_object {
     <span style="color:#75715e">// 判断类是否实化
 </span><span style="color:#75715e"></span>    <span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">isRealized</span>() {
-        <span style="color:#66d9ef">return</span> data()<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>flags <span style="color:#f92672">&amp;</span> RW_REALIZED;
+        <span style="color:#66d9ef">return</span> data()<span style="color:#f92672">-&gt;</span>flags <span style="color:#f92672">&amp;</span> RW_REALIZED;
     }
 }
 </code></pre></div><h3 id="method_t">method_t</h3>
@@ -817,12 +817,12 @@ v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#
 
 <span style="color:#75715e">// objc-ptrauth.h
 </span><span style="color:#75715e"></span>
-<span style="color:#75715e">#</span><span style="color:#75715e">if __has_feature(ptrauth_calls)</span><span style="color:#75715e">
+<span style="color:#75715e">#if __has_feature(ptrauth_calls)
 </span><span style="color:#75715e"></span><span style="color:#75715e">// Method lists use process-independent signature for compatibility.
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">using</span> MethodListIMP <span style="color:#f92672">=</span> IMP __ptrauth_objc_method_list_imp;
-<span style="color:#75715e">#</span><span style="color:#75715e">else</span><span style="color:#75715e">
+<span style="color:#75715e">#else
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">using</span> MethodListIMP <span style="color:#f92672">=</span> IMP;
-<span style="color:#75715e">#</span><span style="color:#75715e">endif</span><span style="color:#75715e">
+<span style="color:#75715e">#endif
 </span><span style="color:#75715e"></span>
 <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">method_t</span> {
     SEL name;
@@ -830,7 +830,7 @@ v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#
     MethodListIMP imp;
 
     <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">SortBySELAddress</span> <span style="color:#f92672">:</span>
-        <span style="color:#66d9ef">public</span> std<span style="color:#f92672">:</span><span style="color:#f92672">:</span>binary_function<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">const</span> method_t<span style="color:#f92672">&amp;</span>,
+        <span style="color:#66d9ef">public</span> std<span style="color:#f92672">::</span>binary_function<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">const</span> method_t<span style="color:#f92672">&amp;</span>,
                                     <span style="color:#66d9ef">const</span> method_t<span style="color:#f92672">&amp;</span>, <span style="color:#66d9ef">bool</span><span style="color:#f92672">&gt;</span>
     {
         <span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">operator</span>() (<span style="color:#66d9ef">const</span> method_t<span style="color:#f92672">&amp;</span> lhs,
@@ -865,15 +865,15 @@ v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#
 <p>元类对象和类对象一样，都是 <code>Class</code> 类型，但元类对象只可以通过 Runtime 的 <code>object_getClass</code> API 传入类对象，获取到元类对象。需要注意的是 <code>[[Computer class] class]</code> 或 <code>[[cpt class] class]</code> 都只能返回类对象。</p>
 <p>对于 <code>object_getClass</code>，如果参数是实例对象，返回类对象；如果参数是类对象，返回元类对象；如果参数是元类对象，返回 NSObject（基类）的元类对象。<code>class_isMetaClass</code> 可以用来检查 <code>Class</code> 是否为元类对象。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">VClass cptMetaVClass <span style="color:#f92672">=</span> (<span style="color:#66d9ef">__bridge</span> VClass)object_getClass([Computer <span style="color:#66d9ef">class</span>]);
-class_rw_t <span style="color:#f92672">*</span>rwt <span style="color:#f92672">=</span> cptMetaVClass<span style="color:#f92672">-</span><span style="color:#f92672">&gt;</span>data();
+class_rw_t <span style="color:#f92672">*</span>rwt <span style="color:#f92672">=</span> cptMetaVClass<span style="color:#f92672">-&gt;</span>data();
 
 <span style="color:#75715e">// LLDB:
-</span><span style="color:#75715e"></span><span style="color:#75715e">// Printing description of rwt-&gt;methods-&gt;first:
-</span><span style="color:#75715e"></span><span style="color:#75715e">// (method_t) first = {
-</span><span style="color:#75715e"></span><span style="color:#75715e">//     name = &#34;arch&#34;
-</span><span style="color:#75715e"></span><span style="color:#75715e">//     types = 0x0000000100000f86 &#34;@16@0:8&#34;
-</span><span style="color:#75715e"></span><span style="color:#75715e">//     imp = 0x0000000100000d40 (DemoOC`::+[Computer arch]() at main.mm:52)
-</span><span style="color:#75715e"></span><span style="color:#75715e">// }
+</span><span style="color:#75715e">// Printing description of rwt-&gt;methods-&gt;first:
+</span><span style="color:#75715e">// (method_t) first = {
+</span><span style="color:#75715e">//     name = &#34;arch&#34;
+</span><span style="color:#75715e">//     types = 0x0000000100000f86 &#34;@16@0:8&#34;
+</span><span style="color:#75715e">//     imp = 0x0000000100000d40 (DemoOC`::+[Computer arch]() at main.mm:52)
+</span><span style="color:#75715e">// }
 </span></code></pre></div><p>元类对象中除了存储 <code>isa</code> 和 <code>superclass</code> 指针，还存储了类方法。其存放位置和类对象存放实例方法的存放位置（方法列表）一致。</p>
 <h2 id="superclass">superclass</h2>
 <p><img src="/img/2019/objects_in_obj-c/3.png" alt="3"></p>
@@ -894,8 +894,8 @@ class_rw_t <span style="color:#f92672">*</span>rwt <span style="color:#f92672">=
 
 <span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Mac</span>
 <span style="color:#75715e">// - (void)run {
-</span><span style="color:#75715e"></span><span style="color:#75715e">//     NSLog(@&#34;RUN&#34;);
-</span><span style="color:#75715e"></span><span style="color:#75715e">// }
+</span><span style="color:#75715e">//     NSLog(@&#34;RUN&#34;);
+</span><span style="color:#75715e">// }
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">@end</span>
 
 <span style="color:#75715e">// &#39;-[Mac run]: unrecognized selector sent to instance 0x10330f6c0&#39;
@@ -906,7 +906,7 @@ class_rw_t <span style="color:#f92672">*</span>rwt <span style="color:#f92672">=
 
 <span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">NSObject</span> (Extension)
 - (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">run</span> {
-    NSLog(<span style="color:#e6db74">@&#34;</span><span style="color:#e6db74">RUN</span><span style="color:#e6db74">&#34;</span>);
+    NSLog(<span style="color:#e6db74">@&#34;RUN&#34;</span>);
 }
 <span style="color:#66d9ef">@end</span>
 
@@ -924,7 +924,7 @@ class_rw_t <span style="color:#f92672">*</span>rwt <span style="color:#f92672">=
 <span style="color:#66d9ef">@end</span>
 
 <span style="color:#75715e">// OUTPUT:
-</span><span style="color:#75715e"></span><span style="color:#75715e">// RUN
+</span><span style="color:#75715e">// RUN
 </span></code></pre></div><p>通过上一点，其实我们可以知道在 Obj-C 中，方法是通过消息传递的，而传递的消息其实就是方法名的 <code>SEL</code>，因此这也是严谨意义上 Obj-C 不支持重载（Overload）的原因（但支持参数个数不同的重载），具体可详见《<a href="../override_and_overload_in_obj-c/">Obj-C 中的重载与重写</a>》一文。</p>
 <h2 id="reference">Reference</h2>
 <ul>
