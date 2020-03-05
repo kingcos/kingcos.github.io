@@ -7,9 +7,9 @@
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <meta name="description" content="作者 原文链接     Swift.org Swift Compiler    Swift 主仓库中包含了 Swift 编译器和标准库的源代码、相关组件，如 SourceKit（用于 IDE 集成），以及 Swift 回归测试套件和实现级别的文档。
-Swift 驱动库中包含了 Swift 编译器驱动（Driver）的新版实现，目的是替换现有编译器驱动以增强可扩展性、可维护性以及鲁棒性（Robust）。
-编译器架构 整体而言，Swift 编译器的主要职责在于将 Swift 源代码翻译为高效执行的机器码。但是 Swift 编译器的前端同样支持许多其它工具，包括与 IDE 集成的语法高亮、代码补全、以及其它便利的工具。本文提供了关于 Swift 编译器主要组件的自顶向下描述：
- 解析（Parsing）：解析器是一个简易的递归下降解析器（在 lib/Parse 中实现），并带有完整手动编码词法分析器。 语义分析（Semantic Analysis）：语义分析阶段（在 lib/Sema 中实现）负责获取已解析的 AST（抽象语法树）并将其转换为格式正确且类型检查完备的 AST，以及在源代码中提示出现语义问题的警告或错误。语义分析包含类型推断，如果可以成功推导出类型，则表明此时从已经经过类型检查的最终 AST 生成代码是安全的。 Clang 导入器（Clang Importer）：Clang 导入器（在 lib/ClangImporter 中实现）负责导入 Clang 模块，并将导出的 C 或 Objective-C API 映射到相应的 Swift API 中。最终导入的 AST 可以被语义分析引用。 SIL 生成（SIL Generation）：Swift 中间语言（Swift Intermediate Language，SIL）是一门高级且专用于 Swift 的中间语言，适用于对 Swift 代码的进一步分析和优化。SIL 生成阶段（在 lib/SILGen 中实现）将经过类型检查的 AST 弱化为所谓的「原始」SIL。SIL 的设计在 docs/SIL."/>
+Swift 驱动库中包含了 Swift 编译器驱动（Driver）的新版实现，目的是替换现有编译器驱动，以增强可扩展性、可维护性以及鲁棒性（Robust）。
+编译器架构 整体而言，Swift 编译器的主要职责在于将 Swift 源代码翻译为高效执行的机器码。但是 Swift 编译器的前端同样支持许多其它工具，包括与 IDE 集成的语法高亮、代码补全、以及其它提供便利的工具。本文对 Swift 编译器的主要组件提供了高阶描述：
+ 解析（Parsing）：解析器是一个简易的递归下降解析器（在 lib/Parse 中实现），并带有完整手动编码的词法分析器。 语义分析（Semantic Analysis）：语义分析阶段（在 lib/Sema 中实现）负责获取已解析的 AST（抽象语法树）并将其转换为格式正确且类型检查完备的 AST，以及在源代码中提示出现语义问题的警告或错误。语义分析包含类型推断，如果可以成功推导出类型，则表明此时从已经经过类型检查的最终 AST 生成代码是安全的。 Clang 导入器（Clang Importer）：Clang 导入器（在 lib/ClangImporter 中实现）负责导入 Clang 模块，并将导出的 C 或 Objective-C API 映射到相应的 Swift API 中。最终导入的 AST 可以被语义分析引用。 SIL 生成（SIL Generation）：Swift 中间语言（Swift Intermediate Language，SIL）是一门高级且专用于 Swift 的中间语言，适用于对 Swift 代码的进一步分析和优化。SIL 生成阶段（在 lib/SILGen 中实现）将经过类型检查的 AST 弱化为所谓的「原始」SIL。SIL 的设计在 docs/SIL."/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2020/swift_compiler_translation/" />
@@ -173,16 +173,16 @@ Swift 驱动库中包含了 Swift 编译器驱动（Driver）的新版实现，�
 </tbody>
 </table>
 <p><a href="https://github.com/apple/swift">Swift 主仓库</a>中包含了 Swift 编译器和标准库的源代码、相关组件，如 SourceKit（用于 IDE 集成），以及 Swift 回归测试套件和实现级别的文档。</p>
-<p><a href="https://github.com/apple/swift-driver">Swift 驱动库</a>中包含了 Swift 编译器驱动（Driver）的新版实现，目的是替换现有编译器驱动以增强可扩展性、可维护性以及鲁棒性（Robust）。</p>
+<p><a href="https://github.com/apple/swift-driver">Swift 驱动库</a>中包含了 Swift 编译器驱动（Driver）的新版实现，目的是替换现有编译器驱动，以增强可扩展性、可维护性以及鲁棒性（Robust）。</p>
 <h2 id="编译器架构">编译器架构</h2>
-<p>整体而言，Swift 编译器的主要职责在于将 Swift 源代码翻译为高效执行的机器码。但是 Swift 编译器的前端同样支持许多其它工具，包括与 IDE 集成的语法高亮、代码补全、以及其它便利的工具。本文提供了关于 Swift 编译器主要组件的自顶向下描述：</p>
+<p>整体而言，Swift 编译器的主要职责在于将 Swift 源代码翻译为高效执行的机器码。但是 Swift 编译器的前端同样支持许多其它工具，包括与 IDE 集成的语法高亮、代码补全、以及其它提供便利的工具。本文对 Swift 编译器的主要组件提供了高阶描述：</p>
 <ul>
-<li><strong>解析（Parsing）</strong>：解析器是一个简易的递归下降解析器（在 <a href="https://github.com/apple/swift/tree/master/lib/Parse">lib/Parse</a> 中实现），并带有完整手动编码词法分析器。</li>
+<li><strong>解析（Parsing）</strong>：解析器是一个简易的递归下降解析器（在 <a href="https://github.com/apple/swift/tree/master/lib/Parse">lib/Parse</a> 中实现），并带有完整手动编码的词法分析器。</li>
 <li><strong>语义分析（Semantic Analysis）</strong>：语义分析阶段（在 <a href="https://github.com/apple/swift/tree/master/lib/Sema">lib/Sema</a> 中实现）负责获取已解析的 AST（抽象语法树）并将其转换为格式正确且类型检查完备的 AST，以及在源代码中提示出现语义问题的警告或错误。语义分析包含类型推断，如果可以成功推导出类型，则表明此时从已经经过类型检查的最终 AST 生成代码是安全的。</li>
 <li><strong>Clang 导入器（Clang Importer）</strong>：Clang 导入器（在 <a href="https://github.com/apple/swift/tree/master/lib/ClangImporter">lib/ClangImporter</a> 中实现）负责导入 Clang 模块，并将导出的 C 或 Objective-C API 映射到相应的 Swift API 中。最终导入的 AST 可以被语义分析引用。</li>
 <li><strong>SIL 生成（SIL Generation）</strong>：Swift 中间语言（Swift Intermediate Language，SIL）是一门高级且专用于 Swift 的中间语言，适用于对 Swift 代码的进一步分析和优化。SIL 生成阶段（在 <a href="https://github.com/apple/swift/tree/master/lib/SILGen">lib/SILGen</a> 中实现）将经过类型检查的 AST 弱化为所谓的「原始」SIL。SIL 的设计在 <a href="https://github.com/apple/swift/blob/master/docs/SIL.rst">docs/SIL.rst</a> 有所描述。</li>
 <li><strong>SIL 保证转换（SIL Guaranteed Transformations）</strong>：SIL 保证转换阶段（在 <a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/Mandatory">lib/SILOptimizer/Mandatory</a> 中实现）负责执行额外且影响程序正确性的数据流诊断（比如使用未初始化的变量）。这些转换的最终结果是「规范」SIL。</li>
-<li><strong>SIL 优化（SIL Optimizations）</strong>：SIL 优化阶段（在 <a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/Analysis">lib/Analysis</a>、<a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/ARC">lib/ARC</a>、<a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/LoopTransforms">lib/LoopTransforms</a> 以及 <a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/Transforms">lib/Transforms</a> 中实现）负责对程序执行额外的高级且专用于 Swift 的优化，包括（例如）自动引用计数优化、虚拟化、以及通用的专业化。</li>
+<li><strong>SIL 优化（SIL Optimizations）</strong>：SIL 优化阶段（在 <a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/Analysis">lib/Analysis</a>、<a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/ARC">lib/ARC</a>、<a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/LoopTransforms">lib/LoopTransforms</a> 以及 <a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/Transforms">lib/Transforms</a> 中实现）负责对程序执行额外的高级且专用于 Swift 的优化，包括（例如）自动引用计数优化、去虚拟化、以及通用的专业化。</li>
 <li><strong>LLVM IR 生成（LLVM IR Generation）</strong>：IR 生成阶段（在 <a href="https://github.com/apple/swift/tree/master/lib/IRGen">lib/IRGen</a> 中实现）将 SIL 弱化为 LLVM LR，此时 LLVM 可以继续优化并生成机器码。</li>
 </ul>
 <hr>
