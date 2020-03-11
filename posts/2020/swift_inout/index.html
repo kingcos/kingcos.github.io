@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    
+      <title>Swift 中的 inout :: iBlog</title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="Swift 中的 inout 本质是按引用传递
+var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemoFunc(&amp;amp;foo) // BREAKPOINT ⚠️ 将以上代码转换为汇编：
+; inout demo`main: 0x100000b10 &amp;lt;&#43;0&amp;gt;: pushq %rbp 0x100000b11 &amp;lt;&#43;1&amp;gt;: movq %rsp, %rbp 0x100000b14 &amp;lt;&#43;4&amp;gt;: subq $0x30, %rsp 0x100000b18 &amp;lt;&#43;8&amp;gt;: leaq 0x651(%rip), %rax ; demo.foo : Swift.Int  0x100000b1f &amp;lt;&#43;15&amp;gt;: xorl %ecx, %ecx 0x100000b21 &amp;lt;&#43;17&amp;gt;: movq $0x5, 0x644(%rip) ; _swift_FORCE_LOAD_$_swiftCompatibility50  0x100000b2c &amp;lt;&#43;28&amp;gt;: movl %edi, -0x1c(%rbp) -&amp;gt; 0x100000b2f &amp;lt;&#43;31&amp;gt;: movq %rax, %rdi 0x100000b32 &amp;lt;&#43;34&amp;gt;: leaq -0x18(%rbp), %rax 0x100000b36 &amp;lt;&#43;38&amp;gt;: movq %rsi, -0x28(%rbp) 0x100000b3a &amp;lt;&#43;42&amp;gt;: movq %rax, %rsi 0x100000b3d &amp;lt;&#43;45&amp;gt;: movl $0x21, %edx 0x100000b42 &amp;lt;&#43;50&amp;gt;: callq 0x100000ec4 ; symbol stub for: swift_beginAccess  ; 参数传递 ⬇  0x100000b47 &amp;lt;&#43;55&amp;gt;: leaq 0x622(%rip), %rdi ; demo."/>
+<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2020/swift_inout/" />
+
+
+
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+<link rel="shortcut icon" href="/img/favicon.png">
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Swift 中的 inout"/>
+<meta name="twitter:description" content="Swift 中的 inout 本质是按引用传递
+var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemoFunc(&amp;foo) // BREAKPOINT ⚠️ 将以上代码转换为汇编：
+; inout demo`main: 0x100000b10 &lt;&#43;0&gt;: pushq %rbp 0x100000b11 &lt;&#43;1&gt;: movq %rsp, %rbp 0x100000b14 &lt;&#43;4&gt;: subq $0x30, %rsp 0x100000b18 &lt;&#43;8&gt;: leaq 0x651(%rip), %rax ; demo.foo : Swift.Int  0x100000b1f &lt;&#43;15&gt;: xorl %ecx, %ecx 0x100000b21 &lt;&#43;17&gt;: movq $0x5, 0x644(%rip) ; _swift_FORCE_LOAD_$_swiftCompatibility50  0x100000b2c &lt;&#43;28&gt;: movl %edi, -0x1c(%rbp) -&gt; 0x100000b2f &lt;&#43;31&gt;: movq %rax, %rdi 0x100000b32 &lt;&#43;34&gt;: leaq -0x18(%rbp), %rax 0x100000b36 &lt;&#43;38&gt;: movq %rsi, -0x28(%rbp) 0x100000b3a &lt;&#43;42&gt;: movq %rax, %rsi 0x100000b3d &lt;&#43;45&gt;: movl $0x21, %edx 0x100000b42 &lt;&#43;50&gt;: callq 0x100000ec4 ; symbol stub for: swift_beginAccess  ; 参数传递 ⬇  0x100000b47 &lt;&#43;55&gt;: leaq 0x622(%rip), %rdi ; demo."/>
+
+
+
+<meta property="og:title" content="Swift 中的 inout" />
+<meta property="og:description" content="Swift 中的 inout 本质是按引用传递
+var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemoFunc(&amp;foo) // BREAKPOINT ⚠️ 将以上代码转换为汇编：
+; inout demo`main: 0x100000b10 &lt;&#43;0&gt;: pushq %rbp 0x100000b11 &lt;&#43;1&gt;: movq %rsp, %rbp 0x100000b14 &lt;&#43;4&gt;: subq $0x30, %rsp 0x100000b18 &lt;&#43;8&gt;: leaq 0x651(%rip), %rax ; demo.foo : Swift.Int  0x100000b1f &lt;&#43;15&gt;: xorl %ecx, %ecx 0x100000b21 &lt;&#43;17&gt;: movq $0x5, 0x644(%rip) ; _swift_FORCE_LOAD_$_swiftCompatibility50  0x100000b2c &lt;&#43;28&gt;: movl %edi, -0x1c(%rbp) -&gt; 0x100000b2f &lt;&#43;31&gt;: movq %rax, %rdi 0x100000b32 &lt;&#43;34&gt;: leaq -0x18(%rbp), %rax 0x100000b36 &lt;&#43;38&gt;: movq %rsi, -0x28(%rbp) 0x100000b3a &lt;&#43;42&gt;: movq %rax, %rsi 0x100000b3d &lt;&#43;45&gt;: movl $0x21, %edx 0x100000b42 &lt;&#43;50&gt;: callq 0x100000ec4 ; symbol stub for: swift_beginAccess  ; 参数传递 ⬇  0x100000b47 &lt;&#43;55&gt;: leaq 0x622(%rip), %rdi ; demo." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/2020/swift_inout/" />
+<meta property="article:published_time" content="2019-02-09T00:00:00+00:00" />
+<meta property="article:modified_time" content="2019-02-09T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+
+
+
+
+<script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  </head>
+  <body class="">
+    <div class="container">
+      <header class="header">
+  <span class="header__inner">
+    <a href="/" class="logo" style="text-decoration: none;">
+  
+    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
+  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
+</svg>
+</span>
+    <span class="logo__text">kingcos.me</span>
+    <span class="logo__cursor"></span>
+  
+</a>
+
+    <span class="header__right">
+      
+        <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+        <span class="menu-trigger">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M0 0h24v24H0z" fill="none"/>
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+          </svg>
+        </span>
+      
+      <span class="theme-toggle">
+        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+
+      </span>
+    </span>
+  </span>
+</header>
+
+
+      <div class="content">
+        
+  <div class="post">
+    <h2 class="post-title"><a href="/posts/2020/swift_inout/">Swift 中的 inout</a></h2>
+    <div class="post-meta">
+      
+        <span class="post-date">
+            2019-02-09
+        </span>
+      
+      
+      
+        <span class="post-read-time">— 3 min read</span>
+      
+    </div>
+
+    
+      <span class="post-tags">
+        
+          #<a href="/tags/swift/">Swift</a>&nbsp;
+        
+      </span>
+    
+
+    
+
+    <div class="post-content">
+      <p>Swift 中的 <code>inout</code> 本质是按引用传递</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">var</span> foo = <span style="color:#ae81ff">5</span>
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">inoutDemoFunc</span>(<span style="color:#66d9ef">_</span> innerFoo: <span style="color:#66d9ef">inout</span> Int) {
+    innerFoo = <span style="color:#ae81ff">9</span>
+}
+
+inoutDemoFunc(&amp;foo) <span style="color:#75715e">// BREAKPOINT ⚠️</span>
+</code></pre></div><p>将以上代码转换为汇编：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#75715e">; inout
+</span><span style="color:#75715e"></span><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">main</span>:
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b10</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b11</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b14</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0x30</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b18</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x651</span>(%rip), %rax         <span style="color:#75715e">; demo.foo : Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b1f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">15</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %ecx, %ecx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b21</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">17</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x5</span>, <span style="color:#ae81ff">0x644</span>(%rip)         <span style="color:#75715e">; _swift_FORCE_LOAD_$_swiftCompatibility50
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b2c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">28</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   %edi, -<span style="color:#ae81ff">0x1c</span>(%rbp)
+<span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b2f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">31</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b32</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">34</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x18</span>(%rbp), %rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b36</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">38</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rsi, -<span style="color:#ae81ff">0x28</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b3a</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">42</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b3d</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">45</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x21</span>, %edx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b42</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">50</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000ec4</span>               <span style="color:#75715e">; symbol stub for: swift_beginAccess
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 参数传递 ⬇
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b47</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">55</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x622</span>(%rip), %rdi         <span style="color:#75715e">; demo.foo : Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 函数调用 ⬇
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b4e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">62</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000b70</span>               <span style="color:#75715e">; demo.inoutDemoFunc(inout Swift.Int) -&gt; () at main.swift:11
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b53</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">67</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x18</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b57</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">71</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000eca</span>               <span style="color:#75715e">; symbol stub for: swift_endAccess
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b5c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">76</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %eax, %eax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b5e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">78</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x30</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b62</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">82</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b63</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">83</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+
+<span style="color:#75715e">; Step into
+</span><span style="color:#75715e"></span><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">inoutDemoFunc</span>(<span style="color:#66d9ef">_</span>:):
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b70</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b71</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b74</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x0</span>, -<span style="color:#ae81ff">0x8</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b7c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">12</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rdi, -<span style="color:#ae81ff">0x8</span>(%rbp)
+    <span style="color:#75715e">; $0x9 即立即数 9 ⬇
+</span><span style="color:#75715e"></span><span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b80</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">16</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x9</span>, (%rdi)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b87</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">23</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b88</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">24</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+</code></pre></div><ul>
+<li>Swift 中的函数调用在汇编中表示为 <code>callq</code> 指令；如上指令中的 <code>callq 0x100000b70</code> 即调用函数地址为 <code>0x100000b70</code> 的函数，但这一行并不包括传参，其参数传递由 <code>leaq 0x622(%rip), %rdi</code> 负责</li>
+<li><code>lea</code> 是用于地址传递的汇编指令；如上指令中的 <code>leaq 0x622(%rip), %rdi</code> 即将 <code>rip</code> 寄存器中的地址值与 <code>0x622</code> 加和并存储到 <code>rdi</code> 寄存器中（汇编语言中类似 <code>%rip</code>、<code>%rdi</code> 等百分号开头的操作数均为寄存器）</li>
+<li><code>movq $0x9, (%rdi)</code> 即将 <code>9</code> 存储在 <code>rdi</code> 寄存器中地址对应的存储空间中（<code>(%rdi)</code> 的小括号为寻找 <code>rdi</code> 寄存器中存储地址值所对应的存储空间）</li>
+<li>因此 <code>inout</code> 关键字修饰的参数即按地址将变量传入，在函数体内部赋值即直接修改地址对应的存储空间中的值</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">var</span> foo = <span style="color:#ae81ff">5</span>
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">demoFunc</span>(<span style="color:#66d9ef">_</span> innerFoo: Int) {
+
+}
+
+demoFunc(foo)  <span style="color:#75715e">// BREAKPOINT ⚠️</span>
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">main</span>:
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b10</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b11</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b14</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0x30</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b18</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x651</span>(%rip), %rax         <span style="color:#75715e">; demo.foo : Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b1f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">15</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %ecx, %ecx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b21</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">17</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x5</span>, <span style="color:#ae81ff">0x644</span>(%rip)         <span style="color:#75715e">; _swift_FORCE_LOAD_$_swiftCompatibility50
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b2c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">28</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   %edi, -<span style="color:#ae81ff">0x1c</span>(%rbp)
+<span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b2f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">31</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b32</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">34</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x18</span>(%rbp), %rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b36</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">38</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rsi, -<span style="color:#ae81ff">0x28</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b3a</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">42</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b3d</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">45</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x20</span>, %edx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b42</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">50</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000ec4</span>               <span style="color:#75715e">; symbol stub for: swift_beginAccess
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b47</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">55</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#ae81ff">0x622</span>(%rip), %rdi         <span style="color:#75715e">; demo.foo : Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b4e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">62</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x18</span>(%rbp), %rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b52</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">66</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rdi, -<span style="color:#ae81ff">0x30</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b56</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">70</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b59</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">73</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000eca</span>               <span style="color:#75715e">; symbol stub for: swift_endAccess
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 参数传递，但这里不同于 inout 使用 lea 指令所做的按地址传递 ⬇
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b5e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">78</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x30</span>(%rbp), %rdi
+    <span style="color:#75715e">; 函数调用 ⬇
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b62</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">82</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000b70</span>               <span style="color:#75715e">; demo.demoFunc(Swift.Int) -&gt; () at main.swift:17
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b67</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">87</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %eax, %eax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b69</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">89</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x30</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b6d</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">93</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b6e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">94</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+
+<span style="color:#75715e">; Step into
+</span><span style="color:#75715e"></span><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">demoFunc</span>(<span style="color:#66d9ef">_</span>:):
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b70</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b71</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b74</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x0</span>, -<span style="color:#ae81ff">0x8</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b7c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">12</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rdi, -<span style="color:#ae81ff">0x8</span>(%rbp)
+<span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b80</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">16</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b81</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">17</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+</code></pre></div><ul>
+<li><code>movq -0x30(%rbp), %rdi</code>，<code>rdp</code> 减去 <code>0x30</code> 即 <code>foo</code> 占用的内存空间中存储的 <code>10</code> 赋值到 <code>rdi</code> 中</li>
+<li>可被多次赋值的变量即可作为 <code>inout</code> 参数传入</li>
+</ul>
+
+    </div>
+    
+      <div class="pagination">
+        <div class="pagination__title">
+          <span class="pagination__title-h">Read other posts</span>
+          <hr />
+        </div>
+        <div class="pagination__buttons">
+          
+            <span class="button previous">
+              <a href="/posts/2019/nsobject_in_ios/">
+                <span class="button__icon">←</span>
+                <span class="button__text">iOS 中的 NSObject</span>
+              </a>
+            </span>
+          
+          
+            <span class="button next">
+              <a href="/posts/2020/swift_inline_funcs/">
+                <span class="button__text">Swift 中的内联函数</span>
+                <span class="button__icon">→</span>
+              </a>
+            </span>
+          
+        </div>
+      </div>
+    
+
+    
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<table style="border: 0;">
+  <tr>
+  <td style="border: 0; width: 30%;">
+    <img src='/img/about/1.jpg'>
+  </td>
+  <td style="border: 0;">
+    <ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-9925978992661955"
+     data-ad-slot="3213735320"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+  </td>
+  </tr>
+</table>
+
+
+
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+
+    
+    
+    <div>
+      <div id="github-comment">
+      </div>
+
+      <script type="text/javascript">
+        function getUtterances(isDark) {
+          var utterances = document.createElement('script');
+          utterances.type = 'text/javascript';
+          utterances.async = true;
+          utterances.setAttribute('issue-term', "pathname")
+          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
+          utterances.setAttribute('label', "comments")
+          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
+          utterances.crossorigin = 'anonymous';
+          utterances.src = 'https://utteranc.es/client.js';
+
+          return utterances
+        }
+
+        var themeToggle = document.querySelector(".theme-toggle")
+        themeToggle.addEventListener("click", function () {
+          var getTheme = window.localStorage && window.localStorage.getItem("theme")
+          var divNode = document.getElementById('github-comment')
+          while(divNode.hasChildNodes()) {
+            divNode.removeChild(divNode.firstChild);
+          }
+          
+          
+          
+
+          
+          
+          
+          
+          
+          
+          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
+        })
+
+        var getTheme = window.localStorage && window.localStorage.getItem("theme")
+        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
+      </script>
+    </div>
+    
+
+    </div>
+
+      </div>
+
+      
+        <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+      
+    </div>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+
+    
+  </body>
+</html>

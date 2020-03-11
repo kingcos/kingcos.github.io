@@ -186,9 +186,12 @@ Swift 驱动库中包含了 Swift 编译器驱动（Driver）的新版实现，�
 <li><strong>SIL 优化（SIL Optimizations）</strong>：SIL 优化阶段（在 <a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/Analysis">lib/Analysis</a>、<a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/ARC">lib/ARC</a>、<a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/LoopTransforms">lib/LoopTransforms</a> 以及 <a href="https://github.com/apple/swift/tree/master/lib/SILOptimizer/Transforms">lib/Transforms</a> 中实现）负责对程序执行额外的高级且专用于 Swift 的优化，包括（例如）自动引用计数优化、去虚拟化、以及通用的专业化。</li>
 <li><strong>LLVM IR 生成（LLVM IR Generation）</strong>：IR 生成阶段（在 <a href="https://github.com/apple/swift/tree/master/lib/IRGen">lib/IRGen</a> 中实现）将 SIL 弱化为 LLVM LR，此时 LLVM 可以继续优化并生成机器码。</li>
 </ul>
-<hr>
-<h2 id="扩展内容">扩展内容</h2>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">   ┌──────────┐     ┌─────────┐     ┌────────────┐
+<!--
+
+## 扩展内容
+
+```text
+   ┌──────────┐     ┌─────────┐     ┌────────────┐
    │Swift Code│────▶│Swift AST│────▶│Raw Swift IL│──┐
    └──────────┘     └─────────┘     └────────────┘  │
                                                     │
@@ -199,7 +202,42 @@ Swift 驱动库中包含了 Swift 编译器驱动（Driver）的新版实现，�
 │  ┌──────────┐
 └─▶│Executable│
    └──────────┘
-</code></pre></div>
+
+ ┌──────────┐            ┌───────────┐             ┌────┐                    ┌──────┐
+ │    C     ├───────────▶│   Clang   │────────────▶│    │                    │ x86  │
+ └──────────┘            └───────────┘             │    │     ┌────────┐     └──────┘
+ ┌──────────┐     ┌─────────────────────────┐      │LLVM│     │  LLVM  │     ┌──────┐
+ │  Swift   │────▶│Swift AST swiftc Swift IL│─────▶│    │────▶│        │────▶│ ARM  │
+ └──────────┘     └─────────────────────────┘      │ IR │     │Compiler│     └──────┘
+ ┌──────────┐            ┌───────────┐             │    │     └────────┘     ┌──────┐
+ │  Others  ├───────────▶│FE Compiler│────────────▶│    │                    │Others│
+ └──────────┘            └───────────┘             └────┘                    └──────┘
+```
+
+### API & ABI
+
+- API（Application Programming Interface，应用程序编程接口）：源代码和库之间的接口。
+- ABI（Application Binary Interface，应用程序二进制接口）：
+  - 应用程序与操作系统之间的底层接口
+  - 涉及的内容有：
+    - 目标文件格式（eg. Mach-O）
+    - 数据类型的大小 / 布局 / 对齐（eg. 基本类型占用的内存大小）
+    - 函数调用约定（eg. 函数调用时使用栈空间还是寄存器、函数参数的入栈顺序）等
+
+### swiftc
+
+- `swiftc` 是 Swift 编译器，位于 `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc`，本质则是链接到了 `swift`：
+
+```text
+lrwxr-xr-x  1 root  wheel         5 Jan 15 06:06 swiftc -> swift
+```
+
+- 生成语法树：`swiftc -dump-ast main.swift`
+- 生成最简洁的 SIL 代码：`swiftc -emit-sil main.swift`
+- 生成 LLVM IR 代码：`swiftc -emit-ir main.swift -o main.ll`
+- 生成汇编代码：`swiftc -emit-assembly main.swift -o main.s`
+-->
+
     </div>
     
       <div class="pagination">
@@ -208,6 +246,13 @@ Swift 驱动库中包含了 Swift 编译器驱动（Driver）的新版实现，�
           <hr />
         </div>
         <div class="pagination__buttons">
+          
+            <span class="button previous">
+              <a href="/posts/2020/swift_tips/">
+                <span class="button__icon">←</span>
+                <span class="button__text">Swift Tips</span>
+              </a>
+            </span>
           
           
             <span class="button next">
