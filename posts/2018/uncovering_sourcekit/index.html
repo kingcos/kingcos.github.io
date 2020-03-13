@@ -6,12 +6,12 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="作者 发表时间 原文链接     JP Simard 20140706 https://www.jpsim.com/uncovering-sourcekit/     为了支持一门奇特的新编程语言（译者注：即 Swift），漂亮的实时 IDE 特性，以及令人印象深刻的跨语言协同性（译者注：即 Swift 与 Obj-C），Apple 不得不开发一些新的底层工具。这里我们将专注于 SourceKit，Xcode 背后的功臣。
- 什么是 SourceKit？ SourceKit 是一套工具集，使得大多数 Swift 源代码层面的操作特性得以支持，例如源代码解析、语法高亮、排版（typesetting）、自动补全、跨语言头文件生成，等等。
-架构 传统上，Xcode 在运行时跑着其编译器（Clang），即意味着编译器将可能在任何时候崩溃，IDE 同样。
-更有甚者，Xcode 容易唤起编译器进行成千上万次解析、高亮、以及排版源代码，所有这一切都在用户键入「⌘ &#43; B」之前。这是因为不像大多数编辑器（Vim/Sublime/&amp;hellip;），Xcode 并不使用正则表达式解析源代码，而是使用 Clang 强大的（也更加复杂的）解析器（parser）和标记器（tokenizer）。
-庆幸的是，Xcode 6 中的 Swift 移除了该特性1，合并所有源代码操作特性至一个独立的进程，并和 Xcode 通过 XPC 交流：sourcekitd。无论 Xcode 6 何时加载任何 Swift 代码，该 XPC 守护进程将被启动。
-Xcode 如何使用 SourceKit 因为 SourceKit 是一个私有且无文档的工具，我们需要获得一些小点子来学习如何使用它。通过设定 SOURCEKIT_LOGGING2 环境变量，Xcode 将记录 SourceKit 与 stdout 间的通信，允许我们观察到它们的实时通信。这就是如何发现本文中的许多命令。"/>
+<meta name="description" content="作者 原文链接     JP Simard Uncovering SourceKit     为了支持一门新颖的语言（译者注：这里指 Swift），灵活的实时 IDE 特性，以及令人印象深刻的跨语言协同能力（译者注：这里指 Swift 与 Obj-C），Apple 必须开发一些新的基础工具。这里我们将聚焦于 SourceKit，一个被忽视的 Xcode 搭档。
+ 什么是 SourceKit？ SourceKit 是一套工具集，使得大多数 Swift 源代码层面的操作特性得以支持，例如源代码解析、语法高亮、排版（Typesetting）、代码自动补全、跨语言头文件生成等许多功能。
+架构 一般来说，Xcode 在进程中运行其编译器（Clang），这意味着编译器随时可能出现的崩溃都会导致 IDE 崩溃。
+更有甚者，Xcode 容易唤起编译器进行成千上万次解析、高亮、以及排版源代码等操作，而所有这一切均在用户按下「⌘ &#43; B」之前。这是因为不像大多数编辑器（Vim、Sublime 等），Xcode 并不使用正则表达式解析源代码，而是使用 Clang 强大的（也的确更加复杂的）解析器（Parser）和令牌生成器（Tokenizer）。
+幸运的是，Xcode 6 中的 Swift 抛弃了该架构1，将所有源代码操作的特性组合至一个独立的进程，并和 Xcode 通过 XPC 交流：sourcekitd。每当 Xcode 6 加载任何 Swift 代码时，都将启动该 XPC 守护进程。
+Xcode 怎样使用 SourceKit 由于 SourceKit 是一个私有且没有文档记录的工具，我们需要获得一些小点子来学习如何使用它。通过设定 SOURCEKIT_LOGGING2 环境变量，Xcode 将其与 SourceKit 的通信记录到 stdout，从而使我们可以观察到它们的实时交流。这就是本文中的许多命令的来源。"/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2018/uncovering_sourcekit/" />
@@ -32,12 +32,12 @@ Xcode 如何使用 SourceKit 因为 SourceKit 是一个私有且无文档的工�
 
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="[译] 起底 SourceKit"/>
-<meta name="twitter:description" content="为了支持一门奇特的新编程语言，漂亮的实时 IDE 特性，以及令人印象深刻的跨语言协同性，Apple 不得不开发一些新的底层工具。这里我们将专注于 SourceKit，Xcode 背后的功臣。"/>
+<meta name="twitter:description" content="为了支持一门新颖的语言，灵活的实时 IDE 特性，以及令人印象深刻的跨语言协同能力，Apple 必须开发一些新的基础工具。这里我们将聚焦于 SourceKit，一个被忽视的 Xcode 搭档。"/>
 
 
 
 <meta property="og:title" content="[译] 起底 SourceKit" />
-<meta property="og:description" content="为了支持一门奇特的新编程语言，漂亮的实时 IDE 特性，以及令人印象深刻的跨语言协同性，Apple 不得不开发一些新的底层工具。这里我们将专注于 SourceKit，Xcode 背后的功臣。" />
+<meta property="og:description" content="为了支持一门新颖的语言，灵活的实时 IDE 特性，以及令人印象深刻的跨语言协同能力，Apple 必须开发一些新的基础工具。这里我们将聚焦于 SourceKit，一个被忽视的 Xcode 搭档。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/posts/2018/uncovering_sourcekit/" />
 <meta property="article:published_time" content="2018-07-08T00:00:00+00:00" />
@@ -164,37 +164,35 @@ Xcode 如何使用 SourceKit 因为 SourceKit 是一个私有且无文档的工�
 <thead>
 <tr>
 <th align="center">作者</th>
-<th align="center">发表时间</th>
 <th align="center">原文链接</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td align="center">JP Simard</td>
-<td align="center">20140706</td>
-<td align="center"><a href="https://www.jpsim.com/uncovering-sourcekit/">https://www.jpsim.com/uncovering-sourcekit/</a></td>
+<td align="center"><a href="https://www.jpsim.com/uncovering-sourcekit/">Uncovering SourceKit</a></td>
 </tr>
 </tbody>
 </table>
 <blockquote>
-<p>为了支持一门<a href="http://developer.apple.com/swift">奇特的新编程语言</a>（译者注：即 Swift），漂亮的<a href="https://developer.apple.com/library/prerelease/ios/recipes/xcode_help-source_editor/ExploringandEvaluatingSwiftCodeinaPlayground/ExploringandEvaluatingSwiftCodeinaPlayground.html">实时 IDE</a> 特性，以及令人印象深刻的<a href="https://developer.apple.com/library/prerelease/ios/documentation/Swift/Conceptual/BuildingCocoaApps/InteractingWithObjective-CAPIs.html">跨语言协同性</a>（译者注：即 Swift 与 Obj-C），Apple 不得不开发一些新的底层工具。这里我们将专注于 SourceKit，Xcode 背后的功臣。</p>
+<p>为了支持一门<a href="http://developer.apple.com/swift">新颖的语言</a>（译者注：这里指 Swift），灵活的<a href="https://developer.apple.com/library/prerelease/ios/recipes/xcode_help-source_editor/ExploringandEvaluatingSwiftCodeinaPlayground/ExploringandEvaluatingSwiftCodeinaPlayground.html">实时 IDE</a> 特性，以及令人印象深刻的<a href="https://developer.apple.com/library/prerelease/ios/documentation/Swift/Conceptual/BuildingCocoaApps/InteractingWithObjective-CAPIs.html">跨语言协同能力</a>（译者注：这里指 Swift 与 Obj-C），Apple 必须开发一些新的基础工具。这里我们将聚焦于 SourceKit，一个被忽视的 Xcode 搭档。</p>
 </blockquote>
-<p><img src="/img/2018/Uncovering_SourceKit/1.jpeg" alt="SourceKitSidekick 暂时披着披肩"></p>
+<p><img src="/img/2018/Uncovering_SourceKit/1.jpeg" alt="SourceKit 与搭档暂时性披肩"></p>
 <h2 id="什么是-sourcekit">什么是 SourceKit？</h2>
-<p>SourceKit 是一套工具集，使得大多数 Swift 源代码层面的操作特性得以支持，例如源代码解析、语法高亮、排版（typesetting）、自动补全、跨语言头文件生成，等等。</p>
+<p>SourceKit 是一套工具集，使得大多数 Swift 源代码层面的操作特性得以支持，例如源代码解析、语法高亮、排版（Typesetting）、代码自动补全、跨语言头文件生成等许多功能。</p>
 <h2 id="架构">架构</h2>
-<p>传统上，Xcode 在运行时跑着其编译器（<a href="http://clang.llvm.org/">Clang</a>），即意味着编译器将可能在任何时候崩溃，IDE 同样。</p>
+<p>一般来说，Xcode 在进程中运行其编译器（<a href="http://clang.llvm.org/">Clang</a>），这意味着编译器随时可能出现的崩溃都会导致 IDE 崩溃。</p>
 <p><img src="/img/2018/Uncovering_SourceKit/2.jpeg" alt="Xcode 架构示意图"></p>
-<p>更有甚者，Xcode 容易唤起编译器进行成千上万次解析、高亮、以及排版源代码，所有这一切都在用户键入「⌘ + B」之前。这是因为不像大多数编辑器（Vim/Sublime/&hellip;），Xcode 并不使用正则表达式解析源代码，而是使用 Clang 强大的（也更加复杂的）解析器（parser）和标记器（tokenizer）。</p>
-<p>庆幸的是，Xcode 6 中的 Swift 移除了该特性<sup>1</sup>，合并所有源代码操作特性至一个独立的进程，并和 Xcode 通过 <a href="https://developer.apple.com/library/mac/documentation/macosx/conceptual/bpsystemstartup/chapters/CreatingXPCServices.html">XPC</a> 交流：<code>sourcekitd</code>。无论 Xcode 6 何时加载任何 Swift 代码，该 XPC 守护进程将被启动。</p>
-<p><img src="/img/2018/Uncovering_SourceKit/3.jpeg" alt="如果每次出现如图情况时 Xcode 都会崩溃，生活将变得痛苦不堪"></p>
-<h2 id="xcode-如何使用-sourcekit">Xcode 如何使用 SourceKit</h2>
-<p>因为 SourceKit 是一个私有且无文档的工具，我们需要获得一些小点子来学习如何使用它。通过设定 <code>SOURCEKIT_LOGGING</code><sup>2</sup> 环境变量，Xcode 将记录 SourceKit 与 <code>stdout</code> 间的通信，允许我们观察到它们的实时通信。这就是如何发现本文中的许多命令。</p>
+<p>更有甚者，Xcode 容易唤起编译器进行成千上万次解析、高亮、以及排版源代码等操作，而所有这一切均在用户按下「⌘ + B」之前。这是因为不像大多数编辑器（Vim、Sublime 等），Xcode 并不使用正则表达式解析源代码，而是使用 Clang 强大的（也的确更加复杂的）解析器（Parser）和令牌生成器（Tokenizer）。</p>
+<p>幸运的是，Xcode 6 中的 Swift 抛弃了该架构<sup>1</sup>，将所有源代码操作的特性组合至一个独立的进程，并和 Xcode 通过 <a href="https://developer.apple.com/library/mac/documentation/macosx/conceptual/bpsystemstartup/chapters/CreatingXPCServices.html">XPC</a> 交流：<code>sourcekitd</code>。每当 Xcode 6 加载任何 Swift 代码时，都将启动该 XPC 守护进程。</p>
+<p><img src="/img/2018/Uncovering_SourceKit/3.jpeg" alt="如果总是出现如此的 Xcode 崩溃，生活将变得痛苦不堪"></p>
+<h2 id="xcode-怎样使用-sourcekit">Xcode 怎样使用 SourceKit</h2>
+<p>由于 SourceKit 是一个私有且没有文档记录的工具，我们需要获得一些小点子来学习如何使用它。通过设定 <code>SOURCEKIT_LOGGING</code><sup>2</sup> 环境变量，Xcode 将其与 SourceKit 的通信记录到 <code>stdout</code>，从而使我们可以观察到它们的实时交流。这就是本文中的许多命令的来源。</p>
 <h2 id="统一符号解析">统一符号解析</h2>
-<p>SourceKit 借助 Clang 中称作 USR（Unified Symbol Resolution，即统一符号解析）的特性，为源代码令牌（token，例如类，属性，方法等）对应一个唯一标识符。这使得你可以使用 「⌘ + 点击」Xcode 编辑器中任何一处令牌，即可以导航至其定义处。USR 现在甚至更加强大了，可以跨语言（Swift/Obj-C）统一一个代表。</p>
+<p>SourceKit 借助 Clang 中的 USR（Unified Symbol Resolution，即统一符号解析）特性，为源代码令牌（Token，例如类，属性，方法等）对应一个唯一标识符。这就可以让我们能够通过 「⌘ + 点击」Xcode 编辑器中任何一处令牌导航至其定义处。USR 现在更加强大，其可以跨语言（Swift / Obj-C）统一表达形式。</p>
 <p><img src="/img/2018/Uncovering_SourceKit/4.jpeg" alt="运作中的 USR"></p>
-<p>为了从一个 Swift 文件（以及其位置）中打印 USR，你可以运行以下命令：</p>
-<pre><code>$ xcrun swift-ide-test -print-usrs -source-filename=Musician.swift
+<p>可以运行以下命令，从一个 Swift 文件（以及其位置）中打印 USR：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ xcrun swift-ide-test -print-usrs -source-filename<span style="color:#f92672">=</span>Musician.swift
 10:7 s:C14swift_ide_test8Musician
 14:9 s:vC14swift_ide_test8Musician4nameSS
 19:9 s:vC14swift_ide_test8Musician9birthyearSu
@@ -205,37 +203,37 @@ Xcode 如何使用 SourceKit 因为 SourceKit 是一个私有且无文档的工�
 34:21 s:vFC14swift_ide_test8MusiciancFMS0_FT4nameSS9birthyearSu_S0_L_4nameSS
 35:9 s:vFC14swift_ide_test8MusiciancFMS0_FT4nameSS9birthyearSu_S0_L_4selfS0_
 35:26 s:vFC14swift_ide_test8MusiciancFMS0_FT4nameSS9birthyearSu_S0_L_9birthyearSu
-</code></pre><h2 id="swift-头文件生成">Swift 头文件生成</h2>
-<p>在 Swift 中使用「⌘ + 点击」一个定义在 Obj-C 中令牌，Xcode 将会触发生成一个类 Swift 头文件。称其为类 Swift 是因为该生成的文件并非有效的 Swift<sup>3</sup>，但至少显示了等效于 Obj-C 令牌的 Swift 语法。</p>
+</code></pre></div><h2 id="swift-头文件生成">Swift 头文件生成</h2>
+<p>在 Swift 中使用「⌘ + 点击」一个定义在 Obj-C 中令牌，Xcode 将会被触发生成一个类 Swift 头文件。称其为类 Swift 是因为该生成的文件并非有效的 Swift<sup>3</sup>，但至少显示了等效于 Obj-C 令牌的 Swift 语法。</p>
 <p><img src="/img/2018/Uncovering_SourceKit/5.jpeg" alt="左：原始 Obj-C 头文件，右：SourceKit 生成的类 Swift 版本"></p>
 <h2 id="在命令行使用-sourcekit">在命令行使用 SourceKit</h2>
-<p><img src="/img/2018/Uncovering_SourceKit/6.jpeg" alt=""></p>
+<p><img src="/img/2018/Uncovering_SourceKit/6.jpeg" alt="6"></p>
 <p>主要有 3 个命令行工具允许和 SourceKit 交互：<code>sourcekitd-test</code>，<code>swift-ide-test</code>，以及 <code>swift</code>。</p>
-<p>笔者编译了一个带有文档的 Shell 脚本，其运行了许多有用的命令，例如：语法高亮，接口生成，AST 解析，还原（demangling）等。</p>
+<p>我编译了一个带有文档的 Shell 脚本，其运行了许多有用的命令，例如：语法高亮，接口生成，AST 解析，还原（Demangling）等。</p>
 <p>该脚本可在 GitHub 中获得：<a href="https://gist.github.com/jpsim/13971c81445219db1c63#file-sourcekit_playground-sh">GitHub Gist</a>。</p>
 <h2 id="第三方使用-sourcekit-的工具">第三方使用 SourceKit 的工具</h2>
-<p>因为 SourceKit 独立于 Xcode 之外，使其可以利用以构建从 Swift IDE 到文档生成器等任何东西。</p>
-<h3 id="jazzy">Jazzy♪♫</h3>
-<p><img src="/img/2018/Uncovering_SourceKit/7.jpeg" alt=""></p>
-<p><a href="https://github.com/realm/jazzy">jazzy</a> 是一个命令行工具，可以为你的 Swift 或 Obj-C 项目生成文档。其利用 SourceKit 以获得从 Obj-C 定义令牌（例如类，属性，方法等）的 Swift 语法。</p>
+<p>由于 SourceKit 位于 Xcode 之外，因此可以利用它来构建从 Swift IDE 到文档生成器的任何东西。</p>
+<h3 id="jazzysupsup">Jazzy<sup>♪♫</sup></h3>
+<p><img src="/img/2018/Uncovering_SourceKit/7.jpeg" alt="7"></p>
+<p><a href="https://github.com/realm/jazzy">jazzy</a> 是一个命令行工具，可以为 Swift 和 Obj-C 项目生成文档。其利用 SourceKit 以获得从 Obj-C 定义令牌（例如类，属性，方法等）的 Swift 语法。</p>
 <h3 id="swiftedit">SwiftEdit</h3>
 <p><a href="https://github.com/jpsim/SwiftEdit">SwiftEdit</a> 是一款支持 Swift 文件语法高亮的概念型编辑器。</p>
-<p><img src="/img/2018/Uncovering_SourceKit/8.png" alt=""></p>
-<h2 id="sourcekit-与你">SourceKit 与你</h2>
-<p>我们刚刚初探了使用 SourceKit 的可能。这些工具可以做出来处理跨语言代码覆盖，或者提供支持 Swift 和 Obj-C 同时编辑的编辑器。希望本文能启发你利用 SourceKit 开发一些什么，并在这过程中改善我们的工具。</p>
+<p><img src="/img/2018/Uncovering_SourceKit/8.png" alt="8"></p>
+<h2 id="sourcekit-与我们">SourceKit 与我们</h2>
+<p>我们刚刚只是简单探索了使用 SourceKit 构建工具的一些可能。可以做出来处理跨语言代码覆盖率的工具，或者提供支持同时编辑 Swift 和 Obj-C 的编辑器。希望本文能够启发我们利用 SourceKit 开发一些工具，并在此过程中逐步改善。</p>
 <ul>
 <li>注：
 <ol>
-<li>Obj-C 在 Xcode 6（Beta 2）中完全没有使用 SourceKit，仍保留了 Xcode 传统的运行中 Clang 架构。我预计在 Xcode 6 GM 前能有所改变。</li>
-<li>为了 SourceKit 打印日志，使用以下命令启动 Xcode <code>export SOURCEKIT_LOGGING=3 &amp;&amp; /Applications/Xcode6-Beta2.app/Contents/MacOS/Xcode</code>。</li>
-<li>猜测：我预计一旦编程语言拥有访问控制机制，私有 Swift 模块暴露公有接口将使用相似的语法。</li>
+<li>Xcode 6（Beta 2）中的 Obj-C 完全没有使用 SourceKit，仍保留了 Xcode 传统 Clang 进程内处理的架构。我希望在 Xcode 6 GM 之前能有所改变。</li>
+<li>对于 SourceKit 打印日志，使用以下命令启动 Xcode <code>export SOURCEKIT_LOGGING=3 &amp;&amp; /Applications/Xcode6-Beta2.app/Contents/MacOS/Xcode</code>。</li>
+<li>推测：我希望只要编程语言拥有访问控制的机制，私有 Swift 模块暴露公有接口将使用相似的语法。</li>
 </ol>
 </li>
 </ul>
 <hr>
 <h2 id="reference">Reference</h2>
 <ul>
-<li><a href="https://github.com/apple/swift/tree/master/tools/SourceKit">apple/swift/tools/SourceKit/</a></li>
+<li><a href="https://github.com/apple/swift/tree/master/tools/SourceKit">swift/tools/SourceKit/ - Apple</a></li>
 <li><a href="https://academy.realm.io/posts/appbuilders-jp-simard-sourcekit/">SourceKit and You - by JP Simard</a></li>
 </ul>
 

@@ -7,10 +7,22 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
     <copyright>All rights reserved by kingcos.me</copyright>
-    <lastBuildDate>Fri, 17 Jan 2020 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 05 Mar 2020 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/tags/ios/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>[译] Swift 编译器</title>
+      <link>/posts/2020/swift_compiler/</link>
+      <pubDate>Thu, 05 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2020/swift_compiler/</guid>
+      <description>作者 原文链接     Swift.org Swift Compiler    Swift 主仓库中包含了 Swift 编译器和标准库的源代码、相关组件，如 SourceKit（用于 IDE 集成），以及 Swift 回归测试套件和实现级别的文档。
+Swift 驱动库中包含了 Swift 编译器驱动（Driver）的新版实现，目的是替换现有编译器驱动，以增强可扩展性、可维护性以及鲁棒性（Robust）。
+编译器架构 整体而言，Swift 编译器的主要职责在于将 Swift 源代码翻译为高效执行的机器码。但是 Swift 编译器的前端同样支持许多其它工具，包括与 IDE 集成的语法高亮、代码补全、以及其它提供便利的工具。本文对 Swift 编译器的主要组件提供了高阶描述：
+ 解析（Parsing）：解析器是一个简易的递归下降解析器（在 lib/Parse 中实现），并带有完整手动编码的词法分析器。 语义分析（Semantic Analysis）：语义分析阶段（在 lib/Sema 中实现）负责获取已解析的 AST（抽象语法树）并将其转换为格式正确且类型检查完备的 AST，以及在源代码中提示出现语义问题的警告或错误。语义分析包含类型推断，如果可以成功推导出类型，则表明此时从已经经过类型检查的最终 AST 生成代码是安全的。 Clang 导入器（Clang Importer）：Clang 导入器（在 lib/ClangImporter 中实现）负责导入 Clang 模块，并将导出的 C 或 Objective-C API 映射到相应的 Swift API 中。最终导入的 AST 可以被语义分析引用。 SIL 生成（SIL Generation）：Swift 中间语言（Swift Intermediate Language，SIL）是一门高级且专用于 Swift 的中间语言，适用于对 Swift 代码的进一步分析和优化。SIL 生成阶段（在 lib/SILGen 中实现）将经过类型检查的 AST 弱化为所谓的「原始」SIL。SIL 的设计在 docs/SIL.</description>
+    </item>
     
     <item>
       <title>Obj-C 中实例变量和类的访问控制</title>
@@ -376,12 +388,12 @@ Solution  通过 usbmuxd 用 USB 代替 Wi-Fi 转发 SSH 请求。
       <pubDate>Sun, 08 Jul 2018 00:00:00 +0000</pubDate>
       
       <guid>/posts/2018/uncovering_sourcekit/</guid>
-      <description>作者 发表时间 原文链接     JP Simard 20140706 https://www.jpsim.com/uncovering-sourcekit/     为了支持一门奇特的新编程语言（译者注：即 Swift），漂亮的实时 IDE 特性，以及令人印象深刻的跨语言协同性（译者注：即 Swift 与 Obj-C），Apple 不得不开发一些新的底层工具。这里我们将专注于 SourceKit，Xcode 背后的功臣。
- 什么是 SourceKit？ SourceKit 是一套工具集，使得大多数 Swift 源代码层面的操作特性得以支持，例如源代码解析、语法高亮、排版（typesetting）、自动补全、跨语言头文件生成，等等。
-架构 传统上，Xcode 在运行时跑着其编译器（Clang），即意味着编译器将可能在任何时候崩溃，IDE 同样。
-更有甚者，Xcode 容易唤起编译器进行成千上万次解析、高亮、以及排版源代码，所有这一切都在用户键入「⌘ + B」之前。这是因为不像大多数编辑器（Vim/Sublime/&amp;hellip;），Xcode 并不使用正则表达式解析源代码，而是使用 Clang 强大的（也更加复杂的）解析器（parser）和标记器（tokenizer）。
-庆幸的是，Xcode 6 中的 Swift 移除了该特性1，合并所有源代码操作特性至一个独立的进程，并和 Xcode 通过 XPC 交流：sourcekitd。无论 Xcode 6 何时加载任何 Swift 代码，该 XPC 守护进程将被启动。
-Xcode 如何使用 SourceKit 因为 SourceKit 是一个私有且无文档的工具，我们需要获得一些小点子来学习如何使用它。通过设定 SOURCEKIT_LOGGING2 环境变量，Xcode 将记录 SourceKit 与 stdout 间的通信，允许我们观察到它们的实时通信。这就是如何发现本文中的许多命令。</description>
+      <description>作者 原文链接     JP Simard Uncovering SourceKit     为了支持一门新颖的语言（译者注：这里指 Swift），灵活的实时 IDE 特性，以及令人印象深刻的跨语言协同能力（译者注：这里指 Swift 与 Obj-C），Apple 必须开发一些新的基础工具。这里我们将聚焦于 SourceKit，一个被忽视的 Xcode 搭档。
+ 什么是 SourceKit？ SourceKit 是一套工具集，使得大多数 Swift 源代码层面的操作特性得以支持，例如源代码解析、语法高亮、排版（Typesetting）、代码自动补全、跨语言头文件生成等许多功能。
+架构 一般来说，Xcode 在进程中运行其编译器（Clang），这意味着编译器随时可能出现的崩溃都会导致 IDE 崩溃。
+更有甚者，Xcode 容易唤起编译器进行成千上万次解析、高亮、以及排版源代码等操作，而所有这一切均在用户按下「⌘ + B」之前。这是因为不像大多数编辑器（Vim、Sublime 等），Xcode 并不使用正则表达式解析源代码，而是使用 Clang 强大的（也的确更加复杂的）解析器（Parser）和令牌生成器（Tokenizer）。
+幸运的是，Xcode 6 中的 Swift 抛弃了该架构1，将所有源代码操作的特性组合至一个独立的进程，并和 Xcode 通过 XPC 交流：sourcekitd。每当 Xcode 6 加载任何 Swift 代码时，都将启动该 XPC 守护进程。
+Xcode 怎样使用 SourceKit 由于 SourceKit 是一个私有且没有文档记录的工具，我们需要获得一些小点子来学习如何使用它。通过设定 SOURCEKIT_LOGGING2 环境变量，Xcode 将其与 SourceKit 的通信记录到 stdout，从而使我们可以观察到它们的实时交流。这就是本文中的许多命令的来源。</description>
     </item>
     
     <item>
