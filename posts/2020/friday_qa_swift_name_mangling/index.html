@@ -2,17 +2,16 @@
 <html lang="en">
   <head>
     
-      <title>Swift Tips :: iBlog</title>
+      <title>[译] Swift 名字修饰（Name Mangling） :: iBlog</title>
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Void 按照 Swift 标准库的定义，Void 即空元组 ()：
-public typealias Void = () 函数重载（Overload） Swift 中的函数重载有一些坑，因此尽量不要产生命名歧义性（比如结合默认参数值等用法）。
- Obj-C 中的重载与重写  @discardableResult Swift 是一门要求很严格的语言，当函数的返回值未被使用到时，编译器就会提示相关的警告。我们可以使用 @discardableResult 将函数声明为可丢弃结果，即可告知编译器不产生警告：
-import Foundation func foo() -&amp;gt; String { return &amp;#34;kingcos.me&amp;#34; } @discardableResult func bar() -&amp;gt; String { return &amp;#34;kingcos.me&amp;#34; } foo() // WARNING: Result of call to &amp;#39;foo()&amp;#39; is unused // 当然也可以赋值到占位符 _ 以避免警告 _ = foo() bar()  Defaulting non-Void functions so they warn on unused results - swift-evolution  "/>
+<meta name="description" content="   作者 原文链接   Gwynne Raskind Friday Q&amp;A 2014-08-08: Swift Name Mangling   许久没有参与到 Friday Q&amp;amp;A（译者注：Friday Q&amp;amp;A 中文意为周五问与答，但限于该名称是作者文章的系列名称，故不再翻译）中，不过我带着全新主题的文章又回来了：Swift。在最近的几篇文章中，Mike 具体介绍了 Swift 的内部结构是什么样的，但他只是轻描淡写了当查看包含 Swift 的二进制文件时，链接器所看到的：被修饰的（Mangled）符号名。
+ 在 C 之类的编程语言中，任何给定的名称（符号）都只能对应一个函数或者一条数据，那么名字修饰（Name Mangling）就不是必需的。尽管如此，如果我们查看典型的纯 C 二进制文件的符号表，仍然能发现每个函数名中都有一个 _（下划线）作为前缀。举个例子：
+$ echo &amp;#39;int main() { return 0; }&amp;#39; | xcrun clang -x c - -o ./test $ xctest nm ./test 0000000100000000 T __mh_execute_header 0000000100000f80 T _main U dyld_stub_binder $ "/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
-<link rel="canonical" href="/posts/2020/swift_tips/" />
+<link rel="canonical" href="/posts/2020/friday_qa_swift_name_mangling/" />
 
 
 
@@ -29,17 +28,17 @@ import Foundation func foo() -&amp;gt; String { return &amp;#34;kingcos.me&amp;#
 
 
 <meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Swift Tips"/>
-<meta name="twitter:description" content="三言两语，话说 Swift。"/>
+<meta name="twitter:title" content="[译] Swift 名字修饰（Name Mangling）"/>
+<meta name="twitter:description" content="翻译自 [Friday Q&amp;A 2014-08-08: Swift Name Mangling](https://www.mikeash.com/pyblog/friday-qa-2014-08-15-swift-name-mangling.html)。"/>
 
 
 
-<meta property="og:title" content="Swift Tips" />
-<meta property="og:description" content="三言两语，话说 Swift。" />
+<meta property="og:title" content="[译] Swift 名字修饰（Name Mangling）" />
+<meta property="og:description" content="翻译自 [Friday Q&amp;A 2014-08-08: Swift Name Mangling](https://www.mikeash.com/pyblog/friday-qa-2014-08-15-swift-name-mangling.html)。" />
 <meta property="og:type" content="article" />
-<meta property="og:url" content="/posts/2020/swift_tips/" />
-<meta property="article:published_time" content="2020-03-11T00:00:00+00:00" />
-<meta property="article:modified_time" content="2020-03-11T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+<meta property="og:url" content="/posts/2020/friday_qa_swift_name_mangling/" />
+<meta property="article:published_time" content="2019-03-15T00:00:00+00:00" />
+<meta property="article:modified_time" content="2019-03-15T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
 
 
 
@@ -132,11 +131,11 @@ import Foundation func foo() -&amp;gt; String { return &amp;#34;kingcos.me&amp;#
       <div class="content">
         
   <div class="post">
-    <h2 class="post-title"><a href="/posts/2020/swift_tips/">Swift Tips</a></h2>
+    <h2 class="post-title"><a href="/posts/2020/friday_qa_swift_name_mangling/">[译] Swift 名字修饰（Name Mangling）</a></h2>
     <div class="post-meta">
       
         <span class="post-date">
-            2020-03-11
+            2019-03-15
         </span>
       
       
@@ -148,7 +147,11 @@ import Foundation func foo() -&amp;gt; String { return &amp;#34;kingcos.me&amp;#
     
       <span class="post-tags">
         
+          #<a href="/tags/translation/">Translation</a>&nbsp;
+        
           #<a href="/tags/swift/">Swift</a>&nbsp;
+        
+          #<a href="/tags/ios/">iOS</a>&nbsp;
         
       </span>
     
@@ -156,36 +159,27 @@ import Foundation func foo() -&amp;gt; String { return &amp;#34;kingcos.me&amp;#
     
 
     <div class="post-content">
-      <h3 id="void">Void</h3>
-<p>按照 Swift 标准库的定义，<code>Void</code> 即空元组 <code>()</code>：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">typealias</span> Void = ()
-</code></pre></div><h3 id="函数重载overload">函数重载（Overload）</h3>
-<p>Swift 中的函数重载有一些坑，因此尽量不要产生命名歧义性（比如结合默认参数值等用法）。</p>
-<ul>
-<li><a href="/posts/2019/override_and_overload_in_obj-c">Obj-C 中的重载与重写</a></li>
-</ul>
-<h3 id="discardableresult">@discardableResult</h3>
-<p>Swift 是一门要求很严格的语言，当函数的返回值未被使用到时，编译器就会提示相关的警告。我们可以使用 <code>@discardableResult</code> 将函数声明为可丢弃结果，即可告知编译器不产生警告：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Foundation</span>
-
-<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">foo</span>() -&gt; String {
-    <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;kingcos.me&#34;</span>
-}
-
-@discardableResult
-<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">bar</span>() -&gt; String {
-    <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;kingcos.me&#34;</span>
-}
-
-foo() <span style="color:#75715e">// WARNING: Result of call to &#39;foo()&#39; is unused</span>
-
-<span style="color:#75715e">// 当然也可以赋值到占位符 _ 以避免警告</span>
-<span style="color:#66d9ef">_</span> = foo()
-
-bar()
-</code></pre></div><ul>
-<li><a href="https://github.com/apple/swift-evolution/blob/master/proposals/0047-nonvoid-warn.md">Defaulting non-Void functions so they warn on unused results - swift-evolution</a></li>
-</ul>
+      <center><img src='/img/2020/swift_compiler/1.png'></center>
+<table>
+  <tr>
+    <th width=30%><center>作者</center></th>
+    <th><center>原文链接</center></th>
+  </tr>
+  <tr>
+    <td><center><a href='http://blog.darkrainfall.org/'>Gwynne Raskind</a></center></td>
+    <td><center><a href='https://www.mikeash.com/pyblog/friday-qa-2014-08-15-swift-name-mangling.html'>Friday Q&A 2014-08-08: Swift Name Mangling</a></center></td>
+  </tr>
+</table>
+<p>许久没有参与到 Friday Q&amp;A（译者注：Friday Q&amp;A 中文意为周五问与答，但限于该名称是作者文章的系列名称，故不再翻译）中，不过我带着全新主题的文章又回来了：Swift。在最近的几篇文章中，Mike 具体介绍了 Swift 的内部结构是什么样的，但他只是轻描淡写了当查看包含 Swift 的二进制文件时，链接器所看到的：被修饰的（Mangled）符号名。</p>
+<hr>
+<p>在 C 之类的编程语言中，任何给定的名称（<em>符号</em>）都只能对应一个函数或者一条数据，那么名字修饰（Name Mangling）就不是必需的。尽管如此，如果我们查看典型的纯 C 二进制文件的符号表，仍然能发现每个函数名中都有一个 <code>_</code>（下划线）作为前缀。举个例子：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ echo <span style="color:#e6db74">&#39;int main() { return 0; }&#39;</span> | xcrun clang -x c - -o ./test
+$ xctest nm ./test
+<span style="color:#ae81ff">0000000100000000</span> T __mh_execute_header
+0000000100000f80 T _main
+                 U dyld_stub_binder
+$
+</code></pre></div><!-- 预计 3.18 日前发 -->
 
     </div>
     
@@ -196,10 +190,17 @@ bar()
         </div>
         <div class="pagination__buttons">
           
+            <span class="button previous">
+              <a href="/posts/2019/override_and_overload_in_obj-c/">
+                <span class="button__icon">←</span>
+                <span class="button__text">Obj-C 中的重载与重写</span>
+              </a>
+            </span>
+          
           
             <span class="button next">
-              <a href="/posts/2020/swift_compiler/">
-                <span class="button__text">[译] Swift 编译器</span>
+              <a href="/posts/2019/kvo_in_ios/">
+                <span class="button__text">iOS 中的 KVO</span>
                 <span class="button__icon">→</span>
               </a>
             </span>
