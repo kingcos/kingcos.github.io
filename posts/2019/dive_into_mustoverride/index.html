@@ -6,7 +6,7 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Source Code Commit / Tag     2019-12-07 首次提交 nicklockwood/MustOverride c63007e / 1.1   2020-01-05 补充 Extension - -    Preface MustOverride 是 nicklockwood 多年前开源的一个 Obj-C 库。其作用正如其名「MustOverride」即可以使得子类必须重写父类中的某些方法，防止子类因未实现父类的某些方法而出现不可预知的错误。
+<meta name="description" content="Date Notes Source Code Commit / Tag     2019-12-07 首次提交 nicklockwood/MustOverride c63007e / 1.1   2020-01-05 增加 Extension 一节 - -    Preface MustOverride 是 nicklockwood 多年前开源的一个 Obj-C 库。其作用正如其名「MustOverride」即可以使得子类必须重写父类中的某些方法，防止子类因未实现父类的某些方法而出现不可预知的错误。
 How 这个库的使用非常简单，如果是 CocoaPods 管理依赖的项目，直接通过 pod &#39;MustOverride&#39; 即可引入；之后引入 MustOverride.h 头文件并在需要必须子类重写的父类（或父类的分类）方法中放入 SUBCLASS_MUST_OVERRIDE; 宏即可：
 // Foo.m  #import &amp;#34;Foo.h&amp;#34; #import &amp;#34;MustOverride.h&amp;#34;  @implementation Foo - (void)foo { SUBCLASS_MUST_OVERRIDE; } @end // Foo&#43;Ext.m  #import &amp;#34;Foo&#43;Ext.h&amp;#34; #import &amp;#34;MustOverride."/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
@@ -179,7 +179,7 @@ How 这个库的使用非常简单，如果是 CocoaPods 管理依赖的项目�
 </tr>
 <tr>
 <td align="center">2020-01-05</td>
-<td align="center">补充 Extension</td>
+<td align="center">增加 Extension 一节</td>
 <td align="center">-</td>
 <td align="center">-</td>
 </tr>
@@ -570,7 +570,7 @@ BSD                           September 24, 2004                           BSD
 };
 </code></pre></div><p>这样综上，我们就可以在程序启动时读取到编译时已经存储在 Mach-O 中 <code>__DATA</code> 段 <code>MustOverride</code> 节的方法信息，并通过查询相应的方法是否被子类实现，在第一时间触发断言终止 app 运行。最后需要注意的是，<code>MustOverride.m</code> 其中的代码块几乎整体被 <code>#if DEBUG</code> 和 <code>#endif</code> 宏包裹，这意味着该库仅适用于 Debug 模式，可能会造成某些崩溃等影响，因此切忌 Release 模式下使用。</p>
 <h2 id="extension">Extension</h2>
-<p>经过以上的分析，我们可以发现「MustOverride」这个库其实并不复杂，但带给了我们一些思路。比如我们可以使用 <code>__attribute__</code> 在编译时刻写入 Mach-O 中一些内容，并在 app 启动或运行时读取，进而做一些操作。</p>
+<p>经过以上的分析，我们可以发现「MustOverride」这个库其实并不复杂，但带给了我们一些思路。比如我们可以使用 <code>__attribute__</code> 在编译时刻写入 Mach-O 中一些内容，并在 app 启动或运行时读取，进而做一些操作。那么还有一些由此相关的扩展内容，我们一起来领略一下吧！</p>
 <h3 id="宏的拼接">宏的拼接</h3>
 <p>宏的拼接指我们可以将一个宏的多个部分进行拼接，进而达到整体使用它的效果。虽然我们可能很少用到宏的拼接，但这却带来不少的灵活性。比如如下我们将 <code>A</code>、<code>B</code> 和 <code>C</code> 通过 <code>##</code> 进行了拼接：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#define A &#34;aaa\n&#34;
@@ -630,7 +630,11 @@ BSD                           September 24, 2004                           BSD
 </span></code></pre></div><p>由于 <code>__COUNTER__</code> 宏的自增性，我们可以用其来定义一些避免重复的命名。</p>
 <h3 id="汇编标签">汇编标签</h3>
 <p>汇编标签即 Asm Labels，我们可以通过 <code>asm</code> 或 <code>__asm__</code> 指定该标签来自定义函数、变量等类型的汇编符号：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">int</span> demoVar1 <span style="color:#a6e22e">asm</span> (<span style="color:#e6db74">&#34;someVar&#34;</span>) <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>;
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// main.m
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#import &lt;Foundation/Foundation.h&gt;
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">int</span> demoVar1 <span style="color:#a6e22e">asm</span> (<span style="color:#e6db74">&#34;someVar&#34;</span>) <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>;
 <span style="color:#66d9ef">int</span> demoVar2 <span style="color:#f92672">=</span> <span style="color:#ae81ff">20</span>;
 
 <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">demoFunc1</span>(<span style="color:#66d9ef">void</span>) __asm__ (<span style="color:#e6db74">&#34;someFunc&#34;</span>);
@@ -646,7 +650,7 @@ BSD                           September 24, 2004                           BSD
     demoFunc1();
     demoFunc2();
 }
-</code></pre></div><p>我们可以使用 <code>nm</code> 命令来验证：</p>
+</code></pre></div><p>我们可以使用 <code>nm</code> 命令来验证最终的可执行文件：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">➜  ~ nm PATH/TO/BINARY | grep demo
 0000000100000db0 T _demoFunc2
 000000010000144c D _demoVar2
@@ -657,6 +661,14 @@ BSD                           September 24, 2004                           BSD
 </code></pre></div><ul>
 <li><a href="https://gcc.gnu.org/onlinedocs/gcc-4.7.2/gcc/Asm-Labels.html">6.43 Controlling Names Used in Assembler Code - GNU</a></li>
 </ul>
+<!-- c++filt _var1
+
+### Name Mangling
+
+➜  ios-mm git:(release/3.7.0) ✗
+xcrun swift-demangle --compact sSDyq_SgxcigSS_10Experiment0A10ExpressionCTg5Tf4xn_n
+function signature specialization <Arg[0] = Exploded> of generic specialization <Swift.String, Experiment.ExperimentExpression> of Swift.Dictionary.subscript.getter : (A) -> B?
+-->
 <!--
 https://www.jianshu.com/p/1de663f64c05
 https://satanwoo.github.io/2017/06/01/FBTweak/

@@ -1,0 +1,2540 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    
+      <title>Combine :: iBlog</title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="Foundation and UIKit/AppKit 中的异步机制：   NotificationCenter：事件发生时执行一段代码（eg. 设备方向改变，软键盘显示或隐藏） 代理（Delegate）模式：定义代表另一个对象的代理对象（eg. AppDelegate 中定义当新的远程推送到达时的操作，但对代码执行时机和次数未知） GCD &amp;amp; NSOperation：安排在穿行队列中顺序执行的代码，或者在不同优先级的不同队列中同时运行多个任务 闭包：创建可分离的代码段，便于其他对象可以决定是否执行、执行次数、以及执行时机  Publisher&amp;lt;Int, Never&amp;gt; ┌────┐ ┌────┐ ┌────┐ ┌────┐ │ │ │ │ │ │ │ │ ───│ 13 │──▶│ 27 │─────▶│ 35 │──▶│ 56 │──│─▶ │ │ │ │ │ │ │ │ └────┘ └────┘ └────┘ └────┘ time 0:01 0:05 0:15 0:19 STOP Publisher /// Declares that a type can transmit a sequence of values over time."/>
+<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2020/combine_1/" />
+
+
+
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+<link rel="shortcut icon" href="/img/favicon.png">
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Combine"/>
+<meta name="twitter:description" content="三言两语，话说 Swift。"/>
+
+
+
+<meta property="og:title" content="Combine" />
+<meta property="og:description" content="三言两语，话说 Swift。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/2020/combine_1/" />
+<meta property="article:published_time" content="2019-03-11T00:00:00+00:00" />
+<meta property="article:modified_time" content="2019-03-11T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+
+
+
+
+<script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  </head>
+  <body class="">
+    <div class="container">
+      <header class="header">
+  <span class="header__inner">
+    <a href="/" class="logo" style="text-decoration: none;">
+  
+    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
+  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
+</svg>
+</span>
+    <span class="logo__text">kingcos.me</span>
+    <span class="logo__cursor"></span>
+  
+</a>
+
+    <span class="header__right">
+      
+        <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+        <span class="menu-trigger">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M0 0h24v24H0z" fill="none"/>
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+          </svg>
+        </span>
+      
+      <span class="theme-toggle">
+        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+
+      </span>
+    </span>
+  </span>
+</header>
+
+
+      <div class="content">
+        
+  <div class="post">
+    <h2 class="post-title"><a href="/posts/2020/combine_1/">Combine</a></h2>
+    <div class="post-meta">
+      
+        <span class="post-date">
+            2019-03-11
+        </span>
+      
+      
+      
+        <span class="post-read-time">— 31 min read</span>
+      
+    </div>
+
+    
+      <span class="post-tags">
+        
+          #<a href="/tags/swift/">Swift</a>&nbsp;
+        
+      </span>
+    
+
+    
+
+    <div class="post-content">
+      <ul>
+<li>Foundation and UIKit/AppKit 中的异步机制：</li>
+</ul>
+<ol>
+<li>NotificationCenter：事件发生时执行一段代码（eg. 设备方向改变，软键盘显示或隐藏）</li>
+<li>代理（Delegate）模式：定义代表另一个对象的代理对象（eg. AppDelegate 中定义当新的远程推送到达时的操作，但对代码执行时机和次数未知）</li>
+<li>GCD &amp; NSOperation：安排在穿行队列中顺序执行的代码，或者在不同优先级的不同队列中同时运行多个任务</li>
+<li>闭包：创建可分离的代码段，便于其他对象可以决定是否执行、执行次数、以及执行时机</li>
+</ol>
+<pre><code>Publisher&lt;Int, Never&gt;
+    ┌────┐   ┌────┐      ┌────┐   ┌────┐
+    │    │   │    │      │    │   │    │
+ ───│ 13 │──▶│ 27 │─────▶│ 35 │──▶│ 56 │──│─▶
+    │    │   │    │      │    │   │    │
+    └────┘   └────┘      └────┘   └────┘
+time 0:01     0:05        0:15     0:19  STOP
+</code></pre><h3 id="publisher">Publisher</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">/// Declares that a type can transmit a sequence of values over time.</span>
+<span style="color:#75715e">/// 声明一种可随时间传递值序列的类型。</span>
+<span style="color:#75715e">///</span>
+<span style="color:#75715e">/// There are four kinds of messages:</span>
+<span style="color:#75715e">/// 共有四种消息：</span>
+<span style="color:#75715e">///     subscription - A connection between `Publisher` and `Subscriber`.</span>
+<span style="color:#75715e">///     订阅 - 发布者与订阅者之前的连接</span>
+<span style="color:#75715e">///     value - An element in the sequence.</span>
+<span style="color:#75715e">///     值 - 序列中的一个元素</span>
+<span style="color:#75715e">///     error - The sequence ended with an error (`.failure(e)`).</span>
+<span style="color:#75715e">///     错误 - 序列以错误结束（.failure(e)`）</span>
+<span style="color:#75715e">///     complete - The sequence ended successfully (`.finished`).</span>
+<span style="color:#75715e">///     完成 - 序列以成功结束（`.finished`）</span>
+<span style="color:#75715e">/// Both `.failure` and `.finished` are terminal messages.</span>
+<span style="color:#75715e">/// .failure` 和 `.finished` 均为终止消息。</span>
+<span style="color:#75715e">///</span>
+<span style="color:#75715e">/// You can summarize these possibilities with a regular expression:</span>
+<span style="color:#75715e">/// 可使用正则表达式归纳其可能性：</span>
+<span style="color:#75715e">///   value*(error|finished)?</span>
+<span style="color:#75715e">///</span>
+<span style="color:#75715e">/// Every `Publisher` must adhere to this contract.</span>
+<span style="color:#75715e">/// 每个发布者都必须遵守该协议</span>
+@available(OSX <span style="color:#ae81ff">10.15</span>, iOS <span style="color:#ae81ff">13.0</span>, tvOS <span style="color:#ae81ff">13.0</span>, watchOS <span style="color:#ae81ff">6.0</span>, <span style="color:#f92672">*</span>)
+<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">protocol</span> <span style="color:#a6e22e">Publisher</span> {
+
+    <span style="color:#75715e">/// The kind of values published by this publisher.</span>
+    <span style="color:#75715e">// 该发布者发射值的类型。</span>
+    associatedtype Output
+
+    <span style="color:#75715e">/// The kind of errors this publisher might publish.</span>
+    <span style="color:#75715e">/// 该发布者可能发射错误的类型。</span>
+    <span style="color:#75715e">///</span>
+    <span style="color:#75715e">/// Use `Never` if this `Publisher` does not publish errors.</span>
+    <span style="color:#75715e">/// 若该发布者不会发射出错误可使用 `Never`</span>
+    associatedtype Failure : Error
+
+    <span style="color:#75715e">/// This function is called to attach the specified `Subscriber` to this `Publisher` by `subscribe(_:)`</span>
+    <span style="color:#75715e">/// 该方法将在 `subscribe(_:)` 中被调用，把特定订阅者附加到该发布者上。</span>
+    <span style="color:#75715e">///</span>
+    <span style="color:#75715e">/// - SeeAlso: `subscribe(_:)`</span>
+    <span style="color:#75715e">/// - Parameters:</span>
+    <span style="color:#75715e">///     - subscriber: The subscriber to attach to this `Publisher`.</span>
+    <span style="color:#75715e">///                   once attached it can begin to receive values.</span>
+    <span style="color:#75715e">///                   附加到该发布者的订阅者，一旦附加上即开始接收值。</span>
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">receive</span>&lt;S&gt;(subscriber: S) <span style="color:#66d9ef">where</span> S : Subscriber, <span style="color:#66d9ef">Self</span>.Failure == S.Failure, <span style="color:#66d9ef">Self</span>.Output == S.Input
+}
+
+<span style="color:#75715e">/// 协议扩展</span>
+@available(OSX <span style="color:#ae81ff">10.15</span>, iOS <span style="color:#ae81ff">13.0</span>, tvOS <span style="color:#ae81ff">13.0</span>, watchOS <span style="color:#ae81ff">6.0</span>, <span style="color:#f92672">*</span>)
+<span style="color:#66d9ef">extension</span> <span style="color:#a6e22e">Publisher</span> {
+
+    <span style="color:#75715e">/// Attaches the specified subscriber to this publisher.</span>
+    <span style="color:#75715e">/// 将特定订阅者附加到该发布者上。</span>
+    <span style="color:#75715e">///</span>
+    <span style="color:#75715e">/// Always call this function instead of `receive(subscriber:)`.</span>
+    <span style="color:#75715e">/// 应总是调用该方法而非 `receive(subscriber:)`。</span>
+    <span style="color:#75715e">/// Adopters of `Publisher` must implement `receive(subscriber:)`. The implementation of `subscribe(_:)` in this extension calls through to `receive(subscriber:)`.</span>
+    <span style="color:#75715e">/// 遵守 `Publisher` 的类型必须实现 `receive(subscriber:)`。该扩展中的 `subscribe(_:)` 实现将调用 `receive(subscriber:)`。</span>
+    <span style="color:#75715e">/// - SeeAlso: `receive(subscriber:)`</span>
+    <span style="color:#75715e">/// - Parameters:</span>
+    <span style="color:#75715e">///     - subscriber: The subscriber to attach to this `Publisher`. After attaching, the subscriber can start to receive values.</span>
+    <span style="color:#75715e">///                   被附加到发布者的订阅者。附加后，订阅者可以开始接收值。</span>
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">subscribe</span>&lt;S&gt;(<span style="color:#66d9ef">_</span> subscriber: S) <span style="color:#66d9ef">where</span> S : Subscriber, <span style="color:#66d9ef">Self</span>.Failure == S.Failure, <span style="color:#66d9ef">Self</span>.Output == S.Input
+}
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">/// A protocol that declares a type that can receive input from a publisher.</span>
+<span style="color:#75715e">/// 可以接收发布者作为输入的协议。</span>
+@available(OSX <span style="color:#ae81ff">10.15</span>, iOS <span style="color:#ae81ff">13.0</span>, tvOS <span style="color:#ae81ff">13.0</span>, watchOS <span style="color:#ae81ff">6.0</span>, <span style="color:#f92672">*</span>)
+<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">protocol</span> <span style="color:#a6e22e">Subscriber</span> : CustomCombineIdentifierConvertible {
+
+    <span style="color:#75715e">/// The kind of values this subscriber receives.</span>
+    <span style="color:#75715e">/// 该订阅者接收的值的类型。</span>
+    associatedtype Input
+
+    <span style="color:#75715e">/// The kind of errors this subscriber might receive.</span>
+    <span style="color:#75715e">/// 该订阅者接收可能接收到错误的类型。</span>
+    <span style="color:#75715e">///</span>
+    <span style="color:#75715e">/// Use `Never` if this `Subscriber` cannot receive errors.</span>
+    <span style="color:#75715e">/// 若该订阅者不会接收到错误可使用 `Never`</span>
+    associatedtype Failure : Error
+
+    <span style="color:#75715e">/// Tells the subscriber that it has successfully subscribed to the publisher and may request items.</span>
+    <span style="color:#75715e">/// 告知订阅者已成功订阅发布者，且可以请求项目。</span>
+    <span style="color:#75715e">///</span>
+    <span style="color:#75715e">/// Use the received `Subscription` to request items from the publisher.</span>
+    <span style="color:#75715e">/// 使用接收到的 `Subscription` 向发布者请求项目。</span>
+    <span style="color:#75715e">/// - Parameter subscription: A subscription that represents the connection between publisher and subscriber.</span>
+    <span style="color:#75715e">///                           代表发布者与订阅者联系的订阅。</span>
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">receive</span>(subscription: Subscription)
+
+    <span style="color:#75715e">/// Tells the subscriber that the publisher has produced an element.</span>
+    <span style="color:#75715e">/// 告知订阅者，发布者已经产生了一个元素。</span>
+    <span style="color:#75715e">///</span>
+    <span style="color:#75715e">/// - Parameter input: The published element.</span>
+    <span style="color:#75715e">///                    发布的元素。</span>
+    <span style="color:#75715e">/// - Returns: A `Demand` instance indicating how many more elements the subcriber expects to receive.</span>
+    <span style="color:#75715e">///            一个 `Demand` 实例，指订阅者期望接收到的元素个数。</span>
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">receive</span>(<span style="color:#66d9ef">_</span> input: <span style="color:#66d9ef">Self</span>.Input) -&gt; Subscribers.Demand
+
+    <span style="color:#75715e">/// Tells the subscriber that the publisher has completed publishing, either normally or with an error.</span>
+    <span style="color:#75715e">/// 告知订阅者，发布者已经完成发布，正常抑或发生错误。</span>
+    <span style="color:#75715e">///</span>
+    <span style="color:#75715e">/// - Parameter completion: A `Completion` case indicating whether publishing completed normally or with an error.</span>
+    <span style="color:#75715e">///                         一个 `Completion` 情况，指发布正常完成，或者出错。</span>
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">receive</span>(completion: Subscribers.Completion&lt;<span style="color:#66d9ef">Self</span>.Failure&gt;)
+}
+</code></pre></div><h3 id="subscription">Subscription</h3>
+<p>订阅者可以调用 <code>request（_ :)</code> 表示愿意接收更多的值，最大为极值或无限制：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">/// A protocol representing the connection of a subscriber to a publisher.</span>
+<span style="color:#75715e">/// 代表订阅者与发布者连接的协议。</span>
+<span style="color:#75715e">///</span>
+<span style="color:#75715e">/// Subcriptions are class constrained because a `Subscription` has identity -</span>
+<span style="color:#75715e">/// defined by the moment in time a particular subscriber attached to a publisher.</span>
+<span style="color:#75715e">/// 订阅受类型限制，因为 `Subscription` 的标示由连接到发布者的特定订阅者的时间定义。</span>
+<span style="color:#75715e">/// Canceling a `Subscription` must be thread-safe.</span>
+<span style="color:#75715e">/// 取消 `Subscription` 必须要线程安全。</span>
+<span style="color:#75715e">///</span>
+<span style="color:#75715e">/// You can only cancel a `Subscription` once.</span>
+<span style="color:#75715e">/// `Subscription` 只能被取消一次。</span>
+<span style="color:#75715e">///</span>
+<span style="color:#75715e">/// Canceling a subscription frees up any resources previously allocated by attaching the `Subscriber`.</span>
+@available(OSX <span style="color:#ae81ff">10.15</span>, iOS <span style="color:#ae81ff">13.0</span>, tvOS <span style="color:#ae81ff">13.0</span>, watchOS <span style="color:#ae81ff">6.0</span>, <span style="color:#f92672">*</span>)
+<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">protocol</span> <span style="color:#a6e22e">Subscription</span> : Cancellable, CustomCombineIdentifierConvertible {
+
+    <span style="color:#75715e">/// Tells a publisher that it may send more values to the subscriber.</span>
+    <span style="color:#75715e">/// 告知发布者可以发送更多值到订阅者。</span>
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">request</span>(<span style="color:#66d9ef">_</span> demand: Subscribers.Demand)
+}
+</code></pre></div><blockquote>
+<p>订阅者能够接收值的个数的概念为背压管理（Backpressure Management）。当订阅者从发布者那里获得了超过其所能处理的值的个数时，可能会导致问题。</p>
+</blockquote>
+<p>在 <code>Subscription</code> 中的 <code>request(_ demand: Subscribers.Demand)</code> 里可以指定能够接收的值的个数，也可在 <code>Subscriber</code> 中的 <code>receive(_ input: Self.Input) -&gt; Subscribers.Demand</code> 里调整。注意 <code>Subscriber</code> 中的 <code>receive(_ input: Self.Input) -&gt; Subscribers.Demand</code> 里调整的值是累加的，且必须为正数，否则将出错。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">/// A publisher that eventually produces one value and then finishes or fails.</span>
+@available(OSX <span style="color:#ae81ff">10.15</span>, iOS <span style="color:#ae81ff">13.0</span>, tvOS <span style="color:#ae81ff">13.0</span>, watchOS <span style="color:#ae81ff">6.0</span>, <span style="color:#f92672">*</span>)
+<span style="color:#66d9ef">final</span> <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Future</span>&lt;Output, Failure&gt; : Publisher <span style="color:#66d9ef">where</span> Failure : Error {
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">typealias</span> Promise = (Result&lt;Output, Failure&gt;) -&gt; Void
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">init</span>(<span style="color:#66d9ef">_</span> attemptToFulfill: @escaping (@escaping Future&lt;Output, Failure&gt;.Promise) -&gt; Void)
+
+    <span style="color:#75715e">/// This function is called to attach the specified `Subscriber` to this `Publisher` by `subscribe(_:)`</span>
+    <span style="color:#75715e">///</span>
+    <span style="color:#75715e">/// - SeeAlso: `subscribe(_:)`</span>
+    <span style="color:#75715e">/// - Parameters:</span>
+    <span style="color:#75715e">///     - subscriber: The subscriber to attach to this `Publisher`.</span>
+    <span style="color:#75715e">///                   once attached it can begin to receive values.</span>
+    <span style="color:#66d9ef">final</span> <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">receive</span>&lt;S&gt;(subscriber: S) <span style="color:#66d9ef">where</span> Output == S.Input, Failure == S.Failure, S : Subscriber
+}
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Foundation</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">example</span>(of description: String, action: () -&gt; Void) {
+    print(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">——— Example of:&#34;</span>, description, <span style="color:#e6db74">&#34;———&#34;</span>)
+    action()
+}
+
+
+<span style="color:#75715e">//example(of: &#34;Notification&#34;) {</span>
+<span style="color:#75715e">//    // 创建通知名称</span>
+<span style="color:#75715e">//    let myNotification = Notification.Name(&#34;myNotification&#34;)</span>
+<span style="color:#75715e">//    let center = NotificationCenter.default</span>
+<span style="color:#75715e">//    let observer = center.addObserver(forName: myNotification,</span>
+<span style="color:#75715e">//                                      object: nil,</span>
+<span style="color:#75715e">//                                      queue: nil) { notification in</span>
+<span style="color:#75715e">//                                        print(&#34;收到了通知&#34;)</span>
+<span style="color:#75715e">//    }</span>
+<span style="color:#75715e">//    center.post(name: myNotification, object: nil)</span>
+<span style="color:#75715e">//    center.removeObserver(observer)</span>
+<span style="color:#75715e">//}</span>
+
+example(of: <span style="color:#e6db74">&#34;Publisher&#34;</span>) {
+    <span style="color:#75715e">// 创建通知名称</span>
+    <span style="color:#66d9ef">let</span> myNotification = Notification.Name(<span style="color:#e6db74">&#34;myNotification&#34;</span>)
+    <span style="color:#66d9ef">let</span> center = NotificationCenter.<span style="color:#66d9ef">default</span>
+
+    <span style="color:#75715e">// 定义发布者，通知中心</span>
+    <span style="color:#75715e">// func publisher(for name: Notification.Name, object: AnyObject? = nil) -&gt; NotificationCenter.Publisher</span>
+    <span style="color:#66d9ef">let</span> publisher = NotificationCenter
+        .<span style="color:#66d9ef">default</span>
+        .publisher(<span style="color:#66d9ef">for</span>: myNotification,
+                   object: <span style="color:#66d9ef">nil</span>)
+    <span style="color:#75715e">// 发布者 -&gt; 订阅者</span>
+    <span style="color:#75715e">// func sink(receiveValue: @escaping ((Notification) -&gt; Void)) -&gt; AnyCancellable</span>
+    <span style="color:#66d9ef">let</span> subscription = publisher.sink { <span style="color:#66d9ef">_</span> <span style="color:#66d9ef">in</span>
+        print(<span style="color:#e6db74">&#34;订阅者接收到了通知&#34;</span>)
+    }
+
+    <span style="color:#75715e">// 发送通知</span>
+    center.post(name: myNotification, object: <span style="color:#66d9ef">nil</span>)
+
+    <span style="color:#75715e">// 取消订阅，释放资源；若不手动调用，将直到发布者完成或存储订阅的对象销毁时才会取消订阅</span>
+    <span style="color:#75715e">// _ = some_subscription：未存储的订阅将在创建时的程序流退出时被取消订阅</span>
+    subscription.cancel()
+
+<span style="color:#75715e">//    ——— Example of: Publisher ———</span>
+<span style="color:#75715e">//    订阅者接收到了通知</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;Just&#34;</span>) {
+    <span style="color:#75715e">// 发布者，只发射一个值，然后完成</span>
+    <span style="color:#66d9ef">let</span> just = Just(<span style="color:#e6db74">&#34;你好，世界！&#34;</span>)
+
+    <span style="color:#66d9ef">_</span> = just.sink(receiveCompletion: {
+        <span style="color:#75715e">// finished</span>
+        print(<span style="color:#e6db74">&#34;订阅者 1 接收到「完成」：&#34;</span>, $0)
+    }, receiveValue: {
+        print(<span style="color:#e6db74">&#34;订阅者 1 接收到「值」：&#34;</span>, $0)
+    })
+
+    <span style="color:#66d9ef">_</span> = just.sink(receiveCompletion: {
+        print(<span style="color:#e6db74">&#34;订阅者 2 接收到「完成」：&#34;</span>, $0)
+    }, receiveValue: {
+        print(<span style="color:#e6db74">&#34;订阅者 2 接收到「值」：&#34;</span>, $0)
+    })
+
+    <span style="color:#75715e">// 当 Just 发布者每被订阅一次，就会发射一个值，并完成</span>
+
+<span style="color:#75715e">//    订阅者 1 接收到「值」： 你好，世界！</span>
+<span style="color:#75715e">//    订阅者 1 接收到「完成」： finished</span>
+<span style="color:#75715e">//    订阅者 2 接收到「值」： 你好，世界！</span>
+<span style="color:#75715e">//    订阅者 2 接收到「完成」： finished</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;assign(to:on:)&#34;</span>) {
+    <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">SomeObject</span> {
+        <span style="color:#66d9ef">var</span> value: String = <span style="color:#e6db74">&#34;&#34;</span> {
+            <span style="color:#66d9ef">didSet</span> {
+                <span style="color:#75715e">// 被设置时打印</span>
+                print(value)
+            }
+        }
+    }
+
+    <span style="color:#66d9ef">let</span> obj = SomeObject()
+
+    <span style="color:#75715e">// 发射 A -&gt; 发射 B</span>
+    <span style="color:#66d9ef">let</span> publisher = [<span style="color:#e6db74">&#34;A&#34;</span>, <span style="color:#e6db74">&#34;B&#34;</span>].publisher
+    <span style="color:#75715e">// 分配到 obj 的 value</span>
+    <span style="color:#66d9ef">_</span> = publisher.assign(to: <span style="color:#960050;background-color:#1e0010">\</span>.value, on: obj)
+
+<span style="color:#75715e">//    ——— Example of: assign(to:on:) ———</span>
+<span style="color:#75715e">//    A</span>
+<span style="color:#75715e">//    B</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;Custom Subscriber&#34;</span>) {
+    <span style="color:#66d9ef">let</span> publisher = (<span style="color:#ae81ff">1.</span>..<span style="color:#ae81ff">6</span>).publisher
+<span style="color:#75715e">//    let publisher = [&#34;A&#34;, &#34;B&#34;, &#34;C&#34;, &#34;D&#34;, &#34;E&#34;, &#34;F&#34;].publisher // ERROR: Input 类型不匹配</span>
+
+    <span style="color:#75715e">// 自定义订阅者</span>
+    <span style="color:#66d9ef">final</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">IntSubscriber</span>: Subscriber {
+        <span style="color:#66d9ef">typealias</span> Input = Int
+        <span style="color:#66d9ef">typealias</span> Failure = Never
+
+        <span style="color:#75715e">// 由发布者调用</span>
+        <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">receive</span>(subscription: Subscription) {
+            <span style="color:#75715e">// 指定最多可接收 3 个值</span>
+            subscription.request(.max(<span style="color:#ae81ff">3</span>))
+        }
+
+        <span style="color:#75715e">// 值事件</span>
+        <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">receive</span>(<span style="color:#66d9ef">_</span> input: Int) -&gt; Subscribers.Demand {
+            print(<span style="color:#e6db74">&#34;收到的值为：&#34;</span>, input)
+            <span style="color:#66d9ef">return</span> .<span style="color:#66d9ef">none</span> <span style="color:#75715e">// 等同于 .max(0)，不再调整接收数量</span>
+<span style="color:#75715e">//            return .unlimited // 升级为无限制</span>
+        }
+
+        <span style="color:#75715e">// 完成事件</span>
+        <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">receive</span>(completion: Subscribers.Completion&lt;Never&gt;) {
+            print(<span style="color:#e6db74">&#34;收到完成&#34;</span>)
+        }
+    }
+
+    <span style="color:#66d9ef">let</span> subscriber = IntSubscriber()
+    publisher.subscribe(subscriber)
+
+<span style="color:#75715e">//    ——— Example of: Custom Subscriber ———</span>
+<span style="color:#75715e">//    收到的值为： 1</span>
+<span style="color:#75715e">//    收到的值为： 2</span>
+<span style="color:#75715e">//    收到的值为： 3</span>
+}
+
+<span style="color:#66d9ef">var</span> subscriptions = Set&lt;AnyCancellable&gt;()
+
+<span style="color:#75715e">//example(of: &#34;Future&#34;) {</span>
+<span style="color:#75715e">//    // 发出整数，并永不失败</span>
+<span style="color:#75715e">//    func futureIncrement(</span>
+<span style="color:#75715e">//        integer: Int,</span>
+<span style="color:#75715e">//        afterDelay delay: TimeInterval</span>
+<span style="color:#75715e">//    ) -&gt; Future&lt;Int, Never&gt; {</span>
+<span style="color:#75715e">//        // public init(_ attemptToFulfill: @escaping (@escaping Future&lt;Output, Failure&gt;.Promise) -&gt; Void)</span>
+<span style="color:#75715e">//        Future&lt;Int, Never&gt;.init { promise in</span>
+<span style="color:#75715e">//            print(&#34;Original&#34;) // 立即打印说明，创建后会立即执行（无需订阅者）</span>
+<span style="color:#75715e">//            DispatchQueue.global().asyncAfter(deadline: .now() + delay) {</span>
+<span style="color:#75715e">//                promise(.success(integer + 1)) // 发射出一个值，之后完成事件（需要订阅者）</span>
+<span style="color:#75715e">//            }</span>
+<span style="color:#75715e">//        }</span>
+<span style="color:#75715e">//    }</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//    // Future 是一个发布者，本质上是制造一个单一值并结束，或者失败。当值或者错误可用时，将通过调用闭包实现，该闭包被称作 Promise。</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//    let future = futureIncrement(integer: 1, afterDelay: 3)</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">////    sleep(3);</span>
+<span style="color:#75715e">//    future.sink(receiveCompletion: { print($0) }, receiveValue: { print($0) }).store(in: &amp;subscriptions)</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//    // ⚠️：Future 并没有重新执行 Promise，而是共享（或者说重播）了其输出</span>
+<span style="color:#75715e">//    future.sink(receiveCompletion: { print(&#34;Second&#34;, $0) }, receiveValue: { print(&#34;Second&#34;, $0) }) .store(in: &amp;subscriptions)</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">////    ——— Example of: Future ———</span>
+<span style="color:#75715e">////    Original</span>
+<span style="color:#75715e">////    2</span>
+<span style="color:#75715e">////    finished</span>
+<span style="color:#75715e">////    Second 2</span>
+<span style="color:#75715e">////    Second finished</span>
+<span style="color:#75715e">//}</span>
+
+example(of: <span style="color:#e6db74">&#34;PassthoughSubject&#34;</span>) {
+    <span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">MyError</span>: Error {
+        <span style="color:#66d9ef">case</span> test
+    }
+
+    <span style="color:#66d9ef">final</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">StringSubscriber</span>: Subscriber {
+        <span style="color:#66d9ef">typealias</span> Input = String
+        <span style="color:#66d9ef">typealias</span> Failure = MyError
+
+        <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">receive</span>(subscription: Subscription) {
+            subscription.request(.max(<span style="color:#ae81ff">2</span>))
+        }
+
+        <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">receive</span>(<span style="color:#66d9ef">_</span> input: String) -&gt; Subscribers.Demand {
+            print(<span style="color:#e6db74">&#34;接收到值&#34;</span>, input)
+            <span style="color:#66d9ef">return</span> input == <span style="color:#e6db74">&#34;World&#34;</span> ? .max(<span style="color:#ae81ff">1</span>) : .<span style="color:#66d9ef">none</span>
+        }
+
+        <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">receive</span>(completion: Subscribers.Completion&lt;MyError&gt;) {
+            print(<span style="color:#e6db74">&#34;接收到完成&#34;</span>, completion)
+        }
+    }
+
+    <span style="color:#66d9ef">let</span> subscriber = StringSubscriber()
+
+    <span style="color:#75715e">// PassthroughSubject：可以按需要发布新值（其乐于传递值和完成事件），但仍需声明其发出值和错误的类型，且订阅者需要与其匹配</span>
+    <span style="color:#66d9ef">let</span> subject = PassthroughSubject&lt;String, MyError&gt;()
+    <span style="color:#75715e">// 订阅者订阅 subject</span>
+    subject.subscribe(subscriber)
+
+    <span style="color:#75715e">// 创建另外的订阅</span>
+    <span style="color:#66d9ef">let</span> subscription = subject.sink(receiveCompletion: { completion <span style="color:#66d9ef">in</span>
+        print(<span style="color:#e6db74">&#34;Received completion (sink)&#34;</span>, completion)
+    }) { value <span style="color:#66d9ef">in</span>
+        print(<span style="color:#e6db74">&#34;Received value (sink)&#34;</span>, value)
+    }
+
+    subject.send(<span style="color:#e6db74">&#34;Hello&#34;</span>)
+    subject.send(<span style="color:#e6db74">&#34;World&#34;</span>)
+
+    subscription.cancel() <span style="color:#75715e">// 取消订阅</span>
+
+    subject.send(<span style="color:#e6db74">&#34;Test&#34;</span>)
+
+<span style="color:#75715e">//    subject.send(completion: .failure(MyError.test))</span>
+    subject.send(completion: .finished) <span style="color:#75715e">// subscriber 的订阅取消</span>
+    subject.send(<span style="color:#e6db74">&#34;Test again&#34;</span>)
+
+<span style="color:#75715e">//     通过 PassthroughSubject 传递值是将命令式代码桥接到 Combine 的声明性世界的一种方法。</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;CurrentValueSubject&#34;</span>) {
+    <span style="color:#75715e">// 发射 Int 值，不会出现错误</span>
+    <span style="color:#66d9ef">let</span> subject = CurrentValueSubject&lt;Int, Never&gt;(<span style="color:#ae81ff">0</span>)
+
+    subject
+        .print() <span style="color:#75715e">// 打印 log 信息</span>
+        .sink(receiveValue: { print($0) }) <span style="color:#75715e">// 订阅，并处理</span>
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions) <span style="color:#75715e">// inout：更新同一集合</span>
+
+    subject.send(<span style="color:#ae81ff">1</span>)
+    <span style="color:#75715e">// 访问其当前值</span>
+    print(<span style="color:#e6db74">&#34;print&#34;</span>, subject.value)
+    subject.send(<span style="color:#ae81ff">2</span>)
+    print(<span style="color:#e6db74">&#34;print&#34;</span>, subject.value)
+
+    subject.value = <span style="color:#ae81ff">100</span>
+    print(<span style="color:#e6db74">&#34;print&#34;</span>, subject.value)
+
+    subject
+         .print()
+        .sink(receiveValue: { print(<span style="color:#e6db74">&#34;222:&#34;</span>, $0) }) <span style="color:#75715e">// 首个为当前值</span>
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    <span style="color:#75715e">// CurrentValueSubject 的值只能为值，不能为完成事件</span>
+    <span style="color:#75715e">// ERROR: Type &#39;Int&#39; has no member &#39;finished&#39;</span>
+    <span style="color:#75715e">// subject.value = .finished</span>
+
+    <span style="color:#75715e">// 手动取消</span>
+<span style="color:#75715e">//    subscriptions.forEach {</span>
+<span style="color:#75715e">//        $0.cancel()</span>
+<span style="color:#75715e">//    }</span>
+    <span style="color:#75715e">// 发射完成事件(无需 cancel）</span>
+    subject.send(completion: .finished)
+
+    <span style="color:#75715e">// 可以将预订存储在AnyCancellable的实例或集合中，以在取消初始化时接收自动取消。</span>
+
+}
+
+example(of: <span style="color:#e6db74">&#34;动态调整 Demand&#34;</span>) {
+    <span style="color:#66d9ef">final</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">IntSubscriber</span>: Subscriber {
+        <span style="color:#66d9ef">typealias</span> Input = Int
+        <span style="color:#66d9ef">typealias</span> Failure = Never
+        <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">receive</span>(subscription: Subscription) {
+            subscription.request(.max(<span style="color:#ae81ff">2</span>))
+        }
+
+        <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">receive</span>(<span style="color:#66d9ef">_</span> input: Int) -&gt; Subscribers.Demand {
+            print(<span style="color:#e6db74">&#34;Received value&#34;</span>, input)
+
+            <span style="color:#66d9ef">switch</span> input {
+            <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">1</span>:
+                <span style="color:#66d9ef">return</span> .max(<span style="color:#ae81ff">2</span>) <span style="color:#75715e">// 1</span>
+            <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">3</span>:
+                <span style="color:#66d9ef">return</span> .max(<span style="color:#ae81ff">1</span>) <span style="color:#75715e">// 2</span>
+            <span style="color:#66d9ef">default</span>:
+                <span style="color:#66d9ef">return</span> .<span style="color:#66d9ef">none</span> <span style="color:#75715e">// 3</span>
+            }
+        }
+
+        <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">receive</span>(completion: Subscribers.Completion&lt;Never&gt;) {
+          print(<span style="color:#e6db74">&#34;Received completion&#34;</span>, completion)
+        }
+    }
+
+    <span style="color:#66d9ef">let</span> subscriber = IntSubscriber()  <span style="color:#75715e">// 2</span>
+    <span style="color:#66d9ef">let</span> subject = PassthroughSubject&lt;Int, Never&gt;()
+    subject.subscribe(subscriber)
+    subject.send(<span style="color:#ae81ff">1</span>) <span style="color:#75715e">// 4</span>
+    subject.send(<span style="color:#ae81ff">2</span>) <span style="color:#75715e">// 5</span>
+    subject.send(<span style="color:#ae81ff">3</span>)
+    subject.send(<span style="color:#ae81ff">4</span>)
+    subject.send(<span style="color:#ae81ff">5</span>)
+    subject.send(<span style="color:#ae81ff">6</span>)
+}
+
+example(of: <span style="color:#e6db74">&#34;类型擦除 Type erasure&#34;</span>) {
+    <span style="color:#75715e">// 希望让订阅者订阅以接收来自发布者的事件，而又无法访问有关该发布者的其他详细信息。</span>
+    <span style="color:#66d9ef">let</span> subject = PassthroughSubject&lt;Int, Never&gt;()
+
+    <span style="color:#75715e">// 类型擦除的发布者：对订阅者隐藏发布者的详细信息</span>
+    <span style="color:#75715e">// AnyPublisher&lt;Int, Never&gt;</span>
+    <span style="color:#66d9ef">let</span> publisher = subject.eraseToAnyPublisher()
+
+    publisher.sink(receiveValue: { print($0) })
+    .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    subject.send(<span style="color:#ae81ff">0</span>)
+
+
+    <span style="color:#75715e">// AnyCancellable 是遵守 Cancellable 的类型擦除的类，调用者可以取消订阅，但不能访问订阅内部的信息</span>
+
+
+    <span style="color:#75715e">// 另外一种情况是，当我们想使用一对公开和私有的属性，来允许这些属性的拥有者在私有的发布者上发送值，并让外界调用者访问公开的发布值来订阅，但不能发送值</span>
+
+    <span style="color:#75715e">// AnyPublisher 没有 send(_:) 操作者，所以新值不能被再加到发布者上</span>
+    <span style="color:#75715e">// publisher.send(1)</span>
+
+    <span style="color:#75715e">// eraseToAnyPublisher() 将提供的发布者作为 AnyPublisher 的实例（不能指定为 Publish 是因为 Publish 是协议，无法作为实例的类型去约束），隐藏其是 PassthroughSubject 的事实</span>
+
+
+}
+</code></pre></div><h2 id="3">3</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Foundation</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+
+<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">example</span>(of description: String, action: () -&gt; Void) {
+    print(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">——— Example of:&#34;</span>, description, <span style="color:#e6db74">&#34;———&#34;</span>)
+    action()
+}
+
+
+<span style="color:#66d9ef">var</span> subscriptions = [AnyCancellable]()
+
+<span style="color:#75715e">// 操作者是发布者</span>
+<span style="color:#75715e">// 处理来自发布者的值的方法被称作操作者，</span>
+example(of: <span style="color:#e6db74">&#34;收集&#34;</span>) {
+    [<span style="color:#e6db74">&#34;A&#34;</span>, <span style="color:#e6db74">&#34;B&#34;</span>, <span style="color:#e6db74">&#34;C&#34;</span>, <span style="color:#e6db74">&#34;D&#34;</span>, <span style="color:#e6db74">&#34;E&#34;</span>].publisher
+    .sink(receiveCompletion: { print($0) },
+          receiveValue: { print($0) })
+    .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    <span style="color:#75715e">// 注意：</span>
+    <span style="color:#75715e">// 使用 collect 和其它不限定数量或限制的缓冲操作符时要小心，其将使用无限制的内存来存储收到的值</span>
+    [<span style="color:#e6db74">&#34;A&#34;</span>, <span style="color:#e6db74">&#34;B&#34;</span>, <span style="color:#e6db74">&#34;C&#34;</span>, <span style="color:#e6db74">&#34;D&#34;</span>, <span style="color:#e6db74">&#34;E&#34;</span>].publisher
+<span style="color:#75715e">//    .collect() // [&#34;A&#34;, &#34;B&#34;, &#34;C&#34;, &#34;D&#34;, &#34;E&#34;]</span>
+    .collect(<span style="color:#ae81ff">2</span>) <span style="color:#75715e">// [&#34;A&#34;, &#34;B&#34;], [&#34;C&#34;, &#34;D&#34;], [&#34;E&#34;] // 限定为 2</span>
+    .sink(receiveCompletion: { print($0) },
+          receiveValue: { print($0) })
+    .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+}
+
+example(of: <span style="color:#e6db74">&#34;map&#34;</span>) {
+    <span style="color:#66d9ef">let</span> formatter = NumberFormatter()
+    formatter.numberStyle = .spellOut
+    <span style="color:#75715e">// map 是 Swift 里的高阶函数</span>
+    [<span style="color:#ae81ff">123</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">56</span>].publisher.map {
+        formatter.string(from: NSNumber(integerLiteral: $0)) ?? <span style="color:#e6db74">&#34;&#34;</span>
+    }
+    .sink(receiveValue: { print($0) })
+    .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+}
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Coordinate</span> {
+    <span style="color:#66d9ef">var</span> x: Int
+    <span style="color:#66d9ef">var</span> y: Int
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">quadrantOf</span>(x: Int, y: Int) -&gt; String {
+    <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>x <span style="color:#f92672">+</span> y<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;map key path&#34;</span>) {
+<span style="color:#75715e">//    • map&lt;T&gt;(_:)</span>
+<span style="color:#75715e">//    • map&lt;T0, T1&gt;(_:_:)</span>
+<span style="color:#75715e">//    • map&lt;T0, T1, T2&gt;(_:_:_:)</span>
+    <span style="color:#75715e">// T 代表给定键路径中找到的值的类型</span>
+    <span style="color:#75715e">// 象限（Quadrants）是坐标几何（coordinate geometry）的一部分。有关更多信息，请访问 mathworld.wolfram.com/Quadrant.html。</span>
+
+    <span style="color:#66d9ef">let</span> publisher = PassthroughSubject&lt;Coordinate, Never&gt;()
+
+    publisher
+        .map(<span style="color:#960050;background-color:#1e0010">\</span>.x, <span style="color:#960050;background-color:#1e0010">\</span>.y) <span style="color:#75715e">// 将 Coordinate keyPath map 出来(永远不会出错）</span>
+        .sink(receiveValue: { x, y <span style="color:#66d9ef">in</span>
+            print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>x<span style="color:#e6db74">)</span><span style="color:#e6db74"> + </span><span style="color:#e6db74">\(</span>y<span style="color:#e6db74">)</span><span style="color:#e6db74"> =&#34;</span>, quadrantOf(x: x, y: y))
+        })
+    .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    publisher.send(Coordinate(x: <span style="color:#ae81ff">10</span>, y: <span style="color:#f92672">-</span><span style="color:#ae81ff">8</span>))
+    publisher.send(Coordinate(x: <span style="color:#ae81ff">0</span>, y: <span style="color:#ae81ff">5</span>))
+}
+
+example(of: <span style="color:#e6db74">&#34;tryMap(_:)&#34;</span>) {
+    <span style="color:#75715e">// 尝试 map，出错时为 failure completion</span>
+    Just(<span style="color:#e6db74">&#34;Directory name that does not exist&#34;</span>)
+        .tryMap { <span style="color:#66d9ef">try</span> FileManager.<span style="color:#66d9ef">default</span>.contentsOfDirectory(atPath: $0) }
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+}
+
+<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Chatter</span> {
+  <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">let</span> name: String
+  <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">let</span> message: CurrentValueSubject&lt;String, Never&gt;
+
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">init</span>(name: String, message: String) {
+        <span style="color:#66d9ef">self</span>.name = name
+        <span style="color:#66d9ef">self</span>.message = CurrentValueSubject(message)
+    }
+}
+
+example(of: <span style="color:#e6db74">&#34;flattern&#34;</span>) {
+    <span style="color:#75715e">// flattern 可用于将多个上游发布者摊平为一个下游发布者，或者特别的，将这些发布者的发射物摊平</span>
+
+    <span style="color:#75715e">// 上游发布者接收到的类型与 flatMap 返回的发布者通常会不一致</span>
+    <span style="color:#75715e">// 常用情况：当我们想订阅发布者发射的值，但这些值本身又是他们自己的发布者</span>
+
+    <span style="color:#66d9ef">let</span> charlotte = Chatter(name: <span style="color:#e6db74">&#34;Charlotte&#34;</span>, message: <span style="color:#e6db74">&#34;Hi I am Charlotte&#34;</span>)
+    <span style="color:#66d9ef">let</span> james = Chatter(name: <span style="color:#e6db74">&#34;James&#34;</span>, message: <span style="color:#e6db74">&#34;Hi I am James&#34;</span>)
+
+    <span style="color:#66d9ef">let</span> chat = CurrentValueSubject&lt;Chatter, Never&gt;(charlotte) <span style="color:#75715e">// 最初为 charlotte</span>
+
+<span style="color:#75715e">//    chat</span>
+<span style="color:#75715e">//        .sink(receiveValue: { print($0.message.value) })</span>
+<span style="color:#75715e">//        .store(in: &amp;subscriptions)</span>
+
+    chat
+        .flatMap { $0.message } <span style="color:#75715e">// 转换为 message 的 发布者</span>
+        .sink(receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    <span style="color:#75715e">// messgae 变更也可触发（不做 flatMap 的时候是不可以的）</span>
+    charlotte.message.value = <span style="color:#e6db74">&#34;Charlotte: How&#39;s it going?&#34;</span>
+
+    <span style="color:#75715e">// 均可触发</span>
+    chat.value = james
+}
+
+example(of: <span style="color:#e6db74">&#34;flatMap(maxPublishers&#34;</span>) {
+    <span style="color:#75715e">// flatMap 将所有接收到的发布者的输出压缩为一个发布者。</span>
+    <span style="color:#75715e">// 这带来了内存问题，因为它将缓存与您发送的发布者一样多的发布者，以更新它在下游发出的单个发布者。</span>
+
+    <span style="color:#66d9ef">let</span> charlotte = Chatter(name: <span style="color:#e6db74">&#34;Charlotte&#34;</span>, message: <span style="color:#e6db74">&#34;Hi I am Charlotte&#34;</span>)
+    <span style="color:#66d9ef">let</span> james = Chatter(name: <span style="color:#e6db74">&#34;James&#34;</span>, message: <span style="color:#e6db74">&#34;Hi I am James&#34;</span>)
+
+    <span style="color:#66d9ef">let</span> chat = CurrentValueSubject&lt;Chatter, Never&gt;(charlotte) <span style="color:#75715e">// 最初发布者为 charlotte</span>
+
+    chat
+        .flatMap(maxPublishers: .max(<span style="color:#ae81ff">2</span>)) { $0.message } <span style="color:#75715e">// 最多接收上游 n 个发布者，其他将忽略，默认为无限</span>
+        .sink(receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    <span style="color:#75715e">// 更新第一个发布者</span>
+    charlotte.message.value = <span style="color:#e6db74">&#34;Charlotte: How&#39;s it going?&#34;</span>
+
+    <span style="color:#75715e">// 第二个发布者为 james</span>
+    chat.value = james
+
+    <span style="color:#75715e">// 第三个发布者，但被忽略了</span>
+    <span style="color:#66d9ef">let</span> morgan = Chatter(name: <span style="color:#e6db74">&#34;Morgan&#34;</span>,
+                         message: <span style="color:#e6db74">&#34;Hey guys, what are you up to?&#34;</span>)
+    chat.value = morgan
+
+    <span style="color:#75715e">// 用的是 charlotte</span>
+    charlotte.message.value = <span style="color:#e6db74">&#34;Did you hear something?&#34;</span>
+
+<span style="color:#75715e">//Hi I am Charlotte</span>
+<span style="color:#75715e">//Charlotte: How&#39;s it going?</span>
+<span style="color:#75715e">//Hi I am James</span>
+<span style="color:#75715e">//Did you hear something?</span>
+
+}
+
+example(of: <span style="color:#e6db74">&#34;replaceNil&#34;</span>) {
+    [<span style="color:#e6db74">&#34;A&#34;</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#e6db74">&#34;B&#34;</span>]
+        .publisher
+        .replaceNil(with: <span style="color:#e6db74">&#34;-&#34;</span>) <span style="color:#75715e">// 只做替换，并不改变类型</span>
+        .sink(receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+<span style="color:#75715e">//    Optional(&#34;A&#34;)</span>
+<span style="color:#75715e">//    Optional(&#34;-&#34;)</span>
+<span style="color:#75715e">//    Optional(&#34;B&#34;)</span>
+
+
+    [<span style="color:#e6db74">&#34;A&#34;</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#e6db74">&#34;B&#34;</span>]
+        .publisher
+        .replaceNil(with: <span style="color:#e6db74">&#34;-&#34;</span>)
+        .map { $0! } <span style="color:#75715e">// 使用 map 转换类型（强制解包）</span>
+        .sink(receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+<span style="color:#75715e">//    A</span>
+<span style="color:#75715e">//    -</span>
+<span style="color:#75715e">//    B</span>
+
+    <span style="color:#66d9ef">let</span> formatter = NumberFormatter()
+    formatter.numberStyle = .spellOut
+
+    [<span style="color:#ae81ff">123</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">56</span>].publisher.map {
+        formatter.string(from: NSNumber(integerLiteral: $0)) ?? <span style="color:#e6db74">&#34;&#34;</span> <span style="color:#75715e">// ?? 可以返回另外一个可选类型，但 replaceNil 不可</span>
+    }
+    .sink(receiveValue: { print($0) })
+    .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+<span style="color:#75715e">//    [&#34;A&#34;, nil, &#34;B&#34;]</span>
+<span style="color:#75715e">//    .publisher</span>
+<span style="color:#75715e">//    .replaceNil(with: &#34;-&#34; as? String?)</span>
+<span style="color:#75715e">//    .map { $0! } // 使用 map 转换类型（强制解包）</span>
+<span style="color:#75715e">//    .sink(receiveValue: { print($0) })</span>
+<span style="color:#75715e">//    .store(in: &amp;subscriptions)</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;replaceEmpty(with:)&#34;</span>) {
+    <span style="color:#75715e">// 空发布者，立即发出完成事件；也可通过传递 false 到 completeImmediately 中，从而不发射任何东西，默认为 true</span>
+    <span style="color:#75715e">// 可用于测试或演示只有完成事件时</span>
+<span style="color:#75715e">//    let empty = Empty&lt;Int, Never&gt;.init(completeImmediately: false)</span>
+    <span style="color:#66d9ef">let</span> empty = Empty&lt;Int, Never&gt;()
+    empty
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+<span style="color:#75715e">//    finished</span>
+
+
+    empty
+        .replaceEmpty(with: <span style="color:#ae81ff">1</span>) <span style="color:#75715e">// 替换空为发射 1</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+<span style="color:#75715e">//    1</span>
+<span style="color:#75715e">//    finished</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;scan&#34;</span>) {
+    <span style="color:#75715e">// 计算属性，随机数</span>
+    <span style="color:#66d9ef">var</span> dailyGainLoss: Int {
+        .random(<span style="color:#66d9ef">in</span>: <span style="color:#f92672">-</span><span style="color:#ae81ff">10.</span>..<span style="color:#ae81ff">10</span>)
+    }
+
+    <span style="color:#66d9ef">let</span> august2019 = (<span style="color:#ae81ff">0.</span>.&lt;<span style="color:#ae81ff">22</span>)
+        .map { <span style="color:#66d9ef">_</span> <span style="color:#66d9ef">in</span> dailyGainLoss } <span style="color:#75715e">// 数组</span>
+        .publisher
+
+    august2019
+        <span style="color:#75715e">// 起始 50</span>
+        .scan(<span style="color:#ae81ff">50</span>) { latest, current <span style="color:#66d9ef">in</span>
+            max(<span style="color:#ae81ff">0</span>, latest <span style="color:#f92672">+</span> current) <span style="color:#75715e">// ➡️ 可预览</span>
+        }
+    .sink(receiveValue: { <span style="color:#66d9ef">_</span> <span style="color:#66d9ef">in</span> }) <span style="color:#75715e">// 不做操作</span>
+<span style="color:#75715e">//    .sink(receiveCompletion: { print($0) },</span>
+<span style="color:#75715e">//          receiveValue: { print($0) })</span>
+    .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+
+<span style="color:#75715e">//    •对发布者的输出执行操作的方法称为运算符。</span>
+<span style="color:#75715e">//    •操作者也是发布者。</span>
+<span style="color:#75715e">//使用任何缓冲值（例如collect或flatMap）的运算符时，请避免内存问题。</span>
+<span style="color:#75715e">//    应用来自Swift标准库的现有功能知识时要谨记。 一些名称相似的Combine运算符的工作原理相同，而另一些则完全不同。</span>
+    <span style="color:#75715e">// 操作符可以组合用于一个订阅</span>
+}
+
+</code></pre></div><h2 id="4">4</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Foundation</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">var</span> subscriptions = [AnyCancellable]()
+
+<span style="color:#75715e">// 带 try 的操作符，将提供 throw 的闭包，您在闭包内引发的任何错误都将以引发的错误终止发布者。</span>
+
+<span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">MyError</span>: Error {
+    <span style="color:#66d9ef">case</span> foo
+}
+
+example(of: <span style="color:#e6db74">&#34;filter&#34;</span>) {
+    <span style="color:#66d9ef">let</span> numbers = (<span style="color:#ae81ff">1.</span>..<span style="color:#ae81ff">10</span>).publisher
+        numbers.filter {
+            $0.isMultiple(of: <span style="color:#ae81ff">3</span>) <span style="color:#75715e">// 3 的倍数</span>
+        }
+        .sink(receiveValue: {
+            print($0)
+        })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+        <span style="color:#75715e">// ---</span>
+
+        <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">throwFunc</span>(val: Int) <span style="color:#66d9ef">throws</span> -&gt; Bool {
+            <span style="color:#66d9ef">if</span> val <span style="color:#f92672">%</span> <span style="color:#ae81ff">3</span> == <span style="color:#ae81ff">0</span> {
+                <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>
+            }
+            <span style="color:#66d9ef">throw</span> MyError.foo
+        }
+
+        numbers
+            .tryFilter {
+                <span style="color:#66d9ef">try</span> throwFunc(val: $0) <span style="color:#75715e">// 失败后，即结束</span>
+        }
+            .sink(receiveCompletion: {
+                print($0) <span style="color:#75715e">// failure(__lldb_expr_10.(unknown context at $1136214cc).(unknown context at $1136214d4).(unknown context at $1136214dc).MyError.foo)</span>
+            }, receiveValue: {
+                print($0)
+            })
+            .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+}
+
+example(of: <span style="color:#e6db74">&#34;removeDuplicates&#34;</span>) {
+    <span style="color:#66d9ef">let</span> words = <span style="color:#e6db74">&#34;a a a a b b b b&#34;</span> .components(separatedBy: <span style="color:#e6db74">&#34; &#34;</span>)
+        .publisher
+
+    words
+        .removeDuplicates() <span style="color:#75715e">// 无需参数（遵守 Equable 协议）</span>
+        .sink(receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+<span style="color:#75715e">//    a</span>
+<span style="color:#75715e">//    b</span>
+
+        words
+            .tryRemoveDuplicates(by: { first, second -&gt; Bool <span style="color:#66d9ef">in</span>
+                print(first, second)
+<span style="color:#75715e">//                throw Error</span>
+                <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>
+            })
+            .sink(receiveCompletion: {
+                print($0)
+            }, receiveValue: {
+                print($0)
+            })
+            .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+}
+
+example(of: <span style="color:#e6db74">&#34;compactMap&#34;</span>) {
+    <span style="color:#66d9ef">let</span> strings = [<span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#e6db74">&#34;1.24&#34;</span>, <span style="color:#e6db74">&#34;3&#34;</span>, <span style="color:#e6db74">&#34;def&#34;</span>, <span style="color:#e6db74">&#34;45&#34;</span>, <span style="color:#e6db74">&#34;0.23&#34;</span>].publisher
+
+    strings
+        .compactMap {
+            Float($0) <span style="color:#75715e">// 无法转换会返回 nil</span>
+        }
+        .sink(receiveValue: {
+            print($0)
+        })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+<span style="color:#75715e">//    1.24</span>
+<span style="color:#75715e">//    3.0</span>
+<span style="color:#75715e">//    45.0</span>
+<span style="color:#75715e">//    0.23</span>
+
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">throwFunc</span>(val: String) <span style="color:#66d9ef">throws</span> -&gt; Float? {
+        <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> fV = Float(val) {
+            <span style="color:#66d9ef">return</span> fV
+        }
+
+        <span style="color:#66d9ef">throw</span> MyError.foo
+    }
+
+    strings
+        .tryCompactMap {
+            <span style="color:#66d9ef">try</span> throwFunc(val: $0)
+        }
+        .sink(receiveCompletion: {
+            print($0)
+        }, receiveValue: {
+            print($0)
+        })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    <span style="color:#75715e">// failure(__lldb_expr_1.MyError.foo)</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;ignoreOutput&#34;</span>) {
+    <span style="color:#66d9ef">let</span> numbers = (<span style="color:#ae81ff">1.</span>..<span style="color:#ae81ff">10_000</span>).publisher
+
+    numbers
+        .ignoreOutput() <span style="color:#75715e">// 忽略值输出</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+<span style="color:#75715e">//    finished</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;first(where:)&#34;</span>) {
+    <span style="color:#66d9ef">let</span> numbers = (<span style="color:#ae81ff">1.</span>..<span style="color:#ae81ff">9</span>).publisher
+
+    numbers
+        .print(<span style="color:#e6db74">&#34;numbers&#34;</span>)
+        .first(<span style="color:#66d9ef">where</span>: { $0 <span style="color:#f92672">%</span> <span style="color:#ae81ff">2</span> == <span style="color:#ae81ff">0</span> }) <span style="color:#75715e">// 找到第一个即取消订阅并完成</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+<span style="color:#75715e">//    numbers: receive subscription: (1...9)</span>
+<span style="color:#75715e">//    numbers: request unlimited</span>
+<span style="color:#75715e">//    numbers: receive value: (1)</span>
+<span style="color:#75715e">//    numbers: receive value: (2)</span>
+<span style="color:#75715e">//    numbers: receive cancel</span>
+<span style="color:#75715e">//    2</span>
+}
+
+
+example(of: <span style="color:#e6db74">&#34;last(where:)&#34;</span>) {
+    <span style="color:#66d9ef">let</span> numbers = (<span style="color:#ae81ff">1.</span>..<span style="color:#ae81ff">9</span>).publisher
+
+    numbers
+        .print(<span style="color:#e6db74">&#34;numbers&#34;</span>)
+        .last(<span style="color:#66d9ef">where</span>: { $0 <span style="color:#f92672">%</span> <span style="color:#ae81ff">2</span> == <span style="color:#ae81ff">0</span> }) <span style="color:#75715e">// 需等待所有值发出完成后再执行</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+<span style="color:#75715e">//numbers: receive subscription: (1...9)</span>
+<span style="color:#75715e">//numbers: request unlimited</span>
+<span style="color:#75715e">//numbers: receive value: (1)</span>
+<span style="color:#75715e">//numbers: receive value: (2)</span>
+<span style="color:#75715e">//numbers: receive value: (3)</span>
+<span style="color:#75715e">//numbers: receive value: (4)</span>
+<span style="color:#75715e">//numbers: receive value: (5)</span>
+<span style="color:#75715e">//numbers: receive value: (6)</span>
+<span style="color:#75715e">//numbers: receive value: (7)</span>
+<span style="color:#75715e">//numbers: receive value: (8)</span>
+<span style="color:#75715e">//numbers: receive value: (9)</span>
+<span style="color:#75715e">//numbers: receive finished</span>
+<span style="color:#75715e">//8</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;last(where:)&#34;</span>) {
+    <span style="color:#66d9ef">let</span> numbers = PassthroughSubject&lt;Int, Never&gt;()
+    numbers
+        .last(<span style="color:#66d9ef">where</span>: { $0 <span style="color:#f92672">%</span> <span style="color:#ae81ff">2</span> == <span style="color:#ae81ff">0</span> })
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+    numbers.send(<span style="color:#ae81ff">1</span>)
+    numbers.send(<span style="color:#ae81ff">2</span>)
+    numbers.send(<span style="color:#ae81ff">3</span>)
+    numbers.send(<span style="color:#ae81ff">4</span>)
+    numbers.send(<span style="color:#ae81ff">5</span>)
+
+    <span style="color:#75715e">// 没有完成就不会执行</span>
+<span style="color:#75715e">//    numbers.send(completion: .finished)</span>
+}
+
+
+example(of: <span style="color:#e6db74">&#34;drop&#34;</span>) {
+    <span style="color:#66d9ef">let</span> numbers = (<span style="color:#ae81ff">1.</span>..<span style="color:#ae81ff">5</span>).publisher
+
+    numbers
+        .dropFirst() <span style="color:#75715e">// 抛弃第一个值</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+<span style="color:#75715e">//    ——— Example of: dropFirst ———</span>
+<span style="color:#75715e">//    2</span>
+<span style="color:#75715e">//    3</span>
+<span style="color:#75715e">//    4</span>
+<span style="color:#75715e">//    5</span>
+<span style="color:#75715e">//    finished</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;drop(while:)&#34;</span>) {
+    <span style="color:#66d9ef">let</span> numbers = (<span style="color:#ae81ff">1.</span>..<span style="color:#ae81ff">10</span>).publisher
+
+    numbers
+    .drop(<span style="color:#66d9ef">while</span>: {
+        print(<span style="color:#e6db74">&#34;dropping&#34;</span>)
+        <span style="color:#66d9ef">return</span> $0 <span style="color:#f92672">%</span> <span style="color:#ae81ff">5</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>
+    }) <span style="color:#75715e">// 条件成立时，丢弃，第一个不成立条件达成时，输出它以及后续的所有值（之后不再进入）</span>
+        .sink(receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+<span style="color:#75715e">//    dropping</span>
+<span style="color:#75715e">//    dropping</span>
+<span style="color:#75715e">//    dropping</span>
+<span style="color:#75715e">//    dropping</span>
+<span style="color:#75715e">//    dropping</span>
+<span style="color:#75715e">//    5</span>
+<span style="color:#75715e">//    6</span>
+<span style="color:#75715e">//    7</span>
+<span style="color:#75715e">//    8</span>
+<span style="color:#75715e">//    9</span>
+<span style="color:#75715e">//    10</span>
+
+    numbers
+        .filter { $0 <span style="color:#f92672">%</span> <span style="color:#ae81ff">5</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> }
+        .sink(receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+<span style="color:#75715e">//    1</span>
+<span style="color:#75715e">//    2</span>
+<span style="color:#75715e">//    3</span>
+<span style="color:#75715e">//    4</span>
+<span style="color:#75715e">//    6</span>
+<span style="color:#75715e">//    7</span>
+<span style="color:#75715e">//    8</span>
+<span style="color:#75715e">//    9</span>
+
+    <span style="color:#75715e">// 与 filter 的区别：</span>
+    <span style="color:#75715e">// 1. 闭包内返回 true 时，while 会跳过这些值，filter 则是允许通过</span>
+    <span style="color:#75715e">// 2. filter 会在后续执行相同的过滤策略，而 while 则第一次满足后（返回 false）就不再过滤</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;drop(untilOutputFrom:)&#34;</span>) {
+    <span style="color:#75715e">// 如果我们想当一个发布者准备好的时候，再去接受另外一个发布者的值，就可以使用该操作者</span>
+    <span style="color:#66d9ef">let</span> isReady = PassthroughSubject&lt;Void, Never&gt;()
+    <span style="color:#66d9ef">let</span> taps = PassthroughSubject&lt;Int, Never&gt;()
+
+    taps
+        .drop(untilOutputFrom: isReady) <span style="color:#75715e">// isReady 发射才开始接收</span>
+        .sink(receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    (<span style="color:#ae81ff">1.</span>..<span style="color:#ae81ff">5</span>).forEach { n <span style="color:#66d9ef">in</span>
+        taps.send(n)
+        <span style="color:#66d9ef">if</span> n == <span style="color:#ae81ff">3</span> {
+<span style="color:#75715e">//            isReady.send(completion: .finished) 发射完成事件是不行的</span>
+            isReady.send() <span style="color:#75715e">// 发射</span>
+        }
+    }
+
+<span style="color:#75715e">//    4</span>
+<span style="color:#75715e">//    5</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;prefix&#34;</span>) {
+    <span style="color:#66d9ef">let</span> numbers = (<span style="color:#ae81ff">1.</span>..<span style="color:#ae81ff">10</span>).publisher
+
+    <span style="color:#75715e">// 类似 first 惰性，仅占用所需数量的值，即终止</span>
+    numbers
+        .<span style="color:#66d9ef">prefix</span>(<span style="color:#ae81ff">2</span>) <span style="color:#75715e">// 只接受前两个</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+<span style="color:#75715e">//    1</span>
+<span style="color:#75715e">//    2</span>
+<span style="color:#75715e">//    finished</span>
+
+    numbers.<span style="color:#66d9ef">prefix</span>(<span style="color:#66d9ef">while</span>: { $0 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">3</span> }) <span style="color:#75715e">// 只接受小于 3 的前缀，当起始不满足，则直接 finished</span>
+    .sink(receiveCompletion: { print($0) },
+          receiveValue: { print($0) })
+    .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+<span style="color:#75715e">//    1</span>
+<span style="color:#75715e">//    2</span>
+<span style="color:#75715e">//    finished</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;prefix(untilOutputFrom:)&#34;</span>) {
+    <span style="color:#66d9ef">let</span> isReady = PassthroughSubject&lt;Void, Never&gt;()
+    <span style="color:#66d9ef">let</span> taps = PassthroughSubject&lt;Int, Never&gt;()
+
+    taps
+        .<span style="color:#66d9ef">prefix</span>(untilOutputFrom: isReady) <span style="color:#75715e">// 当 isReady 发出后不再可以发送</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    (<span style="color:#ae81ff">1.</span>..<span style="color:#ae81ff">5</span>).forEach { n <span style="color:#66d9ef">in</span> taps.send(n)
+        <span style="color:#66d9ef">if</span> n == <span style="color:#ae81ff">2</span> {
+            isReady.send() <span style="color:#75715e">// 发射</span>
+        }
+    }
+
+<span style="color:#75715e">//    1</span>
+<span style="color:#75715e">//    2</span>
+<span style="color:#75715e">//    finished</span>
+
+
+}
+
+example(of: <span style="color:#e6db74">&#34;Challenge&#34;</span>) {
+    <span style="color:#66d9ef">let</span> p = (<span style="color:#ae81ff">1.</span>..<span style="color:#ae81ff">100</span>).publisher
+
+    p
+        .drop(<span style="color:#66d9ef">while</span>: { $0 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">50</span> })
+        .<span style="color:#66d9ef">prefix</span> { $0 <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">70</span> }
+        .filter { $0.isMultiple(of: <span style="color:#ae81ff">2</span>) }
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    <span style="color:#75715e">// 惰性：接收所需数量的值，然后完成</span>
+    <span style="color:#75715e">// 贪婪：确定值的范围，再接收满足条件的值</span>
+}
+
+</code></pre></div><h2 id="5">5</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">var</span> subscriptions = [AnyCancellable]()
+
+<span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">MyError</span>: Error {
+    <span style="color:#66d9ef">case</span> foo
+}
+
+
+example(of: <span style="color:#e6db74">&#34;prepend(Output...)&#34;</span>) {
+
+    <span style="color:#66d9ef">let</span> publisher = [<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>].publisher
+
+    publisher
+        .prepend(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>) <span style="color:#75715e">// 可变参数，插入前置的值</span>
+        .prepend(<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">0</span>) <span style="color:#75715e">// 插入上流的最前面</span>
+        .sink(receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+<span style="color:#75715e">//-1</span>
+<span style="color:#75715e">//0</span>
+<span style="color:#75715e">//1</span>
+<span style="color:#75715e">//2</span>
+<span style="color:#75715e">//3</span>
+<span style="color:#75715e">//4</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;prepend(Sequence)&#34;</span>) {
+
+    <span style="color:#66d9ef">let</span> publisher = [<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>].publisher
+
+    publisher
+        .prepend([<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>])
+        .prepend(Set(<span style="color:#ae81ff">1.</span>..<span style="color:#ae81ff">2</span>)) <span style="color:#75715e">// 集合无序，可能 1，2 或 2，1</span>
+        .prepend(stride(from: <span style="color:#ae81ff">6</span>, to: <span style="color:#ae81ff">11</span>, by: <span style="color:#ae81ff">2</span>))
+        .sink(receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+}
+
+example(of: <span style="color:#e6db74">&#34;prepend(Publisher)&#34;</span>) {
+    <span style="color:#66d9ef">let</span> publisher1 = [<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>].publisher
+    <span style="color:#66d9ef">let</span> publisher2 = [<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>].publisher
+<span style="color:#75715e">// 类型需相同</span>
+    publisher1
+        .prepend(publisher2) <span style="color:#75715e">// 插入发布者，当插入的发布者完成后才发出第二个</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    <span style="color:#66d9ef">let</span> publisher3 = PassthroughSubject&lt;Int, MyError&gt;()
+    <span style="color:#66d9ef">let</span> publisher4 = PassthroughSubject&lt;Int, MyError&gt;()
+
+    publisher4
+    .prepend(publisher3) <span style="color:#75715e">// publisher3 不结束，则 publisher4 不继续</span>
+    .sink(receiveCompletion: { print($0) },
+          receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    publisher4.send(<span style="color:#ae81ff">11</span>)
+    publisher4.send(<span style="color:#ae81ff">22</span>)
+
+    publisher3.send(<span style="color:#ae81ff">1</span>)
+    publisher3.send(<span style="color:#ae81ff">2</span>)
+    publisher3.send(completion: .finished) <span style="color:#75715e">// 完成后，4 开始</span>
+
+    publisher4.send(<span style="color:#ae81ff">33</span>)
+    publisher4.send(<span style="color:#ae81ff">44</span>)
+<span style="color:#75715e">//    publisher3.send(completion: .failure(.foo)) // Error 则也停止</span>
+
+<span style="color:#75715e">//    1</span>
+<span style="color:#75715e">//    2</span>
+<span style="color:#75715e">//    33</span>
+<span style="color:#75715e">//    44</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;append(Output...)&#34;</span>) {
+    <span style="color:#66d9ef">let</span> publisher = [<span style="color:#ae81ff">1</span>].publisher
+
+    publisher
+        .append(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>)
+        .append(<span style="color:#ae81ff">4</span>)
+        .sink(receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+<span style="color:#75715e">//    1</span>
+<span style="color:#75715e">//    2</span>
+<span style="color:#75715e">//    3</span>
+<span style="color:#75715e">//    4</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;append(Output...) #2&#34;</span>) { <span style="color:#75715e">// 1</span>
+    <span style="color:#66d9ef">let</span> publisher = PassthroughSubject&lt;Int, Never&gt;()
+    publisher
+        .append(<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>)
+        .append(<span style="color:#ae81ff">5</span>)
+        .sink(receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    publisher.send(<span style="color:#ae81ff">1</span>)
+    publisher.send(<span style="color:#ae81ff">2</span>)
+    <span style="color:#75715e">// 只有 publisher 完成，append 才会附加</span>
+    publisher.send(completion: .finished)
+
+<span style="color:#75715e">//    1</span>
+<span style="color:#75715e">//    2</span>
+<span style="color:#75715e">//    3</span>
+<span style="color:#75715e">//    4</span>
+<span style="color:#75715e">//    5</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;append(Sequence)&#34;</span>) {
+    <span style="color:#66d9ef">let</span> publisher = [<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>].publisher
+    publisher
+        .append([<span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">5</span>])
+        .append(Set([<span style="color:#ae81ff">6</span>, <span style="color:#ae81ff">7</span>])) <span style="color:#75715e">// 注意集合无序</span>
+        .append(stride(from: <span style="color:#ae81ff">8</span>, to: <span style="color:#ae81ff">11</span>, by: <span style="color:#ae81ff">2</span>))
+        .sink(receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+<span style="color:#75715e">//    1</span>
+<span style="color:#75715e">//    2</span>
+<span style="color:#75715e">//    3</span>
+<span style="color:#75715e">//    4</span>
+<span style="color:#75715e">//    5</span>
+<span style="color:#75715e">//    7</span>
+<span style="color:#75715e">//    6</span>
+<span style="color:#75715e">//    8</span>
+<span style="color:#75715e">//    10</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;append(Publisher)&#34;</span>) {
+    <span style="color:#66d9ef">let</span> publisher1 = [<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>].publisher
+    <span style="color:#66d9ef">let</span> publisher2 = [<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>].publisher
+
+    publisher1
+        .append(publisher2)
+        .sink(receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+}
+
+example(of: <span style="color:#e6db74">&#34;switchToLatest&#34;</span>) {
+    <span style="color:#66d9ef">let</span> publisher1 = PassthroughSubject&lt;Int, Never&gt;()
+    <span style="color:#66d9ef">let</span> publisher2 = PassthroughSubject&lt;Int, Never&gt;()
+    <span style="color:#66d9ef">let</span> publisher3 = PassthroughSubject&lt;Int, Never&gt;()
+
+    <span style="color:#66d9ef">let</span> publishers = PassthroughSubject&lt;PassthroughSubject&lt;Int, Never&gt;, Never&gt;()
+
+    publishers
+        .switchToLatest() <span style="color:#75715e">// 只能用于发布发布者的发布者上</span>
+        .sink(receiveCompletion: { <span style="color:#66d9ef">_</span> <span style="color:#66d9ef">in</span> print(<span style="color:#e6db74">&#34;Completed!&#34;</span>) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    publishers.send(publisher1)
+    publisher1.send(<span style="color:#ae81ff">1</span>)
+    publisher1.send(<span style="color:#ae81ff">2</span>)
+
+    publishers.send(publisher2)
+    publisher1.send(<span style="color:#ae81ff">3</span>) <span style="color:#75715e">// 已经切换到 publisher2，忽略 publisher1</span>
+    publisher2.send(<span style="color:#ae81ff">4</span>)
+    publisher2.send(<span style="color:#ae81ff">5</span>)
+
+    publishers.send(publisher3)
+    publisher2.send(<span style="color:#ae81ff">6</span>)  <span style="color:#75715e">// 已经切换到 publisher3，忽略 publisher2</span>
+    publisher3.send(<span style="color:#ae81ff">7</span>)
+    publisher3.send(<span style="color:#ae81ff">8</span>)
+    publisher3.send(<span style="color:#ae81ff">9</span>)
+
+    publisher3.send(completion: .finished)
+    publishers.send(completion: .finished)
+
+    <span style="color:#75715e">// 用途，用户点击按钮就会发送请求，再次点击触发新的请求，那么就可以用 switchToLatest 切换到只处理最新的请求</span>
+}
+
+<span style="color:#75715e">//example(of: &#34;switchToLatest - Network Request&#34;) {</span>
+<span style="color:#75715e">//    let url = URL(string: &#34;https://source.unsplash.com/random&#34;)!</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//    func getImage() -&gt; AnyPublisher&lt;UIImage?, Never&gt; {</span>
+<span style="color:#75715e">//        return URLSession.shared</span>
+<span style="color:#75715e">//            .dataTaskPublisher(for: url) // URLSession 的 Combine 扩展</span>
+<span style="color:#75715e">//            .map { data, _ in UIImage(data: data) }</span>
+<span style="color:#75715e">//            .print(&#34;image&#34;)</span>
+<span style="color:#75715e">//            .replaceError(with: nil) // 替代 error</span>
+<span style="color:#75715e">//            .eraseToAnyPublisher() // 类型擦除</span>
+<span style="color:#75715e">//    }</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//    let taps = PassthroughSubject&lt;Void, Never&gt;()</span>
+<span style="color:#75715e">//    taps</span>
+<span style="color:#75715e">//        .map { _ in getImage() }</span>
+<span style="color:#75715e">//        .switchToLatest()</span>
+<span style="color:#75715e">//        .sink(receiveValue: { _ in })</span>
+<span style="color:#75715e">//        .store(in: &amp;subscriptions)</span>
+<span style="color:#75715e">//    taps.send()</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {</span>
+<span style="color:#75715e">//        taps.send()</span>
+<span style="color:#75715e">//    }</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//    DispatchQueue.main.asyncAfter(deadline: .now() + 3.1) {</span>
+<span style="color:#75715e">//        taps.send()</span>
+<span style="color:#75715e">//    }</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">////    ——— Example of: switchToLatest - Network Request ———</span>
+<span style="color:#75715e">////    image: receive subscription: (DataTaskPublisher)</span>
+<span style="color:#75715e">////    image: request unlimited</span>
+<span style="color:#75715e">////    image: receive cancel // 被取消</span>
+<span style="color:#75715e">////    image: receive subscription: (DataTaskPublisher)</span>
+<span style="color:#75715e">////    image: request unlimited</span>
+<span style="color:#75715e">////    image: receive cancel // 被取消</span>
+<span style="color:#75715e">////    image: receive subscription: (DataTaskPublisher)</span>
+<span style="color:#75715e">////    image: request unlimited</span>
+<span style="color:#75715e">////    image: receive value: (Optional(&lt;UIImage:0x600001beca20 anonymous {1080, 1350}&gt;))</span>
+<span style="color:#75715e">////    image: receive finished</span>
+<span style="color:#75715e">//}</span>
+
+example(of: <span style="color:#e6db74">&#34;merge&#34;</span>) {
+    <span style="color:#66d9ef">let</span> pub1 = PassthroughSubject&lt;Int, Never&gt;()
+    <span style="color:#66d9ef">let</span> pub2 = PassthroughSubject&lt;Int, Never&gt;()
+
+    <span style="color:#75715e">// 最多合并 8 个</span>
+<span style="color:#75715e">//    pub2.merge(with: &lt;#T##Publisher#&gt;, &lt;#T##c: Publisher##Publisher#&gt;, &lt;#T##d: Publisher##Publisher#&gt;, &lt;#T##e: Publisher##Publisher#&gt;, &lt;#T##f: Publisher##Publisher#&gt;, &lt;#T##g: Publisher##Publisher#&gt;, &lt;#T##h: Publisher##Publisher#&gt;)</span>
+    pub2.merge(with: pub1)
+        .sink(receiveCompletion: { <span style="color:#66d9ef">_</span> <span style="color:#66d9ef">in</span>
+        print(<span style="color:#e6db74">&#34;completion&#34;</span>)
+    }, receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    pub1.send(<span style="color:#ae81ff">11</span>)
+    pub2.send(<span style="color:#ae81ff">22</span>)
+    pub1.send(<span style="color:#ae81ff">13</span>)
+    pub2.send(<span style="color:#ae81ff">24</span>)
+
+    pub1.send(completion: .finished)
+
+    pub2.send(<span style="color:#ae81ff">25</span>)
+
+    pub2.send(completion: .finished) <span style="color:#75715e">// 以最后一个结束为整个结束</span>
+
+<span style="color:#75715e">//11</span>
+<span style="color:#75715e">//22</span>
+<span style="color:#75715e">//13</span>
+<span style="color:#75715e">//24</span>
+<span style="color:#75715e">//25</span>
+<span style="color:#75715e">//completion</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;combineLast&#34;</span>) {
+    <span style="color:#75715e">// combineLast 可组合多个发布者，当其中任何一个发出值时，都会发布一个具有所有发布者最新值的元组</span>
+
+    <span style="color:#66d9ef">let</span> pub1 = PassthroughSubject&lt;Int, Never&gt;()
+    <span style="color:#66d9ef">let</span> pub2 = PassthroughSubject&lt;String, Never&gt;()
+
+    pub1.combineLatest(pub2)
+        .sink(receiveCompletion: { print(<span style="color:#e6db74">&#34;completion&#34;</span>, $0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    pub1.send(<span style="color:#ae81ff">11</span>) <span style="color:#75715e">// combineLatest 首次需等待另一个发布者发布才会一同发布</span>
+    pub1.send(<span style="color:#ae81ff">12</span>)
+    pub2.send(<span style="color:#e6db74">&#34;23&#34;</span>)
+    pub1.send(<span style="color:#ae81ff">14</span>)
+    pub2.send(<span style="color:#e6db74">&#34;25&#34;</span>)
+
+    pub1.send(completion: .finished)
+
+    pub2.send(<span style="color:#e6db74">&#34;26&#34;</span>)
+
+    pub2.send(completion: .finished) <span style="color:#75715e">// 以最后一个结束为整个结束</span>
+
+<span style="color:#75715e">//    (12, &#34;23&#34;)</span>
+<span style="color:#75715e">//    (14, &#34;23&#34;)</span>
+<span style="color:#75715e">//    (14, &#34;25&#34;)</span>
+<span style="color:#75715e">//    (14, &#34;26&#34;)</span>
+<span style="color:#75715e">//    completion finished</span>
+}
+
+example(of: <span style="color:#e6db74">&#34;zip&#34;</span>) {
+    <span style="color:#66d9ef">let</span> pub1 = PassthroughSubject&lt;Int, Never&gt;()
+    <span style="color:#66d9ef">let</span> pub2 = PassthroughSubject&lt;String, Never&gt;()
+
+    pub1.zip(pub2)
+    .sink(receiveCompletion: { print(<span style="color:#e6db74">&#34;completion&#34;</span>, $0) },
+          receiveValue: { print($0) })
+    .store(<span style="color:#66d9ef">in</span>: &amp;subscriptions)
+
+    pub1.send(<span style="color:#ae81ff">11</span>)
+    pub1.send(<span style="color:#ae81ff">12</span>)
+    pub2.send(<span style="color:#e6db74">&#34;23&#34;</span>) <span style="color:#75715e">// 取和他同为第一个的 11</span>
+    pub1.send(<span style="color:#ae81ff">14</span>)
+    pub2.send(<span style="color:#e6db74">&#34;25&#34;</span>) <span style="color:#75715e">// 取和他同为第二个的 12</span>
+
+    pub1.send(completion: .finished)
+
+    pub2.send(<span style="color:#e6db74">&#34;26&#34;</span>) <span style="color:#75715e">// 取和他同为第三个的 14</span>
+    pub2.send(<span style="color:#e6db74">&#34;27&#34;</span>) <span style="color:#75715e">// 没有和他同一个的 pub1 了，就不输出</span>
+
+    pub2.send(completion: .finished) <span style="color:#75715e">// 以最后一个结束为整个结束</span>
+
+<span style="color:#75715e">//    ——— Example of: zip ———</span>
+<span style="color:#75715e">//    (11, &#34;23&#34;)</span>
+<span style="color:#75715e">//    (12, &#34;25&#34;)</span>
+<span style="color:#75715e">//    (14, &#34;26&#34;)</span>
+<span style="color:#75715e">//    completion finished</span>
+
+<span style="color:#75715e">//    merge（with :)使您可以交错多个发布者的值。</span>
+
+}
+
+</code></pre></div><h2 id="6">6</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">SwiftUI</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">PlaygroundSupport</span>
+
+
+<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">final</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">DisplayTimer</span>: ObservableObject {
+    @Published <span style="color:#66d9ef">var</span> current: CGFloat = <span style="color:#ae81ff">0</span>
+    <span style="color:#66d9ef">var</span> cancellable: Cancellable? = <span style="color:#66d9ef">nil</span>
+
+    <span style="color:#66d9ef">init</span>() {
+        DispatchQueue.main.async {
+            <span style="color:#66d9ef">self</span>.cancellable = <span style="color:#66d9ef">self</span>.start()
+        }
+    }
+
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">start</span>() -&gt; Cancellable {
+        <span style="color:#66d9ef">return</span> Timer.publish(every: <span style="color:#ae81ff">1.0</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">30</span>,
+                             on: .main,
+                             <span style="color:#66d9ef">in</span>: .common)
+            .autoconnect()
+            .scan(CGFloat(<span style="color:#ae81ff">0</span>)) { counter, <span style="color:#66d9ef">_</span> <span style="color:#66d9ef">in</span> counter <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span> } <span style="color:#75715e">// 扫描每个值，做自增 + 1</span>
+            .sink(receiveValue: { counter <span style="color:#66d9ef">in</span> <span style="color:#66d9ef">self</span>.current = counter }) <span style="color:#75715e">// 将 Timer 发射一次就更新到 current 上</span>
+    }
+
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">stop</span>(after: TimeInterval) {
+        DispatchQueue.main.asyncAfter(deadline: .now() <span style="color:#f92672">+</span> after) {
+            <span style="color:#66d9ef">self</span>.cancellable?.cancel()
+        }
+    }
+}
+
+<span style="color:#75715e">// 事件枚举，值、完成、失败</span>
+<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Event</span>: Equatable {
+    <span style="color:#66d9ef">case</span> value
+    <span style="color:#66d9ef">case</span> completion
+    <span style="color:#66d9ef">case</span> failure
+}
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">CombineEvent</span> {
+    <span style="color:#66d9ef">let</span> index: Int
+    <span style="color:#66d9ef">let</span> time: TimeInterval
+    <span style="color:#66d9ef">let</span> event: Event
+
+    <span style="color:#66d9ef">var</span> groupTime: Int { Int(floor(time <span style="color:#f92672">*</span> <span style="color:#ae81ff">10.0</span>)) }
+    <span style="color:#66d9ef">var</span> isValue: Bool { <span style="color:#66d9ef">self</span>.event == .value }
+    <span style="color:#66d9ef">var</span> isCompletion: Bool { <span style="color:#66d9ef">self</span>.event == .completion }
+}
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">CombineEvents</span>: Identifiable {
+    <span style="color:#66d9ef">let</span> events: [CombineEvent]
+
+    <span style="color:#66d9ef">var</span> time: TimeInterval { events[<span style="color:#ae81ff">0</span>].time }
+    <span style="color:#66d9ef">var</span> id: Int { (events[<span style="color:#ae81ff">0</span>].groupTime <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">16</span>) <span style="color:#f92672">|</span> events.count } <span style="color:#75715e">// id，为每个事件创造一个 id</span>
+}
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">EventsHolder</span> {
+    <span style="color:#66d9ef">var</span> events: [CombineEvent]
+    <span style="color:#66d9ef">var</span> startDate = Date()
+    <span style="color:#66d9ef">var</span> nextIndex = <span style="color:#ae81ff">1</span>
+
+    <span style="color:#66d9ef">init</span>(events: [CombineEvent] = []) {
+        <span style="color:#66d9ef">self</span>.events = events
+    }
+
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">capture</span>(<span style="color:#66d9ef">_</span> event: Event) {
+        <span style="color:#66d9ef">let</span> time = Date().timeIntervalSince(startDate)
+        <span style="color:#75715e">// if case 模式匹配</span>
+        <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">case</span> .completion = event, <span style="color:#75715e">// 校验 event 是否符合 .completion 匹配</span>
+            <span style="color:#66d9ef">let</span> lastEvent = events.last,
+            (time <span style="color:#f92672">-</span> lastEvent.time) <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">1.0</span> {
+            events.append(CombineEvent(index: nextIndex, time: lastEvent.time <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, event: event))
+        } <span style="color:#66d9ef">else</span> {
+            events.append(CombineEvent(index: nextIndex, time: time, event: event))
+        }
+        nextIndex <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+
+        <span style="color:#75715e">// 超过 15 秒，则移除事件</span>
+        <span style="color:#66d9ef">while</span> <span style="color:#66d9ef">let</span> e = events.first {
+            <span style="color:#66d9ef">guard</span> (time <span style="color:#f92672">-</span> e.time) <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">15.0</span> <span style="color:#66d9ef">else</span> { <span style="color:#66d9ef">break</span> }
+            events.removeFirst()
+        }
+    }
+}
+
+<span style="color:#75715e">// 事件值的视图</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">EventValueView</span>: View {
+    <span style="color:#66d9ef">let</span> index: Int
+
+    <span style="color:#66d9ef">var</span> body: some View {
+        Text(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span><span style="color:#66d9ef">self</span>.index<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>)
+        .padding(<span style="color:#ae81ff">3</span>)
+        .frame(width: <span style="color:#ae81ff">28</span>, height: <span style="color:#ae81ff">28</span>)
+        <span style="color:#75715e">// Sets whether text can compress the space between characters when necessary to fit text in a line.</span>
+        <span style="color:#75715e">// 允许一行中挤压文字间空隙</span>
+<span style="color:#75715e">// .allowsTightening(true)</span>
+        .minimumScaleFactor(<span style="color:#ae81ff">0.1</span>)
+        .foregroundColor(.white)
+        .background(Circle().fill(Color.blue))
+        .fixedSize()
+    }
+}
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">EventCompletedView</span>: View {
+    <span style="color:#66d9ef">var</span> body: some View {
+        Rectangle()
+            .frame(width: <span style="color:#ae81ff">4</span>, height: <span style="color:#ae81ff">38</span>)
+            .offset(x: <span style="color:#ae81ff">0</span>, y: <span style="color:#f92672">-</span><span style="color:#ae81ff">3</span>)
+            .foregroundColor(.gray)
+    }
+}
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">EventFailureView</span>: View {
+    <span style="color:#66d9ef">var</span> body: some View {
+        Text(<span style="color:#e6db74">&#34;X&#34;</span>)
+            .padding(<span style="color:#ae81ff">3.0</span>)
+            .frame(width: <span style="color:#ae81ff">28</span>, height: <span style="color:#ae81ff">28</span>)
+            .foregroundColor(.white)
+            .background(Circle().fill(Color.red))
+    }
+}
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">EventView</span>: View {
+    <span style="color:#66d9ef">let</span> event: CombineEvent
+    <span style="color:#75715e">// An AnyView allows changing the type of view used in a given view hierarchy. Whenever the type of view used with an AnyView changes, the old hierarchy is destroyed and a new hierarchy is created for the new type.</span>
+    <span style="color:#66d9ef">var</span> body: some View {
+        <span style="color:#66d9ef">switch</span> <span style="color:#66d9ef">self</span>.event.event {
+        <span style="color:#66d9ef">case</span> .value:
+            <span style="color:#66d9ef">return</span> AnyView(EventValueView(index: <span style="color:#66d9ef">self</span>.event.index))
+        <span style="color:#66d9ef">case</span> .completion:
+            <span style="color:#66d9ef">return</span> AnyView(EventCompletedView())
+        <span style="color:#66d9ef">case</span> .failure:
+            <span style="color:#66d9ef">return</span> AnyView(EventFailureView())
+        }
+    }
+}
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">SimultaneousEventsView</span>: View {
+    <span style="color:#66d9ef">let</span> events: [CombineEvent]
+
+    <span style="color:#66d9ef">var</span> body: some View {
+        VStack(alignment: .center, spacing: <span style="color:#ae81ff">0.0</span>) {
+            ForEach(<span style="color:#ae81ff">0.</span>.&lt;<span style="color:#66d9ef">self</span>.events.count) {
+                EventView(event: <span style="color:#66d9ef">self</span>.events[$0])
+            }
+        }
+    }
+}
+
+<span style="color:#66d9ef">extension</span> <span style="color:#a6e22e">SimultaneousEventsView</span>: Identifiable {
+    <span style="color:#66d9ef">var</span> id: Int { <span style="color:#66d9ef">return</span> events[<span style="color:#ae81ff">0</span>].groupTime }
+}
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ContentView</span>: View {
+    @ObservedObject <span style="color:#66d9ef">var</span> time = DisplayTimer()
+    <span style="color:#66d9ef">let</span> holder: EventsHolder
+    <span style="color:#66d9ef">let</span> title: String
+    <span style="color:#66d9ef">var</span> groupEvents: [CombineEvents] {
+        <span style="color:#66d9ef">let</span> d = Dictionary&lt;Int, [CombineEvent]<span style="color:#f92672">&gt;</span>.<span style="color:#66d9ef">init</span>(grouping: <span style="color:#66d9ef">self</span>.holder.events) {
+            $0.groupTime
+        }
+        <span style="color:#66d9ef">return</span> d.keys.sorted().map {
+            CombineEvents(events: d[$0]<span style="color:#f92672">!</span>.sorted { $0.index <span style="color:#f92672">&lt;</span> $1.index })
+        }
+    }
+
+    <span style="color:#66d9ef">init</span>(title: String, holder: EventsHolder = EventsHolder()) {
+        <span style="color:#66d9ef">self</span>.title = title
+        <span style="color:#66d9ef">self</span>.holder = holder
+    }
+
+    <span style="color:#66d9ef">var</span> body: some View {
+        VStack(alignment: .leading) {
+            Text(title)
+                .fixedSize(horizontal: <span style="color:#66d9ef">false</span>, vertical: <span style="color:#66d9ef">true</span>)
+                .padding(.bottom, <span style="color:#ae81ff">8</span>)
+            ZStack {
+                Rectangle()
+                    .frame(height: <span style="color:#ae81ff">2</span>)
+                    .foregroundColor(.gray)
+                    .offset(x: <span style="color:#ae81ff">0</span>, y: <span style="color:#ae81ff">14</span>)
+                ForEach(groupEvents) { group <span style="color:#66d9ef">in</span>
+                    SimultaneousEventsView(events: group.events)
+                        .offset(x: CGFloat(group.time) <span style="color:#f92672">*</span> <span style="color:#ae81ff">30.0</span> <span style="color:#f92672">-</span> <span style="color:#66d9ef">self</span>.time.current <span style="color:#f92672">-</span> <span style="color:#ae81ff">32</span>, y: <span style="color:#ae81ff">0</span>)
+                }
+            }
+            .frame(minHeight: <span style="color:#ae81ff">32</span>)
+            .onReceive(time.objectWillChange) { <span style="color:#66d9ef">_</span> <span style="color:#66d9ef">in</span>
+                <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">self</span>.holder.events.contains(<span style="color:#66d9ef">where</span>: { $0.event <span style="color:#f92672">!=</span> .value }) {
+                    <span style="color:#66d9ef">self</span>.time.stop(after: <span style="color:#ae81ff">0.5</span>)
+                }
+            }
+
+        }
+    }
+
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">capture</span>&lt;T, F&gt;(publisher: AnyPublisher&lt;T, F&gt;) {
+        <span style="color:#75715e">// 传入的 publisher 与其订阅者绑定，触发事件更新</span>
+        <span style="color:#75715e">// 类型擦除的 订阅者</span>
+        <span style="color:#66d9ef">let</span> observer = AnySubscriber(receiveSubscription: { subscription <span style="color:#66d9ef">in</span>
+            subscription.request(.unlimited)
+        }, receiveValue: { (value: T) -&gt; Subscribers.Demand <span style="color:#66d9ef">in</span>
+            <span style="color:#66d9ef">self</span>.holder.capture(.value)
+            <span style="color:#66d9ef">return</span> .unlimited
+        }, receiveCompletion: { (completion: Subscribers.Completion&lt;F&gt;) <span style="color:#66d9ef">in</span>
+            <span style="color:#66d9ef">switch</span> completion {
+            <span style="color:#66d9ef">case</span> .finished: <span style="color:#66d9ef">self</span>.holder.capture(.completion)
+            <span style="color:#66d9ef">case</span> .failure: <span style="color:#66d9ef">self</span>.holder.capture(.failure)
+            }
+        })
+
+        publisher.subscribe(on: DispatchQueue.main)
+        .subscribe(observer)
+    }
+}
+
+<span style="color:#66d9ef">extension</span> <span style="color:#a6e22e">Publisher</span> {
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">displayEvents</span>(<span style="color:#66d9ef">in</span> view: ContentView) {
+        view.capture(publisher: <span style="color:#66d9ef">self</span>.eraseToAnyPublisher())
+    }
+}
+
+<span style="color:#66d9ef">var</span> subscriptions = [AnyCancellable]()
+
+<span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">MyError</span>: Error {
+    <span style="color:#66d9ef">case</span> foo
+}
+
+<span style="color:#66d9ef">let</span> valuesPerSecond = <span style="color:#ae81ff">1.0</span>
+<span style="color:#66d9ef">let</span> delayInSeconds = <span style="color:#ae81ff">1.5</span>
+
+
+
+<span style="color:#75715e">// 延迟</span>
+<span style="color:#66d9ef">let</span> pub = PassthroughSubject&lt;Date, Never&gt;() <span style="color:#75715e">// 发射 Date 值的发布者</span>
+<span style="color:#66d9ef">let</span> delayedPub = pub.delay(<span style="color:#66d9ef">for</span>: .seconds(delayInSeconds),
+                           scheduler: DispatchQueue.main) <span style="color:#75715e">// 延迟发布者</span>
+
+<span style="color:#66d9ef">let</span> sub = Timer
+    .publish(every: <span style="color:#ae81ff">1.0</span> <span style="color:#f92672">/</span> valuesPerSecond, on: .main, <span style="color:#66d9ef">in</span>: .common)
+    .autoconnect() <span style="color:#75715e">// autoconnect，它将在第一个订阅时立即连接。</span>
+    .subscribe(pub) <span style="color:#75715e">// pub.send</span>
+
+<span style="color:#66d9ef">let</span> sourceTimeline = ContentView(title: <span style="color:#e6db74">&#34;Emitted values (</span><span style="color:#e6db74">\(</span>valuesPerSecond<span style="color:#e6db74">)</span><span style="color:#e6db74"> per sec.):&#34;</span>)
+<span style="color:#66d9ef">let</span> delayedTimeline = ContentView(title: <span style="color:#e6db74">&#34;Delayed values (with a </span><span style="color:#e6db74">\(</span>delayInSeconds<span style="color:#e6db74">)</span><span style="color:#e6db74">s delay):&#34;</span>)
+<span style="color:#66d9ef">let</span> view = VStack(spacing: <span style="color:#ae81ff">50</span>) {
+  sourceTimeline
+  delayedTimeline
+}
+
+PlaygroundPage.current.liveView = UIHostingController(rootView: view)
+
+pub.displayEvents(<span style="color:#66d9ef">in</span>: sourceTimeline)
+delayedPub.displayEvents(<span style="color:#66d9ef">in</span>: delayedTimeline)
+
+
+<span style="color:#75715e">//pub.sink(receiveValue: { print($0) }).store(in: &amp;subscriptions)</span>
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">SwiftUI</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">var</span> subs = [AnyCancellable]()
+
+<span style="color:#66d9ef">let</span> pub1 = PassthroughSubject&lt;Date, Never&gt;() <span style="color:#75715e">// 源</span>
+<span style="color:#75715e">// collect 的另一种重载</span>
+<span style="color:#66d9ef">let</span> pub2 = pub1
+    .collect(.byTime(DispatchQueue.main, .seconds(<span style="color:#ae81ff">4</span>))) <span style="color:#75715e">// 按时间每四秒收集一次</span>
+<span style="color:#75715e">//    .flatMap { $0.publisher } // 分解为同时单个输出的四个值</span>
+
+<span style="color:#66d9ef">let</span> sub = Timer.publish(every: <span style="color:#ae81ff">1</span>, on: .main, <span style="color:#66d9ef">in</span>: .common)
+.autoconnect()
+.subscribe(pub1)
+
+pub1.sink(receiveValue: { print(<span style="color:#e6db74">&#34;1 - &#34;</span>, $0) })
+    .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+pub2.sink(receiveValue: { print(<span style="color:#e6db74">&#34;2 - &#34;</span>, $0) })
+    .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+<span style="color:#75715e">//1 -  2020-03-15 10:38:02 +0000</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:38:03 +0000</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:38:04 +0000</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:38:05 +0000</span>
+<span style="color:#75715e">//2 -  [2020-03-15 10:38:02 +0000, 2020-03-15 10:38:03 +0000, 2020-03-15 10:38:04 +0000, 2020-03-15 10:38:05 +0000]</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:38:06 +0000</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:38:07 +0000</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:38:08 +0000</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:38:09 +0000</span>
+<span style="color:#75715e">//2 -  [2020-03-15 10:38:06 +0000, 2020-03-15 10:38:07 +0000, 2020-03-15 10:38:08 +0000, 2020-03-15 10:38:09 +0000]</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:38:10 +0000</span>
+<span style="color:#75715e">//...</span>
+
+<span style="color:#75715e">//1 -  2020-03-15 10:44:55 +0000</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:44:56 +0000</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:44:57 +0000</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:44:58 +0000</span>
+<span style="color:#75715e">//2 -  2020-03-15 10:44:55 +0000</span>
+<span style="color:#75715e">//2 -  2020-03-15 10:44:56 +0000</span>
+<span style="color:#75715e">//2 -  2020-03-15 10:44:57 +0000</span>
+<span style="color:#75715e">//2 -  2020-03-15 10:44:58 +0000</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:44:59 +0000</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:45:00 +0000</span>
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">SwiftUI</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">var</span> subs = [AnyCancellable]()
+
+<span style="color:#66d9ef">let</span> pub1 = PassthroughSubject&lt;Date, Never&gt;() <span style="color:#75715e">// 源</span>
+<span style="color:#75715e">// collect 的另一种重载</span>
+<span style="color:#66d9ef">let</span> pub2 = pub1
+    .collect(.byTimeOrCount(DispatchQueue.main, .seconds(<span style="color:#ae81ff">4</span>), <span style="color:#ae81ff">2</span>)) <span style="color:#75715e">// 按时间每四秒，但最多收集两个</span>
+    .flatMap { $0.publisher } <span style="color:#75715e">// 分解为同时单个输出的四个值</span>
+
+<span style="color:#66d9ef">let</span> sub = Timer.publish(every: <span style="color:#ae81ff">1</span>, on: .main, <span style="color:#66d9ef">in</span>: .common)
+.autoconnect()
+.subscribe(pub1)
+
+pub1.sink(receiveValue: { print(<span style="color:#e6db74">&#34;1 - &#34;</span>, $0) })
+    .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+pub2.sink(receiveValue: { print(<span style="color:#e6db74">&#34;2 - &#34;</span>, $0) })
+    .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+<span style="color:#75715e">// 不带 flatMap</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:55:00 +0000</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:55:01 +0000</span>
+<span style="color:#75715e">//2 -  [2020-03-15 10:55:00 +0000, 2020-03-15 10:55:01 +0000]</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:55:02 +0000</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:55:03 +0000</span>
+<span style="color:#75715e">//2 -  [2020-03-15 10:55:02 +0000, 2020-03-15 10:55:03 +0000]</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:55:04 +0000</span>
+
+<span style="color:#75715e">// 带 flatMap</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:55:34 +0000</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:55:35 +0000</span>
+<span style="color:#75715e">//2 -  2020-03-15 10:55:34 +0000</span>
+<span style="color:#75715e">//2 -  2020-03-15 10:55:35 +0000</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:55:36 +0000</span>
+<span style="color:#75715e">//1 -  2020-03-15 10:55:37 +0000</span>
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">SwiftUI</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#75715e">// 去抖</span>
+<span style="color:#66d9ef">var</span> subs = [AnyCancellable]()
+
+<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">let</span> typingHelloWorld: [(TimeInterval, String)] = [
+  (<span style="color:#ae81ff">0.0</span>, <span style="color:#e6db74">&#34;H&#34;</span>),
+  (<span style="color:#ae81ff">0.1</span>, <span style="color:#e6db74">&#34;He&#34;</span>),
+  (<span style="color:#ae81ff">0.2</span>, <span style="color:#e6db74">&#34;Hel&#34;</span>),
+  (<span style="color:#ae81ff">0.3</span>, <span style="color:#e6db74">&#34;Hell&#34;</span>),
+  (<span style="color:#ae81ff">0.5</span>, <span style="color:#e6db74">&#34;Hello&#34;</span>),
+  (<span style="color:#ae81ff">0.6</span>, <span style="color:#e6db74">&#34;Hello &#34;</span>),
+  (<span style="color:#ae81ff">2.0</span>, <span style="color:#e6db74">&#34;Hello W&#34;</span>),
+  (<span style="color:#ae81ff">2.1</span>, <span style="color:#e6db74">&#34;Hello Wo&#34;</span>),
+  (<span style="color:#ae81ff">2.2</span>, <span style="color:#e6db74">&#34;Hello Wor&#34;</span>),
+  (<span style="color:#ae81ff">2.4</span>, <span style="color:#e6db74">&#34;Hello Worl&#34;</span>),
+  (<span style="color:#ae81ff">2.5</span>, <span style="color:#e6db74">&#34;Hello World&#34;</span>)
+]
+
+<span style="color:#66d9ef">let</span> subject = PassthroughSubject&lt;String, Never&gt;()
+<span style="color:#66d9ef">let</span> debounced = subject
+    .debounce(<span style="color:#66d9ef">for</span>: .seconds(<span style="color:#ae81ff">1.0</span>), scheduler: DispatchQueue.main)
+    .share() <span style="color:#75715e">// 当一个发布者的单个订阅需要向多个订阅者交付相同的结果时</span>
+
+subject.feed(with: typingHelloWorld) <span style="color:#75715e">// A function that can feed delayed values to a subject for testing and simulation purposes</span>
+DispatchQueue.main.asyncAfter(deadline: .now() <span style="color:#f92672">+</span> <span style="color:#ae81ff">5</span>) {
+    subject.send(<span style="color:#e6db74">&#34;kingcos.me&#34;</span>)
+    subject.send(completion: .finished)
+}
+
+subject.sink(receiveCompletion: { print($0) }, receiveValue: { print(<span style="color:#e6db74">&#34;s&#34;</span>, $0) }).store(<span style="color:#66d9ef">in</span>: &amp;subs)
+debounced.sink(receiveValue: { print(<span style="color:#e6db74">&#34;d&#34;</span>, $0) }).store(<span style="color:#66d9ef">in</span>: &amp;subs)
+<span style="color:#75715e">//s H</span>
+<span style="color:#75715e">//s He</span>
+<span style="color:#75715e">//s Hel</span>
+<span style="color:#75715e">//s Hell</span>
+<span style="color:#75715e">//s Hello</span>
+<span style="color:#75715e">//s Hello</span>
+<span style="color:#75715e">//d Hello // 上一个值发出 1 秒后，无新值才发射</span>
+<span style="color:#75715e">//s Hello W</span>
+<span style="color:#75715e">//s Hello Wo</span>
+<span style="color:#75715e">//s Hello Wor</span>
+<span style="color:#75715e">//s Hello Worl</span>
+<span style="color:#75715e">//s Hello World</span>
+<span style="color:#75715e">//d Hello World</span>
+<span style="color:#75715e">//finished // 完成后，最后一个未间隔到 1s 不会再发出</span>
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">SwiftUI</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">var</span> subs = [AnyCancellable]()
+
+<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">let</span> typingHelloWorld: [(TimeInterval, String)] = [
+  (<span style="color:#ae81ff">0.0</span>, <span style="color:#e6db74">&#34;H&#34;</span>),
+  (<span style="color:#ae81ff">0.1</span>, <span style="color:#e6db74">&#34;He&#34;</span>),
+  (<span style="color:#ae81ff">0.2</span>, <span style="color:#e6db74">&#34;Hel&#34;</span>),
+  (<span style="color:#ae81ff">0.3</span>, <span style="color:#e6db74">&#34;Hell&#34;</span>),
+  (<span style="color:#ae81ff">0.5</span>, <span style="color:#e6db74">&#34;Hello&#34;</span>),
+  (<span style="color:#ae81ff">0.6</span>, <span style="color:#e6db74">&#34;Hello &#34;</span>),
+  (<span style="color:#ae81ff">2.0</span>, <span style="color:#e6db74">&#34;Hello W&#34;</span>),
+  (<span style="color:#ae81ff">2.1</span>, <span style="color:#e6db74">&#34;Hello Wo&#34;</span>),
+  (<span style="color:#ae81ff">2.2</span>, <span style="color:#e6db74">&#34;Hello Wor&#34;</span>),
+  (<span style="color:#ae81ff">2.4</span>, <span style="color:#e6db74">&#34;Hello Worl&#34;</span>),
+  (<span style="color:#ae81ff">2.5</span>, <span style="color:#e6db74">&#34;Hello World&#34;</span>)
+]
+
+<span style="color:#75715e">// 节流</span>
+<span style="color:#75715e">// A Boolean value that indicates whether to publish the most recent element. If false, the publisher emits the first element received during the interval.</span>
+<span style="color:#75715e">// bool 控制是否发布最近的元素，false 时发射一段时间内最初的元素</span>
+<span style="color:#66d9ef">let</span> subject = PassthroughSubject&lt;String, Never&gt;()
+<span style="color:#66d9ef">let</span> throttled = subject
+    .throttle(<span style="color:#66d9ef">for</span>: .seconds(<span style="color:#ae81ff">1.0</span>), scheduler: DispatchQueue.main, latest: <span style="color:#66d9ef">true</span>)
+    .share()
+
+subject.sink(receiveCompletion: { print($0) }, receiveValue: { print(<span style="color:#e6db74">&#34;s&#34;</span>, $0) }).store(<span style="color:#66d9ef">in</span>: &amp;subs)
+throttled.sink(receiveValue: { print(<span style="color:#e6db74">&#34;t&#34;</span>, $0) }).store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+subject.feed(with: typingHelloWorld)
+
+<span style="color:#75715e">//区别:</span>
+<span style="color:#75715e">//去抖在小于等待的时间内暂停接收（去除抖动时的操作）</span>
+<span style="color:#75715e">//节流按时发车，取该时间段内首个或最后一个值</span>
+
+<span style="color:#75715e">// latest: false</span>
+<span style="color:#75715e">//s H</span>
+<span style="color:#75715e">//t H // 0-1s 内的第一个元素</span>
+<span style="color:#75715e">//s He</span>
+<span style="color:#75715e">//s Hel</span>
+<span style="color:#75715e">//s Hell</span>
+<span style="color:#75715e">//s Hello</span>
+<span style="color:#75715e">//s Hello</span>
+<span style="color:#75715e">//t He // 1-2s 内的第一个元素</span>
+<span style="color:#75715e">//s Hello W</span>
+<span style="color:#75715e">//s Hello Wo</span>
+<span style="color:#75715e">//t Hello W // 2-3s 内的第一个元素</span>
+<span style="color:#75715e">//s Hello Wor</span>
+<span style="color:#75715e">//s Hello Worl</span>
+<span style="color:#75715e">//s Hello World</span>
+<span style="color:#75715e">//t Hello Wor // 3-4s 内的第一个元素</span>
+<span style="color:#75715e">//finished</span>
+
+<span style="color:#75715e">//s H</span>
+<span style="color:#75715e">//t H // 0-1s 内的最后一个元素</span>
+<span style="color:#75715e">//s He</span>
+<span style="color:#75715e">//s Hel</span>
+<span style="color:#75715e">//s Hell</span>
+<span style="color:#75715e">//s Hello</span>
+<span style="color:#75715e">//s Hello</span>
+<span style="color:#75715e">//t Hello // 1-2s 内的最后一个元素</span>
+<span style="color:#75715e">//s Hello W</span>
+<span style="color:#75715e">//s Hello Wo</span>
+<span style="color:#75715e">//s Hello Wor</span>
+<span style="color:#75715e">//s Hello Worl</span>
+<span style="color:#75715e">//s Hello World</span>
+<span style="color:#75715e">//t Hello World // 2-3s 内的最后一个元素</span>
+<span style="color:#75715e">//finished</span>
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">SwiftUI</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">var</span> subs = [AnyCancellable]()
+
+<span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">TimeoutError</span>: Error {
+  <span style="color:#66d9ef">case</span> timedOut
+}
+
+<span style="color:#66d9ef">let</span> sub = PassthroughSubject&lt;Void, Never&gt;()
+<span style="color:#75715e">//let sub = PassthroughSubject&lt;Void, TimeoutError&gt;()</span>
+<span style="color:#66d9ef">let</span> timedOutSubject = sub.timeout(.seconds(<span style="color:#ae81ff">1</span>),
+                                  scheduler: DispatchQueue.main <span style="color:#75715e">/*,
+</span><span style="color:#75715e">                                  customError: { .timedOut }*/</span>)
+
+DispatchQueue.main.asyncAfter(deadline: .now() <span style="color:#f92672">+</span> <span style="color:#ae81ff">2</span>) {
+    sub.send()
+}
+
+sub.sink(receiveCompletion: { print($0) }, receiveValue: { print(<span style="color:#e6db74">&#34;sub&#34;</span>, $0) }).store(<span style="color:#66d9ef">in</span>: &amp;subs)
+timedOutSubject.sink(receiveCompletion: { print($0) }, receiveValue: { print(<span style="color:#e6db74">&#34;timeout&#34;</span>, $0) }).store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+<span style="color:#75715e">//finished // 超时即完成</span>
+<span style="color:#75715e">//sub ()</span>
+
+<span style="color:#75715e">// 定义 customError</span>
+<span style="color:#75715e">//failure(__lldb_expr_19.TimeoutError.timedOut)</span>
+<span style="color:#75715e">//sub ()</span>
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">SwiftUI</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">var</span> subs = [AnyCancellable]()
+
+<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">let</span> typingHelloWorld: [(TimeInterval, String)] = [
+  (<span style="color:#ae81ff">0.0</span>, <span style="color:#e6db74">&#34;H&#34;</span>),
+  (<span style="color:#ae81ff">0.1</span>, <span style="color:#e6db74">&#34;He&#34;</span>),
+  (<span style="color:#ae81ff">0.2</span>, <span style="color:#e6db74">&#34;Hel&#34;</span>),
+  (<span style="color:#ae81ff">0.3</span>, <span style="color:#e6db74">&#34;Hell&#34;</span>),
+  (<span style="color:#ae81ff">0.5</span>, <span style="color:#e6db74">&#34;Hello&#34;</span>),
+  (<span style="color:#ae81ff">0.6</span>, <span style="color:#e6db74">&#34;Hello &#34;</span>),
+  (<span style="color:#ae81ff">2.0</span>, <span style="color:#e6db74">&#34;Hello W&#34;</span>),
+  (<span style="color:#ae81ff">2.1</span>, <span style="color:#e6db74">&#34;Hello Wo&#34;</span>),
+  (<span style="color:#ae81ff">2.2</span>, <span style="color:#e6db74">&#34;Hello Wor&#34;</span>),
+  (<span style="color:#ae81ff">2.4</span>, <span style="color:#e6db74">&#34;Hello Worl&#34;</span>),
+  (<span style="color:#ae81ff">2.5</span>, <span style="color:#e6db74">&#34;Hello World&#34;</span>)
+]
+
+<span style="color:#66d9ef">let</span> sub = PassthroughSubject&lt;String, Never&gt;()
+<span style="color:#66d9ef">let</span> measure = sub.measureInterval(using: DispatchQueue.main)
+
+sub.sink(receiveCompletion: { print($0) }, receiveValue: { print(<span style="color:#e6db74">&#34;sub&#34;</span>, $0) }).store(<span style="color:#66d9ef">in</span>: &amp;subs)
+<span style="color:#75715e">//measure.sink(receiveCompletion: { print($0) }, receiveValue: { print(&#34;measure \(Double($0.magnitude) / 1_000_000_000.0)&#34;) }).store(in: &amp;subs)</span>
+
+<span style="color:#75715e">// 默认单位纳秒，转换为秒：</span>
+<span style="color:#75715e">//sub H</span>
+<span style="color:#75715e">//measure 0.010279283</span>
+<span style="color:#75715e">//sub He</span>
+<span style="color:#75715e">//measure 0.097314792</span>
+<span style="color:#75715e">//sub Hel</span>
+<span style="color:#75715e">//measure 0.106212119</span>
+<span style="color:#75715e">//sub Hell</span>
+<span style="color:#75715e">//measure 0.113224792</span>
+<span style="color:#75715e">//sub Hello</span>
+<span style="color:#75715e">//measure 0.197550122</span>
+<span style="color:#75715e">//sub Hello</span>
+<span style="color:#75715e">//measure 0.129873388</span>
+<span style="color:#75715e">//sub Hello W</span>
+<span style="color:#75715e">//measure 1.346181832</span>
+<span style="color:#75715e">//sub Hello Wo</span>
+<span style="color:#75715e">//measure 0.103605421</span>
+<span style="color:#75715e">//sub Hello Wor</span>
+<span style="color:#75715e">//measure 0.096385811</span>
+<span style="color:#75715e">//sub Hello Worl</span>
+<span style="color:#75715e">//measure 0.19998862</span>
+<span style="color:#75715e">//sub Hello World</span>
+<span style="color:#75715e">//measure 0.10001298</span>
+<span style="color:#75715e">//finished</span>
+<span style="color:#75715e">//finished</span>
+
+<span style="color:#75715e">// RunLoop</span>
+<span style="color:#75715e">// 通常，对所有内容都坚持使用DispatchQueue是一个好主意</span>
+<span style="color:#66d9ef">let</span> measureSubject2 = sub.measureInterval(using: RunLoop.main)
+measureSubject2.sink(receiveCompletion: { print($0) }, receiveValue: { print(<span style="color:#e6db74">&#34;measure </span><span style="color:#e6db74">\(</span>$0<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>) }).store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+sub.feed(with: typingHelloWorld)
+<span style="color:#75715e">//sub H</span>
+<span style="color:#75715e">//measure Stride(magnitude: 0.008931994438171387)</span>
+<span style="color:#75715e">//sub He</span>
+<span style="color:#75715e">//measure Stride(magnitude: 0.10000407695770264)</span>
+<span style="color:#75715e">//sub Hel</span>
+<span style="color:#75715e">//measure Stride(magnitude: 0.1105649471282959)</span>
+<span style="color:#75715e">//sub Hell</span>
+<span style="color:#75715e">//measure Stride(magnitude: 0.10970902442932129)</span>
+<span style="color:#75715e">//sub Hello</span>
+<span style="color:#75715e">//measure Stride(magnitude: 0.21341097354888916)</span>
+<span style="color:#75715e">//sub Hello</span>
+<span style="color:#75715e">//measure Stride(magnitude: 0.11738002300262451)</span>
+<span style="color:#75715e">//sub Hello W</span>
+<span style="color:#75715e">//measure Stride(magnitude: 1.3406749963760376)</span>
+<span style="color:#75715e">//sub Hello Wo</span>
+<span style="color:#75715e">//measure Stride(magnitude: 0.10406196117401123)</span>
+<span style="color:#75715e">//sub Hello Wor</span>
+<span style="color:#75715e">//measure Stride(magnitude: 0.09577000141143799)</span>
+<span style="color:#75715e">//sub Hello Worl</span>
+<span style="color:#75715e">//measure Stride(magnitude: 0.20008206367492676)</span>
+<span style="color:#75715e">//sub Hello World</span>
+<span style="color:#75715e">//measure Stride(magnitude: 0.10001897811889648)</span>
+<span style="color:#75715e">//finished</span>
+<span style="color:#75715e">//finished</span>
+</code></pre></div><h2 id="7">7</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">SwiftUI</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">var</span> subs = [AnyCancellable]()
+
+example(of: <span style="color:#e6db74">&#34;min &amp; max&#34;</span>) {
+    <span style="color:#66d9ef">let</span> pub1 = [<span style="color:#ae81ff">1</span>, <span style="color:#f92672">-</span><span style="color:#ae81ff">50</span>, <span style="color:#ae81ff">246</span>, <span style="color:#ae81ff">0</span>].publisher
+
+    pub1
+        .print(<span style="color:#e6db74">&#34;pub1&#34;</span>)
+        .min() <span style="color:#75715e">// Int 遵守 Comparable，找到序列中的最小值，min 是贪婪的，需序列发射完毕才会</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+    print(<span style="color:#e6db74">&#34;---&#34;</span>)
+
+    <span style="color:#66d9ef">let</span> pub2 = [<span style="color:#e6db74">&#34;12345&#34;</span>, <span style="color:#e6db74">&#34;ab&#34;</span>, <span style="color:#e6db74">&#34;hello world&#34;</span>]
+        .compactMap { $0.data(using: .utf8) }
+        .publisher
+    pub2
+        .print(<span style="color:#e6db74">&#34;pub2&#34;</span>)
+        .min(by: { $0.count <span style="color:#f92672">&lt;</span> $1.count }) <span style="color:#75715e">// 未遵守 Comparable 可自己实现，以找到序列中的最小值</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+    print(<span style="color:#e6db74">&#34;---&#34;</span>)
+
+    <span style="color:#66d9ef">let</span> pub3 = [<span style="color:#e6db74">&#34;A&#34;</span>, <span style="color:#e6db74">&#34;F&#34;</span>, <span style="color:#e6db74">&#34;Z&#34;</span>, <span style="color:#e6db74">&#34;E&#34;</span>].publisher
+    pub3
+        .print(<span style="color:#e6db74">&#34;pub3&#34;</span>)
+        .max()
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+    <span style="color:#75715e">// max(by:) 同理</span>
+
+}
+
+<span style="color:#75715e">//——— Example of: min ———</span>
+<span style="color:#75715e">//pub: receive subscription: ([1, -50, 246, 0])</span>
+<span style="color:#75715e">//pub: request unlimited</span>
+<span style="color:#75715e">//pub: receive value: (1)</span>
+<span style="color:#75715e">//pub: receive value: (-50)</span>
+<span style="color:#75715e">//pub: receive value: (246)</span>
+<span style="color:#75715e">//pub: receive value: (0)</span>
+<span style="color:#75715e">//pub: receive finished</span>
+<span style="color:#75715e">//-50</span>
+<span style="color:#75715e">//finished</span>
+<span style="color:#75715e">//---</span>
+<span style="color:#75715e">//pub2: receive subscription: ([5 bytes, 2 bytes, 11 bytes])</span>
+<span style="color:#75715e">//pub2: request unlimited</span>
+<span style="color:#75715e">//pub2: receive value: (5 bytes)</span>
+<span style="color:#75715e">//pub2: receive value: (2 bytes)</span>
+<span style="color:#75715e">//pub2: receive value: (11 bytes)</span>
+<span style="color:#75715e">//pub2: receive finished</span>
+<span style="color:#75715e">//2 bytes</span>
+<span style="color:#75715e">//finished</span>
+<span style="color:#75715e">//---</span>
+<span style="color:#75715e">//pub3: receive subscription: ([&#34;A&#34;, &#34;F&#34;, &#34;Z&#34;, &#34;E&#34;])</span>
+<span style="color:#75715e">//pub3: request unlimited</span>
+<span style="color:#75715e">//pub3: receive value: (A)</span>
+<span style="color:#75715e">//pub3: receive value: (F)</span>
+<span style="color:#75715e">//pub3: receive value: (Z)</span>
+<span style="color:#75715e">//pub3: receive value: (E)</span>
+<span style="color:#75715e">//pub3: receive finished</span>
+<span style="color:#75715e">//Z</span>
+<span style="color:#75715e">//finished</span>
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">SwiftUI</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">var</span> subs = [AnyCancellable]()
+
+example(of: <span style="color:#e6db74">&#34;first &amp; last&#34;</span>) {
+    <span style="color:#66d9ef">let</span> pub1 = [<span style="color:#e6db74">&#34;A&#34;</span>, <span style="color:#e6db74">&#34;B&#34;</span>, <span style="color:#e6db74">&#34;C&#34;</span>].publisher
+
+    pub1
+        .print(<span style="color:#e6db74">&#34;pub1&#34;</span>)
+        .first() <span style="color:#75715e">// 收到第一个发射的值即取消订阅</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+    print(<span style="color:#e6db74">&#34;---&#34;</span>)
+
+    <span style="color:#66d9ef">let</span> pub2 = [<span style="color:#e6db74">&#34;A&#34;</span>, <span style="color:#e6db74">&#34;B&#34;</span>, <span style="color:#e6db74">&#34;C&#34;</span>, <span style="color:#e6db74">&#34;B&#34;</span>].publisher
+
+    pub2
+        .print(<span style="color:#e6db74">&#34;pub2&#34;</span>)
+        .first(<span style="color:#66d9ef">where</span>: { $0 == <span style="color:#e6db74">&#34;B&#34;</span> }) <span style="color:#75715e">// 找到第一个满足条件</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+    print(<span style="color:#e6db74">&#34;---&#34;</span>)
+
+    <span style="color:#66d9ef">let</span> pub3 = [<span style="color:#e6db74">&#34;A&#34;</span>, <span style="color:#e6db74">&#34;B&#34;</span>, <span style="color:#e6db74">&#34;C&#34;</span>].publisher
+
+    pub3
+        .print(<span style="color:#e6db74">&#34;pub3&#34;</span>)
+        .last() <span style="color:#75715e">// 贪婪，需等待发射完成</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+    <span style="color:#75715e">// last(where:) 同理</span>
+}
+<span style="color:#75715e">//——— Example of: first ———</span>
+<span style="color:#75715e">//pub1: receive subscription: ([&#34;A&#34;, &#34;B&#34;, &#34;C&#34;])</span>
+<span style="color:#75715e">//pub1: request unlimited</span>
+<span style="color:#75715e">//pub1: receive value: (A)</span>
+<span style="color:#75715e">//pub1: receive cancel</span>
+<span style="color:#75715e">//A</span>
+<span style="color:#75715e">//finished</span>
+<span style="color:#75715e">//---</span>
+<span style="color:#75715e">//pub2: receive subscription: ([&#34;A&#34;, &#34;B&#34;, &#34;C&#34;])</span>
+<span style="color:#75715e">//pub2: request unlimited</span>
+<span style="color:#75715e">//pub2: receive value: (A)</span>
+<span style="color:#75715e">//pub2: receive value: (B)</span>
+<span style="color:#75715e">//pub2: receive cancel</span>
+<span style="color:#75715e">//B</span>
+<span style="color:#75715e">//finished</span>
+<span style="color:#75715e">//---</span>
+<span style="color:#75715e">//pub3: receive subscription: ([&#34;A&#34;, &#34;B&#34;, &#34;C&#34;])</span>
+<span style="color:#75715e">//pub3: request unlimited</span>
+<span style="color:#75715e">//pub3: receive value: (A)</span>
+<span style="color:#75715e">//pub3: receive value: (B)</span>
+<span style="color:#75715e">//pub3: receive value: (C)</span>
+<span style="color:#75715e">//pub3: receive finished</span>
+<span style="color:#75715e">//C</span>
+<span style="color:#75715e">//finished</span>
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">SwiftUI</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">var</span> subs = [AnyCancellable]()
+
+example(of: <span style="color:#e6db74">&#34;output&#34;</span>) {
+    <span style="color:#66d9ef">let</span> pub1 = [<span style="color:#e6db74">&#34;A&#34;</span>, <span style="color:#e6db74">&#34;B&#34;</span>, <span style="color:#e6db74">&#34;C&#34;</span>].publisher
+
+    pub1
+        .print(<span style="color:#e6db74">&#34;pub1&#34;</span>)
+        .output(at: <span style="color:#ae81ff">1</span>) <span style="color:#75715e">// 索引为 1 的值，传入超过的索引值则不发射</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+    print(<span style="color:#e6db74">&#34;---&#34;</span>)
+
+    <span style="color:#66d9ef">let</span> pub2 = [<span style="color:#e6db74">&#34;A&#34;</span>, <span style="color:#e6db74">&#34;B&#34;</span>, <span style="color:#e6db74">&#34;C&#34;</span>].publisher
+
+    pub2
+        .print(<span style="color:#e6db74">&#34;pub2&#34;</span>)
+        .output(<span style="color:#66d9ef">in</span>: <span style="color:#ae81ff">1.</span>..<span style="color:#ae81ff">2</span>) <span style="color:#75715e">// Range</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+    print(<span style="color:#e6db74">&#34;---&#34;</span>)
+
+
+
+}
+<span style="color:#75715e">//pub1: receive subscription: ([&#34;A&#34;, &#34;B&#34;, &#34;C&#34;])</span>
+<span style="color:#75715e">//pub1: request unlimited</span>
+<span style="color:#75715e">//pub1: receive value: (A)</span>
+<span style="color:#75715e">//pub1: request max: (1) (synchronous) // 注意这里，每发射一个值后，demands 会自增，因为其知道是在特定索引下查找</span>
+<span style="color:#75715e">//pub1: receive value: (B)</span>
+<span style="color:#75715e">//B // 索引为 1 的值，传入超过的索引值则不发射</span>
+<span style="color:#75715e">//pub1: receive cancel</span>
+<span style="color:#75715e">//finished</span>
+<span style="color:#75715e">//---</span>
+<span style="color:#75715e">//pub2: receive subscription: ([&#34;A&#34;, &#34;B&#34;, &#34;C&#34;])</span>
+<span style="color:#75715e">//pub2: request unlimited</span>
+<span style="color:#75715e">//pub2: receive value: (A)</span>
+<span style="color:#75715e">//pub2: request max: (1) (synchronous)</span>
+<span style="color:#75715e">//pub2: receive value: (B)</span>
+<span style="color:#75715e">//B // 注意：发射的是范围内的单个值</span>
+<span style="color:#75715e">//pub2: receive value: (C)</span>
+<span style="color:#75715e">//C</span>
+<span style="color:#75715e">//pub2: receive cancel // 足够后立即取消订阅</span>
+<span style="color:#75715e">//finished</span>
+<span style="color:#75715e">//pub2: receive finished</span>
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">SwiftUI</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">var</span> subs = [AnyCancellable]()
+
+example(of: <span style="color:#e6db74">&#34;query&#34;</span>) {
+    <span style="color:#66d9ef">let</span> pub1 = [<span style="color:#e6db74">&#34;A&#34;</span>, <span style="color:#e6db74">&#34;B&#34;</span>, <span style="color:#e6db74">&#34;C&#34;</span>].publisher
+
+    pub1
+        .print(<span style="color:#e6db74">&#34;pub1&#34;</span>)
+        .count() <span style="color:#75715e">// 计数，贪婪，需完成才发出</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+    print(<span style="color:#e6db74">&#34;---&#34;</span>)
+
+    <span style="color:#66d9ef">let</span> pub2 = [<span style="color:#e6db74">&#34;A&#34;</span>, <span style="color:#e6db74">&#34;B&#34;</span>, <span style="color:#e6db74">&#34;C&#34;</span>].publisher
+
+    pub2
+        .print(<span style="color:#e6db74">&#34;pub2 - 1&#34;</span>)
+        .contains(<span style="color:#e6db74">&#34;B&#34;</span>) <span style="color:#75715e">// 惰性，包含则发射 true，并取消订阅</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+    print(<span style="color:#e6db74">&#34;---&#34;</span>)
+
+    pub2
+        .print(<span style="color:#e6db74">&#34;pub2 - 2&#34;</span>)
+        .contains(<span style="color:#e6db74">&#34;D&#34;</span>) <span style="color:#75715e">// 等到完成都找不到则发射 fakse</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+<span style="color:#75715e">//    contains（where :) 同理</span>
+
+    print(<span style="color:#e6db74">&#34;---&#34;</span>)
+
+    pub2
+        .print(<span style="color:#e6db74">&#34;pub2 - 3&#34;</span>)
+        .contains(<span style="color:#66d9ef">where</span>: { $0 == <span style="color:#e6db74">&#34;B&#34;</span> }) <span style="color:#75715e">// 包含条件</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+    print(<span style="color:#e6db74">&#34;---&#34;</span>)
+
+    <span style="color:#66d9ef">let</span> pub3 = stride(from: <span style="color:#ae81ff">0</span>, to: <span style="color:#ae81ff">5</span>, by: <span style="color:#ae81ff">2</span>).publisher
+
+    pub3
+        .print(<span style="color:#e6db74">&#34;pub3&#34;</span>)
+        .allSatisfy { $0 <span style="color:#f92672">%</span> <span style="color:#ae81ff">2</span> == <span style="color:#ae81ff">0</span> } <span style="color:#75715e">// 是否所有都满足 xxx 条件（一个个匹配）？是则发射 true，否则只要一个不满足就取消订阅并发射 false</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+}
+<span style="color:#75715e">//pub1: receive subscription: ([&#34;A&#34;, &#34;B&#34;, &#34;C&#34;])</span>
+<span style="color:#75715e">//pub1: request unlimited</span>
+<span style="color:#75715e">//pub1: receive value: (A)</span>
+<span style="color:#75715e">//pub1: receive value: (B)</span>
+<span style="color:#75715e">//pub1: receive value: (C)</span>
+<span style="color:#75715e">//pub1: receive finished</span>
+<span style="color:#75715e">//3</span>
+<span style="color:#75715e">//finished</span>
+<span style="color:#75715e">//---</span>
+<span style="color:#75715e">//pub2 - 1: receive subscription: ([&#34;A&#34;, &#34;B&#34;, &#34;C&#34;])</span>
+<span style="color:#75715e">//pub2 - 1: request unlimited</span>
+<span style="color:#75715e">//pub2 - 1: receive value: (A)</span>
+<span style="color:#75715e">//pub2 - 1: receive value: (B)</span>
+<span style="color:#75715e">//pub2 - 1: receive cancel</span>
+<span style="color:#75715e">//true</span>
+<span style="color:#75715e">//finished</span>
+<span style="color:#75715e">//---</span>
+<span style="color:#75715e">//pub2 - 2: receive subscription: ([&#34;A&#34;, &#34;B&#34;, &#34;C&#34;])</span>
+<span style="color:#75715e">//pub2 - 2: request unlimited</span>
+<span style="color:#75715e">//pub2 - 2: receive value: (A)</span>
+<span style="color:#75715e">//pub2 - 2: receive value: (B)</span>
+<span style="color:#75715e">//pub2 - 2: receive value: (C)</span>
+<span style="color:#75715e">//pub2 - 2: receive finished</span>
+<span style="color:#75715e">//false</span>
+<span style="color:#75715e">//finished</span>
+<span style="color:#75715e">//---</span>
+<span style="color:#75715e">//pub2 - 3: receive subscription: ([&#34;A&#34;, &#34;B&#34;, &#34;C&#34;])</span>
+<span style="color:#75715e">//pub2 - 3: request unlimited</span>
+<span style="color:#75715e">//pub2 - 3: receive value: (A)</span>
+<span style="color:#75715e">//pub2 - 3: receive value: (B)</span>
+<span style="color:#75715e">//pub2 - 3: receive cancel</span>
+<span style="color:#75715e">//true</span>
+<span style="color:#75715e">//finished</span>
+<span style="color:#75715e">//---</span>
+<span style="color:#75715e">//pub3: receive subscription: (Sequence)</span>
+<span style="color:#75715e">//pub3: request unlimited</span>
+<span style="color:#75715e">//pub3: receive value: (0)</span>
+<span style="color:#75715e">//pub3: receive value: (2)</span>
+<span style="color:#75715e">//pub3: receive value: (4)</span>
+<span style="color:#75715e">//pub3: receive finished</span>
+<span style="color:#75715e">//true</span>
+<span style="color:#75715e">//finished</span>
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">SwiftUI</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">var</span> subs = [AnyCancellable]()
+
+example(of: <span style="color:#e6db74">&#34;reduce&#34;</span>) {
+    <span style="color:#66d9ef">let</span> pub1 = [<span style="color:#e6db74">&#34;A&#34;</span>, <span style="color:#e6db74">&#34;B&#34;</span>, <span style="color:#e6db74">&#34;C&#34;</span>].publisher
+
+    pub1
+        .print(<span style="color:#e6db74">&#34;pub1&#34;</span>)
+        .reduce(<span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#f92672">+</span>) <span style="color:#75715e">// 累加，类似标准库 reduce，当 finish 发射完整结果</span>
+<span style="color:#75715e">//        .reduce(&#34;&#34;) { accumulator, value in // 完整版</span>
+<span style="color:#75715e">//          return accumulator + value</span>
+<span style="color:#75715e">//        }</span>
+        .sink(receiveCompletion: { print($0) },
+              receiveValue: { print($0) })
+        .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+    print(<span style="color:#e6db74">&#34;---&#34;</span>)
+}
+<span style="color:#75715e">//pub1: receive subscription: ([&#34;A&#34;, &#34;B&#34;, &#34;C&#34;])</span>
+<span style="color:#75715e">//pub1: request unlimited</span>
+<span style="color:#75715e">//pub1: receive value: (A)</span>
+<span style="color:#75715e">//pub1: receive value: (B)</span>
+<span style="color:#75715e">//pub1: receive value: (C)</span>
+<span style="color:#75715e">//pub1: receive finished</span>
+<span style="color:#75715e">//ABC</span>
+<span style="color:#75715e">//finished</span>
+</code></pre></div>
+    </div>
+    
+      <div class="pagination">
+        <div class="pagination__title">
+          <span class="pagination__title-h">Read other posts</span>
+          <hr />
+        </div>
+        <div class="pagination__buttons">
+          
+            <span class="button previous">
+              <a href="/posts/2019/nsobject_in_ios/">
+                <span class="button__icon">←</span>
+                <span class="button__text">iOS 中的 NSObject</span>
+              </a>
+            </span>
+          
+          
+            <span class="button next">
+              <a href="/posts/2020/swift_inout/">
+                <span class="button__text">Swift 中的 inout</span>
+                <span class="button__icon">→</span>
+              </a>
+            </span>
+          
+        </div>
+      </div>
+    
+
+    
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<table style="border: 0;">
+  <tr>
+  <td style="border: 0; width: 30%;">
+    <img src='/img/about/1.jpg'>
+  </td>
+  <td style="border: 0;">
+    <ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-9925978992661955"
+     data-ad-slot="3213735320"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+  </td>
+  </tr>
+</table>
+
+
+
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+
+    
+    
+    <div>
+      <div id="github-comment">
+      </div>
+
+      <script type="text/javascript">
+        function getUtterances(isDark) {
+          var utterances = document.createElement('script');
+          utterances.type = 'text/javascript';
+          utterances.async = true;
+          utterances.setAttribute('issue-term', "pathname")
+          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
+          utterances.setAttribute('label', "comments")
+          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
+          utterances.crossorigin = 'anonymous';
+          utterances.src = 'https://utteranc.es/client.js';
+
+          return utterances
+        }
+
+        var themeToggle = document.querySelector(".theme-toggle")
+        themeToggle.addEventListener("click", function () {
+          var getTheme = window.localStorage && window.localStorage.getItem("theme")
+          var divNode = document.getElementById('github-comment')
+          while(divNode.hasChildNodes()) {
+            divNode.removeChild(divNode.firstChild);
+          }
+          
+          
+          
+
+          
+          
+          
+          
+          
+          
+          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
+        })
+
+        var getTheme = window.localStorage && window.localStorage.getItem("theme")
+        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
+      </script>
+    </div>
+    
+
+    </div>
+
+      </div>
+
+      
+        <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+      
+    </div>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+
+    
+  </body>
+</html>
