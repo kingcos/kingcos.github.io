@@ -6,9 +6,12 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="   作者 原文链接   Gwynne Raskind Friday Q&amp;A 2014-08-08: Swift Name Mangling   许久没有参与到 Friday Q&amp;amp;A（译者注：Friday Q&amp;amp;A 中文意为周五问与答，但限于该名称是作者文章的系列名称，故不再翻译）中，不过我带着全新主题的文章又回来了：Swift。在最近的几篇文章中，Mike 具体介绍了 Swift 的内部结构是什么样的，但他只是轻描淡写了当查看包含 Swift 的二进制文件时，链接器所看到的：被修饰的（Mangled）符号名。
+<meta name="description" content="作者 原文链接   Gwynne Raskind Friday Q&amp;A 2014-08-08: Swift Name Mangling    译者注
+1.「Name Mangling」在本文中将译作「名字修饰」，这主要是参考了 Wikipedia 中关于该项技术的翻译；
+2.「Friday Q&amp;amp;A」中文意为「周五问与答」，但限于该名称是作者文章的系列名称，故保留原文不再翻译。
+ 许久没有参与到 Friday Q&amp;amp;A 中，不过我带着全新主题的文章又回来了：Swift。在最近的几篇文章中，Mike 具体介绍了 Swift 的内部结构是什么样的，但他只是轻描淡写了当查看包含 Swift 的二进制文件时，链接器所看到的：被修饰的（Mangled）符号名。
  在 C 之类的编程语言中，任何给定的名称（符号）都只能对应一个函数或者一条数据，那么名字修饰（Name Mangling）就不是必需的。尽管如此，如果我们查看典型的纯 C 二进制文件的符号表，仍然能发现每个函数名中都有一个 _（下划线）作为前缀。举个例子：
-$ echo &amp;#39;int main() { return 0; }&amp;#39; | xcrun clang -x c - -o ./test $ xctest nm ./test 0000000100000000 T __mh_execute_header 0000000100000f80 T _main U dyld_stub_binder $ "/>
+$ echo &amp;#39;int main() { return 0; }&amp;#39; | xcrun clang -x c - -o ./test $ xctest nm ./test # 译者注：xctest 命令可能无法直接找到，也可直接使用 nm ./test 0000000100000000 T __mh_execute_header 0000000100000f80 T _main U dyld_stub_binder $ 这种简单的「修饰」没有什么作用，其存在主要是历史原因，由于兼容性与统一性而被保留。按照约定，C 中定义的名称将带有下划线，而纯汇编定义的全局符号则没有（尽管许多汇编语言的作者仍会为了统一性而使用下划线作为前缀）。"/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2020/friday_qa_swift_name_mangling/" />
@@ -140,7 +143,7 @@ $ echo &amp;#39;int main() { return 0; }&amp;#39; | xcrun clang -x c - -o ./test
       
       
       
-        <span class="post-read-time">— 1 min read</span>
+        <span class="post-read-time">— 3 min read</span>
       
     </div>
 
@@ -170,16 +173,127 @@ $ echo &amp;#39;int main() { return 0; }&amp;#39; | xcrun clang -x c - -o ./test
     <td><center><a href='https://www.mikeash.com/pyblog/friday-qa-2014-08-15-swift-name-mangling.html'>Friday Q&A 2014-08-08: Swift Name Mangling</a></center></td>
   </tr>
 </table>
-<p>许久没有参与到 Friday Q&amp;A（译者注：Friday Q&amp;A 中文意为周五问与答，但限于该名称是作者文章的系列名称，故不再翻译）中，不过我带着全新主题的文章又回来了：Swift。在最近的几篇文章中，Mike 具体介绍了 Swift 的内部结构是什么样的，但他只是轻描淡写了当查看包含 Swift 的二进制文件时，链接器所看到的：被修饰的（Mangled）符号名。</p>
+<blockquote>
+<p>译者注</p>
+<p>1.「Name Mangling」在本文中将译作「名字修饰」，这主要是参考了 <a href="https://zh.wikipedia.org/zh-hans/%E5%90%8D%E5%AD%97%E4%BF%AE%E9%A5%B0">Wikipedia</a> 中关于该项技术的翻译；</p>
+<p>2.「Friday Q&amp;A」中文意为「周五问与答」，但限于该名称是作者文章的系列名称，故保留原文不再翻译。</p>
+</blockquote>
+<p>许久没有参与到 Friday Q&amp;A 中，不过我带着全新主题的文章又回来了：Swift。在最近的几篇文章中，Mike 具体介绍了 Swift 的内部结构是什么样的，但他只是轻描淡写了当查看包含 Swift 的二进制文件时，链接器所看到的：被修饰的（Mangled）符号名。</p>
 <hr>
 <p>在 C 之类的编程语言中，任何给定的名称（<em>符号</em>）都只能对应一个函数或者一条数据，那么名字修饰（Name Mangling）就不是必需的。尽管如此，如果我们查看典型的纯 C 二进制文件的符号表，仍然能发现每个函数名中都有一个 <code>_</code>（下划线）作为前缀。举个例子：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ echo <span style="color:#e6db74">&#39;int main() { return 0; }&#39;</span> | xcrun clang -x c - -o ./test
-$ xctest nm ./test
+$ xctest nm ./test <span style="color:#75715e"># 译者注：xctest 命令可能无法直接找到，也可直接使用 nm ./test</span>
 <span style="color:#ae81ff">0000000100000000</span> T __mh_execute_header
 0000000100000f80 T _main
                  U dyld_stub_binder
 $
-</code></pre></div><!-- 预计 3.18 日前发 -->
+</code></pre></div><p>这种简单的「修饰」没有什么作用，其存在主要是历史原因，由于兼容性与统一性而被保留。按照约定，C 中定义的名称将带有下划线，而纯汇编定义的全局符号则没有（尽管许多汇编语言的作者仍会为了统一性而使用下划线作为前缀）。</p>
+<p>Obj-C 同样不会在符号名称间产生冲突；Obj-C 的方法实现总是形如 <code>-[class selector]</code>，而且 Obj-C 不允许在同一个类中重载具有不同类型签名的同一选择器（Selectors）。</p>
+<h2 id="好了让我们开始玩转名字修饰吧">好了，让我们开始玩转名字修饰吧！</h2>
+<p>如果在编程语言中只有简单的命名而没有提供任何更多的信息，会导致事情变得更加复杂。想一想这个 C++ 中的例子：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ cat | xcrun clang -x c++ - -o test <span style="color:#75715e"># 译者注：输入完此行需要手动换行再粘贴下述语句</span>
+int foo<span style="color:#f92672">(</span>int a<span style="color:#f92672">)</span> <span style="color:#f92672">{</span> <span style="color:#66d9ef">return</span> a * 2; <span style="color:#f92672">}</span>
+int foo<span style="color:#f92672">(</span>double a<span style="color:#f92672">)</span> <span style="color:#f92672">{</span> <span style="color:#66d9ef">return</span> a * 2.0; <span style="color:#f92672">}</span>
+int main<span style="color:#f92672">()</span> <span style="color:#f92672">{</span> <span style="color:#66d9ef">return</span> foo<span style="color:#f92672">(</span>1<span style="color:#f92672">)</span> + foo<span style="color:#f92672">(</span>1.0<span style="color:#f92672">)</span>; <span style="color:#f92672">}</span>
+^D <span style="color:#75715e"># 译者注：换行后按下键盘 control + D</span>
+$ xcrun nm -a test
+0000000100000f30 T __Z3food
+0000000100000f10 T __Z3fooi
+<span style="color:#ae81ff">0000000100000000</span> T __mh_execute_header
+0000000100000f60 T _main
+                 U dyld_stub_binder
+</code></pre></div><p>由于 <code>foo</code> 指的是两个具有不同签名的不同函数，而这样的语法在 C++ 中是合法的，因而不可能简单地生成两个 <code>_foo</code> 符号；链接器将无法将它们对应起来。所以 C++ 编译器使用一组严格的编码规则来「修饰」符号。</p>
+<p>与 C 和 Obj-C 不同，C++ 和 Swift 中的函数名本身不足以区分每个单独的函数实现。因此同名但参数类型不同的函数（例如 <code>foo(int)</code> 和 <code>foo(double)</code>）需要更多信息以区分。而使用代码中给定的完整签名（例如 <code>foo(int)</code>）将导致链接器中产生许多额外的代码，而且当多个类型名称对应相同的底层类型时会造成混淆（比如 <code>unsigned</code> 和 <code>unsigned int</code>）。取而代之的是，在 C++ 中使用了些许晦涩的类型提升（Promotion）和转换规则，使得结果被修饰为一种利于编译器和链接器使用且不造成混淆的形式。Swift 与之相似。</p>
+<p>上述 <code>foo</code> 的示例简单分解如下：</p>
+<ol>
+<li><code>_</code> 是 C 样式的通用前缀。</li>
+<li><code>_Z</code> 是标志该符号为被修饰的全局 C++ 名称的前缀。</li>
+<li>数字定义了接下来的标识字符数；这里是 <code>3</code>。<code>3foo</code> 意味着「名字『foo』」。</li>
+<li><code>d</code> 和 <code>i</code> 分别代表了内置的 <code>double</code> 和 <code>int</code> 类型名；C++ 中的返回值并不作为函数签名的一部分，因此只有参数列表位于函数全名之后。</li>
+</ol>
+<p>关于典型的 C++ 编译器如何处理修饰的名字，详见 <a href="http://mentorembedded.github.io/cxx-abi/abi.html#mangling">Itanium C ++ ABI 文档</a>。</p>
+<h2 id="非常有趣但作为一篇-swift-的文章我们花费了好久终于来到了">非常有趣，但作为一篇 Swift 的文章，我们花费了好久终于来到了！</h2>
+<p>Swift 的名字修饰与 C++ 有所不同。原则上讲，虽然 Swift 清晰地使用了一套基于 C++ 方案的编码，但在更成熟地类型系统中包含了更多信息，并表达概念。</p>
+<p>我们来看一个复杂的例子。思考以下过度设计且完全无用的 Swift 代码：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ xcrun swiftc -emit-library -o test -
+struct e <span style="color:#f92672">{</span>
+        enum f <span style="color:#f92672">{</span>
+                <span style="color:#66d9ef">case</span> G, H, I
+        <span style="color:#f92672">}</span>
+<span style="color:#f92672">}</span>
+class a <span style="color:#f92672">{</span>
+        class b <span style="color:#f92672">{</span>
+                class c <span style="color:#f92672">{</span>
+                        func d<span style="color:#f92672">(</span>y: a, x w: b, v u: <span style="color:#f92672">(</span>x: Int<span style="color:#f92672">)</span> -&gt; Int<span style="color:#f92672">)</span> -&gt; e.f <span style="color:#f92672">{</span>
+                                <span style="color:#66d9ef">return</span> e.f.G
+                        <span style="color:#f92672">}</span>
+                <span style="color:#f92672">}</span>
+        <span style="color:#f92672">}</span>
+<span style="color:#f92672">}</span>
+^D
+$ xcrun nm -g test
+...
+0000000000001c90 T __TFCCC4test1a1b1c1dfS2_FTS0_1xS1_1vFT1xSi_Si_OVS_1e1f
+...
+$
+</code></pre></div><p>译者注：由于本文发布时间较为久远，因此可使用以下实测过可以运行的代码来验证：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ xcrun swiftc -emit-library -o test -
+// 声明为 public 才可以在全局符号中看到
+public struct e <span style="color:#f92672">{</span>
+  public enum f <span style="color:#f92672">{</span>
+    <span style="color:#66d9ef">case</span> G, H, I
+  <span style="color:#f92672">}</span>
+<span style="color:#f92672">}</span>
+
+public class a <span style="color:#f92672">{</span>
+  public class b <span style="color:#f92672">{</span>
+    public class c <span style="color:#f92672">{</span>
+      // 新的语法规定「函数类型不能拥有参数标签」需要使用
+      // func d<span style="color:#f92672">(</span>y: a, x w: b, v u: <span style="color:#f92672">(</span>_ x: Int<span style="color:#f92672">)</span> -&gt; Int<span style="color:#f92672">)</span> -&gt; e.f
+      // 或 func d<span style="color:#f92672">(</span>y: a, x w: b, v u: <span style="color:#f92672">(</span>Int<span style="color:#f92672">)</span> -&gt; Int<span style="color:#f92672">)</span>
+      public func d<span style="color:#f92672">(</span>y: a, x w: b, v u: <span style="color:#f92672">(</span>Int<span style="color:#f92672">)</span> -&gt; Int<span style="color:#f92672">)</span> -&gt; e.f <span style="color:#f92672">{</span>
+        <span style="color:#66d9ef">return</span> e.f.G
+      <span style="color:#f92672">}</span>
+    <span style="color:#f92672">}</span>
+  <span style="color:#f92672">}</span>
+<span style="color:#f92672">}</span>
+^D
+$ nm -g test
+...
+<span style="color:#ae81ff">0000000000001190</span> T _$s4test1aC1bC1cC1d1y1x1vAA1eV1fOAC_AES2iXEtF
+0000000000001dd8 S _$s4test1aC1bC1cC1d1y1x1vAA1eV1fOAC_AES2iXEtFTq
+<span style="color:#ae81ff">0000000000001230</span> T _$s4test1aC1bC1cCMa
+00000000000024a8 D _$s4test1aC1bC1cCMm
+...
+$ xcrun swift-demangle --compact s4test1aC1bC1cC1d1y1x1vAA1eV1fOAC_AES2iXEtFTq
+method descriptor <span style="color:#66d9ef">for</span> test.a.b.c.d<span style="color:#f92672">(</span>y: test.a, x: test.a.b, v: <span style="color:#f92672">(</span>Swift.Int<span style="color:#f92672">)</span> -&gt; Swift.Int<span style="color:#f92672">)</span> -&gt; test.e.f
+$ xcrun swift-demangle --compact s4test1aC1bC1cC1d1y1x1vAA1eV1fOAC_AES2iXEtF
+test.a.b.c.d<span style="color:#f92672">(</span>y: test.a, x: test.a.b, v: <span style="color:#f92672">(</span>Swift.Int<span style="color:#f92672">)</span> -&gt; Swift.Int<span style="color:#f92672">)</span> -&gt; test.e.f
+$ xcrun swift-demangle --compact s4test1aC1bC1cCMa
+type metadata accessor <span style="color:#66d9ef">for</span> test.a.b.c
+$ xcrun swift-demangle --compact s4test1aC1bC1cCMm
+metaclass <span style="color:#66d9ef">for</span> test.a.b.c
+</code></pre></div><p>Swift 将生成数百个符号，我们将拆分其中一个复杂的修饰名 <code>__TFCCC4test1a1b1c1dfS2_FTS0_1xS1_1vFT1xSi_Si_OVS_1e1f</code>。</p>
+<p>按顺序：</p>
+<ol>
+<li>Swift 符号中仍存在 <code>_</code> 前缀。</li>
+<li><code>_T</code> 是 Swift 全局符号的标志。</li>
+<li><code>F</code> 可以告知我们符号的类型是函数。</li>
+<li><code>C</code> 代表「class」类型。这里嵌套了三个类，因此出现了 3 次。</li>
+<li><code>4test</code> 是指「模块名（Module Name）」，<code>1a</code> 是指它的类名，生成一个名为 <code>test.a</code> 的类。</li>
+<li>此时，Swift 解析器将创建一个已解析名称的栈，并在已修饰的名称中查找第一个非名称的令牌。这里将找到 <code>1d</code> 后的 <code>f</code>。然后返回并由里及外展开嵌套类型的栈，生成 <code>test.a</code>，<code>test.a.b</code>，和 <code>test.a.b.c</code> 作为类名。由于 <code>1d</code> 没有对应的嵌套类型（前面只有三个 C），因此其将成为符号名称 <code>test.a.b.c.d</code> 最里面的部分。</li>
+<li>小写 <code>f</code> 标记该符号为「非柯里化函数（Uncurried Function）」。这里类方法的第一个参数采用了隐式绑定，即实例本身。</li>
+<li>因为我们正在解析凡属类型，所以接下来是参数类型，然后是返回值类型。对于非柯里化函数类型，柯里化参数首当其冲。<code>S2_</code> 是一个替换，意味着它将使用解析名称时第三个非替换类型（索引从零开始）。这里将是 <code>test.a.b.c</code>（第三个类的类型）。</li>
+<li><code>F</code> 现在以新函数类型的形式，标记函数参数列表的开始。至此显而易见的是，名字修饰高度围绕着类型。</li>
+<li><code>T</code> 标记着「元组」的开始，在此联系上下文为类型列表。</li>
+<li></li>
+</ol>
+<!-- 预计 3.18 日前发 -->
+<hr>
+<h2 id="参考">参考</h2>
+<ul>
+<li><a href="https://zh.wikipedia.org/zh-hans/%E5%90%8D%E5%AD%97%E4%BF%AE%E9%A5%B0">名字修饰 - 维基百科</a></li>
+</ul>
 
     </div>
     
