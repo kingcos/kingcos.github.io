@@ -138,7 +138,7 @@
       
       
       
-        <span class="post-read-time">— 31 min read</span>
+        <span class="post-read-time">— 39 min read</span>
       
     </div>
 
@@ -2397,7 +2397,603 @@ example(of: <span style="color:#e6db74">&#34;reduce&#34;</span>) {
 <span style="color:#75715e">//pub1: receive finished</span>
 <span style="color:#75715e">//ABC</span>
 <span style="color:#75715e">//finished</span>
-</code></pre></div>
+</code></pre></div><hr>
+<ul>
+<li>Encoding and Decoding in Swift at raywenderlich.com:</li>
+<li>https:// <a href="http://www.raywenderlich.com/3418439-encoding-and-decoding-in-swift">www.raywenderlich.com/3418439-encoding-and-decoding-in-swift</a></li>
+<li>Encoding and Decoding Custom Types on Apple‘s official documentation:</li>
+<li>https:// developer.apple.com/documentation/foundation/archives_and_serialization/ encoding_and_decoding_custom_types</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#75715e">//let subscription = (1...3).publisher</span>
+<span style="color:#75715e">//    .print(&#34;publisher&#34;)</span>
+<span style="color:#75715e">//    .sink { _ in }</span>
+
+<span style="color:#75715e">//publisher: receive subscription: (1...3)</span>
+<span style="color:#75715e">//publisher: request unlimited</span>
+<span style="color:#75715e">//publisher: receive value: (1)</span>
+<span style="color:#75715e">//publisher: receive value: (2)</span>
+<span style="color:#75715e">//publisher: receive value: (3)</span>
+<span style="color:#75715e">//publisher: receive finished</span>
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">TimeLogger</span>: TextOutputStream {
+    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">var</span> previous = Date()
+    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">let</span> formatter = NumberFormatter()
+
+    <span style="color:#66d9ef">init</span>() {
+        formatter.maximumFractionDigits = <span style="color:#ae81ff">5</span>
+        formatter.minimumFractionDigits = <span style="color:#ae81ff">5</span>
+    }
+
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">write</span>(<span style="color:#66d9ef">_</span> string: String) {
+        <span style="color:#66d9ef">let</span> trimmed = string.trimmingCharacters(<span style="color:#66d9ef">in</span>: .whitespacesAndNewlines)
+        <span style="color:#66d9ef">guard</span> <span style="color:#f92672">!</span>trimmed.isEmpty <span style="color:#66d9ef">else</span> { <span style="color:#66d9ef">return</span> }
+        <span style="color:#66d9ef">let</span> now = Date()
+        print(<span style="color:#e6db74">&#34;+</span><span style="color:#e6db74">\(</span>formatter.string<span style="color:#e6db74">(</span><span style="color:#66d9ef">for</span>: now.timeIntervalSince<span style="color:#e6db74">(</span>previous<span style="color:#e6db74">))</span><span style="color:#f92672">!</span><span style="color:#e6db74">)</span><span style="color:#e6db74">s: </span><span style="color:#e6db74">\(</span>string<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>)
+        previous = now
+    }
+}
+
+<span style="color:#66d9ef">let</span> subscription = (<span style="color:#ae81ff">1.</span>..<span style="color:#ae81ff">3</span>).publisher
+    .print(<span style="color:#e6db74">&#34;publisher&#34;</span>, to: TimeLogger())
+    .sink { <span style="color:#66d9ef">_</span> <span style="color:#66d9ef">in</span> }
+
+<span style="color:#75715e">//+0.00589s: publisher: receive subscription: (1...3)</span>
+<span style="color:#75715e">//+0.03223s: publisher: request unlimited</span>
+<span style="color:#75715e">//+0.00031s: publisher: receive value: (1)</span>
+<span style="color:#75715e">//+0.00025s: publisher: receive value: (2)</span>
+<span style="color:#75715e">//+0.00024s: publisher: receive value: (3)</span>
+<span style="color:#75715e">//+0.00023s: publisher: receive finished</span>
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// iOS Project</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">MyType</span>: Codable {
+    <span style="color:#66d9ef">var</span> id: Int
+    <span style="color:#66d9ef">var</span> title: String
+}
+
+<span style="color:#75715e">/*
+</span><span style="color:#75715e"> [
+</span><span style="color:#75715e">   {
+</span><span style="color:#75715e">     &#34;id&#34;: 1,
+</span><span style="color:#75715e">     &#34;title&#34;: &#34;Post 1&#34;
+</span><span style="color:#75715e">   },
+</span><span style="color:#75715e">   {
+</span><span style="color:#75715e">     &#34;id&#34;: 2,
+</span><span style="color:#75715e">     &#34;title&#34;: &#34;Post 2&#34;
+</span><span style="color:#75715e">   },
+</span><span style="color:#75715e">   {
+</span><span style="color:#75715e">     &#34;id&#34;: 3,
+</span><span style="color:#75715e">     &#34;title&#34;: &#34;Post 3&#34;
+</span><span style="color:#75715e">   }
+</span><span style="color:#75715e"> ]
+</span><span style="color:#75715e"> */</span>
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ViewController</span>: UIViewController {
+    <span style="color:#66d9ef">var</span> subs = Set&lt;AnyCancellable&gt;()
+
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">viewDidLoad</span>() {
+        <span style="color:#66d9ef">super</span>.viewDidLoad()
+
+<span style="color:#75715e">//        guard let url = URL(string: &#34;https://my-json-server.typicode.com/typicode/demo/posts&#34;) else { return }</span>
+
+<span style="color:#75715e">//        let sub = URLSession.shared</span>
+<span style="color:#75715e">//            .dataTaskPublisher(for: url)</span>
+<span style="color:#75715e">//            .tryMap { data, _ in</span>
+<span style="color:#75715e">//                try JSONDecoder().decode([MyType].self, from: data)</span>
+<span style="color:#75715e">//            }</span>
+<span style="color:#75715e">//            .sink(receiveCompletion: { completion in</span>
+<span style="color:#75715e">//                if case .failure(let err) = completion {</span>
+<span style="color:#75715e">//                    print(err)</span>
+<span style="color:#75715e">//                }</span>
+<span style="color:#75715e">//            }, receiveValue: { data in</span>
+<span style="color:#75715e">//                for m in data {</span>
+<span style="color:#75715e">//                    print(m.id, m.title)</span>
+<span style="color:#75715e">//                }</span>
+<span style="color:#75715e">//            })</span>
+
+<span style="color:#75715e">//        let sub = URLSession.shared</span>
+<span style="color:#75715e">//            .dataTaskPublisher(for: url)</span>
+<span style="color:#75715e">//            .map(\.data)</span>
+<span style="color:#75715e">//            .decode(type: [MyType].self, decoder: JSONDecoder())</span>
+<span style="color:#75715e">//            .sink(receiveCompletion: { completion in</span>
+<span style="color:#75715e">//                if case .failure(let err) = completion {</span>
+<span style="color:#75715e">//                    print(err)</span>
+<span style="color:#75715e">//                }</span>
+<span style="color:#75715e">//            }, receiveValue: { data in</span>
+<span style="color:#75715e">//                for m in data {</span>
+<span style="color:#75715e">//                    print(m.id, m.title)</span>
+<span style="color:#75715e">//                }</span>
+<span style="color:#75715e">//            })</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        sub.store(in: &amp;subs)</span>
+
+<span style="color:#75715e">//        let pub = URLSession</span>
+<span style="color:#75715e">//            .shared</span>
+<span style="color:#75715e">//            .dataTaskPublisher(for: url)</span>
+<span style="color:#75715e">//            .map(\.data) // 映射到 data</span>
+<span style="color:#75715e">//            .multicast {</span>
+<span style="color:#75715e">//                // 多播，闭包中必须返回适当类型的 publisher</span>
+<span style="color:#75715e">//                PassthroughSubject&lt;Data, URLError&gt;()</span>
+<span style="color:#75715e">//        }</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        // 首次订阅，ConnectablePublisher，但不会立即开始工作</span>
+<span style="color:#75715e">//        let sub1 = pub</span>
+<span style="color:#75715e">//            .decode(type: [MyType].self, decoder: JSONDecoder())</span>
+<span style="color:#75715e">//            .sink(receiveCompletion: { completion in</span>
+<span style="color:#75715e">//                if case .failure(let err) = completion {</span>
+<span style="color:#75715e">//                    print(err)</span>
+<span style="color:#75715e">//                }</span>
+<span style="color:#75715e">//            }, receiveValue: { data in</span>
+<span style="color:#75715e">//                for m in data {</span>
+<span style="color:#75715e">//                    print(m.id, m.title)</span>
+<span style="color:#75715e">//                }</span>
+<span style="color:#75715e">//            })</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        sub1.store(in: &amp;subs)</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        let sub2 = pub</span>
+<span style="color:#75715e">//            .decode(type: [MyType].self, decoder: JSONDecoder())</span>
+<span style="color:#75715e">//            .sink(receiveCompletion: { completion in</span>
+<span style="color:#75715e">//                if case .failure(let err) = completion {</span>
+<span style="color:#75715e">//                    print(err)</span>
+<span style="color:#75715e">//                }</span>
+<span style="color:#75715e">//            }, receiveValue: { data in</span>
+<span style="color:#75715e">//                for m in data {</span>
+<span style="color:#75715e">//                    print(m.id, m.title)</span>
+<span style="color:#75715e">//                }</span>
+<span style="color:#75715e">//            })</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        sub2.store(in: &amp;subs)</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        // 准备就绪，开始工作</span>
+<span style="color:#75715e">//        let subscription = pub.connect()</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        subscription.store(in: &amp;subs)</span>
+
+        <span style="color:#75715e">// ---</span>
+
+        <span style="color:#66d9ef">let</span> request = URLSession.shared
+            .dataTaskPublisher(<span style="color:#66d9ef">for</span>: URL(string: <span style="color:#e6db74">&#34;https://my-json-server.typicode.com/typicode/demo/posts&#34;</span>)<span style="color:#f92672">!</span>)
+
+<span style="color:#75715e">//        request.sink(receiveCompletion: { completion in</span>
+<span style="color:#75715e">//            print(&#34;Sink received completion: \(completion)&#34;)</span>
+<span style="color:#75715e">//        }) { (data, _) in</span>
+<span style="color:#75715e">//            print(&#34;Sink received data: \(data)&#34;)</span>
+<span style="color:#75715e">//        }.store(in: &amp;subs)</span>
+
+<span style="color:#75715e">//        Sink received data: 134 bytes</span>
+<span style="color:#75715e">//        Sink received completion: finished</span>
+
+<span style="color:#75715e">//        request</span>
+<span style="color:#75715e">//            .handleEvents(receiveSubscription: { _ in</span>
+<span style="color:#75715e">//                print(&#34;Network request will start&#34;)</span>
+<span style="color:#75715e">//            }, receiveOutput: { _ in</span>
+<span style="color:#75715e">//                print(&#34;Network request data received&#34;)</span>
+<span style="color:#75715e">//            }, receiveCancel: {</span>
+<span style="color:#75715e">//                print(&#34;Network request cancelled&#34;)</span>
+<span style="color:#75715e">//            })</span>
+<span style="color:#75715e">//            .sink(receiveCompletion: { completion in</span>
+<span style="color:#75715e">//                print(&#34;Sink received completion: \(completion)&#34;)</span>
+<span style="color:#75715e">//            }) { (data, _) in</span>
+<span style="color:#75715e">//                print(&#34;Sink received data: \(data)&#34;)</span>
+<span style="color:#75715e">//            }</span>
+<span style="color:#75715e">//            .store(in: &amp;subs)</span>
+
+        <span style="color:#75715e">// 注释 .store(in: &amp;subs) 一行</span>
+<span style="color:#75715e">//        Network request will start</span>
+<span style="color:#75715e">//        Network request cancelled</span>
+
+<span style="color:#75715e">//        Network request will start</span>
+<span style="color:#75715e">//        Network request data received</span>
+<span style="color:#75715e">//        Sink received data: 134 bytes</span>
+<span style="color:#75715e">//        Sink received completion: finished</span>
+
+        <span style="color:#75715e">// ---</span>
+
+       [<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">5</span>]
+           .publisher
+           .breakpoint(receiveOutput: { value <span style="color:#66d9ef">in</span>
+            <span style="color:#75715e">// 在某个时机打断点，中断某个事件（但不可在取消订阅时断点）</span>
+               <span style="color:#66d9ef">return</span> value <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">&amp;&amp;</span> value <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">5</span>
+           })
+           .sink(receiveValue: {
+               print($0)
+           })
+           .store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+<span style="color:#75715e">//        0</span>
+<span style="color:#75715e">//        1</span>
+<span style="color:#75715e">//        2</span>
+<span style="color:#75715e">//        (lldb) // 断点，可以继续</span>
+<span style="color:#75715e">//        3</span>
+<span style="color:#75715e">//        4</span>
+<span style="color:#75715e">//        5</span>
+
+    }
+}
+</code></pre></div><hr>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// Swift-Project</span>
+
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ViewController</span>: UIViewController {
+    <span style="color:#66d9ef">var</span> subs = Set&lt;AnyCancellable&gt;()
+
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">viewDidLoad</span>() {
+        <span style="color:#66d9ef">super</span>.viewDidLoad()
+
+        <span style="color:#75715e">// RunLoop 非线程安全</span>
+
+<span style="color:#75715e">//        let rl = RunLoop.main</span>
+<span style="color:#75715e">//        // 不会创建发布者</span>
+<span style="color:#75715e">//        // Cancellable</span>
+<span style="color:#75715e">//        let sub = rl.schedule(after: rl.now,</span>
+<span style="color:#75715e">//                              // 间隔</span>
+<span style="color:#75715e">//                              interval: .seconds(1),</span>
+<span style="color:#75715e">//                              // 可允许的误差（如果使用小于 minimumTolerance 的值可能并不会如你所愿）</span>
+<span style="color:#75715e">//                              tolerance: .milliseconds(100)) {</span>
+<span style="color:#75715e">//            print(&#34;定时器1&#34;)</span>
+<span style="color:#75715e">//        }</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        rl.schedule(after: .init(Date(timeIntervalSinceNow: 3.0))) {</span>
+<span style="color:#75715e">//            sub.cancel()</span>
+<span style="color:#75715e">//        }</span>
+
+<span style="color:#75715e">//        定时器1</span>
+<span style="color:#75715e">//        定时器1</span>
+<span style="color:#75715e">//        定时器1</span>
+<span style="color:#75715e">//        定时器1</span>
+
+        <span style="color:#66d9ef">let</span> pub = Timer.publish(every: <span style="color:#ae81ff">1.0</span>,
+                                on: .main, <span style="color:#75715e">// 附加的 RunLoop</span>
+                                <span style="color:#66d9ef">in</span>: .common) <span style="color:#75715e">// RunLoop 运行模式</span>
+
+
+        <span style="color:#75715e">// 注意在非主队列使用可能会导致不可预期的结果；Dispatch 库没有使用 RunLoop 来管理线程</span>
+        <span style="color:#75715e">// 由于 RunLoop 需要调用 run 方法来处理事件，其它 RunLoop 将不会触发定时器，安全起见使用 .main</span>
+<span style="color:#75715e">//        let pub = Timer.publish(every: 1.0,</span>
+<span style="color:#75715e">//                                on: .current, // 自己开辟线程的 RunLoop 通过 current 获得</span>
+<span style="color:#75715e">//                                in: .common)</span>
+
+        <span style="color:#75715e">// Timer 返回的发布者为 ConnectablePublisher 类型，明确调用 connect() 才会在订阅时触发，或者 autoconnect()</span>
+<span style="color:#75715e">//        let pub1 = Timer.publish(every: 1.0,</span>
+<span style="color:#75715e">//                                 on: .main,</span>
+<span style="color:#75715e">//                                 in: .common)</span>
+<span style="color:#75715e">//                        .autoconnect()</span>
+<span style="color:#75715e">//                        .scan(0) { counter, _ in</span>
+<span style="color:#75715e">//                            counter + 1</span>
+<span style="color:#75715e">//                        }.sink(receiveValue: { print($0) })</span>
+<span style="color:#75715e">//        pub1.store(in: &amp;subs)</span>
+<span style="color:#75715e">//        1</span>
+<span style="color:#75715e">//        2</span>
+<span style="color:#75715e">//        3</span>
+<span style="color:#75715e">//        4</span>
+<span style="color:#75715e">//        ... // 无限</span>
+
+
+
+        <span style="color:#75715e">// --- Dispatch Queue</span>
+        <span style="color:#66d9ef">let</span> queue = DispatchQueue.main
+        <span style="color:#66d9ef">let</span> source = PassthroughSubject&lt;Int, Never&gt;()
+        <span style="color:#66d9ef">var</span> counter = <span style="color:#ae81ff">0</span>
+
+        <span style="color:#66d9ef">let</span> cancellable = queue.schedule(after: queue.now,
+                                         interval: .seconds(<span style="color:#ae81ff">1</span>)) {
+            source.send(counter)
+            counter <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+        }
+
+        <span style="color:#66d9ef">let</span> sub = source.sink(receiveValue: { print($0) })
+        sub.store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+        cancellable.store(<span style="color:#66d9ef">in</span>: &amp;subs)
+
+<span style="color:#75715e">//        0</span>
+<span style="color:#75715e">//        1</span>
+<span style="color:#75715e">//        2</span>
+<span style="color:#75715e">//        3</span>
+<span style="color:#75715e">//        ... // 无限</span>
+
+        <span style="color:#75715e">// 1. 如果有 Obj-C 怀旧之情，用 RunLoop 实现定时器</span>
+        <span style="color:#75715e">// 2. 现代计时器用 DispatchQueue.schedule</span>
+    }
+}
+</code></pre></div><hr>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift">
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">TestObject</span>: NSObject {
+    <span style="color:#66d9ef">@objc</span> <span style="color:#66d9ef">dynamic</span> <span style="color:#66d9ef">var</span> intProp: Int = <span style="color:#ae81ff">0</span>
+    <span style="color:#66d9ef">@objc</span> <span style="color:#66d9ef">dynamic</span> <span style="color:#66d9ef">var</span> strProp: String = <span style="color:#e6db74">&#34;&#34;</span>
+    <span style="color:#66d9ef">@objc</span> <span style="color:#66d9ef">dynamic</span> <span style="color:#66d9ef">var</span> arrProp: [Float] = []
+
+    <span style="color:#75715e">// KVO 不支持</span>
+    <span style="color:#75715e">// ERROR: Property cannot be marked @objc because its type cannot be represented in Objective-C</span>
+<span style="color:#75715e">//    @objc dynamic var structProperty: PureSwift = .init(a: (0,false))</span>
+}
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">PureSwift</span> {
+    <span style="color:#66d9ef">let</span> a: (Int, Bool)
+}
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">MonitorObject</span>: ObservableObject {
+    @Published <span style="color:#66d9ef">var</span> someProp1 = <span style="color:#66d9ef">false</span>
+    @Published <span style="color:#66d9ef">var</span> someProp2 = <span style="color:#e6db74">&#34;&#34;</span>
+}
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ViewController</span>: UIViewController {
+    <span style="color:#66d9ef">var</span> subs = Set&lt;AnyCancellable&gt;()
+
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">viewDidLoad</span>() {
+        <span style="color:#66d9ef">super</span>.viewDidLoad()
+
+        <span style="color:#75715e">// KVO 继承自 NSObject 的类；标记为 @objc dynamic；兼容 Obj-C 的数组和字典</span>
+
+<span style="color:#75715e">//        let queue = OperationQueue()</span>
+<span style="color:#75715e">//        let sub = queue.publisher(for: \.operationCount) // 监听次数</span>
+<span style="color:#75715e">//            .sink { print($0) }</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        sub.store(in: &amp;subs)</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        queue.addOperation(Operation())</span>
+
+<span style="color:#75715e">//        0</span>
+<span style="color:#75715e">//        1</span>
+<span style="color:#75715e">//        0</span>
+
+<span style="color:#75715e">//        let obj = TestObject()</span>
+<span style="color:#75715e">//        let sub = obj</span>
+<span style="color:#75715e">//            .publisher(for: \.intProp)</span>
+<span style="color:#75715e">//            .sink { print($0) }</span>
+<span style="color:#75715e">//        sub.store(in: &amp;subs)</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        obj.intProp = 100</span>
+<span style="color:#75715e">//        obj.intProp = 200</span>
+<span style="color:#75715e">//        obj.intProp = 200</span>
+
+<span style="color:#75715e">//        0   // 初始值</span>
+<span style="color:#75715e">//        100</span>
+<span style="color:#75715e">//        200</span>
+<span style="color:#75715e">//        200</span>
+
+<span style="color:#75715e">//        let sub2 = obj</span>
+<span style="color:#75715e">//            .publisher(for: \.strProp)</span>
+<span style="color:#75715e">//            .sink { print($0) }</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        let sub3 = obj</span>
+<span style="color:#75715e">//            .publisher(for: \.arrProp)</span>
+<span style="color:#75715e">//            .sink { print($0) }</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        obj.strProp = &#34;A&#34;</span>
+<span style="color:#75715e">//        obj.arrProp.append(1)</span>
+<span style="color:#75715e">//        obj.strProp = &#34;B&#34;</span>
+<span style="color:#75715e">//        obj.arrProp.append(2)</span>
+
+<span style="color:#75715e">//           // 空字符串</span>
+<span style="color:#75715e">//        []</span>
+<span style="color:#75715e">//        A</span>
+<span style="color:#75715e">//        [1.0]</span>
+<span style="color:#75715e">//        B</span>
+<span style="color:#75715e">//        [1.0, 2.0]</span>
+
+
+<span style="color:#75715e">//        let obj = TestObject()</span>
+<span style="color:#75715e">//        let sub = obj</span>
+<span style="color:#75715e">//        .publisher(for: \.intProp, options: [.initial])</span>
+<span style="color:#75715e">////        .publisher(for: \.intProp, options: [.prior])</span>
+<span style="color:#75715e">////        .publisher(for: \.intProp, options: [.new])</span>
+<span style="color:#75715e">//            .sink { print($0) }</span>
+<span style="color:#75715e">//        sub.store(in: &amp;subs)</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        obj.intProp = 100</span>
+<span style="color:#75715e">//        obj.intProp = 200</span>
+<span style="color:#75715e">//        obj.intProp = 200</span>
+
+        <span style="color:#75715e">// options 默认 .initial</span>
+<span style="color:#75715e">//        0</span>
+<span style="color:#75715e">//        100</span>
+<span style="color:#75715e">//        200</span>
+<span style="color:#75715e">//        200</span>
+
+        <span style="color:#75715e">// options []</span>
+<span style="color:#75715e">//        100</span>
+<span style="color:#75715e">//        200</span>
+<span style="color:#75715e">//        200</span>
+
+        <span style="color:#75715e">// options [.prior] 每次同时发出前一个与新值</span>
+<span style="color:#75715e">//        0</span>
+<span style="color:#75715e">//        100</span>
+<span style="color:#75715e">//        100</span>
+<span style="color:#75715e">//        200</span>
+<span style="color:#75715e">//        200</span>
+<span style="color:#75715e">//        200</span>
+
+        <span style="color:#75715e">// new old 在该发布者处没有作用，仅仅让新值通过（new old）</span>
+<span style="color:#75715e">//        100</span>
+<span style="color:#75715e">//        200</span>
+<span style="color:#75715e">//        200</span>
+
+        <span style="color:#75715e">// --- ObservableObject</span>
+
+        <span style="color:#66d9ef">let</span> object = MonitorObject()
+        <span style="color:#66d9ef">let</span> sub = object.objectWillChange.sink {
+            print($0)
+        }
+
+        object.someProp1 = <span style="color:#66d9ef">true</span>
+        object.someProp2 = <span style="color:#e6db74">&#34;Hello&#34;</span>
+
+        <span style="color:#75715e">// 我们只知道改变，但不知道具体改变了哪个、改变了什么，常用于 SwiftUI 和 @Published 结合</span>
+<span style="color:#75715e">//        ()</span>
+<span style="color:#75715e">//        ()</span>
+
+    }
+}
+</code></pre></div><hr>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift">
+
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Combine</span>
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ViewController</span>: UIViewController {
+    <span style="color:#66d9ef">var</span> subs = Set&lt;AnyCancellable&gt;()
+
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">viewDidLoad</span>() {
+        <span style="color:#66d9ef">super</span>.viewDidLoad()
+
+        <span style="color:#75715e">// 多个订阅者共享发布者的内容</span>
+        <span style="color:#75715e">// share &amp; multicast</span>
+        <span style="color:#75715e">// share 返回 Publish.Share 类型，新的发布者共享上流的发布者（只会订阅上流发布者一次，并共享给所有后续订阅该发布者的订阅者）</span>
+        <span style="color:#75715e">// 新订阅者只能收到上游发布者订阅后出的值，是没有缓冲和重播的，如果上游已经完成，那么订阅者只能收到完成</span>
+
+<span style="color:#75715e">//        let shared = URLSession.shared</span>
+<span style="color:#75715e">//            .dataTaskPublisher(for: URL(string: &#34;https://my-json-server.typicode.com/typicode/demo/posts&#34;)!)</span>
+<span style="color:#75715e">//            .map(\.data)</span>
+<span style="color:#75715e">//            .print(&#34;shared&#34;)</span>
+<span style="color:#75715e">//            .share()</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        print(&#34;sub 1&#34;)</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        let sub1 = shared.sink(receiveCompletion: { _ in</span>
+<span style="color:#75715e">//            print(&#34;Completion&#34;)</span>
+<span style="color:#75715e">//        }, receiveValue: { print(&#34;sub1&#34;, $0) })</span>
+<span style="color:#75715e">//        sub1.store(in: &amp;subs)</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        print(&#34;sub 2&#34;)</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        let sub2 = shared.sink(receiveCompletion: { _ in</span>
+<span style="color:#75715e">//            print(&#34;Completion&#34;)</span>
+<span style="color:#75715e">//        }, receiveValue: { print(&#34;sub2&#34;, $0) })</span>
+<span style="color:#75715e">//        sub2.store(in: &amp;subs)</span>
+
+<span style="color:#75715e">//        sub 1</span>
+<span style="color:#75715e">//        shared: receive subscription: (DataTaskPublisher) // 第一个订阅触发对 DataTaskPublisher 订阅</span>
+<span style="color:#75715e">//        shared: request unlimited</span>
+<span style="color:#75715e">//        sub 2</span>
+<span style="color:#75715e">//        shared: receive value: (134 bytes)</span>
+<span style="color:#75715e">//        sub1 134 bytes</span>
+<span style="color:#75715e">//        sub2 134 bytes</span>
+<span style="color:#75715e">//        shared: receive finished</span>
+<span style="color:#75715e">//        Completion</span>
+<span style="color:#75715e">//        Completion</span>
+
+        <span style="color:#75715e">// 去掉 share</span>
+<span style="color:#75715e">//        sub 1</span>
+<span style="color:#75715e">//        shared: receive subscription: (DataTaskPublisher)</span>
+<span style="color:#75715e">//        shared: request unlimited</span>
+<span style="color:#75715e">//        sub 2</span>
+<span style="color:#75715e">//        shared: receive subscription: (DataTaskPublisher) // 两次订阅</span>
+<span style="color:#75715e">//        shared: request unlimited</span>
+<span style="color:#75715e">//        shared: receive value: (134 bytes)</span>
+<span style="color:#75715e">//        sub2 134 bytes</span>
+<span style="color:#75715e">//        shared: receive finished</span>
+<span style="color:#75715e">//        Completion</span>
+<span style="color:#75715e">//        shared: receive value: (134 bytes)</span>
+<span style="color:#75715e">//        sub1 134 bytes</span>
+<span style="color:#75715e">//        shared: receive finished</span>
+<span style="color:#75715e">//        Completion</span>
+
+<span style="color:#75715e">//        var sub3: AnyCancellable? = nil</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {</span>
+<span style="color:#75715e">//            print(&#34;sub3&#34;)</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//            sub3 = shared.sink(receiveCompletion: {</span>
+<span style="color:#75715e">//                print(&#34;sub3&#34;, $0)</span>
+<span style="color:#75715e">//            }, receiveValue: {</span>
+<span style="color:#75715e">//                print(&#34;sub3&#34;, $0)</span>
+<span style="color:#75715e">//            })</span>
+<span style="color:#75715e">//        }</span>
+
+        <span style="color:#75715e">// sub3 订阅的时候，请求已经回来过了，因此没有接收到任何值</span>
+<span style="color:#75715e">//        sub 1</span>
+<span style="color:#75715e">//        shared: receive subscription: (DataTaskPublisher)</span>
+<span style="color:#75715e">//        shared: request unlimited</span>
+<span style="color:#75715e">//        sub 2</span>
+<span style="color:#75715e">//        shared: receive value: (134 bytes)</span>
+<span style="color:#75715e">//        sub1 134 bytes</span>
+<span style="color:#75715e">//        sub2 134 bytes</span>
+<span style="color:#75715e">//        shared: receive finished</span>
+<span style="color:#75715e">//        Completion</span>
+<span style="color:#75715e">//        Completion</span>
+<span style="color:#75715e">//        sub3</span>
+<span style="color:#75715e">//        sub3 finished</span>
+
+        <span style="color:#75715e">// ---</span>
+        <span style="color:#75715e">// multicast 的发布者为 ConnectablePublisher，只有调用 connect 才会真正订阅</span>
+
+<span style="color:#75715e">//        let sub = PassthroughSubject&lt;Data, URLError&gt;()</span>
+<span style="color:#75715e">//        let multi = URLSession.shared.dataTaskPublisher(for: URL(string: &#34;https://my-json-server.typicode.com/typicode/demo/posts&#34;)!)</span>
+<span style="color:#75715e">//            .map(\.data)</span>
+<span style="color:#75715e">//            .print(&#34;shared&#34;)</span>
+<span style="color:#75715e">//            .multicast(subject: sub)</span>
+<span style="color:#75715e">////            .autoconnect()</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        let sub1 = multi.sink(receiveCompletion: { print(&#34;sub1&#34;, $0) },</span>
+<span style="color:#75715e">//                              receiveValue: { print(&#34;sub1&#34;, $0) })</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        let sub2 = multi.sink(receiveCompletion: { print(&#34;sub2&#34;, $0) },</span>
+<span style="color:#75715e">//                              receiveValue: { print(&#34;sub2&#34;, $0) })</span>
+<span style="color:#75715e">//</span>
+<span style="color:#75715e">//        multi.connect()</span>
+<span style="color:#75715e">//        // autoconnect 也支持，使用时首次订阅后，连接到上游发布者并立即开始工作</span>
+<span style="color:#75715e">//        // 用于上游发布者发射单一值，并使用 CurrentValueSubject 共享订阅者</span>
+<span style="color:#75715e">//        sub.send(Data())</span>
+
+        <span style="color:#75715e">// connect 后，发送数据，两个均可收到</span>
+<span style="color:#75715e">//        shared: receive subscription: (DataTaskPublisher)</span>
+<span style="color:#75715e">//        shared: request unlimited</span>
+<span style="color:#75715e">//        shared: receive cancel</span>
+<span style="color:#75715e">//        sub1 0 bytes</span>
+<span style="color:#75715e">//        sub2 0 bytes</span>
+
+        <span style="color:#75715e">// autoconnect</span>
+<span style="color:#75715e">//        shared: receive subscription: (DataTaskPublisher)</span>
+<span style="color:#75715e">//        shared: request unlimited</span>
+<span style="color:#75715e">//        sub1 0 bytes</span>
+<span style="color:#75715e">//        sub2 0 bytes</span>
+<span style="color:#75715e">//        shared: receive cancel</span>
+
+        <span style="color:#75715e">// Future</span>
+
+        <span style="color:#66d9ef">let</span> future = Future&lt;Int, Error&gt; { fulfill <span style="color:#66d9ef">in</span>
+            <span style="color:#66d9ef">do</span> {
+                <span style="color:#75715e">// 创建后立即执行（无关是否订阅）</span>
+                <span style="color:#66d9ef">let</span> result = <span style="color:#66d9ef">try</span> <span style="color:#66d9ef">self</span>.performSomeWork()
+                <span style="color:#75715e">// 将结果保存在 fulfill，并分发给 Future 的订阅者</span>
+                fulfill(.success(result))
+            } <span style="color:#66d9ef">catch</span> {
+                fulfill(.failure(error))
+            }
+        }
+        <span style="color:#75715e">// 仅执行一次但可以分发结果到多个订阅者</span>
+        <span style="color:#75715e">// 不能依靠 Deferred 推迟闭包执行直到订阅者订阅，因为 Deferred 是个结构体，每次都会导致新的 Future 创建</span>
+
+<span style="color:#75715e">//        在处理网络等资源密集型流程时，共享订阅工作至关重要。</span>
+<span style="color:#75715e">//        当您只需要与多个订阅者共享一个发布者时，请使用share（）。</span>
+<span style="color:#75715e">//        当您需要精细控制上游发布者何时开始工作以及值如何传播到订阅者时，请使用multicast（_ :)。</span>
+<span style="color:#75715e">//        使用Future将计算的单个结果共享给多个订户。</span>
+    }
+
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">performSomeWork</span>() <span style="color:#66d9ef">throws</span> -&gt; Int {
+        <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>
+    }
+}
+</code></pre></div><hr>
+<p>@ObservedObject包装器执行以下操作：
+1.从视图中删除属性存储，并使用对原始属性的绑定
+模型。 换句话说，它不会重复数据。
+2.将属性标记为外部存储。 换句话说，它表示一块
+的数据不属于视图。
+3.与@Published和@State一样，它会将发布者添加到属性中，因此您可以
+订阅它和/或在视图层次结构中进一步绑定到它。</p>
+
     </div>
     
       <div class="pagination">
