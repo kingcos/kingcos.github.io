@@ -274,7 +274,7 @@ __API_AVAILABLE(macos(<span style="color:#ae81ff">10.4</span>), ios(<span style=
 		<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span> _Nonnull)(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>), <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> _Nullable __restrict);
 <span style="color:#75715e">#endif </span><span style="color:#75715e">// _PTHREAD_SWIFT_IMPORTER_NULLABILITY_COMPAT
 </span></code></pre></div><blockquote>
-<p>⚠️</p>
+<p>⚠️ 注意：</p>
 <p>可以注意到的是，<code>pthread.h</code> 中关于 <code>pthread_create</code> 函数的声明使用了 <code>_PTHREAD_SWIFT_IMPORTER_NULLABILITY_COMPAT</code> 宏进行了区分。关于该宏以及其内部判断条件其实没有太多资料可以参考，但大体上可以理解是为了兼容 Swift 中的可选类型，但两种声明本质上并无其他区别。</p>
 </blockquote>
 <p>以 Obj-C 中实际使用的 <code>pthread_create(pthread_t _Nullable *restrict _Nonnull, const pthread_attr_t *restrict _Nullable, void * _Nullable (* _Nonnull)(void * _Nullable), void *restrict _Nullable)</code> 声明为例，其中 <code>_Nullable</code> 和 <code>_Nonnull</code> 是 Obj-C 桥接 Swift 可选（Optional）类型时是否隐式或显式可选的标志；<code>__restrict</code> 是 C99 标准引入的关键字，类似于 <code>restrict</code>，可以用在指针声明处，使得编译器将只能通过该指针本身修改指向的内容，便于其优化。去掉这些不影响函数本身功能的标志，补全参数名即 <code>int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg)</code>。</p>
