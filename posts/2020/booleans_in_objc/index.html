@@ -141,7 +141,7 @@
       
       
       
-        <span class="post-read-time">— 5 min read</span>
+        <span class="post-read-time">— 6 min read</span>
       
     </div>
 
@@ -369,7 +369,40 @@ printf(<span style="color:#e6db74">&#34;%lu</span><span style="color:#ae81ff">\n
 <p>编译器隐式将 <code>__objc_yes</code> 转换为 <code>(BOOL)1</code>，将 <code>__objc_no</code> 转换为 <code>(BOOL)0</code>。这些关键字是用来区分 <code>BOOL</code> 与整型字面量的。</p>
 <p>—— Objective-C Literals</p>
 </blockquote>
-<h2 id="__nscfboolean-与-cfbooleanref">__NSCFBoolean 与 CFBooleanRef</h2>
+<h2 id="__nscfboolean-与-cfboolean">__NSCFBoolean 与 CFBoolean</h2>
+<p>使用 <code>NSUserDefaults</code> 使得我们可以很容易持久化一些值，这里我们将 <code>BOOL</code> 的 <code>YES</code> 保存，并尝试取出：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">[[NSUserDefaults standardUserDefaults] setBool:YES forKey:<span style="color:#e6db74">@&#34;BOOL_YES&#34;</span>];
+<span style="color:#75715e">// [[NSUserDefaults standardUserDefaults] setObject:@YES forKey:@&#34;BOOL_YES&#34;];
+</span><span style="color:#75715e">// [[NSUserDefaults standardUserDefaults] setObject:@(YES) forKey:@&#34;BOOL_YES&#34;];
+</span><span style="color:#75715e">// - (id)valueForKey:(NSString *)key;
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">id</span> boolYes <span style="color:#f92672">=</span> [[NSUserDefaults standardUserDefaults] valueForKey:<span style="color:#e6db74">@&#34;BOOL_YES&#34;</span>];
+NSLog(<span style="color:#e6db74">@&#34;%@&#34;</span>, [boolYes <span style="color:#66d9ef">class</span>]);
+
+<span style="color:#75715e">// __NSCFBoolean
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// (lldb) p [boolYes superclass]
+</span><span style="color:#75715e"></span>(<span style="color:#75715e">// Class) $0 = NSNumber
+</span></code></pre></div><p>由于 <code>valueForKey:</code> 是一个返回 <code>id</code> 类型的方法，此时我们发现 <code>boolYes</code> 的类是 <code>__NSCFBoolean</code>，父类为 <code>NSNumber</code>。<code>__NSCFBoolean</code> 的本质是桥接 <code>CoreFoundation</code> 中的 <code>CFBoolean</code>。</p>
+<blockquote>
+<p>CFBoolean objects are used to wrap boolean values for use in Core Foundation property lists and collection types.</p>
+<p>CFBoolean 对象包装了布尔值，用在 CoreFoundation 属性列表和集合类型。</p>
+<p>—— CFBoolean, Apple Documentation</p>
+</blockquote>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// CoreFoundation - CFNumber.h
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">CF_BRIDGED_TYPE</span>(NSNumber) __CFBoolean <span style="color:#f92672">*</span> CFBooleanRef;
+
+CF_EXPORT
+<span style="color:#66d9ef">const</span> CFBooleanRef kCFBooleanTrue;
+CF_EXPORT
+<span style="color:#66d9ef">const</span> CFBooleanRef kCFBooleanFalse;
+
+CF_EXPORT
+CFTypeID <span style="color:#a6e22e">CFBooleanGetTypeID</span>(<span style="color:#66d9ef">void</span>);
+
+CF_EXPORT
+Boolean <span style="color:#a6e22e">CFBooleanGetValue</span>(CFBooleanRef boolean);
+</code></pre></div><p><code>CFBoolean</code></p>
 <h2 id="boolean-与-boolean_t">Boolean 与 boolean_t</h2>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// usr/include - MacTypes.h
 </span><span style="color:#75715e"></span>
@@ -429,6 +462,8 @@ printf(<span style="color:#e6db74">&#34;%lu</span><span style="color:#ae81ff">\n
 <li><a href="https://en.wikipedia.org/wiki/Boolean_data_type#C,_C++,_Objective-C,_AWK">Boolean data type - Wikipedia</a></li>
 <li><a href="https://developer.apple.com/documentation/objectivec/bool">BOOL - Apple Documentation</a></li>
 <li><a href="https://releases.llvm.org/3.1/tools/clang/docs/ObjectiveCLiterals.html">Objective-C Literals - LLVM.org</a></li>
+<li><a href="https://developer.apple.com/documentation/corefoundation/cfboolean">CFBoolean - Apple Documentation</a></li>
+<li><a href="https://opensource.apple.com/source/CF/">CF Source Browser - Apple Opensource</a></li>
 </ul>
 
     </div>
