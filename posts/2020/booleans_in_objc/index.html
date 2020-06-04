@@ -6,10 +6,10 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Preface Boolean，即布尔值，通常用来表明逻辑中的真或假。但在 Obj-C 中，我们似乎既可以使用 BOOL 又可以使用 bool，既可以使用 YES/NO 又可以使用 true/false，那么它们到底有何不同呢？
+<meta name="description" content="Date Notes     2020-06-02 首次提交    Preface Boolean，即布尔值，通常用来表明逻辑中的真或假。但在 Obj-C 中，我们似乎既可以使用 BOOL 又可以使用 bool，既可以使用 YES/NO 又可以使用 true/false，那么它们到底有何不同呢？
  ⚠️ 注意：
 为了避免读者（和笔者）记混，这里简单说明下 #define 与 typedef 的异同：#define A B 意为将已存在的 B 定义为 A，A 与 B 等价；typedef C D 意为将已存在的 C 定义为 D，C 与 D 等价；后者通常用于类型定义。
- _Bool 与 bool // iOS - stdbool.h  /*===---- stdbool.h - Standard header for booleans -------------------------=== * * Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions. * See https://llvm."/>
+ _Bool 与 bool // iOS - stdbool.h  /*===---- stdbool.h - Standard header for booleans -------------------------=== * * Part of the LLVM Project, under the Apache License v2."/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2020/booleans_in_objc/" />
@@ -160,7 +160,22 @@
     
 
     <div class="post-content">
-      <h2 id="preface">Preface</h2>
+      <table>
+<thead>
+<tr>
+<th align="center">Date</th>
+<th align="center">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">2020-06-02</td>
+<td align="center">首次提交</td>
+</tr>
+</tbody>
+</table>
+<p><img src="/img/2020/booleans_in_objc/0.png" alt="0"></p>
+<h2 id="preface">Preface</h2>
 <p>Boolean，即布尔值，通常用来表明逻辑中的真或假。但在 Obj-C 中，我们似乎既可以使用 <code>BOOL</code> 又可以使用 <code>bool</code>，既可以使用 <code>YES</code>/<code>NO</code> 又可以使用 <code>true</code>/<code>false</code>，那么它们到底有何不同呢？</p>
 <blockquote>
 <p>⚠️ 注意：</p>
@@ -385,9 +400,10 @@ NSLog(<span style="color:#e6db74">@&#34;%@&#34;</span>, [boolYes <span style="co
 </span></code></pre></div><p>由于 <code>valueForKey:</code> 是一个返回 <code>id</code> 类型的方法，此时我们发现 <code>boolYes</code> 的类是 <code>__NSCFBoolean</code>，父类为 <code>NSNumber</code>。<code>__NSCFBoolean</code> 的本质是桥接 <code>CoreFoundation</code> 中的 <code>CFBoolean</code>。</p>
 <blockquote>
 <p>CFBoolean objects are used to wrap boolean values for use in Core Foundation property lists and collection types.</p>
-<p>CFBoolean 对象包装了布尔值，用在 CoreFoundation 属性列表和集合类型。</p>
+<p>CFBoolean 对象包装了布尔值，用在 CoreFoundation 中的属性列表和集合类型。</p>
 <p>—— CFBoolean, Apple Documentation</p>
 </blockquote>
+<p><code>CFBoolean</code> 中真值为 <code>kCFBooleanTrue</code>，假值为 <code>kCFBooleanFalse</code>：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// CoreFoundation - CFNumber.h
 </span><span style="color:#75715e"></span>
 <span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">CF_BRIDGED_TYPE</span>(NSNumber) __CFBoolean <span style="color:#f92672">*</span> CFBooleanRef;
@@ -402,8 +418,7 @@ CFTypeID <span style="color:#a6e22e">CFBooleanGetTypeID</span>(<span style="colo
 
 CF_EXPORT
 Boolean <span style="color:#a6e22e">CFBooleanGetValue</span>(CFBooleanRef boolean);
-</code></pre></div><p><code>CFBoolean</code></p>
-<h2 id="boolean-与-boolean_t">Boolean 与 boolean_t</h2>
+</code></pre></div><h2 id="boolean-与-boolean_t">Boolean 与 boolean_t</h2>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// usr/include - MacTypes.h
 </span><span style="color:#75715e"></span>
 <span style="color:#75715e">/********************************************************************************
@@ -443,8 +458,8 @@ printf(<span style="color:#e6db74">&#34;%lu</span><span style="color:#ae81ff">\n
 <span style="color:#75715e">// 1
 </span><span style="color:#75715e">// 4
 </span></code></pre></div><p><code>Boolean</code> 和 <code>boolean_t</code> 分别占用 1 个和 4 个字节（该大小不区分目标平台）。而在日常开发中，由于我们几乎很少会使用到这两个类型，故本文不再赘述。</p>
-<h2 id="true-与-false">TRUE 与 FALSE</h2>
-<p><code>TRUE</code> 与 <code>FALSE</code> 在平时我们也不常用，其定义来自于 <code>dyld.h</code> 中的一个枚举类型，<code>TRUE</code> 为 <code>1</code>，<code>FALSE</code> 为 <code>0</code>：</p>
+<h2 id="dyld_bool">DYLD_BOOL</h2>
+<p><code>DYLD_BOOL</code> 在平时我们也不常用，其本质是来自于 <code>dyld.h</code> 中的一个枚举类型，其中 <code>TRUE</code> 为 <code>1</code>，<code>FALSE</code> 为 <code>0</code>：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// usr/include - mach-o - dyld.h
 </span><span style="color:#75715e"></span>
 <span style="color:#75715e">#ifndef ENUM_DYLD_BOOL
@@ -453,7 +468,102 @@ printf(<span style="color:#e6db74">&#34;%lu</span><span style="color:#ae81ff">\n
 </span><span style="color:#75715e"></span>  <span style="color:#75715e">#undef TRUE
 </span><span style="color:#75715e"></span>  <span style="color:#66d9ef">enum</span> DYLD_BOOL { FALSE, TRUE };
 <span style="color:#75715e">#endif </span><span style="color:#75715e">/* ENUM_DYLD_BOOL */</span><span style="color:#75715e">
-</span></code></pre></div><h2 id="reference">Reference</h2>
+</span></code></pre></div><h2 id="conclusion">Conclusion</h2>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">底层类型</th>
+<th align="center">头文件</th>
+<th align="center">sizeof</th>
+<th align="center">真值</th>
+<th align="center">假值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">_Bool（C）</td>
+<td align="center">unsigned int</td>
+<td align="center">stdbool.h</td>
+<td align="center">1</td>
+<td align="center">1</td>
+<td align="center">0</td>
+</tr>
+<tr>
+<td align="center">bool（C）</td>
+<td align="center">_Bool（C）</td>
+<td align="center">stdbool.h</td>
+<td align="center">1</td>
+<td align="center">true</td>
+<td align="center">false</td>
+</tr>
+<tr>
+<td align="center">bool（C++）</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">1</td>
+<td align="center">true</td>
+<td align="center">false</td>
+</tr>
+<tr>
+<td align="center">BOOL<br>（Obj-C）</td>
+<td align="center">macOS/iOS 32bit<br>signed char<br>iOS 64bit:<br>_Bool</td>
+<td align="center">objc.h</td>
+<td align="center">1</td>
+<td align="center">YES</td>
+<td align="center">NO</td>
+</tr>
+<tr>
+<td align="center">BOOL<br>（Obj-C++）</td>
+<td align="center">macOS/iOS 32bit:<br>signed char<br>iOS 64bit:<br>bool（C++）</td>
+<td align="center">objc.h</td>
+<td align="center">1</td>
+<td align="center">YES</td>
+<td align="center">NO</td>
+</tr>
+<tr>
+<td align="center">__NSCFBoolean</td>
+<td align="center">CFBoolean</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">@YES</td>
+<td align="center">@NO</td>
+</tr>
+<tr>
+<td align="center">CFBooleanRef</td>
+<td align="center">CFBoolean</td>
+<td align="center">CFNumber.h</td>
+<td align="center">8</td>
+<td align="center">kCFBooleanTrue</td>
+<td align="center">kCFBooleanFalse</td>
+</tr>
+<tr>
+<td align="center">Boolean</td>
+<td align="center">unsigned char</td>
+<td align="center">MacTypes.h</td>
+<td align="center">1</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td align="center">boolean_t</td>
+<td align="center">x86_64:<br>unsigned int<br>others:<br>int</td>
+<td align="center">boolean.h</td>
+<td align="center">4</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td align="center">DYLD_BOOL</td>
+<td align="center">enum DYLD_BOOL</td>
+<td align="center">dyld.h</td>
+<td align="center">4</td>
+<td align="center">TRUE（1）</td>
+<td align="center">FALSE（0）</td>
+</tr>
+</tbody>
+</table>
+<h2 id="reference">Reference</h2>
 <ul>
 <li><a href="https://nshipster.com/bool/">BOOL / bool / Boolean / NSCFBoolean - by Mattt</a></li>
 <li><a href="http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf">C99 Standard PDF - open-std.org</a></li>
