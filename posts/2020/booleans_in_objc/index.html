@@ -6,7 +6,7 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes     2020-06-02 首次提交    Preface Boolean，即布尔值，通常用来表明逻辑中的真或假。但在 Obj-C 中，我们似乎既可以使用 BOOL 又可以使用 bool，既可以使用 YES/NO 又可以使用 true/false，那么它们到底有何不同呢？
+<meta name="description" content="Date Notes     2020-06-02 首次提交   2020-06-16 增加「逻辑表达式」一节    Preface Boolean，即布尔值，通常用来表明逻辑中的真或假。但在 Obj-C 中，我们似乎既可以使用 BOOL 又可以使用 bool，既可以使用 YES/NO 又可以使用 true/false，那么它们到底有何不同呢？
  ⚠️ 注意：
 为了避免读者（和笔者）记混，这里简单说明下 #define 与 typedef 的异同：#define A B 意为将已存在的 B 定义为 A，A 与 B 等价；typedef C D 意为将已存在的 C 定义为 D，C 与 D 等价；后者通常用于类型定义。
  _Bool 与 bool // iOS - stdbool.h  /*===---- stdbool.h - Standard header for booleans -------------------------=== * * Part of the LLVM Project, under the Apache License v2."/>
@@ -141,7 +141,7 @@
       
       
       
-        <span class="post-read-time">— 6 min read</span>
+        <span class="post-read-time">— 7 min read</span>
       
     </div>
 
@@ -171,6 +171,10 @@
 <tr>
 <td align="center">2020-06-02</td>
 <td align="center">首次提交</td>
+</tr>
+<tr>
+<td align="center">2020-06-16</td>
+<td align="center">增加「逻辑表达式」一节</td>
 </tr>
 </tbody>
 </table>
@@ -468,7 +472,34 @@ printf(<span style="color:#e6db74">&#34;%lu</span><span style="color:#ae81ff">\n
 </span><span style="color:#75715e"></span>  <span style="color:#75715e">#undef TRUE
 </span><span style="color:#75715e"></span>  <span style="color:#66d9ef">enum</span> DYLD_BOOL { FALSE, TRUE };
 <span style="color:#75715e">#endif </span><span style="color:#75715e">/* ENUM_DYLD_BOOL */</span><span style="color:#75715e">
-</span></code></pre></div><h2 id="conclusion">Conclusion</h2>
+</span></code></pre></div><h2 id="逻辑表达式">逻辑表达式</h2>
+<p>在开发过程中，另一个离不开逻辑判断的地方是逻辑表达式。在这些表达式中，我们通常会使用 <code>&amp;&amp;</code>、<code>||</code>、<code>==</code>、<code>!=</code>、<code>!</code> 等逻辑运算符。那么它们的返回值是什么类型呢？</p>
+<p>为了避免编译器进行类型转换，这里使用了 <code>__auto_type</code> 来代表表达式的返回类型，并通过打断点查看逻辑表达式的返回值类型：</p>
+<p><img src="/o_img/2020/booleans_in_objc/1.png" alt="1"></p>
+<blockquote>
+<p><code>__auto_type</code></p>
+<p>在 Swift 中，我们已经习惯于编译器自动进行的类型推断。而 GCC 4.9 为 C 语言引入了 <code>__auto_type</code> 关键字，用处主要在于一些宏定义中能够实现「类型推断」，类似 C++ 中的 <code>auto</code>。LLVM 中也加入了该关键字。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#if defined(__cplusplus)
+</span><span style="color:#75715e">#define let auto const
+</span><span style="color:#75715e">#else
+</span><span style="color:#75715e">#define let const __auto_type
+</span><span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#if defined(__cplusplus)
+</span><span style="color:#75715e">#define var auto
+</span><span style="color:#75715e">#else
+</span><span style="color:#75715e">#define var __auto_type
+</span><span style="color:#75715e">#endif
+</span></code></pre></div></blockquote>
+<p>我们也可以通过「Xcode - Debug - Debug Workflow - View Memory」，查看变量的实际内存占用：</p>
+<p><img src="/o_img/2020/booleans_in_objc/2.png" alt="2"></p>
+<p>最终我们可以确定逻辑表达式的返回值类型其实是 <code>int</code>，占用 4 个字节。我们也可以在 C99 标准中找到以下说明来佐证：</p>
+<blockquote>
+<p>The <code>==</code> (equal to) and <code>!=</code> (not equal to) operators are analogous to the relational operators except for their lower precedence. Each of the operators yields 1 if the specified relation is true and 0 if it is false. The result has type <code>int</code>. For any pair of operands, exactly one of the relations is true.</p>
+<p><code>==</code>（等于）和 <code>!=</code>（不等于）运算符与关系运算符类似，只是它们的优先级较低。如果指定的关系为真，运算符会返回 1，如果为假，则返回 0。结果类型为 <code>int</code>。对于任何一项（判等）操作，都必有一个关系为真。</p>
+<p>—— C99 §6.5.9.3</p>
+</blockquote>
+<h2 id="conclusion">Conclusion</h2>
 <table>
 <thead>
 <tr>
@@ -574,6 +605,8 @@ printf(<span style="color:#e6db74">&#34;%lu</span><span style="color:#ae81ff">\n
 <li><a href="https://releases.llvm.org/3.1/tools/clang/docs/ObjectiveCLiterals.html">Objective-C Literals - LLVM.org</a></li>
 <li><a href="https://developer.apple.com/documentation/corefoundation/cfboolean">CFBoolean - Apple Documentation</a></li>
 <li><a href="https://opensource.apple.com/source/CF/">CF Source Browser - Apple Opensource</a></li>
+<li><a href="https://gcc.gnu.org/onlinedocs/gcc/Typeof.html">Referring to a Type with typeof - GCC</a></li>
+<li><a href="https://reviews.llvm.org/D12686">Add support for GCC&rsquo;s &lsquo;__auto_type&rsquo; extension. - LLVM</a></li>
 </ul>
 
     </div>
