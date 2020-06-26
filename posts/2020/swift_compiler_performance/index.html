@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    
+      <title>[译] Swift 编译器性能 :: iBlog</title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="作者 原文链接 版本     apple/swift Swift Compiler Performance 5dcc32f    本文档是一份关于理解、诊断并报告 Swift 编译器编译性能问题的指南。即：编译器编译代码的速度，而非代码运行的速度。
+虽然本指南较长，但内容其实相当简单。在很大程度上，性能分析需要耐住性子、考虑周全且坚持不懈，谨小慎微且始终如一地测量，并逐步消除噪音且专注于一个信号。
+影响编译性能的流程与因素概述 本节从较为宏观的角度论述关于编译器在运行时所做的工作，不仅包括显而易见的「编译」，以及影响编译器耗时的主要因素。
+当我们使用 Xcode 或在命令行中编译或运行 Swift 程序时，通常将调用 swift 或 swiftc（后者是前者的符号链接），这是一个根据不同参数能够以显著不同的方式运行的程序。
+虽然它可以直接编译或运行代码，但它通常会反过来运行一个或多个 swift 或 swiftc 副本作为子进程。在典型的批量编译中，swiftc 的第一个副本将被作为**驱动（Driver）进程运行，之后它将在进程树中运行一些所谓的前端（Frontend）**子进程。当我们要理解 Swift 编译时，我们必须清楚地了解哪些进程在运行，以及它们在做什么：
+ 驱动：子进程树中的顶层 swiftc 进程。负责决定哪些文件需要被编译或重新编译，以及运行子进程。子进程即所谓的作业（Jobs），它们运行编译和链接步骤。通常在运行时，驱动是空闲的，等待其它子进程完成。 前端作业（Frontend Jobs）：由驱动启动的子进程，运行 swift -frontend ...、运行编译、PCH 文件生成、模块合并等。这些作业大量增加了编译开销。 其它作业（Other Jobs）：由驱动启动的子进程，运行 ld、swift -modulewrap、swift-autolink-extract、dsymutil、dwarfdump，以及涉及收尾前端已完成作业等类似工具。其中一些也是 swift 程序，但它们并非「运行前端作业」，因此将会有完全不同的配置。  这些运行的一系列作业以及它们的耗时方式高度依赖于编译模式。有关编译性能的这些模式信息将在下一节中详述；关于驱动的更多详细信息，请参阅驱动文档、以及有关驱动内部和驱动可解析输出的文档。
+在下一节讨论完编译模式之后，我们还将触及可能在没有明显热点出现的情况下，所发生的工作负载大幅变化，这将分别从惰性策略（Laziness Strategies）与近似两个角度论述。
+编译模式 编译器有许多不同的选项可以控制驱动和前端作业，但导致行为上最显著差异的两个维度通常被称作模式（Modes）。因此当我们着眼于编译时，弄清楚 swiftc 的运行模式便十分重要，以及要时常对每个模式进行独立的分析。这些重要的模式如下：
+ 主文件（Primary-File）与整模块（Whole-Module）：不同模式取决于驱动是否使用 -wmo（又名 -whole-module-optimization）参数运行。  **批量（Batch）与单文件（Single-File）**主文件模式：随着 Swift 4."/>
+<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2020/swift_compiler_performance/" />
+
+
+
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+<link rel="shortcut icon" href="/img/favicon.png">
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="[译] Swift 编译器性能"/>
+<meta name="twitter:description" content="翻译自 [Swift Compiler Performance](https://github.com/apple/swift/blob/master/docs/CompilerPerformance.md)。"/>
+
+
+
+<meta property="og:title" content="[译] Swift 编译器性能" />
+<meta property="og:description" content="翻译自 [Swift Compiler Performance](https://github.com/apple/swift/blob/master/docs/CompilerPerformance.md)。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/2020/swift_compiler_performance/" />
+<meta property="article:published_time" content="2001-06-25T00:00:00+00:00" />
+<meta property="article:modified_time" content="2001-06-25T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+
+
+
+
+<script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  </head>
+  <body class="">
+    <div class="container">
+      <header class="header">
+  <span class="header__inner">
+    <a href="/" class="logo" style="text-decoration: none;">
+  
+    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
+  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
+</svg>
+</span>
+    <span class="logo__text">kingcos.me</span>
+    <span class="logo__cursor"></span>
+  
+</a>
+
+    <span class="header__right">
+      
+        <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+        <span class="menu-trigger">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M0 0h24v24H0z" fill="none"/>
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+          </svg>
+        </span>
+      
+      <span class="theme-toggle">
+        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+
+      </span>
+    </span>
+  </span>
+</header>
+
+
+      <div class="content">
+        
+  <div class="post">
+    <h2 class="post-title"><a href="/posts/2020/swift_compiler_performance/">[译] Swift 编译器性能</a></h2>
+    <div class="post-meta">
+      
+        <span class="post-date">
+            2001-06-25
+        </span>
+      
+      
+      
+        <span class="post-read-time">— 1 min read</span>
+      
+    </div>
+
+    
+      <span class="post-tags">
+        
+          #<a href="/tags/translation/">Translation</a>&nbsp;
+        
+          #<a href="/tags/swift/">Swift</a>&nbsp;
+        
+      </span>
+    
+
+    
+
+    <div class="post-content">
+      <table>
+<thead>
+<tr>
+<th align="center">作者</th>
+<th align="center">原文链接</th>
+<th align="center">版本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center"><a href="https://github.com/apple/swift">apple/swift</a></td>
+<td align="center"><a href="https://github.com/apple/swift/blob/master/docs/CompilerPerformance.md">Swift Compiler Performance</a></td>
+<td align="center">5dcc32f</td>
+</tr>
+</tbody>
+</table>
+<p>本文档是一份关于理解、诊断并报告 Swift 编译器编译性能问题的指南。即：编译器编译代码的速度，而非代码运行的速度。</p>
+<p>虽然本指南较长，但内容其实相当简单。在很大程度上，性能分析需要耐住性子、考虑周全且坚持不懈，谨小慎微且始终如一地测量，并逐步消除噪音且专注于一个信号。</p>
+<h2 id="影响编译性能的流程与因素概述">影响编译性能的流程与因素概述</h2>
+<p>本节从较为宏观的角度论述关于编译器在运行时所做的工作，不仅包括显而易见的「编译」，以及影响编译器耗时的主要因素。</p>
+<p>当我们使用 Xcode 或在命令行中编译或运行 Swift 程序时，通常将调用 <code>swift</code> 或 <code>swiftc</code>（后者是前者的符号链接），这是一个根据不同参数能够以显著不同的方式运行的程序。</p>
+<p>虽然它可以直接编译或运行代码，但它通常会反过来运行一个或多个 <code>swift</code> 或 <code>swiftc</code> 副本作为子进程。在典型的批量编译中，<code>swiftc</code> 的第一个副本将被作为**驱动（Driver）<strong>进程运行，之后它将在进程树中运行一些所谓的</strong>前端（Frontend）**子进程。当我们要理解 Swift 编译时，我们必须清楚地了解哪些进程在运行，以及它们在做什么：</p>
+<ul>
+<li><strong>驱动</strong>：子进程树中的顶层 <code>swiftc</code> 进程。负责决定哪些文件需要被编译或重新编译，以及运行子进程。子进程即所谓的<strong>作业（Jobs）</strong>，它们运行编译和链接步骤。通常在运行时，驱动是空闲的，等待其它子进程完成。</li>
+<li><strong>前端作业（Frontend Jobs）</strong>：由驱动启动的子进程，运行 <code>swift -frontend ...</code>、运行编译、PCH 文件生成、模块合并等。这些作业大量增加了编译开销。</li>
+<li><strong>其它作业（Other Jobs）</strong>：由驱动启动的子进程，运行 <code>ld</code>、<code>swift -modulewrap</code>、<code>swift-autolink-extract</code>、<code>dsymutil</code>、<code>dwarfdump</code>，以及涉及收尾前端已完成作业等类似工具。其中一些也是 <code>swift</code> 程序，但它们并非「运行前端作业」，因此将会有完全不同的配置。</li>
+</ul>
+<p>这些运行的一系列作业以及它们的耗时方式高度依赖于<strong>编译模式</strong>。有关编译性能的这些模式信息将在下一节中详述；关于驱动的更多详细信息，请参阅<a href="https://github.com/apple/swift/blob/master/docs/Driver.md">驱动文档</a>、以及有关<a href="https://github.com/apple/swift/blob/master/docs/DriverInternals.md">驱动内部</a>和<a href="https://github.com/apple/swift/blob/master/docs/DriverParseableOutput.md">驱动可解析输出</a>的文档。</p>
+<p>在下一节讨论完编译模式之后，我们还将触及可能在<strong>没有</strong>明显热点出现的情况下，所发生的工作负载大幅变化，这将分别从惰性策略（Laziness Strategies）与近似两个角度论述。</p>
+<h3 id="编译模式">编译模式</h3>
+<p>编译器有许多不同的选项可以控制驱动和前端作业，但导致行为上最显著差异的两个维度通常被称作<em>模式（Modes）</em>。因此当我们着眼于编译时，弄清楚 <code>swiftc</code> 的运行模式便十分重要，以及要时常对每个模式进行独立的分析。这些重要的模式如下：</p>
+<ul>
+<li><strong>主文件（Primary-File）<strong>与</strong>整模块（Whole-Module）</strong>：不同模式取决于驱动是否使用 <code>-wmo</code>（又名 <code>-whole-module-optimization</code>）参数运行。
+<ul>
+<li>**批量（Batch）<strong>与</strong>单文件（Single-File）**主文件模式：随着 Swift 4.2 正式版中加入了新的批量模式，这种区分完善了主文件模式的行为。批量模式减小了主文件模式的众多开销，并最终成为运行主文件模式的默认方式，但在此之前开启批量模式需传递 <code>-enable-batch-mode</code> 参数。</li>
+</ul>
+</li>
+<li><strong>优化（Optimizing）<strong>与</strong>无优化（Non-Optimizing）</strong>：不同模式取决于驱动（以及因此每个前端）是否使用 <code>-O</code>、<code>-Osize</code>、<code>-Ounchecked</code>（每个参数代表开启一个或多个优化选项），或默认（无优化），即等同于 <code>-Onone</code> 和 <code>-Oplayground</code>。</li>
+</ul>
+<p>当我们使用 Xcode 或用 <code>xcodebuild</code> 构建程序时，通常有一个<em>配置</em>参数会同时切换这两种模式。也就是说，典型的代码有两种配置：</p>
+<ul>
+<li><strong>Debug</strong>：即结合主文件模式与 <code>-Onone</code></li>
+<li><strong>Release</strong>：即结合 WMO 模式与 <code>-O</code></li>
+</ul>
+<p>这些参数均可单独更改，编译器的耗时也将根据设置而有所不同，因此这值得我们更详细地了解这两个维度。</p>
+<h4 id="主文件带与不带批处理与-wmo">主文件（带与不带批处理）与 WMO</h4>
+<p>这是编译器行为中最重要的变量，因此这值得我们彻底搞清楚：</p>
+<ul>
+<li>在<strong>主文件模式</strong>下，驱动将它要运行的工作分配给多个前端进程，每个前端完成后将得出部分结果，驱动在所有前端完成后合并这些结果。每个前端作业本身读取模块中的<em>全部</em>文件，专注于其编译时读取部分中的一个或多个<em>主要</em>文件，并根据需要从模块中惰性分析其它引用定义。该模式有两种子模式：
+<ul>
+<li>在<strong>单文件</strong>子模式下，编译器<em>对每个文件运行一个前端作业</em>，且每个作业只有一个主文件。</li>
+<li>在<strong>批处理</strong>子模式下，编译器<em>对每个 CPU 运行一个前端作业</em>，将模块文件中等大的「批处理」标示为主文件。</li>
+</ul>
+</li>
+<li>在<strong>整模块（WMO）模式</strong>下，驱动只为整个模块运行一个前端作业。该前端<em>一次性</em>读取模块中的全部文件，并一次性全部编译。</li>
+</ul>
+<p>举个例子：如果我们有一个包含 100 个文件的模块：</p>
+<ul>
+<li>运行 <code>swiftc *.swift</code> 将以<strong>单文件模式</strong>编译，因此将运行 100 个前端子进程，每个子进程将解析全部 100 个输入（总共 10,000 次解析），最后每个子进程将（并行）编译单个主文件的定义。</li>
+<li>运行 <code>swiftc -enable-batch-mode *.swift</code> 将以<strong>批处理模式</strong>编译，因此在一个拥有 4 个 CPU 的系统上将运行 4 个前端子进程，每个子进程将解析全部 100 个输入（总共 400 次解析），最后每个子进程将（并行）编译 25 个主文件定义（每个进程中模块数的四分之一）。</li>
+<li>运行 <code>swiftc -wmo *.swift</code> 将以<strong>整模块模式</strong>编译，因此将运行<em>一个</em>前端子进程，并<em>一次性</em>读取全部 100 个文件（总共 100 次解析），最后按顺序（串行）编译全部文件的定义。</li>
+</ul>
+<p>为什么存在多种模式？因为它们各自有不同的优点与不足；没有一种模式是完美的：</p>
+<ul>
+<li>主文件模式的优点是，驱动可以通过仅为已过时的文件运行前端从而进行<strong>增量编译（Incremental Compilation）</strong>，以及利用多核<strong>并行</strong>运行多个前端作业。其不足是每个前端作业必须在专注于其感兴趣的主文件之前读取模块中的<em>全部源文件</em>，这意味着前端作业中的<em>一部分</em>将被完成<em>两次</em>。</li>
+</ul>
+<h4 id="大量优化">大量优化</h4>
+<h3 id="工作负载">工作负载</h3>
+<h4 id="增量编译">增量编译</h4>
+<h4 id="惰性决议">惰性决议</h4>
+<h3 id="总结">总结</h3>
+<h2 id="已知问题区域">已知问题区域</h2>
+<h2 id="如何诊断编译性能问题">如何诊断编译性能问题</h2>
+<h3 id="工具与选项">工具与选项</h3>
+<h4 id="分析器">分析器</h4>
+<h5 id="instrumentsapp">Instruments.app</h5>
+<h5 id="perf">Perf</h5>
+<h4 id="诊断选项">诊断选项</h4>
+<h5 id="统一状态报告器">统一状态报告器</h5>
+<h6 id="跟踪状态事件">跟踪状态事件</h6>
+<h4 id="用于诊断的后处理工具">用于诊断的后处理工具</h4>
+<h4 id="人造分析工具">人造分析工具</h4>
+<h4 id="缩小器">缩小器</h4>
+<h5 id="git">Git</h5>
+<h5 id="creduce">Creduce</h5>
+<h5 id="通用">通用</h5>
+<h3 id="独立回归">独立回归</h3>
+<h4 id="驱动诊断">驱动诊断</h4>
+<h3 id="寻找需要通用提升的区域">寻找需要通用提升的区域</h3>
+<h4 id="编译器计数器">编译器计数器</h4>
+<h4 id="规模测试">规模测试</h4>
+<h2 id="如何最有用地报告-bug">如何最有用地报告 Bug</h2>
+<h2 id="如何">如何</h2>
+<!-- We built some Mac apps for using them in our company to help us develop better apps for our users.
+
+Such as LinkMapHelper is an app helping us analysis our app's size by Link Map file. So we can downsize our app's easily. I wrote this app in SwiftUI. And I plan to open-source it when it is stable. XcodeDeviceSupportManager is another Mac app I still writing to manage Xcode Device Support files. And we have another Mac app to communicate with IoT devices like our Mobike bike locks.
+
+I am so excited when I heard Apple Silicon, and we are looking forward these apps running on Apple Silicon. We can test them when we get DTK. And then they can run efficiently on new Macs, too. Thank you. -->
+
+    </div>
+    
+      <div class="pagination">
+        <div class="pagination__title">
+          <span class="pagination__title-h">Read other posts</span>
+          <hr />
+        </div>
+        <div class="pagination__buttons">
+          
+            <span class="button previous">
+              <a href="/posts/2020/array_in_ios/">
+                <span class="button__icon">←</span>
+                <span class="button__text">iOS 中的数组</span>
+              </a>
+            </span>
+          
+          
+        </div>
+      </div>
+    
+
+    
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<table style="border: 0;">
+  <tr>
+  <td style="border: 0; width: 30%;">
+    <img src='/img/about/1.jpg'>
+  </td>
+  <td style="border: 0;">
+    <ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-9925978992661955"
+     data-ad-slot="3213735320"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+  </td>
+  </tr>
+</table>
+
+
+
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+
+    
+    
+    <div>
+      <div id="github-comment">
+      </div>
+
+      <script type="text/javascript">
+        function getUtterances(isDark) {
+          var utterances = document.createElement('script');
+          utterances.type = 'text/javascript';
+          utterances.async = true;
+          utterances.setAttribute('issue-term', "pathname")
+          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
+          utterances.setAttribute('label', "comments")
+          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
+          utterances.crossorigin = 'anonymous';
+          utterances.src = 'https://utteranc.es/client.js';
+
+          return utterances
+        }
+
+        var themeToggle = document.querySelector(".theme-toggle")
+        themeToggle.addEventListener("click", function () {
+          var getTheme = window.localStorage && window.localStorage.getItem("theme")
+          var divNode = document.getElementById('github-comment')
+          while(divNode.hasChildNodes()) {
+            divNode.removeChild(divNode.firstChild);
+          }
+          
+          
+          
+
+          
+          
+          
+          
+          
+          
+          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
+        })
+
+        var getTheme = window.localStorage && window.localStorage.getItem("theme")
+        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
+      </script>
+    </div>
+    
+
+    </div>
+
+      </div>
+
+      
+        <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+      
+    </div>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+
+    
+  </body>
+</html>
