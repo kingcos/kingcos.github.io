@@ -10,11 +10,11 @@
 虽然本指南较长，但内容其实相当简单。在很大程度上，性能分析需要耐住性子、考虑周全且坚持不懈，谨小慎微且始终如一地测量，并逐步消除噪音且专注于一个信号。
 影响编译性能的流程与因素概述 本节从较为宏观的角度论述关于编译器在运行时所做的工作，不仅包括显而易见的「编译」，以及影响编译器耗时的主要因素。
 当我们使用 Xcode 或在命令行中编译或运行 Swift 程序时，通常将调用 swift 或 swiftc（后者是前者的符号链接），这是一个根据不同参数能够以显著不同的方式运行的程序。
-虽然它可以直接编译或运行代码，但它通常会反过来运行一个或多个 swift 或 swiftc 副本作为子进程。在典型的批量编译中，swiftc 的第一个副本将被作为**驱动（Driver）进程运行，之后它将在进程树中运行一些所谓的前端（Frontend）**子进程。当我们要理解 Swift 编译时，我们必须清楚地了解哪些进程在运行，以及它们在做什么：
+虽然它可以直接编译或运行代码，但它通常会反过来运行一个或多个 swift 或 swiftc 副本作为子进程。在典型的批量编译中，swiftc 的第一个副本将被作为驱动（Driver）进程运行，之后它将在进程树中运行一些所谓的前端（Frontend）子进程。当我们要理解 Swift 编译时，我们必须清楚地了解哪些进程在运行，以及它们在做什么：
  驱动：子进程树中的顶层 swiftc 进程。负责决定哪些文件需要被编译或重新编译，以及运行子进程。子进程即所谓的作业（Jobs），它们运行编译和链接步骤。通常在运行时，驱动是空闲的，等待其它子进程完成。 前端作业（Frontend Jobs）：由驱动启动的子进程，运行 swift -frontend ...、运行编译、PCH 文件生成、模块合并等。这些作业大量增加了编译开销。 其它作业（Other Jobs）：由驱动启动的子进程，运行 ld、swift -modulewrap、swift-autolink-extract、dsymutil、dwarfdump，以及涉及收尾前端已完成作业等类似工具。其中一些也是 swift 程序，但它们并非「运行前端作业」，因此将会有完全不同的配置。  这些运行的一系列作业以及它们的耗时方式高度依赖于编译模式。有关编译性能的这些模式信息将在下一节中详述；关于驱动的更多详细信息，请参阅驱动文档、以及有关驱动内部和驱动可解析输出的文档。
-在下一节讨论完编译模式之后，我们还将触及可能在没有明显热点出现的情况下，所发生的工作负载大幅变化，这将分别从惰性策略（Laziness Strategies）与近似两个角度论述。
+在下一节讨论完编译模式之后，我们还将触及可能在没有明显热点出现的情况下，所发生的工作量大幅变化，这将分别懒惰策略（Laziness Strategies）与近似两个角度论述。
 编译模式 编译器有许多不同的选项可以控制驱动和前端作业，但导致行为上最显著差异的两个维度通常被称作模式（Modes）。因此当我们着眼于编译时，弄清楚 swiftc 的运行模式便十分重要，以及要时常对每个模式进行独立的分析。这些重要的模式如下：
- 主文件（Primary-File）与整模块（Whole-Module）：不同模式取决于驱动是否使用 -wmo（又名 -whole-module-optimization）参数运行。  **批量（Batch）与单文件（Single-File）**主文件模式：随着 Swift 4."/>
+ 主文件（Primary-File）与全模块（Whole-Module）：不同模式取决于驱动是否使用 -wmo（又名 -whole-module-optimization）参数运行。  批量（Batch）与单文件（Single-File）主文件模式：随着 Swift 4."/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2020/swift_compiler_performance/" />
@@ -43,8 +43,8 @@
 <meta property="og:description" content="翻译自 [Swift Compiler Performance](https://github.com/apple/swift/blob/master/docs/CompilerPerformance.md)。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/posts/2020/swift_compiler_performance/" />
-<meta property="article:published_time" content="2001-06-25T00:00:00+00:00" />
-<meta property="article:modified_time" content="2001-06-25T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+<meta property="article:published_time" content="2000-06-25T00:00:00+00:00" />
+<meta property="article:modified_time" content="2000-06-25T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
 
 
 
@@ -141,12 +141,12 @@
     <div class="post-meta">
       
         <span class="post-date">
-            2001-06-25
+            2000-06-25
         </span>
       
       
       
-        <span class="post-read-time">— 1 min read</span>
+        <span class="post-read-time">— 3 min read</span>
       
     </div>
 
@@ -184,20 +184,20 @@
 <h2 id="影响编译性能的流程与因素概述">影响编译性能的流程与因素概述</h2>
 <p>本节从较为宏观的角度论述关于编译器在运行时所做的工作，不仅包括显而易见的「编译」，以及影响编译器耗时的主要因素。</p>
 <p>当我们使用 Xcode 或在命令行中编译或运行 Swift 程序时，通常将调用 <code>swift</code> 或 <code>swiftc</code>（后者是前者的符号链接），这是一个根据不同参数能够以显著不同的方式运行的程序。</p>
-<p>虽然它可以直接编译或运行代码，但它通常会反过来运行一个或多个 <code>swift</code> 或 <code>swiftc</code> 副本作为子进程。在典型的批量编译中，<code>swiftc</code> 的第一个副本将被作为**驱动（Driver）<strong>进程运行，之后它将在进程树中运行一些所谓的</strong>前端（Frontend）**子进程。当我们要理解 Swift 编译时，我们必须清楚地了解哪些进程在运行，以及它们在做什么：</p>
+<p>虽然它可以直接编译或运行代码，但它通常会反过来运行一个或多个 <code>swift</code> 或 <code>swiftc</code> 副本作为子进程。在典型的批量编译中，<code>swiftc</code> 的第一个副本将被作为<strong>驱动（Driver）</strong>进程运行，之后它将在进程树中运行一些所谓的<strong>前端（Frontend）</strong>子进程。当我们要理解 Swift 编译时，我们必须清楚地了解哪些进程在运行，以及它们在做什么：</p>
 <ul>
 <li><strong>驱动</strong>：子进程树中的顶层 <code>swiftc</code> 进程。负责决定哪些文件需要被编译或重新编译，以及运行子进程。子进程即所谓的<strong>作业（Jobs）</strong>，它们运行编译和链接步骤。通常在运行时，驱动是空闲的，等待其它子进程完成。</li>
 <li><strong>前端作业（Frontend Jobs）</strong>：由驱动启动的子进程，运行 <code>swift -frontend ...</code>、运行编译、PCH 文件生成、模块合并等。这些作业大量增加了编译开销。</li>
 <li><strong>其它作业（Other Jobs）</strong>：由驱动启动的子进程，运行 <code>ld</code>、<code>swift -modulewrap</code>、<code>swift-autolink-extract</code>、<code>dsymutil</code>、<code>dwarfdump</code>，以及涉及收尾前端已完成作业等类似工具。其中一些也是 <code>swift</code> 程序，但它们并非「运行前端作业」，因此将会有完全不同的配置。</li>
 </ul>
 <p>这些运行的一系列作业以及它们的耗时方式高度依赖于<strong>编译模式</strong>。有关编译性能的这些模式信息将在下一节中详述；关于驱动的更多详细信息，请参阅<a href="https://github.com/apple/swift/blob/master/docs/Driver.md">驱动文档</a>、以及有关<a href="https://github.com/apple/swift/blob/master/docs/DriverInternals.md">驱动内部</a>和<a href="https://github.com/apple/swift/blob/master/docs/DriverParseableOutput.md">驱动可解析输出</a>的文档。</p>
-<p>在下一节讨论完编译模式之后，我们还将触及可能在<strong>没有</strong>明显热点出现的情况下，所发生的工作负载大幅变化，这将分别从惰性策略（Laziness Strategies）与近似两个角度论述。</p>
+<p>在下一节讨论完编译模式之后，我们还将触及可能在<strong>没有</strong>明显热点出现的情况下，所发生的工作量大幅变化，这将分别懒惰策略（Laziness Strategies）与近似两个角度论述。</p>
 <h3 id="编译模式">编译模式</h3>
 <p>编译器有许多不同的选项可以控制驱动和前端作业，但导致行为上最显著差异的两个维度通常被称作<em>模式（Modes）</em>。因此当我们着眼于编译时，弄清楚 <code>swiftc</code> 的运行模式便十分重要，以及要时常对每个模式进行独立的分析。这些重要的模式如下：</p>
 <ul>
-<li><strong>主文件（Primary-File）<strong>与</strong>整模块（Whole-Module）</strong>：不同模式取决于驱动是否使用 <code>-wmo</code>（又名 <code>-whole-module-optimization</code>）参数运行。
+<li><strong>主文件（Primary-File）</strong>与<strong>全模块（Whole-Module）</strong>：不同模式取决于驱动是否使用 <code>-wmo</code>（又名 <code>-whole-module-optimization</code>）参数运行。
 <ul>
-<li>**批量（Batch）<strong>与</strong>单文件（Single-File）**主文件模式：随着 Swift 4.2 正式版中加入了新的批量模式，这种区分完善了主文件模式的行为。批量模式减小了主文件模式的众多开销，并最终成为运行主文件模式的默认方式，但在此之前开启批量模式需传递 <code>-enable-batch-mode</code> 参数。</li>
+<li><strong>批量（Batch）</strong>与<strong>单文件（Single-File）</strong>主文件模式：随着 Swift 4.2 正式版中加入了新的批量模式，这种区分完善了主文件模式的行为。批量模式减小了主文件模式的众多开销，并最终成为运行主文件模式的默认方式，但在此之前开启批量模式需传递 <code>-enable-batch-mode</code> 参数。</li>
 </ul>
 </li>
 <li><strong>优化（Optimizing）<strong>与</strong>无优化（Non-Optimizing）</strong>：不同模式取决于驱动（以及因此每个前端）是否使用 <code>-O</code>、<code>-Osize</code>、<code>-Ounchecked</code>（每个参数代表开启一个或多个优化选项），或默认（无优化），即等同于 <code>-Onone</code> 和 <code>-Oplayground</code>。</li>
@@ -211,35 +211,133 @@
 <h4 id="主文件带与不带批处理与-wmo">主文件（带与不带批处理）与 WMO</h4>
 <p>这是编译器行为中最重要的变量，因此这值得我们彻底搞清楚：</p>
 <ul>
-<li>在<strong>主文件模式</strong>下，驱动将它要运行的工作分配给多个前端进程，每个前端完成后将得出部分结果，驱动在所有前端完成后合并这些结果。每个前端作业本身读取模块中的<em>全部</em>文件，专注于其编译时读取部分中的一个或多个<em>主要</em>文件，并根据需要从模块中惰性分析其它引用定义。该模式有两种子模式：
+<li>在<strong>主文件模式</strong>下，驱动将它要运行的工作分配给多个前端进程，每个前端完成后将得出部分结果，驱动在所有前端完成后合并这些结果。每个前端作业本身读取模块中的<em>全部</em>文件，专注于其编译时读取部分中的一个或多个<em>主要</em>文件，并根据需要从模块中懒分析其它引用定义。该模式有两种子模式：
 <ul>
 <li>在<strong>单文件</strong>子模式下，编译器<em>对每个文件运行一个前端作业</em>，且每个作业只有一个主文件。</li>
 <li>在<strong>批处理</strong>子模式下，编译器<em>对每个 CPU 运行一个前端作业</em>，将模块文件中等大的「批处理」标示为主文件。</li>
 </ul>
 </li>
-<li>在<strong>整模块（WMO）模式</strong>下，驱动只为整个模块运行一个前端作业。该前端<em>一次性</em>读取模块中的全部文件，并一次性全部编译。</li>
+<li>在<strong>全模块（WMO）模式</strong>下，驱动只为整个模块运行一个前端作业。该前端<em>一次性</em>读取模块中的全部文件，并一次性全部编译。</li>
 </ul>
 <p>举个例子：如果我们有一个包含 100 个文件的模块：</p>
 <ul>
 <li>运行 <code>swiftc *.swift</code> 将以<strong>单文件模式</strong>编译，因此将运行 100 个前端子进程，每个子进程将解析全部 100 个输入（总共 10,000 次解析），最后每个子进程将（并行）编译单个主文件的定义。</li>
 <li>运行 <code>swiftc -enable-batch-mode *.swift</code> 将以<strong>批处理模式</strong>编译，因此在一个拥有 4 个 CPU 的系统上将运行 4 个前端子进程，每个子进程将解析全部 100 个输入（总共 400 次解析），最后每个子进程将（并行）编译 25 个主文件定义（每个进程中模块数的四分之一）。</li>
-<li>运行 <code>swiftc -wmo *.swift</code> 将以<strong>整模块模式</strong>编译，因此将运行<em>一个</em>前端子进程，并<em>一次性</em>读取全部 100 个文件（总共 100 次解析），最后按顺序（串行）编译全部文件的定义。</li>
+<li>运行 <code>swiftc -wmo *.swift</code> 将以<strong>全模块模式</strong>编译，因此将运行<em>一个</em>前端子进程，并<em>一次性</em>读取全部 100 个文件（总共 100 次解析），最后按顺序（串行）编译全部文件的定义。</li>
 </ul>
 <p>为什么存在多种模式？因为它们各自有不同的优点与不足；没有一种模式是完美的：</p>
 <ul>
-<li>主文件模式的优点是，驱动可以通过仅为已过时的文件运行前端从而进行<strong>增量编译（Incremental Compilation）</strong>，以及利用多核<strong>并行</strong>运行多个前端作业。其不足是每个前端作业必须在专注于其感兴趣的主文件之前读取模块中的<em>全部源文件</em>，这意味着前端作业中的<em>一部分</em>将被完成<em>两次</em>。</li>
+<li>主文件模式的优点是，驱动可以通过仅为已过时的文件运行前端从而进行<strong>增量编译（Incremental Compilation）</strong>，以及利用多核<strong>并行</strong>运行多个前端作业。其不足是每个前端作业必须在专注于其感兴趣的主文件之前读取模块中的<em>全部源文件</em>，这意味着<em>一部分</em>前端作业将按其数量的<em>平方</em>次完成。虽然通常这一部分作业相对较小且快，但由于是平方级就很容易出现问题。<strong>批量模式</strong>的增加就是为了消除初期作业的平方次递增。</li>
+<li>WMO 模式的优点是，当确定着眼于整个模块时才会进行优化，并且避免了主文件模式初期阶段的平方次作业。缺点是其总是需要重新构建一切，而且不能很好地利用并行（但至少在 LLVM IR 代码生成之前，其总是多线程的）。</li>
 </ul>
-<h4 id="大量优化">大量优化</h4>
-<h3 id="工作负载">工作负载</h3>
+<p>全模块模式确实开启了主文件模式编译时无法实现的一系列优化。尤其在含有大量私有死代码的模块中，全模块模式能够更早地消除死代码，并避免不必要的编译工作，从而实现更精简的输出和更迅速的编译。</p>
+<p>因此有可能的是，在某些特定情况下（比如可用的并行有限 / 许多模块已由并行构建），禁用优化的全模块构建可能比批处理主文件模式消耗更少的时间。但这种情况取决于许多因素，鲜有显著优势，而且由于完全放弃了对于增量编译的支持，因此这并非一种建议的配置。</p>
+<h4 id="优化量">优化量</h4>
+<p>本文档并不会详细概述编译器体系结构，但牢记编译器以 3 种主要表现形式处理在内存中的 Swift 代码是十分重要的。因此，在概念上可以被分为 3 个主要阶段，其中后 2 个阶段根据优化模式不同而行为不同：</p>
+<ul>
+<li><strong>AST</strong>（抽象语法树）：这是最接近于源代码的表现形式（定义在 <code>lib/AST</code> 目录下），产生自 Swift 源代码、Swift 模块和 Clang 模块（分别定义在 <code>lib/Parse</code>、<code>lib/Serialization</code> 和 <code>lib/ClangImporter</code> 目录下），并在编译初期由解析、类型检查、以及高级语义函数解释。</li>
+<li><strong>SIL</strong>（Swift 中间语言）：这是一种专用于 Swift 编译器的形式，比 AST 更底层也更易于理解。但仍然较于如 LLVM 这样面向机器的表现形式更加上层且更特定于 Swift。其定义在 <code>lib/SIL</code> 中，产生自 <code>lib/SILGen</code> 中的代码，并由 <code>lib/SILOptimizer</code> 中的代码<em>选择性优化</em>。</li>
+<li><strong>LLVM IR</strong>（低级虚拟机的中间表示法）：这一种抽象表示将编译至机器语言的形式。其不包含任何特定于 Swift 的知识，而是一种由 Swift 编译器<em>从 SIL</em>（位于 <code>lib/IRGen</code>）<em>中生成</em>的形式，然后作为输入到达 <a href="http://llvm.org/">LLVM 后端</a>，LLVM 后端是 Swift 编译依赖的一个库。LLVM 在降级至机器码之前拥有自身适用于 LLVM IR 的<em>选择性优化</em>。</li>
+</ul>
+<p>当在优化模式下运行 Swift 编译器时，许多 SIL 和 LLVM 优化被开启，使得（在每个前端作业中）编译的这些阶段显著消耗更多的时间与内存。当在无优化模式下，SIL 和 LLVM IR 仍会在流程中被制造和消费，但由于只作为降级部分，应用的「简单」优化相对较少。</p>
+<p>另外，IRGen 和 LLVM 阶段能够通过在每个前端作业中使用多线程以并行运行（通常也是并行运行），由 <code>-num-threads</code> 标志控制。然而该选项只应用于较后期的阶段，因为 AST 和 SIL 相关的阶段从不以多线程运行。</p>
+<p>在不同的优化模式之间，AST 表现形式（尤其是：导入、解析、和类型检查 AST）下的工作量并无不同。然而，不同项目之间、以及对代码进行看似微笑的改动之间，工作量却<em>大相径庭</em>，这取决于前端所能够发挥的懒惰程度。</p>
+<h3 id="工作量的可变形近似性与懒惰性">工作量的可变形、近似性、与懒惰性</h3>
+<p>虽然导致编译缓慢的一些原因有明确的热点（我们很快就会了解到），但在性能分析时要牢记的最后一件事情是：编译器试图以不同的方式<em>懒惰</em>，而这种懒惰并不总是奏效：其由某些近似和假设驱动，这些近似和假设会经常出错在比严格要求下更多的工作量上。</p>
+<p>懒惰失败的结果并不总是在曲线中可见：相反，其是通过平坦曲线做了「总共太多工作」的表现。特别是发生这种情况的两个领域 —— 需要进行重大、持续改进的领域 —— 即增量编译和懒惰决议。</p>
 <h4 id="增量编译">增量编译</h4>
-<h4 id="惰性决议">惰性决议</h4>
-<h3 id="总结">总结</h3>
-<h2 id="已知问题区域">已知问题区域</h2>
+<p>正如主文件模式一节中所提到的，驱动具有<em>增量模式</em>，可用于尝试完全避免前端作业的运行。当成功时，这是节省时间的可能性中最有效的形式：一个根本不运行的进程是最快的。</p>
+<p>不幸的是，关于一个文件何时「需要重新编译」的判断，其本身由归纳文件之间依赖关系的辅助数据结构驱动，这个数据结构必然是一个保守的近似值。这个近似值小于实际的值，因此驱动经常运行的前端作业比其应当运行的更多。</p>
+<h4 id="懒惰决议">懒惰决议</h4>
+<p>Swift 源代码文件中包含的名称引用了封装文件之外的定义，且经常是封装模块之外的定义。这些「外部」定义从两个非常不同的位置（均称作「模块」）进行懒惰决议：</p>
+<ul>
+<li>C/ObjC 模块，由 Clang 导入器提供</li>
+<li>序列化 Swift 模块</li>
+</ul>
+<p>尽管存在差异，但两种类型的模块均在 Swift 编译器中以一种关键的方式支持懒惰：它们均为<em>索引</em>二进制文件格式，允许按名称加载<em>单一定义</em>，而无需加载模块中的全部内容。</p>
+<p>当 Swift 编译器设法懒惰并限制从模块加载的定义数量时，其可以非常快速；文件格式支持非常低成本的访问。但往往 Swift 编译器中的逻辑对于利用这种潜在的懒惰有些不必要的保守，因此加载了比其应当加载的定义更多。</p>
+<h3 id="总结编译性能的高层概览">总结：编译性能的高层概览</h3>
+<p>Swift 编译性能至少由以下参数而<em>显著</em>不同：</p>
+<ul>
+<li>WMO 与主文件（非 WMO）模式，包含批处理</li>
+<li>优化与无优化模式</li>
+<li>已避免的工作量增量（若在非 WMO 模式）</li>
+<li>懒惰加载外部定义的数量</li>
+</ul>
+<p>当触及 Swift 编译性能时，重要的是要意识到这些参数并牢记于心，因为它们往往会框定我们正在分析的问题：改变一个（或在项目中影响它们的任何因素）将可能完全改变结果曲线。</p>
+<h2 id="已知问题方面">已知问题方面</h2>
+<p>在我们已知编译器有空间改进性能、提升效率的方面上，值得在这一主题之上去寻找现有 Bug，值得找到了解这些方面的现有团队成员，并尝试将我们发现的问题与现有一些改进策略和计划相关联：</p>
+<ul>
+<li>增量模式过于近似，运行太多子进程。</li>
+<li>在平方阶段，太多被引用（非主文件）的定义被过多地类型检查。</li>
+<li>表达式类型推断解决约束低效，有时可能超线性甚至指数级。</li>
+<li>在分析阶段，SIL 优化周期性无法缓存重复的子问题，将导致超线性减速。</li>
+<li>一些 SIL 到 IR 的降级（例如大值类型）可能产生过多的 LLVM IR，增加 LLVM 中的耗时。</li>
+</ul>
+<p>（子系统专家：请在此添加更多关注领域）</p>
 <h2 id="如何诊断编译性能问题">如何诊断编译性能问题</h2>
+<p>编译器性能分析分为两大类工作，取决于我们尝试做什么：</p>
+<ul>
+<li>隔离回归</li>
+<li>寻找需要普遍改进的方面</li>
+</ul>
+<p>在任何情况下，熟悉我们所掌握的几种工具和编译器选项至关重要。如果你已经了解所有这些工具，可以跳过该部分。</p>
 <h3 id="工具与选项">工具与选项</h3>
+<p>沿途，我们将使用几种工具。主要分为 5 大类：</p>
+<ul>
+<li>分析器</li>
+<li>编译器内置诊断选项（定时器、计数器）</li>
+<li>进一步分析诊断输出的后期工具</li>
+<li>通用化分析编译器输出产物的工具</li>
+<li>最小化回归范围或测试用例的工具</li>
+</ul>
 <h4 id="分析器">分析器</h4>
+<p>性能分析的基本工具是分析器，而我们<em>将</em>至少需要学习一款分析器来完成这项工作。我们主要使用的两款分析器为 macOS 上的 <code>Instruments.app</code> 和 Linux 上的 <code>perf(1)</code>。这两款软件均免费提供，且功能异常强大；本文档仅涉及它们的基本功能。</p>
 <h5 id="instrumentsapp">Instruments.app</h5>
+<p>Instruments 是 macOS 上作为 Xcode 一部分所附带的一款工具。其包含各种分析服务的图形化与批处理接口，更多文档可参阅<a href="https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/InstrumentsUserGuide/index.html">这里</a>。</p>
+<p>我们使用 <code>Instruments.app</code> 的主要方式是在「计数器」模式下，记录和分析 swiftc 的单次运行情况。我们也会将其当作正常的应用程序，在简易的按钮交互模式下使用。虽然我们可以在命令行下以批处理模式运行 Instruments，但批处理界面不如交互式应用程序更加可靠，而且经常会导致锁定或无法收集数据。</p>
+<p>同样，我们应当确保尽可能多的应用程序（尤其那些自带调试信息）被关闭，因此 Instruments 可以尽可能少的符号化额外的材料。由于其以非常高的分辨率收集<em>整个系统的配置文件</em>，所以我们想要通过在一台安静的机器上执行兴趣之外的任务，来让整个过程更加简单。</p>
+<p>做好准备，请按以下步骤继续：</p>
+<ul>
+<li>打开 <code>Xcode.app</code></li>
+<li>点击 <code>Xcode</code> =&gt; <code>Open Developer Tool</code> =&gt; <code>Instruments</code>（当其已经打开后，我们可能会将 <code>Instruments.app</code> 固定在 Dock 中以简单化访问）</li>
+<li>选择 <code>Counter</code> 分析模版</li>
+<li>打开终端，并准备运行测试用例</li>
+<li>切换回 <code>Instruments.app</code></li>
+<li>点击仪表面板顶部左侧红色 <code>record</code> 按钮</li>
+<li>快速切换终端，运行我们想要分析的测试用例，并当结束时切换回 <code>Instruments.app</code>，并点击停止按钮</li>
+</ul>
+<p>就是这样！我们应当已经为分析做好准备。</p>
+<p>理想情况下，我们将希望遇到如下情况：</p>
+<p><img src="/img/2020/swift_compiler_performance/InstrumentsProfile.png" alt=""></p>
+<p>在主面板中，我们能看到一组按时间排序的进程和调用帧样本，也可以通过在窗口下方的 <code>Input Filter</code> 区域输入 <code>swift</code> 来过滤只显示 swift 进程。主面板中的每一行都可以通过点击起左侧三角形来展开，被调函数将作为缩进化的子帧展示。</p>
+<p>如果将鼠标指针悬停在特定的 <code>swift</code> 进程相对应的行上，我们将会看到该行右侧的灰色圆圈内有一个小箭头。点击这个小箭头，Instruments 将把主面板的焦点转移到该流程的子树上（并相应地重新计算时间百分比）。一旦关注到了一个特定的 swift 进程，我们就可以开始查看其单独的栈帧配置。</p>
+<p>在主面板右侧的面板中，我们可以看到主面板当前选中行的 Heaviest Stack Trace（重量级堆栈跟踪）。如果我们点击该栈上的一个帧，主面板将自动展开从当前帧到点击帧之间的每一级。例如，点击第 11 帧 <code>swift::ModuleFile::getModule</code> 将展开主面板展示如以下内容：</p>
+<p><img src="/img/2020/swift_compiler_performance/InstrumentsExpandedProfile.png" alt=""></p>
+<p>通过扩展和收缩栈树中的节点来点击一个配置时，我们将很快感受到程序耗时之处。主界面的每一行展示了累计的样本数和其子树（包含所有子树的子树）的运行时长，以及其自身特定帧的 <code>Self</code> 时间。</p>
+<p>在上述例子中，能够很清晰地得出编译器在 <code>Sema</code> 阶段消耗了 66% 的时间，并且其中最重量级的栈是用于反序列化外部定义（这与之前所提到的已知问题方面相符）。</p>
+<p>如果想要保留我们浏览分析时看到的记录，可以展开和折叠帧直到看到一个有意义的模式，然后选择显示的一组栈帧，拷贝为文本（照例使用 <code>⌘-C</code>）并粘贴到文本文件中；拷贝后的文本将插入空格缩进以保持栈结构的可读性。</p>
+<p>如果我们有<em>两</em>个分析希望进行对比，Instruments 确实有一个模式可以直接在分析中比较不同，但当分析收集自不同的二进制时便不起作用。因此当为了对比不同的 swift 编译器时，我们通常不得不手动比较。</p>
 <h5 id="perf">Perf</h5>
+<p>Perf 是一个运行于命令行的 Linux 分析器。在许多 Linux 发行版中，其包含在被命名为 <code>linux-tools</code> 的包中。它小巧、迅速、健壮、灵活，并且很容易脚本化；主要缺点是缺乏任何形式的 GUI 且只能运行于 Linux，所以我们无法使用它来诊断需要 macOS / iOS 框架或运行于 <code>xcodebuild</code> 下的构建中的问题。</p>
+<p>Perf 在<a href="https://perf.wiki.kernel.org/index.php/Main_Page">内核 Wiki</a> 和 <a href="http://www.brendangregg.com/perf.html">Brendan Gregg 的网站</a>上均有文档。</p>
+<p>使用 <code>perf</code> 需要访问硬件性能计数器，所以我们无法在大多数虚拟机上使用（除非它们虚拟化访问性能计数器）。此外，我们需要 root 权限访问来使用内核的分析接口。</p>
+<p>最简单的 perf 使用方法就是在 <code>perf stat</code> 下运行我们的命令。这将给予高级别性能计数器，包括指令执行计数，这是总执行消耗的相对稳定近似值，并且在进行二分法时，这通常足以找出一个回归（如下）：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">$ perf stat swiftc t.swift
+
+ Performance counter stats for &#39;swiftc t.swift&#39;:
+
+       2140.543052      task-clock (msec)         #    0.966 CPUs utilized
+                17      context-switches          #    0.008 K/sec
+                 6      cpu-migrations            #    0.003 K/sec
+            52,084      page-faults               #    0.024 M/sec
+     5,373,530,212      cycles                    #    2.510 GHz
+     9,709,304,679      instructions              #    1.81  insn per cycle
+     1,812,011,233      branches                  #  846.519 M/sec
+        22,026,587      branch-misses             #    1.22% of all branches
+
+       2.216754787 seconds time elapsed
+</code></pre></div><p><img src="/img/2020/swift_compiler_performance/PerfReport.png" alt=""></p>
 <h4 id="诊断选项">诊断选项</h4>
 <h5 id="统一状态报告器">统一状态报告器</h5>
 <h6 id="跟踪状态事件">跟踪状态事件</h6>
