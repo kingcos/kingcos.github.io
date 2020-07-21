@@ -36,8 +36,8 @@ NSLog(@&amp;#34;%@&amp;#34;, [[NSMutableArray alloc] class]); // __NSPlaceholder
 <meta property="og:description" content="iOS 中的数组" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/posts/2020/array_in_ios/" />
-<meta property="article:published_time" content="2010-06-10T00:00:00+00:00" />
-<meta property="article:modified_time" content="2010-06-10T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+<meta property="article:published_time" content="2020-07-21T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-07-21T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
 
 
 
@@ -134,12 +134,12 @@ NSLog(@&amp;#34;%@&amp;#34;, [[NSMutableArray alloc] class]); // __NSPlaceholder
     <div class="post-meta">
       
         <span class="post-date">
-            2010-06-10
+            2020-07-21
         </span>
       
       
       
-        <span class="post-read-time">— 1 min read</span>
+        <span class="post-read-time">— 2 min read</span>
       
     </div>
 
@@ -184,11 +184,56 @@ NSLog(<span style="color:#e6db74">@&#34;%@&#34;</span>, [arr <span style="color:
 NSLog(<span style="color:#e6db74">@&#34;%@&#34;</span>, [arr <span style="color:#66d9ef">class</span>]);                                                    <span style="color:#75715e">// __NSArrayM
 </span></code></pre></div><p>由以上结果，我们可得出下图的继承树：</p>
 <p><img src="/img/2020/array_in_ios/1.svg" alt="1"></p>
-<p>显而易见，<code>NSArray</code> 和 <code>NSMutableArray</code> 都属于类簇（Class Cluster），其并不代表数组对象的真实类型。</p>
-<h2 id="swift">Swift</h2>
+<p>显而易见，<code>NSArray</code> 和 <code>NSMutableArray</code> 均属于类簇（Class Cluster），Obj-C 中所广泛使用的一种抽象工厂设计模式。这种设计使得类型对外暴露的接口得到统一，隐藏内部的具体实现类。</p>
+<h3 id="__nsplacehodlerarray">__NSPlacehodlerArray</h3>
+<p><code>__NSPlacehodlerArray</code> 顾名思义即「占位」数组。无论我们要创建 <code>NSArray</code> 还是 <code>NSMutableArray</code>，当调用 <code>alloc</code> 时，均返回了 <code>__NSPlaceholderArray</code> 类型的对象：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">NSLog(<span style="color:#e6db74">@&#34;%@&#34;</span>, [[NSMutableArray alloc] <span style="color:#66d9ef">class</span>]); <span style="color:#75715e">// __NSPlaceholderArray
+</span><span style="color:#75715e"></span>NSLog(<span style="color:#e6db74">@&#34;%@&#34;</span>, [[NSArray alloc] <span style="color:#66d9ef">class</span>]);        <span style="color:#75715e">// __NSPlaceholderArray
+</span></code></pre></div><p>而每次使用的 <code>__NSPlaceholderArray</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">id</span> arr1 <span style="color:#f92672">=</span> [NSArray alloc];
+<span style="color:#66d9ef">id</span> arr2 <span style="color:#f92672">=</span> [NSArray alloc];
+<span style="color:#66d9ef">id</span> arr3 <span style="color:#f92672">=</span> [NSArray alloc];
+<span style="color:#66d9ef">id</span> arr4 <span style="color:#f92672">=</span> [NSArray alloc];
+<span style="color:#66d9ef">id</span> arr5 <span style="color:#f92672">=</span> [NSArray alloc];
+
+<span style="color:#66d9ef">id</span> marr1 <span style="color:#f92672">=</span> [NSMutableArray alloc];
+<span style="color:#66d9ef">id</span> marr2 <span style="color:#f92672">=</span> [NSMutableArray alloc];
+<span style="color:#66d9ef">id</span> marr3 <span style="color:#f92672">=</span> [NSMutableArray alloc];
+<span style="color:#66d9ef">id</span> marr4 <span style="color:#f92672">=</span> [NSMutableArray alloc];
+<span style="color:#66d9ef">id</span> marr5 <span style="color:#f92672">=</span> [NSMutableArray alloc];
+
+<span style="color:#75715e">// 0x7fff90a905b8 - 0x7fff90a905b8 - 0x7fff90a905b8 - 0x7fff90a905b8 - 0x7fff90a905b8
+</span><span style="color:#75715e"></span>NSLog(<span style="color:#e6db74">@&#34;%p - %p - %p - %p - %p&#34;</span>, arr1, arr2, arr3, arr4, arr5);
+<span style="color:#75715e">// 0x7fff90a905c8 - 0x7fff90a905c8 - 0x7fff90a905c8 - 0x7fff90a905c8 - 0x7fff90a905c8
+</span><span style="color:#75715e"></span>NSLog(<span style="color:#e6db74">@&#34;%p - %p - %p - %p - %p&#34;</span>, marr1, marr2, marr3, marr4, marr5);
+
+<span style="color:#75715e">// 0x7fff90a905c8 - 0x7fff90a905b8 == 16
+</span></code></pre></div><p>那么问题来了，<code>__NSPlaceholderArray</code> 内部是如何区分将要初始化的数组类型呢？</p>
+<blockquote>
+<p>For historical reasons, <code>alloc</code> invokes <code>allocWithZone:</code>.</p>
+</blockquote>
+<p>根据官方文档中的提示，<code>alloc</code> 方法由于历史原因，内部仍然调用了 <code>allocWithZone:.</code>。我们通过 LLDB <code>breakpoint set --name &quot;+[NSArray allocWithZone:]&quot;</code> 打个断点</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">CoreFoundation`+[NSArray allocWithZone:]:
+-&gt;  0x7fff38ecb971 &lt;+0&gt;:   pushq  %rbp
+    ...
+    0x7fff38ecb9e8 &lt;+119&gt;: jmp    0x7fff38ecba0c            ; __NSArrayImmutablePlaceholder
+    ...
+    0x7fff38ecba02 &lt;+145&gt;: jmp    0x7fff38ee4a8d            ; __NSArrayMutablePlaceholder
+
+CoreFoundation`__NSArrayImmutablePlaceholder:
+-&gt;  0x7fff38ecba0c &lt;+0&gt;: leaq   0x57bc4ba5(%rip), %rax    ; ___immutablePlaceholderArray
+    0x7fff38ecba13 &lt;+7&gt;: retq   
+
+CoreFoundation`__NSArrayMutablePlaceholder:
+-&gt;  0x7fff38ee4a8d &lt;+0&gt;: leaq   0x57babb34(%rip), %rax    ; ___mutablePlaceholderArray
+    0x7fff38ee4a94 &lt;+7&gt;: retq   
+
+</code></pre></div><h2 id="swift">Swift</h2>
 <h3 id="array">Array</h3>
 <h2 id="reference">Reference</h2>
 <ul>
+<li><a href="https://developer.apple.com/library/archive/documentation/General/Conceptual/CocoaEncyclopedia/ClassClusters/ClassClusters.html">Class Clusters - Apple Developer</a></li>
+<li><a href="https://developer.apple.com/documentation/objectivec/nsobject/1571958-alloc">alloc - Apple Developer</a></li>
 <li><a href="https://www.mikeash.com/pyblog/friday-qa-2012-03-09-lets-build-nsmutablearray.html">Friday Q&amp;A 2012-03-09: Let&rsquo;s Build NSMutableArray by Mike Ash</a></li>
 <li><a href="http://www.arigrant.com/blog/2014/1/19/adventures-in-the-land-of-nsarray"></a></li>
 </ul>
@@ -202,17 +247,10 @@ NSLog(<span style="color:#e6db74">@&#34;%@&#34;</span>, [arr <span style="color:
         </div>
         <div class="pagination__buttons">
           
-            <span class="button previous">
-              <a href="/posts/2013/depr_only-for-gyy-lmb/">
-                <span class="button__icon">←</span>
-                <span class="button__text">【Friend Ship】仅以此文献给高班和总统</span>
-              </a>
-            </span>
-          
           
             <span class="button next">
-              <a href="/posts/2020/swift_compiler_performance/">
-                <span class="button__text">[译] Swift 编译器性能</span>
+              <a href="/posts/2020/pt_px/">
+                <span class="button__text">iOS 中的数组</span>
                 <span class="button__icon">→</span>
               </a>
             </span>
