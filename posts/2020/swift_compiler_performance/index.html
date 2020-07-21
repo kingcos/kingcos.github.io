@@ -231,7 +231,7 @@
 <li>WMO 模式的优点是，当确定着眼于整个模块时才会进行优化，并且避免了主文件模式初期阶段的平方次作业。缺点是其总是需要重新构建一切，而且不能很好地利用并行（但至少在 LLVM IR 代码生成之前，其总是多线程的）。</li>
 </ul>
 <p>全模块模式确实开启了主文件模式编译时无法实现的一系列优化。尤其在含有大量私有死代码的模块中，全模块模式能够更早地消除死代码，并避免不必要的编译工作，从而实现更精简的输出和更迅速的编译。</p>
-<p>因此有可能的是，在某些特定情况下（比如可用的并行有限 / 许多模块已由并行构建），禁用优化的全模块构建可能比批处理主文件模式消耗更少的时间。但这种情况取决于许多因素，鲜有显著优势，而且由于完全放弃了对于增量编译的支持，因此这并非一种建议的配置。</p>
+<p>因此有可能的是，在某些特定情况下（例如可用的并行有限 / 许多模块已由并行构建），禁用优化的全模块构建可能比批处理主文件模式消耗更少的时间。但这种情况取决于许多因素，鲜有显著优势，而且由于完全放弃了对于增量编译的支持，因此这并非一种建议的配置。</p>
 <h4 id="优化量">优化量</h4>
 <p>本文档并不会详细概述编译器体系结构，但牢记编译器以 3 种主要表现形式处理在内存中的 Swift 代码是十分重要的。因此，在概念上可以被分为 3 个主要阶段，其中后 2 个阶段根据优化模式不同而行为不同：</p>
 <ul>
@@ -340,6 +340,16 @@
         22,026,587      branch-misses             #    1.22% of all branches
 
        2.216754787 seconds time elapsed
+</code></pre></div><p><code>perf</code> 提供了相对稳定和精确的开销测量，意味着当执行其它性能分析任务时，其可以被封装为一个有用的子程序，例如二分（见 <code>git bisect</code> 一节）或削弱（见 <code>creduce</code> 一节）。如下的 Shell 函数便十分有用：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">count_instructions() {
+    perf stat -x , --log-fd 3    \
+      -e instructions -r 10 &#34;$@&#34; \
+      3&gt;&amp;1 2&gt;/dev/null 1&gt;&amp;2 | cut -d , -f 1
+}
+</code></pre></div><p>为了通过 perf 获得完整的分析 —— 。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">$ perf record -e cycles -c 10000 --call-graph=lbr swiftc t.swift
+[ perf record: Woken up 5 times to write data ]
+[ perf record: Captured and wrote 1.676 MB perf.data (9731 samples) ]
 </code></pre></div><p><img src="/img/2020/swift_compiler_performance/PerfReport.png" alt=""></p>
 <h4 id="诊断选项">诊断选项</h4>
 <h5 id="统一状态报告器">统一状态报告器</h5>
