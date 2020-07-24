@@ -11,7 +11,7 @@
 // DEBUG 默认（No Optimization [-Onone]） demo`main: 0x100000a50 &amp;lt;&#43;0&amp;gt;: pushq %rbp 0x100000a51 &amp;lt;&#43;1&amp;gt;: movq %rsp, %rbp 0x100000a54 &amp;lt;&#43;4&amp;gt;: subq $0x10, %rsp 0x100000a58 &amp;lt;&#43;8&amp;gt;: movl %edi, -0x4(%rbp) 0x100000a5b &amp;lt;&#43;11&amp;gt;: movq %rsi, -0x10(%rbp) ; 函数调用（下面开启编译器优化后，则不存在该行汇编指令） -&amp;gt; 0x100000a5f &amp;lt;&#43;15&amp;gt;: callq 0x100000a70 ; demo.foo() -&amp;gt; () at main.swift:11  0x100000a64 &amp;lt;&#43;20&amp;gt;: xorl %eax, %eax 0x100000a66 &amp;lt;&#43;22&amp;gt;: addq $0x10, %rsp 0x100000a6a &amp;lt;&#43;26&amp;gt;: popq %rbp 0x100000a6b &amp;lt;&#43;27&amp;gt;: retq // DEBUG（Xcode - Target - Build Settings - Swift Compiler - Optimization Level - DEBUG: Optimize for Speed [-O]） demo`main: 0x100000a10 &amp;lt;&#43;0&amp;gt;: pushq %rbp 0x100000a11 &amp;lt;&#43;1&amp;gt;: movq %rsp, %rbp 0x100000a14 &amp;lt;&#43;4&amp;gt;: pushq %rbx 0x100000a15 &amp;lt;&#43;5&amp;gt;: pushq %rax 0x100000a16 &amp;lt;&#43;6&amp;gt;: xorl %edi, %edi 0x100000a18 &amp;lt;&#43;8&amp;gt;: callq 0x100000b10 ; type metadata accessor for Swift."/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
-<link rel="canonical" href="/posts/draft/swift_inline_funcs/" />
+<link rel="canonical" href="/posts/2020/swift_inline_funcs/" />
 
 
 
@@ -40,7 +40,7 @@
  函数体比较长（内联会导致可执行代码体积增大） 包含递归调用（内联会导致死循环） 包含动态派发（编译时刻无法确认要执行的代码）  func foo() { print(&#34;foo&#34;) // 开启优化后断点需打在该行（函数已被优化为内联函数） } foo() // 默认断点打在该行 将以上代码转换为汇编：
 // DEBUG 默认（No Optimization [-Onone]） demo`main: 0x100000a50 &lt;&#43;0&gt;: pushq %rbp 0x100000a51 &lt;&#43;1&gt;: movq %rsp, %rbp 0x100000a54 &lt;&#43;4&gt;: subq $0x10, %rsp 0x100000a58 &lt;&#43;8&gt;: movl %edi, -0x4(%rbp) 0x100000a5b &lt;&#43;11&gt;: movq %rsi, -0x10(%rbp) ; 函数调用（下面开启编译器优化后，则不存在该行汇编指令） -&gt; 0x100000a5f &lt;&#43;15&gt;: callq 0x100000a70 ; demo.foo() -&gt; () at main.swift:11  0x100000a64 &lt;&#43;20&gt;: xorl %eax, %eax 0x100000a66 &lt;&#43;22&gt;: addq $0x10, %rsp 0x100000a6a &lt;&#43;26&gt;: popq %rbp 0x100000a6b &lt;&#43;27&gt;: retq // DEBUG（Xcode - Target - Build Settings - Swift Compiler - Optimization Level - DEBUG: Optimize for Speed [-O]） demo`main: 0x100000a10 &lt;&#43;0&gt;: pushq %rbp 0x100000a11 &lt;&#43;1&gt;: movq %rsp, %rbp 0x100000a14 &lt;&#43;4&gt;: pushq %rbx 0x100000a15 &lt;&#43;5&gt;: pushq %rax 0x100000a16 &lt;&#43;6&gt;: xorl %edi, %edi 0x100000a18 &lt;&#43;8&gt;: callq 0x100000b10 ; type metadata accessor for Swift." />
 <meta property="og:type" content="article" />
-<meta property="og:url" content="/posts/draft/swift_inline_funcs/" />
+<meta property="og:url" content="/posts/2020/swift_inline_funcs/" />
 <meta property="article:published_time" content="2019-02-09T00:00:00+00:00" />
 <meta property="article:modified_time" content="2019-02-09T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
 
@@ -135,7 +135,7 @@
       <div class="content">
         
   <div class="post">
-    <h2 class="post-title"><a href="/posts/draft/swift_inline_funcs/">Swift 中的内联函数</a></h2>
+    <h2 class="post-title"><a href="/posts/2020/swift_inline_funcs/">Swift 中的内联函数</a></h2>
     <div class="post-meta">
       
         <span class="post-date">
@@ -144,7 +144,7 @@
       
       
       
-        <span class="post-read-time">— 3 min read</span>
+        <span class="post-read-time">— 4 min read</span>
       
     </div>
 
@@ -281,7 +281,45 @@ foo() <span style="color:#75715e">// 默认断点打在该行</span>
 
 bar()
 baz()
-</code></pre></div>
+</code></pre></div><h2 id="扩展内容">扩展内容</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">   ┌──────────┐     ┌─────────┐     ┌────────────┐
+   │Swift Code│────▶│Swift AST│────▶│Raw Swift IL│──┐
+   └──────────┘     └─────────┘     └────────────┘  │
+                                                    │
+   ┌────────┐    ┌───────┐    ┌──────────────────┐  │
+┌──│Assembly│◀───│LLVM IR│◀───│Canonical Swift IL│◀─┘
+│  └────────┘    └───────┘    └──────────────────┘
+│
+│  ┌──────────┐
+└─▶│Executable│
+   └──────────┘
+
+ ┌──────────┐            ┌───────────┐             ┌────┐                    ┌──────┐
+ │    C     ├───────────▶│   Clang   │────────────▶│    │                    │ x86  │
+ └──────────┘            └───────────┘             │    │     ┌────────┐     └──────┘
+ ┌──────────┐     ┌─────────────────────────┐      │LLVM│     │  LLVM  │     ┌──────┐
+ │  Swift   │────▶│Swift AST swiftc Swift IL│─────▶│    │────▶│        │────▶│ ARM  │
+ └──────────┘     └─────────────────────────┘      │ IR │     │Compiler│     └──────┘
+ ┌──────────┐            ┌───────────┐             │    │     └────────┘     ┌──────┐
+ │  Others  ├───────────▶│FE Compiler│────────────▶│    │                    │Others│
+ └──────────┘            └───────────┘             └────┘                    └──────┘
+</code></pre></div><h3 id="api--abi">API &amp; ABI</h3>
+<ul>
+<li>API（Application Programming Interface，应用程序编程接口）：源代码和库之间的接口。</li>
+<li>ABI（Application Binary Interface，应用程序二进制接口）：
+<ul>
+<li>应用程序与操作系统之间的底层接口</li>
+<li>涉及的内容有：
+<ul>
+<li>目标文件格式（eg. Mach-O）</li>
+<li>数据类型的大小 / 布局 / 对齐（eg. 基本类型占用的内存大小）</li>
+<li>函数调用约定（eg. 函数调用时使用栈空间还是寄存器、函数参数的入栈顺序）等</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
     </div>
     
       <div class="pagination">
