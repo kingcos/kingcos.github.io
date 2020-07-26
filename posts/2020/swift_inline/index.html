@@ -6,10 +6,12 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Preface 内联函数（Inline Functions）是指编译时刻将函数调用展开成函数体的一种编程语言结构。编译器将适时采取这一技术可以节省调用函数所带来的额外开销。本文将简单讲讲 Swift 中的内联函数。
-前置条件 func foo() { print(&amp;#34;foo&amp;#34;) } foo() // BREAKPOINT 🔴  内联函数（Inline Functions）指编译时刻将函数调用展开成函数体。在 Xcode 中的 Swift 项目中，如果开启了编译器优化（Release 模式默认会开启优化），编译器会自动将某些函数变成内联函数。但若函数存在以下特点将不会被自动内联：
- 函数体较长时（因内联会导致可执行代码体积增大） 包含递归调用时（因内联会导致死循环） 包含动态派发时（因编译时刻无法确认要执行的代码）  func foo() { print(&amp;#34;foo&amp;#34;) // BREAKPOINT 🔴 } foo() // BREAKPOINT 🔴 将以上代码转换为汇编：
-// DEBUG 默认（No Optimization [-Onone]） demo`main: 0x100000a50 &amp;lt;&#43;0&amp;gt;: pushq %rbp 0x100000a51 &amp;lt;&#43;1&amp;gt;: movq %rsp, %rbp 0x100000a54 &amp;lt;&#43;4&amp;gt;: subq $0x10, %rsp 0x100000a58 &amp;lt;&#43;8&amp;gt;: movl %edi, -0x4(%rbp) 0x100000a5b &amp;lt;&#43;11&amp;gt;: movq %rsi, -0x10(%rbp) ; 函数调用（下面开启编译器优化后，则不存在该行汇编指令） -&amp;gt; 0x100000a5f &amp;lt;&#43;15&amp;gt;: callq 0x100000a70 ; demo."/>
+<meta name="description" content="Preface 内联函数（Inline Functions）是指编译时刻将函数调用展开为函数体的一种编程语言结构，编译器将适时采取这一技术可以节省调用函数所带来的额外开销，本文将简单讲讲 Swift 中的内联函数。
+条件 由于内联函数会将函数调用展开为函数体，因此当编译器内联某一函数时，该函数本身将不再会被调用。而在 Debug 模式下，由于我们经常会使用打断点等调试手段，如果此时内联将不利于我们排查问题。因此在 Debug 模式下，编译器默认将不进行内联。
+控制编译器优化等级的设置位于：Xcode - TARGETS - Build Settings - Swift Compiler - Optimization Level，其中便会影响 Swift 函数是否内联：
+Swift 编译器所支持的优化等级具体如下：
+   Level Part     [-Onone] 无优化（Debug 模式默认）   [-O] 速度优先（Release 模式默认）   [-Osize] 体积优先    经过实际测试，如下 foo 函数在 [-O] 与 [-Osize] 等级下均被优化：
+func foo() { print(&amp;#34;foo&amp;#34;) // BREAKPOINT 2 🔴 foo() // BREAKPOINT 1 🔴 在 [-Onone] 等级的汇编如下（Xcode Menu - Debug - Debug Workflow - Always Show Disassembly）："/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2020/swift_inline/" />
@@ -30,12 +32,12 @@
 
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Swift 拾遗 - 内联函数"/>
-<meta name="twitter:description" content="内联函数（Inline Functions）是指编译时刻将函数调用展开成函数体的一种编程语言结构。编译器将适时采取这一技术可以节省调用函数所带来的额外开销。本文将简单讲讲 Swift 中的内联函数。"/>
+<meta name="twitter:description" content="内联函数（Inline Functions）是指编译时刻将函数调用展开为函数体的一种编程语言结构，编译器将适时采取这一技术可以节省调用函数所带来的额外开销，本文将简单讲讲 Swift 中的内联函数。"/>
 
 
 
 <meta property="og:title" content="Swift 拾遗 - 内联函数" />
-<meta property="og:description" content="内联函数（Inline Functions）是指编译时刻将函数调用展开成函数体的一种编程语言结构。编译器将适时采取这一技术可以节省调用函数所带来的额外开销。本文将简单讲讲 Swift 中的内联函数。" />
+<meta property="og:description" content="内联函数（Inline Functions）是指编译时刻将函数调用展开为函数体的一种编程语言结构，编译器将适时采取这一技术可以节省调用函数所带来的额外开销，本文将简单讲讲 Swift 中的内联函数。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/posts/2020/swift_inline/" />
 <meta property="article:published_time" content="2020-07-26T00:00:00+00:00" />
@@ -141,7 +143,7 @@
       
       
       
-        <span class="post-read-time">— 4 min read</span>
+        <span class="post-read-time">— 5 min read</span>
       
     </div>
 
@@ -159,14 +161,81 @@
 
     <div class="post-content">
       <h2 id="preface">Preface</h2>
-<p>内联函数（Inline Functions）是指编译时刻将函数调用展开成函数体的一种编程语言结构。编译器将适时采取这一技术可以节省调用函数所带来的额外开销。本文将简单讲讲 Swift 中的内联函数。</p>
-<h2 id="前置条件">前置条件</h2>
+<p>内联函数（Inline Functions）是指编译时刻将函数调用展开为函数体的一种编程语言结构，编译器将适时采取这一技术可以节省调用函数所带来的额外开销，本文将简单讲讲 Swift 中的内联函数。</p>
+<h2 id="条件">条件</h2>
+<p>由于内联函数会将函数调用展开为函数体，因此当编译器内联某一函数时，该函数本身将不再会被调用。而在 Debug 模式下，由于我们经常会使用打断点等调试手段，如果此时内联将不利于我们排查问题。因此在 Debug 模式下，编译器默认将不进行内联。</p>
+<p>控制编译器优化等级的设置位于：Xcode - TARGETS - Build Settings - Swift Compiler - Optimization Level，其中便会影响 Swift 函数是否内联：</p>
+<p><img src="/img/2020/swift_inline/1.png" alt="1"></p>
+<p>Swift 编译器所支持的优化等级具体如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">Level</th>
+<th align="center">Part</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">[-Onone]</td>
+<td align="center">无优化（Debug 模式默认）</td>
+</tr>
+<tr>
+<td align="center">[-O]</td>
+<td align="center">速度优先（Release 模式默认）</td>
+</tr>
+<tr>
+<td align="center">[-Osize]</td>
+<td align="center">体积优先</td>
+</tr>
+</tbody>
+</table>
+<p>经过实际测试，如下 <code>foo</code> 函数在 <code>[-O]</code> 与 <code>[-Osize]</code> 等级下均被优化：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">foo</span>() {
-    print(<span style="color:#e6db74">&#34;foo&#34;</span>)
-}
+    print(<span style="color:#e6db74">&#34;foo&#34;</span>) <span style="color:#75715e">// BREAKPOINT 2 🔴</span>
 
-foo() <span style="color:#75715e">// BREAKPOINT 🔴</span>
-</code></pre></div><h2 id="heading"></h2>
+foo() <span style="color:#75715e">// BREAKPOINT 1 🔴</span>
+</code></pre></div><p>在 <code>[-Onone]</code> 等级的汇编如下（Xcode Menu - Debug - Debug Workflow - Always Show Disassembly）：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#75715e">; [-Onone]
+</span><span style="color:#75715e"></span><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">main</span>:
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e50</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e51</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e54</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0x10</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e58</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   %edi, -<span style="color:#ae81ff">0x4</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e5b</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">11</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rsi, -<span style="color:#ae81ff">0x10</span>(%rbp)
+    <span style="color:#75715e">; 断点 1 ⬇：函数调用（内联后则不存在该行汇编指令）
+</span><span style="color:#75715e"></span><span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e5f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">15</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000e70</span>               <span style="color:#75715e">; demo.foo() -&gt; () at main.swift:11
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000e64</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">20</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %eax, %eax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e66</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">22</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x10</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e6a</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">26</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e6b</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">27</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+
+<span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">foo</span>():
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e70</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e71</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e74</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0x30</span>, %rsp
+    <span style="color:#75715e">; 断点 2 ⬇：作用域在 foo() 内
+</span><span style="color:#75715e"></span><span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e78</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">movq</span>   <span style="color:#ae81ff">0x189</span>(%rip), %rax         <span style="color:#75715e">; (void *)0x00007fff8b1517e0: type metadata for Any
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; ...
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000f17</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">167</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+</code></pre></div><p>在 <code>[-O]</code> 等级的汇编如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#75715e">; [-O]
+</span><span style="color:#75715e"></span><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">main</span>:
+    <span style="color:#75715e">; ...
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 断点 2 ⬇：作用域在 main 内
+</span><span style="color:#75715e"></span><span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e32</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">50</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#ae81ff">0x1c7</span>(%rip), %rax         <span style="color:#75715e">; (void *)0x00007fff8b149910: type metadata for Swift.String
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; ...
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000e82</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">130</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+</code></pre></div><p>在 <code>[-Osize]</code> 等级的汇编如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#75715e">; [-Osize]
+</span><span style="color:#75715e"></span><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">main</span>:
+    <span style="color:#75715e">; ...
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 断点 2 ⬇：作用域在 main 内
+</span><span style="color:#75715e"></span><span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e3e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">46</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#ae81ff">0x1bb</span>(%rip), %rax         <span style="color:#75715e">; (void *)0x00007fff8b149910: type metadata for Swift.String
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; ...
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000e8a</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">122</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+</code></pre></div><p><code>[-O]</code> 与 <code>[-Osize]</code> 的结果类似，即通过内联使得断点 1 不再执行；而断点 2 虽然得到执行，但通过查看汇编可以看出，断点 2 处的代码作用域已变为 <code>main</code>，且无 <code>call</code> 相关函数的指令。</p>
+<h2 id="反例">反例</h2>
+<hr>
 <p>内联函数（Inline Functions）指编译时刻将函数调用展开成函数体。在 Xcode 中的 Swift 项目中，如果开启了编译器优化（Release 模式默认会开启优化），编译器会自动将某些函数变成内联函数。但若函数存在以下特点将不会被自动内联：</p>
 <ol>
 <li>函数体较长时（因内联会导致可执行代码体积增大）</li>
@@ -273,7 +342,8 @@ foo() <span style="color:#75715e">// BREAKPOINT 🔴</span>
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000a9e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">158</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbx
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000a9f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">159</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000aa0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">160</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
-</code></pre></div><ul>
+</code></pre></div><h2 id="inline">@inline</h2>
+<ul>
 <li>官方源码中使用 <code>@inline</code> 来建议（注意「建议」而非强制）编译器去禁止（<code>never</code>）或在条件允许的情况下（除递归、动态派发等）总是（<code>__always</code>）内联，优先级高于编译设置；</li>
 <li>注意 <code>__always</code> 只在开启编译器优化选项时（无论是优化速度还是体积）几乎总是内联（未开启时将不会被内联）。</li>
 </ul>
