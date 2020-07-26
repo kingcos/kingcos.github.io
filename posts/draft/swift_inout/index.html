@@ -6,9 +6,10 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Swift 中的 inout 本质是按引用传递
-var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemoFunc(&amp;amp;foo) // BREAKPOINT ⚠️ 将以上代码转换为汇编：
-; inout demo`main: 0x100000b10 &amp;lt;&#43;0&amp;gt;: pushq %rbp 0x100000b11 &amp;lt;&#43;1&amp;gt;: movq %rsp, %rbp 0x100000b14 &amp;lt;&#43;4&amp;gt;: subq $0x30, %rsp 0x100000b18 &amp;lt;&#43;8&amp;gt;: leaq 0x651(%rip), %rax ; demo.foo : Swift.Int  0x100000b1f &amp;lt;&#43;15&amp;gt;: xorl %ecx, %ecx 0x100000b21 &amp;lt;&#43;17&amp;gt;: movq $0x5, 0x644(%rip) ; _swift_FORCE_LOAD_$_swiftCompatibility50  0x100000b2c &amp;lt;&#43;28&amp;gt;: movl %edi, -0x1c(%rbp) -&amp;gt; 0x100000b2f &amp;lt;&#43;31&amp;gt;: movq %rax, %rdi 0x100000b32 &amp;lt;&#43;34&amp;gt;: leaq -0x18(%rbp), %rax 0x100000b36 &amp;lt;&#43;38&amp;gt;: movq %rsi, -0x28(%rbp) 0x100000b3a &amp;lt;&#43;42&amp;gt;: movq %rax, %rsi 0x100000b3d &amp;lt;&#43;45&amp;gt;: movl $0x21, %edx 0x100000b42 &amp;lt;&#43;50&amp;gt;: callq 0x100000ec4 ; symbol stub for: swift_beginAccess  ; 参数传递 ⬇  0x100000b47 &amp;lt;&#43;55&amp;gt;: leaq 0x622(%rip), %rdi ; demo."/>
+<meta name="description" content="Preface Swift 中的 inout 关键字使得函数内部可以改变外部传入的参数值本身，其本质是按引用传递，那么如何证明呢？
+本质 我们声明一个使用 inout 参数的函数，并在外界将变量 &amp;amp; 按地址传入：
+var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemoFunc(&amp;amp;foo) // BREAKPOINT ⚠️ // foo == 9 尝试将以上代码转换为汇编（Xcode Menu - Debug - Debug Workflow - Always Show Disassembly）：
+; inout demo`main: 0x100001d60 &amp;lt;&#43;0&amp;gt;: pushq %rbp 0x100001d61 &amp;lt;&#43;1&amp;gt;: movq %rsp, %rbp 0x100001d64 &amp;lt;&#43;4&amp;gt;: subq $0x30, %rsp 0x100001d68 &amp;lt;&#43;8&amp;gt;: leaq 0x1459(%rip), %rax ; leetcode.foo : Swift.Int  0x100001d6f &amp;lt;&#43;15&amp;gt;: xorl %ecx, %ecx 0x100001d71 &amp;lt;&#43;17&amp;gt;: movq $0x5, 0x144c(%rip) ; _dyld_private &#43; 4  0x100001d7c &amp;lt;&#43;28&amp;gt;: movl %edi, -0x1c(%rbp) -&amp;gt; 0x100001d7f &amp;lt;&#43;31&amp;gt;: movq %rax, %rdi 0x100001d82 &amp;lt;&#43;34&amp;gt;: leaq -0x18(%rbp), %rax 0x100001d86 &amp;lt;&#43;38&amp;gt;: movq %rsi, -0x28(%rbp) 0x100001d8a &amp;lt;&#43;42&amp;gt;: movq %rax, %rsi 0x100001d8d &amp;lt;&#43;45&amp;gt;: movl $0x21, %edx 0x100001d92 &amp;lt;&#43;50&amp;gt;: callq 0x100001e22 ; symbol stub for: swift_beginAccess  ; 参数传递 ⬇  0x100001d97 &amp;lt;&#43;55&amp;gt;: leaq 0x142a(%rip), %rdi ; leetcode."/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/draft/swift_inout/" />
@@ -29,20 +30,16 @@ var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemo
 
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Swift 中的 inout"/>
-<meta name="twitter:description" content="Swift 中的 inout 本质是按引用传递
-var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemoFunc(&amp;foo) // BREAKPOINT ⚠️ 将以上代码转换为汇编：
-; inout demo`main: 0x100000b10 &lt;&#43;0&gt;: pushq %rbp 0x100000b11 &lt;&#43;1&gt;: movq %rsp, %rbp 0x100000b14 &lt;&#43;4&gt;: subq $0x30, %rsp 0x100000b18 &lt;&#43;8&gt;: leaq 0x651(%rip), %rax ; demo.foo : Swift.Int  0x100000b1f &lt;&#43;15&gt;: xorl %ecx, %ecx 0x100000b21 &lt;&#43;17&gt;: movq $0x5, 0x644(%rip) ; _swift_FORCE_LOAD_$_swiftCompatibility50  0x100000b2c &lt;&#43;28&gt;: movl %edi, -0x1c(%rbp) -&gt; 0x100000b2f &lt;&#43;31&gt;: movq %rax, %rdi 0x100000b32 &lt;&#43;34&gt;: leaq -0x18(%rbp), %rax 0x100000b36 &lt;&#43;38&gt;: movq %rsi, -0x28(%rbp) 0x100000b3a &lt;&#43;42&gt;: movq %rax, %rsi 0x100000b3d &lt;&#43;45&gt;: movl $0x21, %edx 0x100000b42 &lt;&#43;50&gt;: callq 0x100000ec4 ; symbol stub for: swift_beginAccess  ; 参数传递 ⬇  0x100000b47 &lt;&#43;55&gt;: leaq 0x622(%rip), %rdi ; demo."/>
+<meta name="twitter:description" content="Swift 中的 `inout` 关键字使得函数内部可以改变外部传入的参数值本身，其本质是按引用传递，那么如何证明呢？"/>
 
 
 
 <meta property="og:title" content="Swift 中的 inout" />
-<meta property="og:description" content="Swift 中的 inout 本质是按引用传递
-var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemoFunc(&amp;foo) // BREAKPOINT ⚠️ 将以上代码转换为汇编：
-; inout demo`main: 0x100000b10 &lt;&#43;0&gt;: pushq %rbp 0x100000b11 &lt;&#43;1&gt;: movq %rsp, %rbp 0x100000b14 &lt;&#43;4&gt;: subq $0x30, %rsp 0x100000b18 &lt;&#43;8&gt;: leaq 0x651(%rip), %rax ; demo.foo : Swift.Int  0x100000b1f &lt;&#43;15&gt;: xorl %ecx, %ecx 0x100000b21 &lt;&#43;17&gt;: movq $0x5, 0x644(%rip) ; _swift_FORCE_LOAD_$_swiftCompatibility50  0x100000b2c &lt;&#43;28&gt;: movl %edi, -0x1c(%rbp) -&gt; 0x100000b2f &lt;&#43;31&gt;: movq %rax, %rdi 0x100000b32 &lt;&#43;34&gt;: leaq -0x18(%rbp), %rax 0x100000b36 &lt;&#43;38&gt;: movq %rsi, -0x28(%rbp) 0x100000b3a &lt;&#43;42&gt;: movq %rax, %rsi 0x100000b3d &lt;&#43;45&gt;: movl $0x21, %edx 0x100000b42 &lt;&#43;50&gt;: callq 0x100000ec4 ; symbol stub for: swift_beginAccess  ; 参数传递 ⬇  0x100000b47 &lt;&#43;55&gt;: leaq 0x622(%rip), %rdi ; demo." />
+<meta property="og:description" content="Swift 中的 `inout` 关键字使得函数内部可以改变外部传入的参数值本身，其本质是按引用传递，那么如何证明呢？" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/posts/draft/swift_inout/" />
-<meta property="article:published_time" content="2019-02-09T00:00:00+00:00" />
-<meta property="article:modified_time" content="2019-02-09T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+<meta property="article:published_time" content="2020-07-25T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-07-25T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
 
 
 
@@ -139,7 +136,7 @@ var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemo
     <div class="post-meta">
       
         <span class="post-date">
-            2019-02-09
+            2020-07-25
         </span>
       
       
@@ -151,6 +148,8 @@ var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemo
     
       <span class="post-tags">
         
+          #<a href="/tags/focus/">Focus</a>&nbsp;
+        
           #<a href="/tags/swift/">Swift</a>&nbsp;
         
       </span>
@@ -159,7 +158,10 @@ var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemo
     
 
     <div class="post-content">
-      <p>Swift 中的 <code>inout</code> 本质是按引用传递</p>
+      <h2 id="preface">Preface</h2>
+<p>Swift 中的 <code>inout</code> 关键字使得函数内部可以改变外部传入的参数值本身，其本质是按引用传递，那么如何证明呢？</p>
+<h2 id="本质">本质</h2>
+<p>我们声明一个使用 <code>inout</code> 参数的函数，并在外界将变量 <code>&amp;</code> 按地址传入：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">var</span> foo = <span style="color:#ae81ff">5</span>
 
 <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">inoutDemoFunc</span>(<span style="color:#66d9ef">_</span> innerFoo: <span style="color:#66d9ef">inout</span> Int) {
@@ -167,95 +169,177 @@ var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemo
 }
 
 inoutDemoFunc(&amp;foo) <span style="color:#75715e">// BREAKPOINT ⚠️</span>
-</code></pre></div><p>将以上代码转换为汇编：</p>
+
+<span style="color:#75715e">// foo == 9</span>
+</code></pre></div><p>尝试将以上代码转换为汇编（Xcode Menu - Debug - Debug Workflow - Always Show Disassembly）：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#75715e">; inout
 </span><span style="color:#75715e"></span><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">main</span>:
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b10</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">pushq</span>  %rbp
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b11</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsp, %rbp
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b14</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0x30</span>, %rsp
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b18</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x651</span>(%rip), %rax         <span style="color:#75715e">; demo.foo : Swift.Int
-</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b1f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">15</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %ecx, %ecx
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b21</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">17</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x5</span>, <span style="color:#ae81ff">0x644</span>(%rip)         <span style="color:#75715e">; _swift_FORCE_LOAD_$_swiftCompatibility50
-</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b2c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">28</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   %edi, -<span style="color:#ae81ff">0x1c</span>(%rbp)
-<span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b2f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">31</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rdi
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b32</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">34</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x18</span>(%rbp), %rax
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b36</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">38</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rsi, -<span style="color:#ae81ff">0x28</span>(%rbp)
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b3a</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">42</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rsi
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b3d</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">45</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x21</span>, %edx
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b42</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">50</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000ec4</span>               <span style="color:#75715e">; symbol stub for: swift_beginAccess
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d60</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d61</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d64</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0x30</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d68</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x1459</span>(%rip), %rax        <span style="color:#75715e">; leetcode.foo : Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100001d6f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">15</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %ecx, %ecx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d71</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">17</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x5</span>, <span style="color:#ae81ff">0x144c</span>(%rip)        <span style="color:#75715e">; _dyld_private + 4
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100001d7c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">28</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   %edi, -<span style="color:#ae81ff">0x1c</span>(%rbp)
+<span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d7f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">31</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d82</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">34</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x18</span>(%rbp), %rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d86</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">38</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rsi, -<span style="color:#ae81ff">0x28</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d8a</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">42</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d8d</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">45</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x21</span>, %edx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d92</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">50</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100001e22</span>               <span style="color:#75715e">; symbol stub for: swift_beginAccess
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">; 参数传递 ⬇
-</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b47</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">55</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x622</span>(%rip), %rdi         <span style="color:#75715e">; demo.foo : Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100001d97</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">55</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x142a</span>(%rip), %rdi        <span style="color:#75715e">; leetcode.foo : Swift.Int
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">; 函数调用 ⬇
-</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b4e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">62</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000b70</span>               <span style="color:#75715e">; demo.inoutDemoFunc(inout Swift.Int) -&gt; () at main.swift:11
-</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b53</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">67</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x18</span>(%rbp), %rdi
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b57</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">71</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000eca</span>               <span style="color:#75715e">; symbol stub for: swift_endAccess
-</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b5c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">76</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %eax, %eax
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b5e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">78</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x30</span>, %rsp
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b62</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">82</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b63</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">83</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100001d9e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">62</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100001dc0</span>               <span style="color:#75715e">; leetcode.inoutDemoFunc(inout Swift.Int) -&gt; () at main.swift:316
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100001da3</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">67</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x18</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001da7</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">71</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100001e28</span>               <span style="color:#75715e">; symbol stub for: swift_endAccess
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100001dac</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">76</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %eax, %eax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001dae</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">78</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x30</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001db2</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">82</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001db3</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">83</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
 
-<span style="color:#75715e">; Step into
+<span style="color:#75715e">; Step Into
 </span><span style="color:#75715e"></span><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">inoutDemoFunc</span>(<span style="color:#66d9ef">_</span>:):
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b70</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">pushq</span>  %rbp
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b71</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsp, %rbp
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b74</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x0</span>, -<span style="color:#ae81ff">0x8</span>(%rbp)
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b7c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">12</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rdi, -<span style="color:#ae81ff">0x8</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001dc0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001dc1</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001dc4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x0</span>, -<span style="color:#ae81ff">0x8</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001dcc</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">12</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rdi, -<span style="color:#ae81ff">0x8</span>(%rbp)
     <span style="color:#75715e">; $0x9 即立即数 9 ⬇
-</span><span style="color:#75715e"></span><span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b80</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">16</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x9</span>, (%rdi)
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b87</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">23</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b88</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">24</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
-</code></pre></div><ul>
-<li>Swift 中的函数调用在汇编中表示为 <code>callq</code> 指令；如上指令中的 <code>callq 0x100000b70</code> 即调用函数地址为 <code>0x100000b70</code> 的函数，但这一行并不包括传参，其参数传递由 <code>leaq 0x622(%rip), %rdi</code> 负责</li>
-<li><code>lea</code> 是用于地址传递的汇编指令；如上指令中的 <code>leaq 0x622(%rip), %rdi</code> 即将 <code>rip</code> 寄存器中的地址值与 <code>0x622</code> 加和并存储到 <code>rdi</code> 寄存器中（汇编语言中类似 <code>%rip</code>、<code>%rdi</code> 等百分号开头的操作数均为寄存器）</li>
-<li><code>movq $0x9, (%rdi)</code> 即将 <code>9</code> 存储在 <code>rdi</code> 寄存器中地址对应的存储空间中（<code>(%rdi)</code> 的小括号为寻找 <code>rdi</code> 寄存器中存储地址值所对应的存储空间）</li>
-<li>因此 <code>inout</code> 关键字修饰的参数即按地址将变量传入，在函数体内部赋值即直接修改地址对应的存储空间中的值</li>
-</ul>
+</span><span style="color:#75715e"></span><span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001dd0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">16</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x9</span>, (%rdi)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001dd7</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">23</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001dd8</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">24</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+</code></pre></div><p>观察整个函数调用流程我们会发现，当使用 <code>inout</code> 时，函数参数的内存地址将通过 <code>lea</code> 指令被放在 <code>%rdi</code> 中，传递到函数内部；在函数内部修改参数值时，实际修改的是 <code>%rdi</code> 中内存地址所对应的存储空间的实际值。这就验证了 <code>inout</code> 的本质是按引用传递。</p>
+<p>我们再来尝试一个无 <code>inout</code> 修饰参数的函数：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">var</span> foo = <span style="color:#ae81ff">5</span>
 
 <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">demoFunc</span>(<span style="color:#66d9ef">_</span> innerFoo: Int) {
-
+    <span style="color:#75715e">// innerFoo 默认声明为 let</span>
+    <span style="color:#66d9ef">var</span> innerFoo = innerFoo
+    innerFoo = <span style="color:#ae81ff">9</span>
 }
 
 demoFunc(foo)  <span style="color:#75715e">// BREAKPOINT ⚠️</span>
-</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">main</span>:
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b10</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">pushq</span>  %rbp
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b11</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsp, %rbp
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b14</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0x30</span>, %rsp
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b18</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x651</span>(%rip), %rax         <span style="color:#75715e">; demo.foo : Swift.Int
-</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b1f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">15</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %ecx, %ecx
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b21</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">17</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x5</span>, <span style="color:#ae81ff">0x644</span>(%rip)         <span style="color:#75715e">; _swift_FORCE_LOAD_$_swiftCompatibility50
-</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b2c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">28</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   %edi, -<span style="color:#ae81ff">0x1c</span>(%rbp)
-<span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b2f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">31</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rdi
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b32</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">34</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x18</span>(%rbp), %rax
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b36</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">38</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rsi, -<span style="color:#ae81ff">0x28</span>(%rbp)
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b3a</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">42</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rsi
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b3d</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">45</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x20</span>, %edx
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b42</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">50</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000ec4</span>               <span style="color:#75715e">; symbol stub for: swift_beginAccess
-</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b47</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">55</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#ae81ff">0x622</span>(%rip), %rdi         <span style="color:#75715e">; demo.foo : Swift.Int
-</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b4e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">62</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x18</span>(%rbp), %rax
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b52</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">66</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rdi, -<span style="color:#ae81ff">0x30</span>(%rbp)
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b56</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">70</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rdi
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b59</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">73</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000eca</span>               <span style="color:#75715e">; symbol stub for: swift_endAccess
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 参数传递，但这里不同于 inout 使用 lea 指令所做的按地址传递 ⬇
-</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b5e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">78</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x30</span>(%rbp), %rdi
-    <span style="color:#75715e">; 函数调用 ⬇
-</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b62</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">82</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000b70</span>               <span style="color:#75715e">; demo.demoFunc(Swift.Int) -&gt; () at main.swift:17
-</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b67</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">87</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %eax, %eax
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b69</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">89</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x30</span>, %rsp
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b6d</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">93</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b6e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">94</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
 
-<span style="color:#75715e">; Step into
+<span style="color:#75715e">// foo == 5</span>
+</code></pre></div><p>同样将以上代码转换为汇编：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">main</span>:
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d50</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d51</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d54</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0x30</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d58</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x1469</span>(%rip), %rax        <span style="color:#75715e">; leetcode.foo : Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100001d5f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">15</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %ecx, %ecx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d61</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">17</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x5</span>, <span style="color:#ae81ff">0x145c</span>(%rip)        <span style="color:#75715e">; _dyld_private + 4
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100001d6c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">28</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   %edi, -<span style="color:#ae81ff">0x1c</span>(%rbp)
+<span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d6f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">31</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d72</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">34</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x18</span>(%rbp), %rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d76</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">38</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rsi, -<span style="color:#ae81ff">0x28</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d7a</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">42</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d7d</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">45</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x20</span>, %edx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d82</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">50</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100001e1e</span>               <span style="color:#75715e">; symbol stub for: swift_beginAccess
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100001d87</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">55</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#ae81ff">0x143a</span>(%rip), %rdi        <span style="color:#75715e">; leetcode.foo : Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100001d8e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">62</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x18</span>(%rbp), %rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d92</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">66</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rdi, -<span style="color:#ae81ff">0x30</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d96</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">70</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d99</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">73</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100001e24</span>               <span style="color:#75715e">; symbol stub for: swift_endAccess
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 参数传递，但这里不同于 inout 使用 lea 指令所做的按地址传递 ⬇
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100001d9e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">78</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x30</span>(%rbp), %rdi
+    <span style="color:#75715e">; 函数调用 ⬇
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001da2</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">82</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100001db0</span>               <span style="color:#75715e">; leetcode.demoFunc(Swift.Int) -&gt; () at main.swift:316
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100001da7</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">87</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %eax, %eax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001da9</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">89</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x30</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001dad</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">93</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001dae</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">94</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+
+<span style="color:#75715e">; Step Into
 </span><span style="color:#75715e"></span><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">demoFunc</span>(<span style="color:#66d9ef">_</span>:):
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b70</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">pushq</span>  %rbp
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b71</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsp, %rbp
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b74</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x0</span>, -<span style="color:#ae81ff">0x8</span>(%rbp)
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b7c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">12</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rdi, -<span style="color:#ae81ff">0x8</span>(%rbp)
-<span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b80</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">16</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
-    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b81</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">17</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
-</code></pre></div><ul>
-<li><code>movq -0x30(%rbp), %rdi</code>，<code>rdp</code> 减去 <code>0x30</code> 即 <code>foo</code> 占用的内存空间中存储的 <code>10</code> 赋值到 <code>rdi</code> 中</li>
-<li>可被多次赋值的变量即可作为 <code>inout</code> 参数传入</li>
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001db0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001db1</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001db4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x0</span>, -<span style="color:#ae81ff">0x8</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001dbc</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">12</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x0</span>, -<span style="color:#ae81ff">0x10</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001dc4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">20</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rdi, -<span style="color:#ae81ff">0x8</span>(%rbp)
+<span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001dc8</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">24</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rdi, -<span style="color:#ae81ff">0x10</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001dcc</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">28</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x9</span>, -<span style="color:#ae81ff">0x10</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001dd4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">36</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001dd5</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">37</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+</code></pre></div><p>当没有使用 <code>inout</code> 时，函数参数值本身将通过 <code>mov</code> 指令被放在 <code>%rdi</code> 中；在函数内部再通过 <code>mov</code> 指令将 <code>%rdi</code> 中的值取出放在 <code>-0x8(%rbp)</code> 中，声明同名变量则是同样将 <code>%rdi</code> 中的值取出放在 <code>-0x10(%rbp)</code> 中，修改则也是针对 <code>-0x10(%rbp)</code> 中的值。这些过程均属于值传递，因此外界的变量也不会被改变。</p>
+<h2 id="附录">附录</h2>
+<h3 id="汇编指令">汇编指令</h3>
+<table>
+<thead>
+<tr>
+<th align="center">-</th>
+<th align="center">用例</th>
+<th align="center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center"><code>%</code></td>
+<td align="center"><code>%rip</code></td>
+<td align="center">寄存器前缀为 <code>%</code>（ASCII 0x25）</td>
+</tr>
+<tr>
+<td align="center"><code>$</code></td>
+<td align="center"><code>$0x9</code></td>
+<td align="center">立即数前缀为 <code>$</code>（ASCII 0x24）</td>
+</tr>
+<tr>
+<td align="center"><code>(%)</code></td>
+<td align="center"><code>(%rdi)</code></td>
+<td align="center">取 <code>%rdi</code> 中存储的内存地址所对应的值（<code>%rdi</code> 为指针地址，<code>(%rdi)</code> 为地址对应的值）</td>
+</tr>
+<tr>
+<td align="center"><code>call</code><br>Call<br>调用</td>
+<td align="center"><code>callq 0x100000b70</code></td>
+<td align="center">调用函数地址为 <code>0x100000b70</code> 的函数</td>
+</tr>
+<tr>
+<td align="center"><code>lea</code><br>Load Effective Address<br>加载有效地址</td>
+<td align="center"><code>leaq 0x142a(%rip), %rdi</code></td>
+<td align="center">将 <code>%rip</code> 中的地址值加上 <code>0x142a</code> 并存储到 <code>%rdi</code> 中（地址传递）</td>
+</tr>
+<tr>
+<td align="center"><code>mov</code><br>Move<br>移动</td>
+<td align="center"><code>movq $0x9, (%rdi)</code></td>
+<td align="center">将 <code>9</code> 存储在 <code>%rdi</code> 中地址对应的存储空间中（<code>*p = 9</code>）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="汇编指令后缀">汇编指令后缀</h3>
+<p>在上文中的汇编指令上，我们经常能见到 <code>l</code> 或 <code>q</code> 等这样的汇编指令后缀，具体如下表：</p>
+<table>
+<thead>
+<tr>
+<th align="center">标识符</th>
+<th align="center">全拼</th>
+<th align="center">位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center"><code>b</code></td>
+<td align="center">Byte</td>
+<td align="center">8</td>
+</tr>
+<tr>
+<td align="center"><code>w</code></td>
+<td align="center">Word</td>
+<td align="center">16</td>
+</tr>
+<tr>
+<td align="center"><code>l</code></td>
+<td align="center">Long</td>
+<td align="center">32（默认）</td>
+</tr>
+<tr>
+<td align="center"><code>q</code></td>
+<td align="center">Quadword</td>
+<td align="center">64</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><a href="https://docs.oracle.com/cd/E37838_01/pdf/E61064.pdf">x86 Assembly Language Reference Manual 2019 - Oracle</a></li>
 </ul>
 
     </div>
@@ -267,17 +351,10 @@ demoFunc(foo)  <span style="color:#75715e">// BREAKPOINT ⚠️</span>
         </div>
         <div class="pagination__buttons">
           
-            <span class="button previous">
-              <a href="/posts/draft/combine_1/">
-                <span class="button__icon">←</span>
-                <span class="button__text">Combine</span>
-              </a>
-            </span>
-          
           
             <span class="button next">
-              <a href="/posts/2020/swift_inline_funcs/">
-                <span class="button__text">Swift 中的内联函数</span>
+              <a href="/posts/2020/array_in_ios/">
+                <span class="button__text">iOS 中的数组</span>
                 <span class="button__icon">→</span>
               </a>
             </span>
