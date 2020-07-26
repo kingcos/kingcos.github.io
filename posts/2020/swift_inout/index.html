@@ -6,10 +6,10 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Preface Swift 中的 inout 关键字使得函数内部可以改变外部传入的参数值本身，其本质是按引用传递，那么如何证明呢？
+<meta name="description" content="Preface Swift 中的 inout 关键字使得函数内部可以改变外部传入的参数值本身，那么它的本质是否真的是按引用传递呢？本文将简单探究 Swift 中的 inout 本质。
 本质 我们声明一个使用 inout 参数的函数，并在外界将变量 &amp;amp; 按地址传入：
-var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemoFunc(&amp;amp;foo) // BREAKPOINT ⚠️ // foo == 9 尝试将以上代码转换为汇编（Xcode Menu - Debug - Debug Workflow - Always Show Disassembly）：
-; inout demo`main: 0x100001d60 &amp;lt;&#43;0&amp;gt;: pushq %rbp 0x100001d61 &amp;lt;&#43;1&amp;gt;: movq %rsp, %rbp 0x100001d64 &amp;lt;&#43;4&amp;gt;: subq $0x30, %rsp 0x100001d68 &amp;lt;&#43;8&amp;gt;: leaq 0x1459(%rip), %rax ; leetcode.foo : Swift.Int  0x100001d6f &amp;lt;&#43;15&amp;gt;: xorl %ecx, %ecx 0x100001d71 &amp;lt;&#43;17&amp;gt;: movq $0x5, 0x144c(%rip) ; _dyld_private &#43; 4  0x100001d7c &amp;lt;&#43;28&amp;gt;: movl %edi, -0x1c(%rbp) -&amp;gt; 0x100001d7f &amp;lt;&#43;31&amp;gt;: movq %rax, %rdi 0x100001d82 &amp;lt;&#43;34&amp;gt;: leaq -0x18(%rbp), %rax 0x100001d86 &amp;lt;&#43;38&amp;gt;: movq %rsi, -0x28(%rbp) 0x100001d8a &amp;lt;&#43;42&amp;gt;: movq %rax, %rsi 0x100001d8d &amp;lt;&#43;45&amp;gt;: movl $0x21, %edx 0x100001d92 &amp;lt;&#43;50&amp;gt;: callq 0x100001e22 ; symbol stub for: swift_beginAccess  ; 参数传递 ⬇  0x100001d97 &amp;lt;&#43;55&amp;gt;: leaq 0x142a(%rip), %rdi ; leetcode."/>
+var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemoFunc(&amp;amp;foo) // BREAKPOINT 🔴 // foo == 9 尝试将以上代码转换为汇编（Xcode Menu - Debug - Debug Workflow - Always Show Disassembly）：
+; inout demo`main: 0x100001d60 &amp;lt;&#43;0&amp;gt;: pushq %rbp 0x100001d61 &amp;lt;&#43;1&amp;gt;: movq %rsp, %rbp 0x100001d64 &amp;lt;&#43;4&amp;gt;: subq $0x30, %rsp 0x100001d68 &amp;lt;&#43;8&amp;gt;: leaq 0x1459(%rip), %rax ; leetcode."/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2020/swift_inout/" />
@@ -30,12 +30,12 @@ var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemo
 
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Swift 拾遗 - inout"/>
-<meta name="twitter:description" content="Swift 中的 `inout` 关键字使得函数内部可以改变外部传入的参数值本身，其本质是按引用传递，那么如何证明呢？"/>
+<meta name="twitter:description" content="Swift 中的 `inout` 关键字使得函数内部可以改变外部传入的参数值本身，那么它的本质是否真的是按引用传递呢？本文将简单探究 Swift 中的 `inout` 本质。"/>
 
 
 
 <meta property="og:title" content="Swift 拾遗 - inout" />
-<meta property="og:description" content="Swift 中的 `inout` 关键字使得函数内部可以改变外部传入的参数值本身，其本质是按引用传递，那么如何证明呢？" />
+<meta property="og:description" content="Swift 中的 `inout` 关键字使得函数内部可以改变外部传入的参数值本身，那么它的本质是否真的是按引用传递呢？本文将简单探究 Swift 中的 `inout` 本质。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/posts/2020/swift_inout/" />
 <meta property="article:published_time" content="2020-07-25T00:00:00+00:00" />
@@ -159,7 +159,7 @@ var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemo
 
     <div class="post-content">
       <h2 id="preface">Preface</h2>
-<p>Swift 中的 <code>inout</code> 关键字使得函数内部可以改变外部传入的参数值本身，其本质是按引用传递，那么如何证明呢？</p>
+<p>Swift 中的 <code>inout</code> 关键字使得函数内部可以改变外部传入的参数值本身，那么它的本质是否真的是按引用传递呢？本文将简单探究 Swift 中的 <code>inout</code> 本质。</p>
 <h2 id="本质">本质</h2>
 <p>我们声明一个使用 <code>inout</code> 参数的函数，并在外界将变量 <code>&amp;</code> 按地址传入：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">var</span> foo = <span style="color:#ae81ff">5</span>
@@ -168,7 +168,7 @@ var foo = 5 func inoutDemoFunc(_ innerFoo: inout Int) { innerFoo = 9 } inoutDemo
     innerFoo = <span style="color:#ae81ff">9</span>
 }
 
-inoutDemoFunc(&amp;foo) <span style="color:#75715e">// BREAKPOINT ⚠️</span>
+inoutDemoFunc(&amp;foo) <span style="color:#75715e">// BREAKPOINT 🔴</span>
 
 <span style="color:#75715e">// foo == 9</span>
 </code></pre></div><p>尝试将以上代码转换为汇编（Xcode Menu - Debug - Debug Workflow - Always Show Disassembly）：</p>
@@ -218,7 +218,7 @@ inoutDemoFunc(&amp;foo) <span style="color:#75715e">// BREAKPOINT ⚠️</span>
     innerFoo = <span style="color:#ae81ff">9</span>
 }
 
-demoFunc(foo)  <span style="color:#75715e">// BREAKPOINT ⚠️</span>
+demoFunc(foo)  <span style="color:#75715e">// BREAKPOINT 🔴</span>
 
 <span style="color:#75715e">// foo == 5</span>
 </code></pre></div><p>同样将以上代码转换为汇编：</p>
@@ -350,6 +350,13 @@ demoFunc(foo)  <span style="color:#75715e">// BREAKPOINT ⚠️</span>
           <hr />
         </div>
         <div class="pagination__buttons">
+          
+            <span class="button previous">
+              <a href="/posts/2020/swift_inline/">
+                <span class="button__icon">←</span>
+                <span class="button__text">Swift 拾遗 - 内联函数</span>
+              </a>
+            </span>
           
           
             <span class="button next">
