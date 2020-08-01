@@ -367,35 +367,44 @@ People().foo()
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">; ...
 </span><span style="color:#75715e"></span>
 </code></pre></div><h2 id="inline">@inline</h2>
-<!--
+<p>我们可以使用 <code>@inline</code> 来建议编译器去禁止（<code>never</code>）或在条件允许的情况下（除递归、动态派发等）总是（<code>__always</code>）内联，其优先级高于编译器优化。</p>
+<h3 id="inlinenever">@inline(never)</h3>
+<p><code>@inline(never)</code> 将使得原本在开启编译器优化时会被内联的函数不再内联：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// [-O] / [-Osize]</span>
 
----
-
-内联函数（Inline Functions）指编译时刻将函数调用展开成函数体。在 Xcode 中的 Swift 项目中，如果开启了编译器优化（Release 模式默认会开启优化），编译器会自动将某些函数变成内联函数。但若函数存在以下特点将不会被自动内联：
-
-1. 函数体较长时（因内联会导致可执行代码体积增大）
-2. 包含递归调用时（因内联会导致死循环）
-3. 包含动态派发时（因编译时刻无法确认要执行的代码）
-
-## @inline
-
-- 官方源码中使用 `@inline` 来建议（注意「建议」而非强制）编译器去禁止（`never`）或在条件允许的情况下（除递归、动态派发等）总是（`__always`）内联，优先级高于编译设置；
-- 注意 `__always` 只在开启编译器优化选项时（无论是优化速度还是体积）几乎总是内联（未开启时将不会被内联）。
-
-```swift
-// [-O] / [-Osize]
-
-@inline(never) func bar() {
-    print("bar")
+@inline(never) <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">bar</span>() {
+    print(<span style="color:#e6db74">&#34;bar&#34;</span>)
 }
 
-@inline(__always) func baz() {
-    print("baz")
+bar() <span style="color:#75715e">// BREAKPOINT 🔴</span>
+</code></pre></div><p>此时函数调用处的断点将有效，且转换为汇编也将显示存在 <code>call</code> 指令：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#75715e">; [-O] / [-Osize]
+</span><span style="color:#75715e"></span>
+<span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e74</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000e80</span>               <span style="color:#75715e">; demo.bar() -&gt; () at main.swift:1
+</span></code></pre></div><h3 id="inline__always">@inline(__always)</h3>
+<p>需要注意的是，<code>__always</code> 只在开启编译器优化时几乎总是内联，未开启时将不会被内联。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift">@inline(__always) <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">baz</span>() {
+    print(<span style="color:#e6db74">&#34;baz&#34;</span>)
 }
 
-bar()
-baz()
-``` -->
+baz() <span style="color:#75715e">// BREAKPOINT 🔴</span>
+</code></pre></div><p>如上代码即使在 <code>[-Onone]</code> 等级下我们也可以通过断点和汇编看出其本质并没有被内联：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#75715e">; [-Onone]
+</span><span style="color:#75715e"></span>
+<span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e5f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">15</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000e70</span>               <span style="color:#75715e">; demo.baz() -&gt; () at main.swift:3
+</span></code></pre></div><p>而在 <code>[-O]</code> 或 <code>[-Osize]</code> 下使用 <code>@inline(__always)</code> 则可以将原本因行数过多的函数进行内联：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// [-O] / [-Osize]</span>
+
+@inline(__always) <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">baz</span>() {
+    print(<span style="color:#66d9ef">#function</span>)
+    print(<span style="color:#66d9ef">#function</span>)
+    print(<span style="color:#66d9ef">#function</span>)
+    print(<span style="color:#66d9ef">#function</span>)
+    print(<span style="color:#66d9ef">#function</span>)
+}
+
+baz() <span style="color:#75715e">// BREAKPOINT 🔴</span>
+</code></pre></div><p><code>@inline(__always)</code> 虽然能够「控制」一部分函数进行内联，但其本质是对编译器行为的建议而非强制，因为有些函数并不能够被内联，比如上面递归中的案例。这里我们只需要了解其用处，而在实际开发中很少会用到。</p>
 <!-- ### API & ABI
 
 - API（Application Programming Interface，应用程序编程接口）：源代码和库之间的接口。
