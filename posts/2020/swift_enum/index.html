@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    
+      <title>Swift 拾遗 - enum :: iBlog</title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="Date Notes     2020-08-01 首次提交    Preface 《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。今天我们将一起简单探究 Swift 中的枚举 enum。
+内存布局 内存布局（Memory Layout）指的是变量在内存中的占用情况，了解内存布局可以使我们对于数据类型的本质更加熟悉。
+简单枚举 简单枚举这里指不带关联值与原始值的枚举类型。当 case 小于等于 256 个时，其占用 1 个字节（当然，超过 256 个时，将占用 2 个字节）：
+enum Foo { case first, second, third } print(MemoryLayout&amp;lt;Foo&amp;gt;.size) // 1 print(MemoryLayout&amp;lt;Foo&amp;gt;.stride) // 1 print(MemoryLayout&amp;lt;Foo&amp;gt;.alignment) // 1 var foo = Foo.third withUnsafePointer(to: &amp;amp;foo) { print(&amp;#34;\($0)&amp;#34;) } // 0x00000001000040e0 // View Memory: // 0x00000001000040e0 -&amp;gt; // 02  View Memory"/>
+<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2020/swift_enum/" />
+
+
+
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+<link rel="shortcut icon" href="/img/favicon.png">
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Swift 拾遗 - enum"/>
+<meta name="twitter:description" content="《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。今天我们将一起简单探究  Swift 中的枚举 `enum`。"/>
+
+
+
+<meta property="og:title" content="Swift 拾遗 - enum" />
+<meta property="og:description" content="《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。今天我们将一起简单探究  Swift 中的枚举 `enum`。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/2020/swift_enum/" />
+<meta property="article:published_time" content="2020-08-01T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-08-01T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+
+
+
+
+<script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  </head>
+  <body class="">
+    <div class="container">
+      <header class="header">
+  <span class="header__inner">
+    <a href="/" class="logo" style="text-decoration: none;">
+  
+    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
+  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
+</svg>
+</span>
+    <span class="logo__text">kingcos.me</span>
+    <span class="logo__cursor"></span>
+  
+</a>
+
+    <span class="header__right">
+      
+        <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+        <span class="menu-trigger">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M0 0h24v24H0z" fill="none"/>
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+          </svg>
+        </span>
+      
+      <span class="theme-toggle">
+        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+
+      </span>
+    </span>
+  </span>
+</header>
+
+
+      <div class="content">
+        
+  <div class="post">
+    <h2 class="post-title"><a href="/posts/2020/swift_enum/">Swift 拾遗 - enum</a></h2>
+    <div class="post-meta">
+      
+        <span class="post-date">
+            2020-08-01
+        </span>
+      
+      
+      
+        <span class="post-read-time">— 6 min read</span>
+      
+    </div>
+
+    
+      <span class="post-tags">
+        
+          #<a href="/tags/swift/">Swift</a>&nbsp;
+        
+          #<a href="/tags/swift-%E6%8B%BE%E9%81%97/">Swift 拾遗</a>&nbsp;
+        
+      </span>
+    
+
+    
+
+    <div class="post-content">
+      <table>
+<thead>
+<tr>
+<th align="center">Date</th>
+<th align="center">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">2020-08-01</td>
+<td align="center">首次提交</td>
+</tr>
+</tbody>
+</table>
+<h2 id="preface">Preface</h2>
+<p>《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。今天我们将一起简单探究 Swift 中的枚举 <code>enum</code>。</p>
+<h2 id="内存布局">内存布局</h2>
+<p>内存布局（Memory Layout）指的是变量在内存中的占用情况，了解内存布局可以使我们对于数据类型的本质更加熟悉。</p>
+<h3 id="简单枚举">简单枚举</h3>
+<p>简单枚举这里指不带关联值与原始值的枚举类型。当 <code>case</code> 小于等于 256 个时，其占用 1 个字节（当然，超过 256 个时，将占用 2 个字节）：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Foo</span> {
+    <span style="color:#66d9ef">case</span> first, second, third
+}
+
+print(MemoryLayout&lt;Foo&gt;.size)      <span style="color:#75715e">// 1</span>
+print(MemoryLayout&lt;Foo&gt;.stride)    <span style="color:#75715e">// 1</span>
+print(MemoryLayout&lt;Foo&gt;.alignment) <span style="color:#75715e">// 1</span>
+
+<span style="color:#66d9ef">var</span> foo = Foo.third
+withUnsafePointer(to: &amp;foo) { print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>$0<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>) } <span style="color:#75715e">// 0x00000001000040e0</span>
+
+<span style="color:#75715e">// View Memory:</span>
+<span style="color:#75715e">// 0x00000001000040e0 -&gt;</span>
+<span style="color:#75715e">// 02</span>
+</code></pre></div><blockquote>
+<p><strong>View Memory</strong></p>
+<p>我们可以在 Xcode Menu - Debug - Debug Workflow - View Memory - Address 中输入通过 <code>withUnsafePointer(to: &amp;foo)</code> 获得的内存地址，来查看内存占用情况；也可以在 LLDB 中输入 <code>memory read</code> 加上内存地址，输出内存占用信息。</p>
+</blockquote>
+<p>当 <code>case</code> 只有一个时，<code>size</code> 为 <code>0</code>，即实际占用的内存大小为 0。这是因为此时枚举类型中有且仅有这一种可能，即使无需存储空间也可表示，而根据内存对齐最少 1 个字节，这样的类型最终在内存中被分配了 1 个字节：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Foo</span> {
+    <span style="color:#66d9ef">case</span> first
+}
+
+print(MemoryLayout&lt;Foo&gt;.size)      <span style="color:#75715e">// 0</span>
+print(MemoryLayout&lt;Foo&gt;.stride)    <span style="color:#75715e">// 1</span>
+print(MemoryLayout&lt;Foo&gt;.alignment) <span style="color:#75715e">// 1</span>
+</code></pre></div><h3 id="带有原始值">带有原始值</h3>
+<p>那么带有原始值的枚举类型变量在内存中是什么样呢？</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Foo</span>: Int {
+    <span style="color:#66d9ef">case</span> first = <span style="color:#ae81ff">1000</span>, second, third
+}
+
+print(MemoryLayout&lt;Foo&gt;.size)      <span style="color:#75715e">// 1</span>
+print(MemoryLayout&lt;Foo&gt;.stride)    <span style="color:#75715e">// 1</span>
+print(MemoryLayout&lt;Foo&gt;.alignment) <span style="color:#75715e">// 1</span>
+
+<span style="color:#66d9ef">var</span> foo = Foo.third
+print(foo.rawValue) <span style="color:#75715e">// 1002</span>
+
+withUnsafePointer(to: &amp;foo) { print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>$0<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>) } <span style="color:#75715e">// 0x00000001000040e0</span>
+
+<span style="color:#75715e">// View Memory:</span>
+<span style="color:#75715e">// (lldb) memory read 0x00000001000040e0</span>
+<span style="color:#75715e">// 0x1000040e0: 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................</span>
+<span style="color:#75715e">// 0x1000040f0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................</span>
+</code></pre></div><p>通过实际的输出我们可以发现，无论原始值的大小如何，枚举变量将总是占用 1 个字节。这是因为枚举的原始值并不存储在枚举变量中，而是作为整个枚举类型所公用。当然，枚举的原始值也无法再次改变。</p>
+<h3 id="带有关联值">带有关联值</h3>
+<p>不同于枚举的原始值，关联值并不在定义枚举时即确定：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Foo</span> {
+    <span style="color:#66d9ef">case</span> first(Int, Int, Int, Int) <span style="color:#75715e">// 4 个 Int 值，即 8 * 4 = 32 个字节</span>
+    <span style="color:#66d9ef">case</span> second
+}
+
+print(MemoryLayout&lt;Foo&gt;.size)      <span style="color:#75715e">// 33，前 32 位存储关联值，第 33 位存储从 0 开始的次序值</span>
+print(MemoryLayout&lt;Foo&gt;.stride)    <span style="color:#75715e">// 40</span>
+print(MemoryLayout&lt;Foo&gt;.alignment) <span style="color:#75715e">// 8</span>
+
+<span style="color:#66d9ef">var</span> foo = Foo.first(Int.max, Int.max, Int.max, Int.max)
+<span style="color:#66d9ef">var</span> next = Int.max
+
+print(MemoryLayout.size(ofValue: foo)) <span style="color:#75715e">// 33</span>
+
+withUnsafePointer(to: &amp;foo) { print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>$0<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>) }  <span style="color:#75715e">// 0x0000000100003098</span>
+withUnsafePointer(to: &amp;next) { print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>$0<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>) } <span style="color:#75715e">// 0x00000001000030c0</span>
+
+<span style="color:#75715e">// View Memory:</span>
+<span style="color:#75715e">// 0x0000000100003098 -&gt;</span>
+<span style="color:#75715e">// FF FF FF FF FF FF FF 7F</span>
+<span style="color:#75715e">// FF FF FF FF FF FF FF 7F</span>
+<span style="color:#75715e">// FF FF FF FF FF FF FF 7F</span>
+<span style="color:#75715e">// FF FF FF FF FF FF FF 7F</span>
+<span style="color:#75715e">// 00 00 00 00 00 00 00 00</span>
+<span style="color:#75715e">// 0x00000001000030c0 -&gt;</span>
+<span style="color:#75715e">// FF FF FF FF FF FF FF 7F</span>
+
+print(MemoryLayout.size(ofValue: foo)) <span style="color:#75715e">// 33，等同于 MemoryLayout&lt;Foo&gt;.size</span>
+
+<span style="color:#75715e">// View Memory:</span>
+<span style="color:#75715e">// 0x0000000100003098 -&gt;</span>
+<span style="color:#75715e">// 00 00 00 00 00 00 00 00</span>
+<span style="color:#75715e">// 00 00 00 00 00 00 00 00</span>
+<span style="color:#75715e">// 00 00 00 00 00 00 00 00</span>
+<span style="color:#75715e">// 00 00 00 00 00 00 00 00</span>
+<span style="color:#75715e">// 01 00 00 00 00 00 00 00</span>
+<span style="color:#75715e">// 0x00000001000030c0 -&gt;</span>
+<span style="color:#75715e">// FF FF FF FF FF FF FF 7F</span>
+</code></pre></div><!--
+
+## 原始值的内存布局
+
+```swift
+
+
+enum Bar3 {
+    case test(Int)
+}
+
+// 只有一个 case 且有关联值时，也无需额外存储空间来存储次序值
+print(MemoryLayout<Bar3>.size)      // 8
+print(MemoryLayout<Bar3>.stride)    // 8
+print(MemoryLayout<Bar3>.alignment) // 8
+
+enum Bar4 {
+    case test0(Int)
+    case test1
+}
+
+// 有多个 case 且有关联值时，则需要额外的存储空间（不超过 256 个 case 时为额外一个字节来存储次序值）
+print(MemoryLayout<Bar4>.size)      // 9（8 + 1）
+print(MemoryLayout<Bar4>.stride)    // 16
+print(MemoryLayout<Bar4>.alignment) // 8
+```
+
+### 较为复杂
+
+```swift
+enum Baz1 {
+    case test0
+    case test1
+    case test2
+    case test3
+    case test4(Int)
+    case test5(Int, Int)
+    case test6(Int, Int, Bool, Int) // 8, 8, 8, 8（注意顺序）
+}
+
+print(MemoryLayout<Baz1>.size)      // 32
+print(MemoryLayout<Baz1>.stride)    // 32
+print(MemoryLayout<Baz1>.alignment) // 8
+
+enum Baz2 {
+    case test0
+    case test1
+    case test2
+    case test3
+    case test4(Int)
+    case test5(Int, Int)
+    case test6(Int, Bool, Int)
+}
+
+print(MemoryLayout<Baz2>.size)      // 25, Why?
+print(MemoryLayout<Baz2>.stride)    // 32
+print(MemoryLayout<Baz2>.alignment) // 8
+
+enum Baz3 {
+    case test0
+    case test1
+    case test2
+    case test3
+    case test4(Int)
+    case test5(Int, Int)
+    case test6(Int, Int, Int, Bool) // 8, 8, 8, 1
+}
+
+print(MemoryLayout<Baz3>.size)      // 25
+print(MemoryLayout<Baz3>.stride)    // 32
+print(MemoryLayout<Baz3>.alignment) // 8
+```
+
+### 枚举与 switch-case
+
+- 比较次序值（成员值），将关联值大小的内存绑定到相应的变量
+
+```swift
+enum Foo {
+    case test1(Int, Int, Int)
+    case test2(Int, Int)
+    case test3(Int)
+    case test4(Bool)
+    case test5
+}
+
+print(MemoryLayout<Foo>.size)      // 25
+print(MemoryLayout<Foo>.stride)    // 32
+print(MemoryLayout<Foo>.alignment) // 8
+
+let foo = Foo.test1(10, 20, 30) // BREAKPOINT ⚠️
+switch foo {
+    case let .test1(v1, v2, v3):
+        print("test1", v1, v2, v3)
+    case let .test2(v1, v2):
+        print("test2", v1, v2)
+    case let .test3(v1):
+        print("test1", v1)
+    case let .test4(v1):
+        print("test1", v1)
+    case .test5:
+        print("test5")
+    break;
+}
+```
+
+```asm
+demo`main:
+;   指令地址 <+该行之前的所有指令占用的字节数>: 指令
+    0x100000ac0 <+0>:  pushq  %rbp
+    0x100000ac1 <+1>:  movq   %rsp, %rbp
+    0x100000ac4 <+4>:  xorl   %eax, %eax
+; let foo = Foo.test1(10, 20, 30)
+->  0x100000ac6 <+6>:  movq   $0xa, 0x1547(%rip)        ; _dyld_private + 4
+    0x100000ad1 <+17>: movq   $0x14, 0x1544(%rip)       ; demo.foo : demo.Foo + 4
+    0x100000adc <+28>: movq   $0x1e, 0x1541(%rip)       ; demo.foo : demo.Foo + 12
+    0x100000ae7 <+39>: movb   $0x0, 0x1542(%rip)        ; demo.foo : demo.Foo + 23
+    0x100000aee <+46>: movl   %edi, -0x4(%rbp)
+    0x100000af1 <+49>: movq   %rsi, -0x10(%rbp)
+    0x100000af5 <+53>: popq   %rbp
+    0x100000af6 <+54>: retq
+```
+
+- `rip` 寄存器为程序指令寄存器，其中存储了下一条待执行指令的地址；
+- `movq $0xa, 0x1547(%rip)`：将立即数 `10` 以 8 个字节存储到 `0x100000ad1 + 0x1547` 即 `0x100002018` 地址处；
+- `movq $0x14, 0x1544(%rip)`：将立即数 `20` 以 8 个字节存储到 `0x100000adc + 0x1544` 即 `0x100002020` 地址处；
+- `movq $0x1e, 0x1541(%rip)`：将立即数 `30` 以 8 个字节存储到 `0x100000ae7 + 0x1541` 即 `0x100002028` 地址处；
+- `movb $0x0, 0x1542(%rip)`：将枚举变量的次序值（成员值） `0` 以 1 个字节存储到 `0x100000aee + 0x1542` 即 `0x100002030` 地址处。
+
+```llbd
+(lldb) x/1xb 0x100002018
+0x100002018: 0x00
+(lldb) si
+(lldb) x/1xb 0x100002018
+0x100002018: 0x0a
+(lldb) x/1xb 0x100002020
+0x100002020: 0x00
+(lldb) si
+(lldb) x/1xb 0x100002020
+0x100002020: 0x14
+(lldb) x/1xb 0x100002028
+0x100002028: 0x00
+(lldb) si
+(lldb) x/1xb 0x100002028
+0x100002028: 0x1e
+```
+
+
+```asm
+; let foo = Foo.test1(10, 20, 30)
+;   指令地址 <+该行之前的所有指令占用的字节数>: 指令
+->  0x1000013b1 <+17>:  movaps 0x9b8(%rip), %xmm0                                   ; 1⃣️
+    0x1000013b8 <+24>:  movaps %xmm0, 0xec1(%rip)        ; demo.foo : demo.Foo      ; 2⃣️
+    0x1000013bf <+31>:  leaq   0xeba(%rip), %rdi         ; demo.foo : demo.Foo      ; 3⃣️
+    0x1000013c6 <+38>:  movq   $0x1e, 0xebf(%rip)        ; demo.foo : demo.Foo + 12 ; 4⃣️
+    0x1000013d1 <+49>:  movb   $0x0, 0xec0(%rip)         ; demo.foo : demo.Foo + 23 ; 5⃣️
+    0x1000013d8 <+56>:  leaq   -0x50(%rbp), %rsi
+```
+
+- `rip` 寄存器为程序指令寄存器，其中存储了下一条待执行指令的地址；
+- `movaps` 指令：Move Aligned Packed Single-Precision Floating-Point Values，即移动对齐的压缩单精度浮点值；
+- `xmm` 指 SSE（Streaming SIMD Extensions）指令集中 128 位的 8 个 `xmm` 寄存器；
+- 1⃣️ `movaps 0x9b8(%rip), %xmm0`：将 `rip` 即 `0x1000013b8` 加上 `0x9b8` 得到的地址（`0x100001D70`）存储在 `xmm0` 寄存器中；
+- 2⃣️ `movaps %xmm0, 0xec1(%rip)`：将 `xmm0` 即 `0x100001D70` 存储到 `0x1000013BF` 加上 `0xec1` 得到的地址（`0x100002280`）中；
+- 3⃣️ `leaq 0xeba(%rip), %rdi`：将 `rip` 即 `0x1000013c6` 加上 `0xeba` 得到的地址（`0x100002280`）直接存储在 `rdi` 寄存器中；
+- 4⃣️ `movq $0x1e, 0xebf(%rip)`：将 `30` 存储在 `0x1000013d1 + 0xebf`（`0x100002290`）地址中；
+- 5⃣️ `movb $0x0, 0xec0(%rip)`：将该枚举变量的次序值（成员值）`0` 存储在 `0x1000013d8 + 0xec0`（`0x100002298`）地址中。
+
+```lldb
+// movaps 0x9b8(%rip), %xmm0 执行前
+(lldb) register read xmm0
+    xmm0 = {0xff 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0xff 0xff 0x00}
+(lldb) x 0x100001D70
+0x100001d70: 0a 00 00 00 00 00 00 00 14 00 00 00 00 00 00 00  ................
+0x100001d80: 01 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00  ................
+(lldb) si
+// movaps 0x9b8(%rip), %xmm0 执行后
+(lldb) register read xmm0
+    xmm0 = {0x0a 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x14 0x00 0x00 0x00 0x00 0x00 0x00 0x00}
+
+// leaq 0xeba(%rip), %rdi 执行前
+(lldb) register read rdi
+     rdi = 0x0000000000000001
+(lldb) si
+// leaq 0xeba(%rip), %rdi 执行后
+(lldb) register read rdi
+     rdi = 0x0000000100002280  demo`demo.foo : demo.Foo
+
+// movaps %xmm0, 0xec1(%rip) 执行后
+(lldb) x/16xb 0x100002280
+0x100002280: 0x0a 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+0x100002288: 0x14 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+
+// movq $0x1e, 0xebf(%rip) 执行后
+(lldb) x/1xb 0x100002290
+0x100002290: 0x1e
+// movb $0x0, 0xec0(%rip) 执行后
+(lldb) x/1xb 0x100002298
+0x100002298: 0x00
+``` -->
+<h2 id="reference">Reference</h2>
+
+    </div>
+    
+      <div class="pagination">
+        <div class="pagination__title">
+          <span class="pagination__title-h">Read other posts</span>
+          <hr />
+        </div>
+        <div class="pagination__buttons">
+          
+          
+            <span class="button next">
+              <a href="/posts/2020/assertion_in_ios/">
+                <span class="button__text">iOS 中的断言</span>
+                <span class="button__icon">→</span>
+              </a>
+            </span>
+          
+        </div>
+      </div>
+    
+
+    
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<table style="border: 0;">
+  <tr>
+  <td style="border: 0; width: 30%;">
+    <img src='/img/about/1.jpg'>
+  </td>
+  <td style="border: 0;">
+    <ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-9925978992661955"
+     data-ad-slot="3213735320"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+  </td>
+  </tr>
+</table>
+
+
+
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+
+    
+    
+    <div>
+      <div id="github-comment">
+      </div>
+
+      <script type="text/javascript">
+        function getUtterances(isDark) {
+          var utterances = document.createElement('script');
+          utterances.type = 'text/javascript';
+          utterances.async = true;
+          utterances.setAttribute('issue-term', "pathname")
+          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
+          utterances.setAttribute('label', "comments")
+          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
+          utterances.crossorigin = 'anonymous';
+          utterances.src = 'https://utteranc.es/client.js';
+
+          return utterances
+        }
+
+        var themeToggle = document.querySelector(".theme-toggle")
+        themeToggle.addEventListener("click", function () {
+          var getTheme = window.localStorage && window.localStorage.getItem("theme")
+          var divNode = document.getElementById('github-comment')
+          while(divNode.hasChildNodes()) {
+            divNode.removeChild(divNode.firstChild);
+          }
+          
+          
+          
+
+          
+          
+          
+          
+          
+          
+          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
+        })
+
+        var getTheme = window.localStorage && window.localStorage.getItem("theme")
+        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
+      </script>
+    </div>
+    
+
+    </div>
+
+      </div>
+
+      
+        <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+      
+    </div>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+
+    
+  </body>
+</html>
