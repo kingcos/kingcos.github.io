@@ -141,7 +141,7 @@ enum Foo { case first, second, third } print(MemoryLayout&amp;lt;Foo&amp;gt;.siz
       
       
       
-        <span class="post-read-time">— 6 min read</span>
+        <span class="post-read-time">— 8 min read</span>
       
     </div>
 
@@ -196,7 +196,7 @@ withUnsafePointer(to: &amp;foo) { print(<span style="color:#e6db74">&#34;</span>
 <p><strong>View Memory</strong></p>
 <p>我们可以在 Xcode Menu - Debug - Debug Workflow - View Memory - Address 中输入通过 <code>withUnsafePointer(to: &amp;foo)</code> 获得的内存地址，来查看内存占用情况；也可以在 LLDB 中输入 <code>memory read</code> 加上内存地址，输出内存占用信息。</p>
 </blockquote>
-<p>当 <code>case</code> 只有一个时，<code>size</code> 为 <code>0</code>，即实际占用的内存大小为 0。这是因为此时枚举类型中有且仅有这一种可能，即使无需存储空间也可表示，而根据内存对齐最少 1 个字节，这样的类型最终在内存中被分配了 1 个字节：</p>
+<p>当 <code>case</code> 只有一个时，<code>size</code> 为 <code>0</code>，即实际占用的内存大小为 0。这是因为此时枚举类型中有且仅有这一种可能，即使无需内存空间也可表示，而根据内存对齐最少 1 个字节，这样的类型最终在内存中被分配了 1 个字节：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Foo</span> {
     <span style="color:#66d9ef">case</span> first
 }
@@ -225,10 +225,10 @@ withUnsafePointer(to: &amp;foo) { print(<span style="color:#e6db74">&#34;</span>
 <span style="color:#75715e">// 0x1000040f0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................</span>
 </code></pre></div><p>通过实际的输出我们可以发现，无论原始值的大小如何，枚举变量将总是占用 1 个字节。这是因为枚举的原始值并不存储在枚举变量中，而是作为整个枚举类型所公用。当然，枚举的原始值也无法再次改变。</p>
 <h3 id="带有关联值">带有关联值</h3>
-<p>不同于枚举的原始值，关联值并不在定义枚举时即确定：</p>
+<p>不同于枚举的原始值，关联值并不在定义时确定，而每个枚举变量的关联值都可能不一样，因此关联值必须要有额外的内存空间来存储：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Foo</span> {
     <span style="color:#66d9ef">case</span> first(Int, Int, Int, Int) <span style="color:#75715e">// 4 个 Int 值，即 8 * 4 = 32 个字节</span>
-    <span style="color:#66d9ef">case</span> second
+    <span style="color:#66d9ef">case</span> second, third
 }
 
 print(MemoryLayout&lt;Foo&gt;.size)      <span style="color:#75715e">// 33，前 32 位存储关联值，第 33 位存储从 0 开始的次序值</span>
@@ -253,6 +253,7 @@ withUnsafePointer(to: &amp;next) { print(<span style="color:#e6db74">&#34;</span
 <span style="color:#75715e">// 0x00000001000030c0 -&gt;</span>
 <span style="color:#75715e">// FF FF FF FF FF FF FF 7F</span>
 
+foo = .second
 print(MemoryLayout.size(ofValue: foo)) <span style="color:#75715e">// 33，等同于 MemoryLayout&lt;Foo&gt;.size</span>
 
 <span style="color:#75715e">// View Memory:</span>
@@ -264,32 +265,115 @@ print(MemoryLayout.size(ofValue: foo)) <span style="color:#75715e">// 33，等�
 <span style="color:#75715e">// 01 00 00 00 00 00 00 00</span>
 <span style="color:#75715e">// 0x00000001000030c0 -&gt;</span>
 <span style="color:#75715e">// FF FF FF FF FF FF FF 7F</span>
-</code></pre></div><!--
 
-## 原始值的内存布局
+foo = .third
+<span style="color:#75715e">// View Memory:</span>
+<span style="color:#75715e">// 0x0000000100003098 -&gt;</span>
+<span style="color:#75715e">// 01 00 00 00 00 00 00 00</span>
+<span style="color:#75715e">// 00 00 00 00 00 00 00 00</span>
+<span style="color:#75715e">// 00 00 00 00 00 00 00 00</span>
+<span style="color:#75715e">// 00 00 00 00 00 00 00 00</span>
+<span style="color:#75715e">// 01 00 00 00 00 00 00 00</span>
+<span style="color:#75715e">// 0x00000001000030c0 -&gt;</span>
+<span style="color:#75715e">// FF FF FF FF FF FF FF 7F</span>
+</code></pre></div><p>当枚举类型中只有一个 case 且含有关联值时，枚举变量则无需额外的内存空间来充当标记位：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Foo</span> {
+    <span style="color:#66d9ef">case</span> first(Int)
+}
+
+print(MemoryLayout&lt;Foo&gt;.size)      <span style="color:#75715e">// 8</span>
+print(MemoryLayout&lt;Foo&gt;.stride)    <span style="color:#75715e">// 8</span>
+print(MemoryLayout&lt;Foo&gt;.alignment) <span style="color:#75715e">// 8</span>
+</code></pre></div><h2 id="optional">Optional</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">//           ┌──────────┐  ┌──────────┐</span>
+<span style="color:#75715e">// ┌──────┐  │   Int??  │  │   Int??  │</span>
+<span style="color:#75715e">// │ Int? │  │ ┌──────┐ │  │ ┌──────┐ │</span>
+<span style="color:#75715e">// │      │  │ │ Int? │ │  │ │ Int? │ │</span>
+<span style="color:#75715e">// │  10  │  │ │      │ │  │ │      │ │</span>
+<span style="color:#75715e">// └──────┘  │ │  10  │ │  │ │  10  │ │</span>
+<span style="color:#75715e">//           └─┴──────┴─┘  └─┴──────┴─┘</span>
+<span style="color:#75715e">//   foo1        foo2         foo3</span>
+<span style="color:#66d9ef">var</span> foo1: Int? = <span style="color:#ae81ff">10</span>
+<span style="color:#66d9ef">var</span> foo2: Int?? = foo1
+<span style="color:#66d9ef">var</span> foo3: Int?? = <span style="color:#ae81ff">10</span>
+
+print(foo2 == foo3) <span style="color:#75715e">// true</span>
+</code></pre></div><h3 id="多重可选项">多重可选项</h3>
+<h2 id="switch-case">switch-case</h2>
+<!--
+
+### Optional & LLDB
+
+- LLDB：`frame variable -R <VAR>` / `fr v -R <VAR>`
 
 ```swift
 
+// LLDB:
+// (lldb) frame variable -R foo1
+// (Swift.Optional<Swift.Int>) foo1 = some {
+//   some = {
+//     _value = 10
+//   }
+// }
+// (lldb) frame variable -R foo2
+// (Swift.Optional<Swift.Optional<Swift.Int>>) foo2 = some {
+//   some = some {
+//     some = {
+//       _value = 10
+//     }
+//   }
+// }
+// (lldb) frame variable -R foo3
+// (Swift.Optional<Swift.Optional<Swift.Int>>) foo3 = some {
+//   some = some {
+//     some = {
+//       _value = 10
+//     }
+//   }
+// }
 
-enum Bar3 {
-    case test(Int)
-}
+//           ┌──────────┐  ┌──────────┐
+// ┌──────┐  │   Int??  │  │   Int??  │
+// │ Int? │  │ ┌──────┐ │  │          │
+// │      │  │ │ Int? │ │  │          │
+// │      │  │ │      │ │  │          │
+// └──────┘  │ │      │ │  │          │
+//           └─┴──────┴─┘  └──────────┘
+//   bar1        bar2           bar3
 
-// 只有一个 case 且有关联值时，也无需额外存储空间来存储次序值
-print(MemoryLayout<Bar3>.size)      // 8
-print(MemoryLayout<Bar3>.stride)    // 8
-print(MemoryLayout<Bar3>.alignment) // 8
+var bar1: Int? = nil
+var bar2: Int?? = bar1
+var bar3: Int?? = nil
 
-enum Bar4 {
-    case test0(Int)
-    case test1
-}
+print(bar1 == bar3) // false
+print(bar2 == bar3) // false
 
-// 有多个 case 且有关联值时，则需要额外的存储空间（不超过 256 个 case 时为额外一个字节来存储次序值）
-print(MemoryLayout<Bar4>.size)      // 9（8 + 1）
-print(MemoryLayout<Bar4>.stride)    // 16
-print(MemoryLayout<Bar4>.alignment) // 8
+// LLDB:
+// (lldb) fr v -R bar1
+// (Swift.Optional<Swift.Int>) bar1 = none {
+//   some = {
+//     _value = 0
+//   }
+// }
+// (lldb) fr v -R bar2
+// (Swift.Optional<Swift.Optional<Swift.Int>>) bar2 = some {
+//   some = none {
+//     some = {
+//       _value = 0
+//     }
+//   }
+// }
+// (lldb) fr v -R bar3
+// (Swift.Optional<Swift.Optional<Swift.Int>>) bar3 = none {
+//   some = some {
+//     some = {
+//       _value = 0
+//     }
+//   }
+// }
 ```
+
+---
 
 ### 较为复杂
 
