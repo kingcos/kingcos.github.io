@@ -142,7 +142,7 @@ import Foundation func foo() -&amp;gt; String { return &amp;#34;kingcos.me&amp;#
       
       
       
-        <span class="post-read-time">— 2 min read</span>
+        <span class="post-read-time">— 3 min read</span>
       
     </div>
 
@@ -275,7 +275,7 @@ withUnsafePointer(to: &amp;intFoo) { print(<span style="color:#e6db74">&#34;</sp
 <span style="color:#75715e">// 打印结构体类型变量的内存地址</span>
 withUnsafeMutablePointer(to: &amp;foo) { print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>$0<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>) } <span style="color:#75715e">// 0x0000000100003098</span>
 
-<span style="color:#75715e">// （小端：高字节放在高位）</span>
+<span style="color:#75715e">// （x86_64 小端：高字节放在高位）</span>
 <span style="color:#75715e">// (lldb) memory read 0x0000000100003088</span>
 <span style="color:#75715e">// 0x100003088: 64 00 00 00 00 00 00 00 12 00 00 00 00 00 00 00  d...............</span>
 <span style="color:#75715e">// 0x100003098: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................</span>
@@ -285,6 +285,22 @@ withUnsafeMutablePointer(to: &amp;foo) { print(<span style="color:#e6db74">&#34;
 </code></pre></div><ul>
 <li><a href="https://developer.apple.com/documentation/swift/memorylayout">MemoryLayout - Apple Inc.</a></li>
 </ul>
+<h3 id="main">main</h3>
+<p>Swift 项目中没有显式的 <code>main</code> 函数作为整个程序的入口，但当我们断点在 <code>main.swift</code> 中时，Debug Navigator 仍将展示 <code>0 main</code>，此时打开汇编也会在第一行展示<code>demo`main</code>。需要注意的是，声明在 <code>main.swift</code> 的变量将类似全局变量，存储在内存的全局区（数据段），可以直接在其它文件中使用。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// main.swift</span>
+
+<span style="color:#66d9ef">var</span> gloA = <span style="color:#ae81ff">100</span>
+
+withUnsafePointer(to: &amp;gloA) { print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>$0<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>) } <span style="color:#75715e">// 0x00000001000031c0</span>
+</code></pre></div><!-- ### API & ABI
+
+- API（Application Programming Interface，应用程序编程接口）：源代码和库之间的接口。
+- ABI（Application Binary Interface，应用程序二进制接口）：
+  - 应用程序与操作系统之间的底层接口
+  - 涉及的内容有：
+    - 目标文件格式（eg. Mach-O）
+    - 数据类型的大小 / 布局 / 对齐（eg. 基本类型占用的内存大小）
+    - 函数调用约定（eg. 函数调用时使用栈空间还是寄存器、函数参数的入栈顺序）等 -->
 
     </div>
     
