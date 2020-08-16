@@ -6,7 +6,8 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes     2020-08-10 首次提交    Info struct &amp;amp; class struct 栈区 // main.swift struct Foo { var a: Int var b: Int } func bar() { var foo1 = Foo(a: 10, b: 11) // BREAKPOINT 🔴 var foo2 = foo1 foo2.a = 20 foo2.b = 22 } bar() 我们定义一个结构体 Foo，并在函数 bar 中声明和构造后赋值于 foo1，之后将 foo1 赋值给新变量 foo2；此时改变 foo2 中的值，由于结构体是值类型，因此对于 foo2 的改变将不会影响 foo1，我们尝试从汇编底层看一下这个过程："/>
+<meta name="description" content="Date Notes     2020-08-10 首次提交    Preface 《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。本文涉及了各个部分关于汇编的内容。
+struct &amp;amp; class struct 栈区 // main.swift struct Foo { var a: Int var b: Int } func bar() { var foo1 = Foo(a: 10, b: 11) // BREAKPOINT 🔴 var foo2 = foo1 foo2.a = 20 foo2.b = 22 } bar() 我们定义一个结构体 Foo，并在函数 bar 中声明和构造后赋值于 foo1，之后将 foo1 赋值给新变量 foo2；此时改变 foo2 中的值，由于结构体是值类型，因此对于 foo2 的改变将不会影响 foo1，我们尝试从汇编底层看一下这个过程："/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2020/swift_with_asm/" />
@@ -27,12 +28,12 @@
 
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Swift 拾遗 - 汇编"/>
-<meta name="twitter:description" content="汇编"/>
+<meta name="twitter:description" content="《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。本文涉及了各个部分关于汇编的内容。"/>
 
 
 
 <meta property="og:title" content="Swift 拾遗 - 汇编" />
-<meta property="og:description" content="汇编" />
+<meta property="og:description" content="《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。本文涉及了各个部分关于汇编的内容。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/posts/2020/swift_with_asm/" />
 <meta property="article:published_time" content="2020-08-10T00:00:00+00:00" />
@@ -138,7 +139,7 @@
       
       
       
-        <span class="post-read-time">— 14 min read</span>
+        <span class="post-read-time">— 15 min read</span>
       
     </div>
 
@@ -169,18 +170,13 @@
 </tr>
 </tbody>
 </table>
-<h2 id="info">Info</h2>
+<h2 id="preface">Preface</h2>
+<p>《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。本文涉及了各个部分关于汇编的内容。</p>
 <!-- - 16 个常用寄存器：
   - `rax`、`rbx`、`rcx`、`rdx`、`rsi`、`rdi`、`rbp`、`rsp`
   - `r8`、`r9`、`r10`、`r11`、`r12`、`r13`、`r14`、`r15`
   - `r` 开头的寄存器均为 64 位(8 字节）寄存器，`e` 开头为 32 位，`ax`、`bx`、`cx` 为 16 位，`ah`、`al` 为 8 位。
-- 用途
-  - `rax`、`rdx` 常作为函数返回值使用
-  - `rdi`、`rsi`、`rdx`、`rcx`、`r8`、`r9` 等寄存器常用于存放函数参数
-  - `rsp`、`rbp` 用于栈操作（存储栈空间的内存地址，又称栈指针，`rsp` 与 `rbp` 之间通常为提供给函数使用的栈空间，之外放寄存器无法容纳的其它参数）
-  - `rip` 作为指令指针
-  - 存储着 CPU 下一条要执行的指令的地址
-  - 一旦 CPU 读取一条指令，`rip` 会自动指向下一条指令(存储下一条指令的地址)
+
   - 结构体和对象等均存储在内存（非寄存器） -->
 <h2 id="struct--class">struct &amp; class</h2>
 <h3 id="struct">struct</h3>
@@ -717,6 +713,109 @@ baz(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, 
   - 用途
     - `rax`、`rdx` 常作为函数返回值使用
   - 结构体和对象等均存储在内存（非寄存器）
+
+
+
+## 汇编语言
+
+- 汇编语言分类：
+  - 8086 汇编（16 位（Bit），即每个寄存器的大小为 16 位，2 字节）
+  - x86 汇编（32 位）
+  - x64 汇编（64 位）
+  - ARM 汇编等
+- AT&T 汇编用于 iOS 模拟器，ARM 汇编用于 iOS 真机
+
+|    项目     |                                AT&T                                 |                           Intel                           |                                                                                                                   说明                                                                                                                   |
+| :---------: | :-----------------------------------------------------------------: | :-------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| 寄存器命名  |                               `%rax`                                |                           `rax`                           |                                                                                                                    -                                                                                                                     |
+| 操作数顺序  |                          `movq %rax, %rdx`                          |                      `mov rdx, rax`                       |                                                                                                        将 `rax` 的值赋值给 `rdx`                                                                                                         |
+| 常数/立即数 |                `movq $3, %rax`<br>`movq $0x10, %rax`                |              `mov rax, 3`<br>`mov rax, 0x10`              |                                                                                                将 `3` 赋值给 `rax` 将 `0x10` 赋值给 `rax`                                                                                                |
+|  内存赋值   |                      `movq $0xa, 0x1ff7(%rip)`                      |             `mov qword ptr [rip+0x1ff7], 0xa`             |                                                                                            将 `0xa` 赋值给地址为 `rip` + `0x1ff7` 的内存空间                                                                                             |
+| 取内存地址  |                      `leaq -0x18(%rbp), %rax`                       |                  `lea rax, [rbp – 0x18]`                  |                                                                                                  将 `rbp – 0x18` 这个地址值赋值给 `rax`                                                                                                  |
+| `jmp` 指令  | `jmp *%rdx`<br>`jmp 0x4001002`<br>`jmp *(%rax)`（`*` 代表间接跳转） |        `jmp rdx`<br>`jmp 0x4001002`<br>`jmp [rax]`        |                                                                                  `call` 和 `jmp` 写法类似（`call` 后通常为函数地址，可配合 `ret` 使用）                                                                                  |
+| 操作数长度  |   `movl %eax, %edx`<br>`movb $0x10, %al`<br>`leaw 0x10(%dx), %ax`   | `mov edx, eax`<br>`mov al, 0x10`<br>`lea ax, [dx + 0x10]` | **b** = byte (8-bit)<br>**s** = short (16-bit integer or 32-bit floating point)<br>**w** = word (16-bit)<br>**l** = long (32-bit integer or 64-bit floating point)<br>**q** = quad (64 bit)<br>**t** = ten bytes (80-bit floating point) |
+
+- `movq -0x18(%rbp), %rax` & `leaq -0x18(%rbp), %rax` 的区别：
+  - 前者为将 `%rbp - 0x18` 得到的地址对应存储空间的数据，存储到 `rax` 寄存器；
+  - 后者为将 `%rbp - 0x18` 得到的地址，存储到 `rax` 寄存器。
+- `call 0x10`：跳转至 `0x10` 函数地址处；
+- `call *%rax`：跳转至 `rax` 寄存器存储的函数地址处。
+
+## LLDB
+
+|            操作            |                                            指令                                             |
+| :------------------------: | :-----------------------------------------------------------------------------------------: |
+|       列出所有寄存器       |                                       `register read`                                       |
+|       读取寄存器的值       |                  `register read/格式 寄存器名称`<br>`register read/x rax`                   |
+|       修改寄存器的值       |                 `register write 寄存器名称 数值`<br>`register write rax 0`                  |
+|       读取内存中的值       |                    `x/数量-格式-字节大小 内存地址`<br>`x/3xw 0x0000010`                     |
+|       修改内存中的值       |                 `memory write 内存地址 数值`<br>`memory write 0x0000010 10`                 |
+|            格式            |                          `x` 是十六进制，`f` 是浮点，`d` 是十进制                           |
+|          字节大小          | `b` – byte 1 字节<br>`h` – half word 2 字节<br>`w` – word 4 字节<br>`g` – giant word 8 字节 |
+|     expression 表达式      |           可以简写为：`expr 表达式`<br>`expression $rax`<br>`expression $rax = 1`           |
+| `po` 表达式 `print` 表达式 |                                `po/x $rax`<br>`po (int)$rax`                                |
+
+```swift
+func foo() {
+    let a = 10
+    let b = a + 1
+
+    print(b) // BREAKPOINT ⚠️
+}
+
+foo()
+
+// LLDB:
+//    (lldb) register read // 读取所有寄存器
+//    General Purpose Registers:
+//           rax = 0x000000010313e1d0
+//           rbx = 0x000000010313e1d0
+//           rcx = 0x0000000000000000
+//           rdx = 0x0000000000000004
+//           rdi = 0x00000000000003e3
+//           rsi = 0x000000010045d080
+//           rbp = 0x00007ffeefbff4c0
+//           rsp = 0x00007ffeefbff4b0
+//            r8 = 0x0000000010313e1e
+//            r9 = 0x0000000010313e21
+//           r10 = 0x00000000fffffffe
+//           r11 = 0x0000000000000000
+//           r12 = 0x0000000000000000
+//           r13 = 0x0000000000000000
+//           r14 = 0x0000000000000000
+//           r15 = 0x0000000000000000
+//           rip = 0x0000000100000a59  demo`main + 41 [inlined] demo.foo() -> () + 37 at main.swift:8
+//      demo`main + 4 at main.swift:8
+//        rflags = 0x0000000000000202
+//            cs = 0x000000000000002b
+//            fs = 0x0000000000000000
+//            gs = 0x0000000000000000
+//
+//    (lldb) register read rax // 读取 rax 寄存器
+//         rax = 0x000000010313e1d0
+//    (lldb) register read/x rax // 以十六进制读取 rax 寄存器
+//         rax = 0x000000010313e1d0
+//    (lldb) register write rax 10 // 写入 rax 寄存器 10
+//    (lldb) register read/d rax // 以十进制读取 rax 寄存器
+//         rax = 10
+//    (lldb) x 0x000000010313e1d0 // 读取内存的值
+//    0x10313e1d0: 60 52 a3 93 ff 7f 00 00 02 00 00 00 00 00 00 00  `R..............
+//    0x10313e1e0: 01 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00  ................
+//    (lldb) x/3xw 0x000000010313e1d0 // 以一个字（4 字节）读取，读取三段，十六进制表示
+//    0x10313e1d0: 0x93a35260 0x00007fff 0x00000002
+//    (lldb) x/4xg 0x000000010313e1d0  // 以 8 字节读取，读取四段，十六进制表示
+//    0x10313e1d0: 0x00007fff93a35260 0x0000000000000002
+//    0x10313e1e0: 0x0000000000000001 0x0000000000000002
+```
+
+|                  指令                  |                               解释                               |
+| :------------------------------------: | :--------------------------------------------------------------: |
+|    `thread step-over`、`next`、`n`     |          单步运⾏，把子函数当做整体⼀步执行（源码级别）          |
+|     `thread step-in`、`step`、`s`      |           单步运行，遇到子函数会进⼊子函数（源码级别）           |
+| `thread step-inst-over`、`nexti`、`ni` |          单步运行，把子函数当做整体⼀步执⾏（汇编级别）          |
+|   `thread step-inst`、`stepi`、`si`    |           单步运行，遇到子函数会进入子函数（汇编级别）           |
+|      `thread step-out`、`finish`       | 直接执行完当前函数的所有代码，返回到上一个函数（遇到断点会卡住） |
+
 
  -->
 <h2 id="enum--switch-case">enum &amp; switch-case</h2>
