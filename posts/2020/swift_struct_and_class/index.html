@@ -7,7 +7,7 @@
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <meta name="description" content="Date Notes     2020-08-06 首次提交    Preface 《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。今天我们将一起简单探究 Swift 中的枚举 struct 和 class。&amp;rdquo;
-结构体 内存布局 Swift 中的结构体被广泛使用，这是因为它和枚举都是值类型，在操作时会更加安全。我们这里定义一个简单的结构体：
+结构体 Swift 中的结构体被广泛使用，这是因为它和枚举都是值类型，在操作时会更加安全。我们这里定义一个简单的结构体：
 struct Foo { var a = 1 var b = 1 } var foo = Foo() // Breakpoint 🔴 withUnsafeMutablePointer(to: &amp;amp;foo) { print(&amp;#34;\($0)&amp;#34;) } // 0x00000001000030d8 print(MemoryLayout&amp;lt;Foo&amp;gt;.size) // 16 print(MemoryLayout&amp;lt;Foo&amp;gt;.stride) // 16 print(MemoryLayout&amp;lt;Foo&amp;gt;.alignment) // 8 // (lldb) memory read 0x00000001000030d8 // 0x1000030d8: 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 ."/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
@@ -174,7 +174,6 @@ struct Foo { var a = 1 var b = 1 } var foo = Foo() // Breakpoint 🔴 withUnsafe
 <h2 id="preface">Preface</h2>
 <p>《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。今天我们将一起简单探究 Swift 中的枚举 <code>struct</code> 和 <code>class</code>。&rdquo;</p>
 <h2 id="结构体">结构体</h2>
-<h3 id="内存布局">内存布局</h3>
 <p>Swift 中的结构体被广泛使用，这是因为它和枚举都是值类型，在操作时会更加安全。我们这里定义一个简单的结构体：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span> {
     <span style="color:#66d9ef">var</span> a = <span style="color:#ae81ff">1</span>
@@ -192,6 +191,36 @@ print(MemoryLayout&lt;Foo&gt;.alignment) <span style="color:#75715e">// 8</span>
 <span style="color:#75715e">// 0x1000030d8: 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00  ................</span>
 <span style="color:#75715e">// 0x1000030e8: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................</span>
 </code></pre></div><p>我们可以从以上的内存地址和对应的值中看出，结构体变量的地址就是结构体中第一个成员的地址，结构体中所有成员的地址是连续的；结构体变量占用内存的大小受其成员的影响。</p>
+<p>再来一个更加复杂的嵌套类型的例子：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// ...</span>
+
+print(MemoryLayout&lt;Int&gt;.stride)     <span style="color:#75715e">// 8</span>
+print(MemoryLayout&lt;Bool&gt;.stride)    <span style="color:#75715e">// 1</span>
+print(MemoryLayout&lt;Double&gt;.stride)  <span style="color:#75715e">// 8</span>
+print(MemoryLayout&lt;Foo&gt;.stride)     <span style="color:#75715e">// 16</span>
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Bar</span> {
+    <span style="color:#66d9ef">var</span> a: Int
+    <span style="color:#66d9ef">var</span> b: Bool
+    <span style="color:#66d9ef">var</span> c: Bool
+    <span style="color:#66d9ef">var</span> d: Int
+    <span style="color:#66d9ef">var</span> e: Foo
+}
+
+<span style="color:#66d9ef">var</span> bar = Bar(a: <span style="color:#ae81ff">10</span>, b: <span style="color:#66d9ef">true</span>, c: <span style="color:#66d9ef">true</span>, d: <span style="color:#ae81ff">11</span>, e: Foo(a: <span style="color:#ae81ff">11</span>, b: <span style="color:#ae81ff">12</span>))
+<span style="color:#66d9ef">var</span> baz = <span style="color:#ae81ff">20</span>
+
+print(MemoryLayout&lt;Bar&gt;.size)      <span style="color:#75715e">// 40</span>
+print(MemoryLayout&lt;Bar&gt;.stride)    <span style="color:#75715e">// 40</span>
+print(MemoryLayout&lt;Bar&gt;.alignment) <span style="color:#75715e">// 8</span>
+
+<span style="color:#75715e">// (lldb) po withUnsafeMutablePointer(to: &amp;bar) { print(&#34;\($0)&#34;) }</span>
+<span style="color:#75715e">// 0x0000000100004290</span>
+<span style="color:#75715e">// (lldb) x/6xg 0x0000000100004290</span>
+<span style="color:#75715e">// 0x100004290: 0x000000000000000a 0x0000000000000101</span>
+<span style="color:#75715e">// 0x1000042a0: 0x000000000000000b 0x000000000000000b</span>
+<span style="color:#75715e">// 0x1000042b0: 0x000000000000000c 0x0000000000000014</span>
+</code></pre></div><p>此时虽然 <code>Bar</code> 结构体中嵌套了 <code>Foo</code> 结构体，但其仍按照 <code>8</code> 个字节进行内存对齐；其中连续的两个 <code>Bool</code> 类型的变量共同占用一份 <code>8</code> 个字节的内存。</p>
 <h2 id="类">类</h2>
 <p>Swift 中的类不同于结构体和枚举，是引用类型，即初始化后会在堆上开辟空间存储类中的变量，并将首地址通过栈上的指针变量引用。</p>
 <p>当函数调用时，将会在栈上开辟一块内存空间供函数使用。为了更加直观，我们在函数中分别创建类和结构体的变量并初始化：</p>
@@ -217,7 +246,6 @@ print(MemoryLayout&lt;Foo&gt;.alignment) <span style="color:#75715e">// 8</span>
 print(MemoryLayout&lt;Foo&gt;.size)      <span style="color:#75715e">// 8</span>
 print(MemoryLayout&lt;Foo&gt;.stride)    <span style="color:#75715e">// 8</span>
 print(MemoryLayout&lt;Foo&gt;.alignment) <span style="color:#75715e">// 8</span>
-
 
 test()
 </code></pre></div><p>在 <code>test</code> 函数的栈空间中，内存地址从高地址开始分配，因此 <code>foo</code> 首地址位于 <code>0x00007ffeefbff4a8</code>，而 <code>bar</code> 位于 <code>0x00007ffeefbff4a0</code>，<code>baz</code> 位于 <code>0x00007ffeefbff498</code>，它们的地址差值均为 <code>8</code>，即占用 8 个字节：</p>
