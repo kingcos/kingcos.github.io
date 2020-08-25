@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    
+      <title>Swift 拾遗 - 闭包 :: iBlog</title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="Date Notes     2020-08-16 首次提交    Preface 《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。今天我们将一起简单探究 Swift 中的闭包（Closure）。
+闭包捕获 局部变量 我们将参数和返回值类型为 Int 的函数（也可称作闭包）(Int) -&amp;gt; Int 易名为 Closure，并定义一个函数返回该闭包类型：
+// main.swift typealias Closure = (Int) -&amp;gt; Int func foo() -&amp;gt; Closure { var bar = 5 func baz(_ val: Int) -&amp;gt; Int { bar &#43;= val // BREAKPOINT 🔴 return bar } bar = 10 return baz // BREAKPOINT 🔴 } var f = foo() f(1) // 11 f(2) // 13 f(3) // 16 通过 f(n) 函数多次执行的结果，我们发现局部变量 bar 似乎在每次调用后并没有被销毁，原因其实是 baz 对 bar 进行了「捕获」，接下来我们将仔细研究这一过程。"/>
+<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="/posts/2020/swift_closure/" />
+
+
+
+
+
+<link rel="stylesheet" href="/assets/style.css">
+
+
+<link rel="stylesheet" href="/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
+<link rel="shortcut icon" href="/img/favicon.png">
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Swift 拾遗 - 闭包"/>
+<meta name="twitter:description" content="《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。今天我们将一起简单探究 Swift 中的闭包。"/>
+
+
+
+<meta property="og:title" content="Swift 拾遗 - 闭包" />
+<meta property="og:description" content="《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。今天我们将一起简单探究 Swift 中的闭包。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/2020/swift_closure/" />
+<meta property="article:published_time" content="2020-08-23T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-08-23T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+
+
+
+
+<script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  </head>
+  <body class="">
+    <div class="container">
+      <header class="header">
+  <span class="header__inner">
+    <a href="/" class="logo" style="text-decoration: none;">
+  
+    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
+  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
+</svg>
+</span>
+    <span class="logo__text">kingcos.me</span>
+    <span class="logo__cursor"></span>
+  
+</a>
+
+    <span class="header__right">
+      
+        <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/links">Links</a></li>
+        
+      
+        
+          <li><a href="/perspective">Perspective</a></li>
+        
+      
+        
+          <li><a href="/words">Words</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/links">Links</a></li>
+      
+    
+      
+        <li><a href="/perspective">Perspective</a></li>
+      
+    
+      
+        <li><a href="/words">Words</a></li>
+      
+    
+  </ul>
+</nav>
+
+        <span class="menu-trigger">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M0 0h24v24H0z" fill="none"/>
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+          </svg>
+        </span>
+      
+      <span class="theme-toggle">
+        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+
+      </span>
+    </span>
+  </span>
+</header>
+
+
+      <div class="content">
+        
+  <div class="post">
+    <h2 class="post-title"><a href="/posts/2020/swift_closure/">Swift 拾遗 - 闭包</a></h2>
+    <div class="post-meta">
+      
+        <span class="post-date">
+            2020-08-23
+        </span>
+      
+      
+      
+        <span class="post-read-time">— 11 min read</span>
+      
+    </div>
+
+    
+      <span class="post-tags">
+        
+          #<a href="/tags/swift/">Swift</a>&nbsp;
+        
+          #<a href="/tags/swift-%E6%8B%BE%E9%81%97/">Swift 拾遗</a>&nbsp;
+        
+      </span>
+    
+
+    
+
+    <div class="post-content">
+      <table>
+<thead>
+<tr>
+<th align="center">Date</th>
+<th align="center">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">2020-08-16</td>
+<td align="center">首次提交</td>
+</tr>
+</tbody>
+</table>
+<h2 id="preface">Preface</h2>
+<p>《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。今天我们将一起简单探究 Swift 中的闭包（Closure）。</p>
+<h3 id="闭包捕获">闭包捕获</h3>
+<h4 id="局部变量">局部变量</h4>
+<p>我们将参数和返回值类型为 <code>Int</code> 的函数（也可称作闭包）<code>(Int) -&gt; Int</code> 易名为 <code>Closure</code>，并定义一个函数返回该闭包类型：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// main.swift</span>
+
+<span style="color:#66d9ef">typealias</span> Closure = (Int) -&gt; Int
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">foo</span>() -&gt; Closure {
+    <span style="color:#66d9ef">var</span> bar = <span style="color:#ae81ff">5</span>
+
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">baz</span>(<span style="color:#66d9ef">_</span> val: Int) -&gt; Int {
+        bar <span style="color:#f92672">+=</span> val <span style="color:#75715e">// BREAKPOINT 🔴</span>
+        <span style="color:#66d9ef">return</span> bar
+    }
+
+    bar = <span style="color:#ae81ff">10</span>
+
+    <span style="color:#66d9ef">return</span> baz <span style="color:#75715e">// BREAKPOINT 🔴</span>
+}
+
+<span style="color:#66d9ef">var</span> f = foo()
+
+f(<span style="color:#ae81ff">1</span>) <span style="color:#75715e">// 11</span>
+f(<span style="color:#ae81ff">2</span>) <span style="color:#75715e">// 13</span>
+f(<span style="color:#ae81ff">3</span>) <span style="color:#75715e">// 16</span>
+</code></pre></div><p>通过 <code>f(n)</code> 函数多次执行的结果，我们发现局部变量 <code>bar</code> 似乎在每次调用后并没有被销毁，原因其实是 <code>baz</code> 对 <code>bar</code> 进行了「捕获」，接下来我们将仔细研究这一过程。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">foo</span>():
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d70</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d71</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d74</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0x20</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d78</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x299</span>(%rip), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d7f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">15</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x18</span>, %esi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d84</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">20</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x7</span>, %edx
+    <span style="color:#75715e">; ⚠️：这里调用了 swift_allocObject，即分配了堆空间
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d89</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">25</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f14</span>               <span style="color:#75715e">; symbol stub for: swift_allocObject
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; alloc 函数调用后将返回堆空间首地址，并存储在 rax 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000d8e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">30</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d91</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">33</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x10</span>, %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d95</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">37</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, %rdx
+    <span style="color:#75715e">; 初始化：将立即数 5 存储到 rax + 0x10 地址，即偏移 16 个字节
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d98</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">40</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x5</span>, <span style="color:#ae81ff">0x10</span>(%rax)
+    <span style="color:#75715e">; 二次赋值：将立即数 10 存储到 rax + 0x10 地址
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000da0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">48</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0xa</span>, <span style="color:#ae81ff">0x10</span>(%rax)
+<span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000da8</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">56</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, %rdi
+    <span style="color:#75715e">; 将 rax 寄存器内容（即封装了 bar 的堆空间地址）移动到 rbp - 0x8
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000dab</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">59</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x8</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000daf</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">63</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, -<span style="color:#ae81ff">0x10</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000db3</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">67</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f32</span>               <span style="color:#75715e">; symbol stub for: swift_retain
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000db8</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">72</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x8</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000dbc</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">76</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x18</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000dc0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">80</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f2c</span>               <span style="color:#75715e">; symbol stub for: swift_release
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000dc5</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">85</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x10</span>(%rbp), %rax
+    <span style="color:#75715e">; 将 rip + 0x130（0x0000000100000f00）地址内容（即包装 baz 的函数的地址）移动到 rax 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000dc9</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">89</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x130</span>(%rip), %rax         <span style="color:#75715e">; partial apply forwarder for baz #1 (Swift.Int) -&gt; Swift.Int in demo.foo() -&gt; (Swift.Int) -&gt; Swift.Int at &lt;compiler-generated&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 将 rbp - 0x8 地址内容（即包装 baz 的函数的地址）移动到 rdx 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000dd0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">96</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x8</span>(%rbp), %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000dd4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">100</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x20</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000dd8</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">104</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000dd9</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">105</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+
+<span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">main</span>:
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bd0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bd1</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bd4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">pushq</span>  %r13
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bd6</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">6</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0xc8</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bdd</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">13</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   %edi, -<span style="color:#ae81ff">0x54</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000be0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">16</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsi, -<span style="color:#ae81ff">0x60</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000be4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">20</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000d70</span>               <span style="color:#75715e">; demo.foo() -&gt; (Swift.Int) -&gt; Swift.Int at main.swift:5
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 函数调用后将把返回值（即 0x0000000100000f00，包装 baz 的函数的地址）存储到 rax 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000be9</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">25</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x1450</span>(%rip), %rcx        <span style="color:#75715e">; demo.f : (Swift.Int) -&gt; Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000bf0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">32</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">xorl</span>   %edi, %edi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bf2</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">34</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   %edi, %esi
+    <span style="color:#75715e">; 将 rax 寄存器内容（即包装 baz 的函数的地址）移动到 rip + 0x1445（0x100002040）
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bf4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">36</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, <span style="color:#ae81ff">0x1445</span>(%rip)        <span style="color:#75715e">; demo.f : (Swift.Int) -&gt; Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 将 rdx 寄存器内容（即封装了 bar 的堆空间地址）移动到 rip + 0x1446（0x100002048）
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000bfb</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">43</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rdx, <span style="color:#ae81ff">0x1446</span>(%rip)        <span style="color:#75715e">; demo.f : (Swift.Int) -&gt; Swift.Int + 8
+</span><span style="color:#75715e"></span>-<span style="color:#960050;background-color:#1e0010">&gt;</span>  <span style="color:#ae81ff">0x100000c02</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">50</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c05</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">53</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x20</span>(%rbp), %rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c09</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">57</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsi, -<span style="color:#ae81ff">0x68</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c0d</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">61</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c10</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">64</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x20</span>, %edx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c15</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">69</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x68</span>(%rbp), %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c19</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">73</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f1a</span>               <span style="color:#75715e">; symbol stub for: swift_beginAccess
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 将 rip + 0x141b（0x100002040）地址内容（即包装 baz 的函数的地址）移动到 rax 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000c1e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">78</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#ae81ff">0x141b</span>(%rip), %rax        <span style="color:#75715e">; demo.f : (Swift.Int) -&gt; Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 将 rip + 0x141c（0x100002048）地址内容（即封装了 bar 的堆空间地址）移动到 rcx 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000c25</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">85</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#ae81ff">0x141c</span>(%rip), %rcx        <span style="color:#75715e">; demo.f : (Swift.Int) -&gt; Swift.Int + 8
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000c2c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">92</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, %rdi
+    <span style="color:#75715e">; 将 rax 寄存器内容（即包装 baz 的函数的地址）移动到 rbp - 0x70
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c2f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">95</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x70</span>(%rbp)
+    <span style="color:#75715e">; 将 rcx 寄存器内容（即封装了 bar 的堆空间地址）移动到 rbp - 0x78
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c33</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">99</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, -<span style="color:#ae81ff">0x78</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c37</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">103</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f32</span>               <span style="color:#75715e">; symbol stub for: swift_retain
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000c3c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">108</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x20</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c40</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">112</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x80</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c44</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">116</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f26</span>               <span style="color:#75715e">; symbol stub for: swift_endAccess
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 将立即数 1（f(1) 中的参数）移动到 edi 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000c49</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">121</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x1</span>, %edi
+    <span style="color:#75715e">; 将 rbp - 0x78 地址内容（即封装了 bar 的堆空间地址）移动到 r13 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c4e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">126</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x78</span>(%rbp), %r13
+    <span style="color:#75715e">; 将 rbp - 0x70 地址内容（即包装 baz 的函数的地址）移动到 rax 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c52</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">130</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x70</span>(%rbp), %rax
+    <span style="color:#75715e">; 函数调用，使用 si 进入
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c56</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">134</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  *%rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c58</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">136</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x78</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c5c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">140</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x88</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c63</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">147</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f2c</span>               <span style="color:#75715e">; symbol stub for: swift_release
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000c68</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">152</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x13d1</span>(%rip), %rax        <span style="color:#75715e">; demo.f : (Swift.Int) -&gt; Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000c6f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">159</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %r8d, %r8d
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c72</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">162</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   %r8d, %ecx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c75</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">165</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c78</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">168</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x38</span>(%rbp), %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c7c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">172</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x20</span>, %edx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c81</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">177</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f1a</span>               <span style="color:#75715e">; symbol stub for: swift_beginAccess
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000c86</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">182</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#ae81ff">0x13b3</span>(%rip), %rax        <span style="color:#75715e">; demo.f : (Swift.Int) -&gt; Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000c8d</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">189</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#ae81ff">0x13b4</span>(%rip), %rcx        <span style="color:#75715e">; demo.f : (Swift.Int) -&gt; Swift.Int + 8
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000c94</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">196</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rcx, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c97</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">199</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x90</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c9e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">206</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rcx, -<span style="color:#ae81ff">0x98</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ca5</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">213</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f32</span>               <span style="color:#75715e">; symbol stub for: swift_retain
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000caa</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">218</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x38</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000cae</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">222</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0xa0</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000cb5</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">229</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f26</span>               <span style="color:#75715e">; symbol stub for: swift_endAccess
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000cba</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">234</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x2</span>, %edi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000cbf</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">239</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x98</span>(%rbp), %r13
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000cc6</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">246</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x90</span>(%rbp), %rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ccd</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">253</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  *%rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ccf</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">255</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x98</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000cd6</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">262</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0xa8</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000cdd</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">269</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f2c</span>               <span style="color:#75715e">; symbol stub for: swift_release
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000ce2</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">274</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x1357</span>(%rip), %rax        <span style="color:#75715e">; demo.f : (Swift.Int) -&gt; Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000ce9</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">281</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %r8d, %r8d
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000cec</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">284</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   %r8d, %ecx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000cef</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">287</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000cf2</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">290</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x50</span>(%rbp), %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000cf6</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">294</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x20</span>, %edx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000cfb</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">299</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f1a</span>               <span style="color:#75715e">; symbol stub for: swift_beginAccess
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000d00</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">304</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#ae81ff">0x1339</span>(%rip), %rax        <span style="color:#75715e">; demo.f : (Swift.Int) -&gt; Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000d07</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">311</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#ae81ff">0x133a</span>(%rip), %rcx        <span style="color:#75715e">; demo.f : (Swift.Int) -&gt; Swift.Int + 8
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000d0e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">318</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rcx, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d11</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">321</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0xb0</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d18</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">328</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rcx, -<span style="color:#ae81ff">0xb8</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d1f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">335</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f32</span>               <span style="color:#75715e">; symbol stub for: swift_retain
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000d24</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">340</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x50</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d28</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">344</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0xc0</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d2f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">351</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f26</span>               <span style="color:#75715e">; symbol stub for: swift_endAccess
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000d34</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">356</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x3</span>, %edi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d39</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">361</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0xb8</span>(%rbp), %r13
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d40</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">368</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0xb0</span>(%rbp), %rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d47</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">375</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  *%rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d49</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">377</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0xb8</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d50</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">384</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0xc8</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d57</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">391</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f2c</span>               <span style="color:#75715e">; symbol stub for: swift_release
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000d5c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">396</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %eax, %eax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d5e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">398</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0xc8</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d65</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">405</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %r13
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d67</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">407</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d68</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">408</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+
+
+<span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">partial</span> <span style="color:#66d9ef">apply</span> <span style="color:#66d9ef">for</span> <span style="color:#66d9ef">baz</span> <span style="color:#75715e">#1 (_:) in foo():
+</span><span style="color:#75715e"></span>-<span style="color:#960050;background-color:#1e0010">&gt;</span>  <span style="color:#ae81ff">0x100000f00</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000f01</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#75715e">; rdi 未改变，即第一个参数（1）
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 将 r13 寄存器内容（即封装了 bar 的堆空间地址）移动到 rsi 寄存器（即第二个参数）
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000f04</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %r13, %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000f07</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">7</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#75715e">; 继续 si
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000f08</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">jmp</span>    <span style="color:#ae81ff">0x100000e00</span>               <span style="color:#75715e">; baz #1 (Swift.Int) -&gt; Swift.Int in demo.foo() -&gt; (Swift.Int) -&gt; Swift.Int at main.swift:8
+</span><span style="color:#75715e"></span>
+<span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">baz</span> <span style="color:#75715e">#1 (_:) in foo():
+</span><span style="color:#75715e"></span>-<span style="color:#960050;background-color:#1e0010">&gt;</span>  <span style="color:#ae81ff">0x100000e00</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e01</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e04</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0x90</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e0b</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">11</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">xorl</span>   %eax, %eax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e0d</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">13</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   %eax, %ecx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e0f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">15</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">xorl</span>   %eax, %eax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e11</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">17</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x8</span>(%rbp), %rdx
+    <span style="color:#75715e">; 将 rdi 寄存器内容（即 1）移动到 rbp - 0x48 地址
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e15</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">21</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rdi, -<span style="color:#ae81ff">0x48</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e19</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">25</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rdx, %rdi
+    <span style="color:#75715e">; 将 rsi 寄存器内容（即封装了 bar 的堆空间地址）移动到 rbp - 0x50 地址
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e1c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">28</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsi, -<span style="color:#ae81ff">0x50</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e20</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">32</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   %eax, %esi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e22</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">34</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x8</span>, %edx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e27</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">39</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rdx, -<span style="color:#ae81ff">0x58</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e2b</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">43</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, -<span style="color:#ae81ff">0x60</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e2f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">47</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   %eax, -<span style="color:#ae81ff">0x64</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e32</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">50</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f0e</span>               <span style="color:#75715e">; symbol stub for: memset
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000e37</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">55</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x10</span>(%rbp), %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e3b</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">59</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e3e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">62</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   -<span style="color:#ae81ff">0x64</span>(%rbp), %esi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e41</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">65</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x58</span>(%rbp), %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e45</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">69</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f0e</span>               <span style="color:#75715e">; symbol stub for: memset
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 将 rbp - 0x48 地址内容（即 1）移动到 rcx 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000e4a</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">74</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x48</span>(%rbp), %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e4e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">78</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, -<span style="color:#ae81ff">0x8</span>(%rbp)
+    <span style="color:#75715e">; 将 rbp - 0x50 地址内容（即封装了 bar 的堆空间地址）移动到 rdx 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e52</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">82</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x50</span>(%rbp), %rdx
+    <span style="color:#75715e">; 将 rdx 寄存器内容（即封装了 bar 的堆空间地址）偏移 0x10（即 bar 的堆空间地址），结果存储在 rdx 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e56</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">86</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x10</span>, %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e5d</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">93</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rdx, -<span style="color:#ae81ff">0x10</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e61</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">97</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rdx, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e64</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">100</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x28</span>(%rbp), %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e68</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">104</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x21</span>, %r8d
+    <span style="color:#75715e">; 将 rdx 寄存器内容（即 bar 的堆空间地址）移动到 rbp - 0x70 地址
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e6e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">110</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rdx, -<span style="color:#ae81ff">0x70</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e72</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">114</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %r8, %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e75</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">117</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x60</span>(%rbp), %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e79</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">121</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f1a</span>               <span style="color:#75715e">; symbol stub for: swift_beginAccess
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000e7e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">126</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x48</span>(%rbp), %rcx
+    <span style="color:#75715e">; 再次将 rbp - 0x50 地址内容（即封装了 bar 的堆空间地址）移动到 rdx 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e82</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">130</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x50</span>(%rbp), %rdx
+    <span style="color:#75715e">; 将 rdx 寄存器内容（即封装了 bar 的堆空间地址）偏移 0x10（即 bar 的堆空间地址）与 rcx 寄存器内容（即 1）相加，结果存储在 rcx 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e86</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">134</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">addq</span>   <span style="color:#ae81ff">0x10</span>(%rdx), %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e8a</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">138</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">seto</span>   %r9b
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e8e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">142</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">testb</span>  <span style="color:#66d9ef">$0x1</span>, %r9b
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e92</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">146</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rcx, -<span style="color:#ae81ff">0x78</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e96</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">150</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">jne</span>    <span style="color:#ae81ff">0x100000ef0</span>               <span style="color:#75715e">; &lt;+240&gt; at main.swift:9:13
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000e98</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">152</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x70</span>(%rbp), %rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e9c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">156</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x78</span>(%rbp), %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ea0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">160</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rcx, (%rax)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ea3</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">163</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x28</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ea7</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">167</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f26</span>               <span style="color:#75715e">; symbol stub for: swift_endAccess
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000eac</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">172</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %edx, %edx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000eae</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">174</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   %edx, %ecx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000eb0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">176</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x40</span>(%rbp), %rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000eb4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">180</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x20</span>, %edx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000eb9</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">185</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x70</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ebd</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">189</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ec0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">192</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x80</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ec4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">196</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f1a</span>               <span style="color:#75715e">; symbol stub for: swift_beginAccess
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 将 rbp - 0x70 地址内容（即 bar 的堆空间地址）移动到 rax 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000ec9</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">201</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x70</span>(%rbp), %rax
+    <span style="color:#75715e">; 将 rax 寄存器的值（即 0x000000000000000b）移动到 rax 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ecd</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">205</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   (%rax), %rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ed0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">208</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x80</span>(%rbp), %rdi
+    <span style="color:#75715e">; 将 rax 寄存器内容（0x000000000000000b）移动到 rbp - 0x88 地址
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ed4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">212</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x88</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000edb</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">219</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f26</span>               <span style="color:#75715e">; symbol stub for: swift_endAccess
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 将 rbp - 0x88 地址内容（0x000000000000000b）移动到 rax 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000ee0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">224</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x88</span>(%rbp), %rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ee7</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">231</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x90</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000eee</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">238</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000eef</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">239</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ef0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">240</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">ud2</span>
+</code></pre></div><p>由以上汇编代码我们可以得出，当闭包内部使用了外部局部变量时，将自动分配堆空间进行捕获；在后续调用闭包时，将自动将创建堆空间地址作为第二个参数传递到闭包中并使用；因此即使局部变量所在的栈空间被回收，堆空间仍将保留一份。这里的堆空间布局类似于 <code>class</code> 类型实例变量的内存布局。</p>
+<p>另外需要注意的是，<code>swift_allocObject</code> 在 <code>foo</code> 中被调用，因此如果我们声明一个新变量例如 <code>var f2 = foo()</code>，将会创建另外一份新的堆空间，<code>f(1)</code> 与 <code>f2(1)</code> 的调用将产生隔离。</p>
+<p>那么两个或多个局部变量又是如何呢？</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// main.swift</span>
+
+<span style="color:#66d9ef">typealias</span> Closure = (Int) -&gt; Int
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">foo</span>() -&gt; Closure {
+    <span style="color:#66d9ef">var</span> bar = <span style="color:#ae81ff">5</span>
+    <span style="color:#66d9ef">var</span> bar2 = <span style="color:#ae81ff">10</span>
+
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">baz</span>(<span style="color:#66d9ef">_</span> val: Int) -&gt; Int {
+        bar <span style="color:#f92672">+=</span> val
+        bar2 <span style="color:#f92672">+=</span> val
+        <span style="color:#66d9ef">return</span> bar <span style="color:#f92672">+</span> bar2
+    }
+
+    bar = <span style="color:#ae81ff">10</span>
+
+    <span style="color:#66d9ef">return</span> baz <span style="color:#75715e">// BREAKPOINT 🔴</span>
+}
+
+<span style="color:#66d9ef">var</span> f = foo()
+
+f(<span style="color:#ae81ff">1</span>) <span style="color:#75715e">// 22</span>
+f(<span style="color:#ae81ff">2</span>) <span style="color:#75715e">// 26</span>
+f(<span style="color:#ae81ff">3</span>) <span style="color:#75715e">// 32</span>
+</code></pre></div><p>转换为汇编如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">foo</span>():
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b60</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b61</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b64</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0x50</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b68</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x4a9</span>(%rip), %rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b6f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">15</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x18</span>, %ecx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b74</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">20</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x7</span>, %edx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b79</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">25</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b7c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">28</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b7f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">31</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rdx, -<span style="color:#ae81ff">0x8</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b83</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">35</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x10</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b87</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">39</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, -<span style="color:#ae81ff">0x18</span>(%rbp)
+    <span style="color:#75715e">; ⚠️：这里调用了 swift_allocObject，即分配了堆空间
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b8b</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">43</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000ee8</span>               <span style="color:#75715e">; symbol stub for: swift_allocObject
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000b90</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">48</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b93</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">51</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x10</span>, %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b97</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">55</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b9a</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">58</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x5</span>, <span style="color:#ae81ff">0x10</span>(%rax)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ba2</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">66</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x10</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ba6</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">70</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x18</span>(%rbp), %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000baa</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">74</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x8</span>(%rbp), %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bae</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">78</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x20</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bb2</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">82</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, -<span style="color:#ae81ff">0x28</span>(%rbp)
+    <span style="color:#75715e">; ⚠️：这里又一次调用了 swift_allocObject，即再次分配了堆空间
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bb6</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">86</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000ee8</span>               <span style="color:#75715e">; symbol stub for: swift_allocObject
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000bbb</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">91</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bbe</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">94</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x10</span>, %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bc2</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">98</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bc5</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">101</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0xa</span>, <span style="color:#ae81ff">0x10</span>(%rax)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bcd</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">109</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x20</span>(%rbp), %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bd1</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">113</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0xa</span>, <span style="color:#ae81ff">0x10</span>(%rdx)
+<span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bd9</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">121</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rdx, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bdc</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">124</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x30</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000be0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">128</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rcx, -<span style="color:#ae81ff">0x38</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000be4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">132</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f06</span>               <span style="color:#75715e">; symbol stub for: swift_retain
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000be9</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">137</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x30</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bed</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">141</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x40</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bf1</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">145</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f06</span>               <span style="color:#75715e">; symbol stub for: swift_retain
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000bf6</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">150</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x443</span>(%rip), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000bfd</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">157</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x20</span>, %esi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c02</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">162</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x8</span>(%rbp), %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c06</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">166</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x48</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c0a</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">170</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000ee8</span>               <span style="color:#75715e">; symbol stub for: swift_allocObject
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000c0f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">175</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x20</span>(%rbp), %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c13</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">179</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rcx, <span style="color:#ae81ff">0x10</span>(%rax)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c17</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">183</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x30</span>(%rbp), %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c1b</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">187</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rdx, <span style="color:#ae81ff">0x18</span>(%rax)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c1f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">191</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rdx, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c22</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">194</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x50</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c26</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">198</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f00</span>               <span style="color:#75715e">; symbol stub for: swift_release
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000c2b</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">203</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x20</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c2f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">207</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f00</span>               <span style="color:#75715e">; symbol stub for: swift_release
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000c34</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">212</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x28</span>(%rbp), %rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c38</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">216</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x38</span>(%rbp), %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c3c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">220</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x28d</span>(%rip), %rax         <span style="color:#75715e">; partial apply forwarder for baz #1 (Swift.Int) -&gt; Swift.Int in demo.foo() -&gt; (Swift.Int) -&gt; Swift.Int at &lt;compiler-generated&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000c43</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">227</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x50</span>(%rbp), %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c47</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">231</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x50</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c4b</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">235</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c4c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">236</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+</code></pre></div><h4 id="全局变量">全局变量</h4>
+<p>这次我们将 <code>bar</code> 声明为全局变量：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// main.swift</span>
+
+<span style="color:#66d9ef">typealias</span> Closure = (Int) -&gt; Int
+
+<span style="color:#66d9ef">var</span> bar = <span style="color:#ae81ff">5</span> <span style="color:#75715e">// BREAKPOINT 🔴</span>
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">foo</span>() -&gt; Closure {
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">baz</span>(<span style="color:#66d9ef">_</span> val: Int) -&gt; Int {
+        bar <span style="color:#f92672">+=</span> val <span style="color:#75715e">// BREAKPOINT 🔴</span>
+        <span style="color:#66d9ef">return</span> bar
+    }
+
+    bar = <span style="color:#ae81ff">10</span>
+
+    <span style="color:#66d9ef">return</span> baz <span style="color:#75715e">// BREAKPOINT 🔴</span>
+}
+
+<span style="color:#66d9ef">var</span> f = foo()
+
+f(<span style="color:#ae81ff">1</span>) <span style="color:#75715e">// 11</span>
+f(<span style="color:#ae81ff">2</span>) <span style="color:#75715e">// 13</span>
+f(<span style="color:#ae81ff">3</span>) <span style="color:#75715e">// 16</span>
+</code></pre></div><p>此时我们可以从主函数的汇编中看出，<code>bar</code> 被移动到了通过 <code>%rip</code> 寄存器偏移的地址，而 <code>%rip</code> 寄存器固定存储下一条指令的位置，因此 <code>bar</code> 确实属于全局变量。我们也可以通过 <code>(lldb) po withUnsafePointer(to: &amp;bar) { print(&quot;\($0)&quot;) }</code> 验证其内存地址位于 <code>0x0000000100002050</code>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">main</span>:
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ae0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ae1</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ae4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">pushq</span>  %r13
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000ae6</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">6</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0x118</span>, %rsp              <span style="color:#75715e">; imm = 0x118
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 移动立即数 5 到 rip + 0x1558 地址（0x100002050）
+</span><span style="color:#75715e"></span>-<span style="color:#960050;background-color:#1e0010">&gt;</span>  <span style="color:#ae81ff">0x100000aed</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">13</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x5</span>, <span style="color:#ae81ff">0x1558</span>(%rip)        <span style="color:#75715e">; _dyld_private + 4
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000af8</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">24</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   %edi, -<span style="color:#ae81ff">0x6c</span>(%rbp)
+    <span style="color:#75715e">; ...
+</span></code></pre></div><p>而当断点执行到 <code>foo</code> 函数内部时，此时与局部变量不同的是，并没有存在 <code>swift_allocObject</code> 的符号桩：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">foo</span>():
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d90</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d91</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d94</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0x30</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000d98</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x12b1</span>(%rip), %rdi        <span style="color:#75715e">; demo.bar : Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000d9f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">15</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %eax, %eax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000da1</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">17</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   %eax, %ecx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000da3</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">19</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x18</span>(%rbp), %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000da7</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">23</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x21</span>, %esi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000dac</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">28</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rsi, -<span style="color:#ae81ff">0x20</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000db0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">32</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rdx, %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000db3</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">35</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x20</span>(%rbp), %r8
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000db7</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">39</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rdx, -<span style="color:#ae81ff">0x28</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000dbb</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">43</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %r8, %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000dbe</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">46</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rcx, -<span style="color:#ae81ff">0x30</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000dc2</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">50</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f14</span>               <span style="color:#75715e">; symbol stub for: swift_beginAccess
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000dc7</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">55</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0xa</span>, <span style="color:#ae81ff">0x127e</span>(%rip)        <span style="color:#75715e">; _dyld_private + 4
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000dd2</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">66</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x28</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000dd6</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">70</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f20</span>               <span style="color:#75715e">; symbol stub for: swift_endAccess
+</span><span style="color:#75715e"></span>-<span style="color:#960050;background-color:#1e0010">&gt;</span>  <span style="color:#ae81ff">0x100000ddb</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">75</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0xe</span>(%rip), %rax           <span style="color:#75715e">; baz #1 (Swift.Int) -&gt; Swift.Int in demo.foo() -&gt; (Swift.Int) -&gt; Swift.Int at main.swift:9
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000de2</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">82</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x30</span>(%rbp), %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000de6</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">86</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x30</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000dea</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">90</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000deb</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">91</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+</code></pre></div><p>而最终在 <code>baz</code> 函数内部：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">baz</span> <span style="color:#75715e">#1 (_:) in foo():
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000df0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000df1</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000df4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0x70</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000df8</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x1251</span>(%rip), %rax        <span style="color:#75715e">; demo.bar : Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000dff</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">15</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">xorl</span>   %ecx, %ecx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e01</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">17</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">xorl</span>   %esi, %esi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e03</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">19</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x8</span>(%rbp), %rdx
+    <span style="color:#75715e">; 将 rdi 寄存器内容（1）移动到 rbp - 0x40 地址
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e07</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">23</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rdi, -<span style="color:#ae81ff">0x40</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e0b</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">27</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rdx, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e0e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">30</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x8</span>, %edx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e13</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">35</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x48</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e17</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">39</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, -<span style="color:#ae81ff">0x50</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e1b</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">43</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f0e</span>               <span style="color:#75715e">; symbol stub for: memset
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 将 rbp - 0x40 地址内容（1）移动到 rax 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000e20</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">48</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x40</span>(%rbp), %rax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e24</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">52</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x8</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e28</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">56</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x48</span>(%rbp), %rdi
+<span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e2c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">60</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x20</span>(%rbp), %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e30</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">64</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x21</span>, %edx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e35</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">69</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x50</span>(%rbp), %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e39</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">73</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100000f14</span>               <span style="color:#75715e">; symbol stub for: swift_beginAccess
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 将 rbp - 0x40 地址内容（1）移动到 rax 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000e3e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">78</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x40</span>(%rbp), %rax
+    <span style="color:#75715e">; 将 rip + 0x1207 地址（0x100002050）内容（bar）与 rax 寄存器内容（即 1）相加，结果存储在 rip + 0x1207 地址
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000e42</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">82</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">addq</span>   <span style="color:#ae81ff">0x1207</span>(%rip), %rax        <span style="color:#75715e">; demo.bar : Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100000e49</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">89</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">seto</span>   %r8b
+</code></pre></div><p>如上，全局变量并不会被闭包「捕获」，这是因为全局变量的作用域使得其无需捕获也可访问。</p>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="../../2018/swift_autoclosure/">Swift 中的 @autoclosure - kingcos</a></li>
+</ul>
+
+    </div>
+    
+      <div class="pagination">
+        <div class="pagination__title">
+          <span class="pagination__title-h">Read other posts</span>
+          <hr />
+        </div>
+        <div class="pagination__buttons">
+          
+            <span class="button previous">
+              <a href="/posts/2018/swift_autoclosure/">
+                <span class="button__icon">←</span>
+                <span class="button__text">Swift 中的 @autoclosure</span>
+              </a>
+            </span>
+          
+          
+            <span class="button next">
+              <a href="/posts/2020/swift_with_asm/">
+                <span class="button__text">Swift 拾遗 - 汇编</span>
+                <span class="button__icon">→</span>
+              </a>
+            </span>
+          
+        </div>
+      </div>
+    
+
+    
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<table style="border: 0;">
+  <tr>
+  <td style="border: 0; width: 30%;">
+    <img src='/img/about/1.jpg'>
+  </td>
+  <td style="border: 0;">
+    <ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-9925978992661955"
+     data-ad-slot="3213735320"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+  </td>
+  </tr>
+</table>
+
+
+
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+
+    
+    
+    <div>
+      <div id="github-comment">
+      </div>
+
+      <script type="text/javascript">
+        function getUtterances(isDark) {
+          var utterances = document.createElement('script');
+          utterances.type = 'text/javascript';
+          utterances.async = true;
+          utterances.setAttribute('issue-term', "pathname")
+          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
+          utterances.setAttribute('label', "comments")
+          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
+          utterances.crossorigin = 'anonymous';
+          utterances.src = 'https://utteranc.es/client.js';
+
+          return utterances
+        }
+
+        var themeToggle = document.querySelector(".theme-toggle")
+        themeToggle.addEventListener("click", function () {
+          var getTheme = window.localStorage && window.localStorage.getItem("theme")
+          var divNode = document.getElementById('github-comment')
+          while(divNode.hasChildNodes()) {
+            divNode.removeChild(divNode.firstChild);
+          }
+          
+          
+          
+
+          
+          
+          
+          
+          
+          
+          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
+        })
+
+        var getTheme = window.localStorage && window.localStorage.getItem("theme")
+        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
+      </script>
+    </div>
+    
+
+    </div>
+
+      </div>
+
+      
+        <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
+    
+  </div>
+</footer>
+
+<script src="/assets/main.js"></script>
+<script src="/assets/prism.js"></script>
+
+
+
+      
+    </div>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+
+    
+  </body>
+</html>
