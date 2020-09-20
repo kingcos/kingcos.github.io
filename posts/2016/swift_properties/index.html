@@ -6,7 +6,7 @@
     
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Info     2020-08-01 纳入 Swift 拾遗系列，并重新整理完善 Swift 5.3, Xcode 12.0   2017-04-27 扩充「延迟存储属性」部分并新增「devxoul/Then」一节 Swift 3.1, Xcode 8.3.2   2016-10-26 首次提交 Swift 3.0, Xcode 8.1 Beta 3    Preface 《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。今天我们将一起简单探究 Swift 中的属性。
+<meta name="description" content="Date Notes Info     2020-09-18 纳入 Swift 拾遗系列，并重新整理完善 Swift 5.3, Xcode 12.0   2017-04-27 扩充「延迟存储属性」部分并新增「devxoul/Then」一节 Swift 3.1, Xcode 8.3.2   2016-10-26 首次提交 Swift 3.0, Xcode 8.1 Beta 3    Preface 《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。今天我们将一起简单探究 Swift 中的属性。
 存储属性与计算属性 struct Foo { var bar: Int var baz: Int { get { bar * 2 } set { bar = newValue / 2 } } var customSetParamBaz: Int { get { bar * 2 } set(customNewValue) { bar = customNewValue / 2 } } } var foo = Foo(bar: 10) _ = foo."/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
@@ -166,7 +166,7 @@
 </thead>
 <tbody>
 <tr>
-<td style="text-align:center">2020-08-01</td>
+<td style="text-align:center">2020-09-18</td>
 <td style="text-align:center">纳入 Swift 拾遗系列，并重新整理完善</td>
 <td style="text-align:center">Swift 5.3, Xcode 12.0</td>
 </tr>
@@ -220,7 +220,7 @@ foo.baz = <span style="color:#ae81ff">100</span>
 </code></pre></div><p>如上，<code>bar</code> 为存储属性，即将占用实例对象的内存空间；而 <code>baz</code> 为计算属性，将通过其它变量得出，当外界取值时将得到调用 <code>get</code> 中的返回，设置时将通过 <code>set</code> 中 <code>newValue</code> 将外界的值传递进入并进行一定的计算。那么计算属性是否会占用实例对象的内存空间呢？</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift">print(MemoryLayout&lt;Foo&gt;.size)   <span style="color:#75715e">// 8</span>
 print(MemoryLayout&lt;Foo&gt;.stride) <span style="color:#75715e">// 8</span>
-</code></pre></div><p>我们也可以代码运行，并在断点处以汇编代码分析：</p>
+</code></pre></div><p>我们也可以运行代码，并在断点处以汇编代码分析：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x1000027a1</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">113</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rdi
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x1000027a4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">116</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x38</span>(%rbp), %rsi
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x1000027a8</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">120</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x20</span>, %edx
@@ -328,7 +328,7 @@ foo.privateSetBaz4 = <span style="color:#ae81ff">10</span>
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002524</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">36</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002525</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">37</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
 </code></pre></div><h2 id="延迟存储属性">延迟存储属性</h2>
-<p>延迟存储属性是指该属性的初始化过程将延迟到首次使用时，而非跟随实例的创建而创建。当该类属性未被使用时，将避免消耗不必要的性能。延迟存储属性使用 <code>lazy</code> 关键字修饰：</p>
+<p>延迟存储属性是指该属性的初始化过程将延迟到首次使用时，而非跟随实例的创建而创建。当属性未被使用时，将避免消耗不必要的性能。延迟存储属性使用 <code>lazy</code> 关键字修饰：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span> {
     <span style="color:#66d9ef">lazy</span> <span style="color:#66d9ef">var</span> bar: Int = {
         print(<span style="color:#e6db74">&#34;bar will init&#34;</span>)
@@ -346,7 +346,7 @@ foo.privateSetBaz4 = <span style="color:#ae81ff">10</span>
 <span style="color:#66d9ef">_</span> = Foo()
 
 <span style="color:#75715e">// baz will init</span>
-</code></pre></div><p>如上，当构造 <code>Foo</code> 实例对象时，延迟存储属性将暂时不初始化。另外，延迟存储属性需要有几个注意点：首先，延迟存储属性必须使用 <code>var</code> 修饰，而不可使用 <code>let</code> 修饰。这是因为 <code>let</code> 常量一旦创建后就不再改变，而延迟存储属性会在使用时再初始化将与此相悖；其次，结构体类型中若存在延迟存储属性，那么使用 <code>let</code> 声明的结构体常量将无法访问延迟存储属性，原因其实同理，在首次访问时将执行延迟存储属性的初始化，将会导致常量内存空间改变，也与常量本身相悖；但 <code>class</code> 类型的变量由于本质是引用类型，即使堆空间的内存空间改变，也不会导致指针指向的内存空间地址改变，因此 <code>class</code> 类型的常量仍可以访问延迟存储属性：</p>
+</code></pre></div><p>如上，当构造 <code>Foo</code> 实例对象时，延迟存储属性将暂时不初始化。另外，延迟存储属性需要有几个注意点：首先，延迟存储属性必须使用 <code>var</code> 修饰，而不可使用 <code>let</code> 修饰。这是因为 <code>let</code> 常量一旦创建后就不能再改变，而延迟存储属性会在使用时再初始化将与此相悖；其次，结构体类型中若存在延迟存储属性，那么使用 <code>let</code> 声明的结构体常量将无法访问延迟存储属性，原因其实同理，在首次访问时将执行延迟存储属性的初始化，将会导致常量内存空间改变，也与常量本身的概念相悖；但 <code>class</code> 类型的变量由于本质是引用类型，即使堆空间的内存空间改变，也不会导致指针指向的内存空间地址改变，因此 <code>class</code> 类型的常量仍可以访问延迟存储属性：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">FooClass</span> {
     <span style="color:#66d9ef">lazy</span> <span style="color:#66d9ef">var</span> a = <span style="color:#ae81ff">1</span>
 }
@@ -424,7 +424,7 @@ lazyDoubled.forEach {
 <span style="color:#75715e">// 2</span>
 <span style="color:#75715e">// lazy mapping</span>
 <span style="color:#75715e">// 4</span>
-</code></pre></div><p>在 Swift 标准库中也有一些内置的 <code>lazy</code> 方法，它们的执行时机也将推迟到实际使用该方法的返回值时。</p>
+</code></pre></div><p>在 Swift 标准库中也有一些内置的 <code>lazy</code> 方法，它们的执行时机也将推迟到实际使用该方法返回值的时刻。</p>
 </blockquote>
 <h2 id="属性观察器">属性观察器</h2>
 <p>在 Swift 中，我们还可以对非延迟存储属性添加属性观察器，以便在值发生改变之前和之后进行一些操作：</p>
@@ -455,7 +455,7 @@ foo.bar = <span style="color:#ae81ff">20</span> <span style="color:#75715e">// B
 
 <span style="color:#75715e">// 10 will set to 20</span>
 <span style="color:#75715e">// 10 did set to 20</span>
-</code></pre></div><p>如上，在值被真正改变之前，将先通过 <code>willSet</code> 方法，新值将默认可以通过 <code>newValue</code> 变量访问，此时因为并为执行赋值，因此旧值即可通过变量本身 <code>bar</code> 访问；设置后同理可通过 <code>didSet</code> 方法，此时旧值将默认可以通过 <code>oldValue</code> 变量访问，新值则可直接通过变量本身 <code>bar</code> 访问。</p>
+</code></pre></div><p>如上，在值被真正改变之前，将先通过 <code>willSet</code> 方法，新值将默认可以通过 <code>newValue</code> 变量访问，此时因为尚未执行赋值，因此旧值即可通过变量本身 <code>bar</code> 访问；设置后同理可通过 <code>didSet</code> 方法，此时旧值将默认可以通过 <code>oldValue</code> 变量访问，新值则可直接通过变量本身 <code>bar</code> 访问。</p>
 <p>尝试运行后在断点处查看汇编：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001c2e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">62</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, %rdi
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001c31</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">65</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x20</span>(%rbp), %rax
@@ -499,7 +499,7 @@ foo.bar = <span style="color:#ae81ff">20</span> <span style="color:#75715e">// B
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d0e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">94</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %r13
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d10</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">96</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001d11</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">97</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
-</code></pre></div><p>此时可以发现，即使我们改变的变量本质是存储属性，但编译器仍然为其生成了 <code>setter</code> 方法，并在该行执行 <code>si</code> 进入后，即 <code>setter</code> 方法中先调用了 <code>willSet</code>，并在随后调用了 <code>didSet</code>。</p>
+</code></pre></div><p>此时可以发现，即使我们改变的变量本质是存储属性，但编译器仍然为其生成了 <code>setter</code> 方法，并在该行执行 <code>si</code> 进入后可以发现，即 <code>setter</code> 方法中先调用了 <code>willSet</code>，并在随后调用了 <code>didSet</code>。</p>
 <p>另外需要注意的是，初始化方法或在属性定义时给予的默认值时，将不会触发属性观察器；另外，在 <code>willSet</code> 中如果继续编写更改原有变量值的代码时，既不会再次触发属性观察器，但更改也不会生效，但在 <code>didSet</code> 中，虽然也不会再次触发属性观察器，但更改将会生效：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span> {
     <span style="color:#66d9ef">var</span> bar: Int {
@@ -525,10 +525,10 @@ print(foo.bar)
 <span style="color:#75715e">// 10 will set to 20</span>
 <span style="color:#75715e">// 10 did set to 2000</span>
 <span style="color:#75715e">// 3000</span>
-</code></pre></div><p>虽然我们了解了这一行为，但在属性观察器中再次执行赋值操作本身就有些诡异，因此应当避免。</p>
+</code></pre></div><p>如上，虽然我们可以了解这一行为，但在属性观察器中再次进行赋值的操作本身就有些诡异，因此应当避免。</p>
 <h2 id="计算属性属性观察器与-inout">计算属性、属性观察器与 inout</h2>
 <p>在上面的示例中，我们通常直接通过实例对象对变量本身进行了更改，并触发了属性观察器，那么如果我们将它们传递给含有 <code>inout</code> 参数的方法并进行更改时，还会调用相应的 <code>willSet</code> 和 <code>didSet</code> 方法吗？</p>
-<p>首先我们创建一个名为 <code>Foo</code> 的结构体类型，其中包含普通的存储属性、带有属性观察器的属性、和计算属性，并创建名为 <code>inoutFunc(_:)</code> 带有 <code>inout</code> 类型作为参数的方法：</p>
+<p>首先我们创建一个名为 <code>Foo</code> 的结构体类型，其中包含普通的存储属性、带有属性观察器的属性、和计算属性，并创建名为 <code>inoutFunc(_:)</code> 带有 <code>inout</code> 修饰参数的方法：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span>: CustomStringConvertible {
     <span style="color:#66d9ef">var</span> a = <span style="color:#ae81ff">1</span>
 
@@ -644,7 +644,7 @@ print(foo)
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100001972</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">114</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x6847</span>(%rip), %r13        <span style="color:#75715e">; demo.foo : demo.Foo
 </span><span style="color:#75715e"></span>    <span style="color:#75715e">; 将调用计算属性的 setter
 </span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100001979</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">121</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100002220</span>               <span style="color:#75715e">; demo.Foo.c.setter : Swift.Int at main.swift:22
-</span></code></pre></div><p>根据汇编，当遇到计算属性或带有存储属性观察器的存储属性时，将先通过 <code>getter</code> 将值拷贝到一个外界的局部变量上，再将该变量的地址传递到 <code>inoutFunc</code> 方法中，得到结果后外界变量将重新通过 <code>setter</code> 将值设置回原有的计算属性。</p>
+</span></code></pre></div><p>根据汇编，当遇到计算属性或带有存储属性观察器的存储属性时，将先通过 <code>getter</code> 将值拷贝到一个外界的局部变量上，再将该变量的地址传递到 <code>inoutFunc</code> 方法中，得到结果后外界变量将重新通过 <code>setter</code> 将值设置回原有的计算属性。因此属性观察器也是同理被触发的，而由于属性观察器只包含对设置值的不同时机的监听，因此看不到 <code>getter</code> 的过程。</p>
 <h2 id="类型属性">类型属性</h2>
 <p>类型属性指的是通过类型直接访问的属性，这样的存储属性将类似于全局变量，即只会在内存中保存一份。我们在结构体、类、枚举中均可以定义类型属性，通常使用 <code>static</code> 关键字；在类中，如果定义的类型属性是计算属性，那么也可以使用 <code>class</code> 关键字：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span> {
@@ -735,11 +735,11 @@ SomeManager.manager.bar()
 <span style="color:#75715e">// bar() 10</span>
 </code></pre></div><h2 id="reference">Reference</h2>
 <ul>
-<li><a href="http://www.jianshu.com/p/80810efe5229">浅谈 Swift 3 中的访问控制</a></li>
-<li><a href="https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/AccessControl.html">Access Control</a></li>
-<li><a href="https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Properties.html">Properties</a></li>
+<li><a href="http://www.jianshu.com/p/80810efe5229">浅谈 Swift 3 中的访问控制 - kingcos</a></li>
+<li><a href="https://docs.swift.org/swift-book/LanguageGuide/AccessControl.html">Access Control - Swift.org</a></li>
+<li><a href="https://docs.swift.org/swift-book/LanguageGuide/Properties.html">Properties - Swift.org</a></li>
 <li><a href="https://github.com/devxoul/Then">devxoul/Then</a></li>
-<li><a href="http://swifter.tips/lazy/">lazy 修饰符和 lazy 方法</a></li>
+<li><a href="http://swifter.tips/lazy/">lazy 修饰符和 lazy 方法 - Swifter Tips</a></li>
 <li><a href="https://www.bilibili.com/video/BV1cx411S7ay">【菜鸡 Playground 1】Swift 中 lazy initialization</a></li>
 <li><a href="https://www.bilibili.com/video/av10142408/">【菜鸡 Playground 2】Swift 中 lazy initialization 的使用场景</a></li>
 </ul>
