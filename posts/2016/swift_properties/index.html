@@ -139,7 +139,7 @@
       
       
       
-        <span class="post-read-time">— 10 min read</span>
+        <span class="post-read-time">— 13 min read</span>
       
     </div>
 
@@ -646,7 +646,7 @@ print(foo)
 </span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100001979</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">121</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100002220</span>               <span style="color:#75715e">; demo.Foo.c.setter : Swift.Int at main.swift:22
 </span></code></pre></div><p>根据汇编，当遇到计算属性或带有存储属性观察器的存储属性时，将先通过 <code>getter</code> 将值拷贝到一个外界的局部变量上，再将该变量的地址传递到 <code>inoutFunc</code> 方法中，得到结果后外界变量将重新通过 <code>setter</code> 将值设置回原有的计算属性。因此属性观察器也是同理被触发的，而由于属性观察器只包含对设置值的不同时机的监听，因此看不到 <code>getter</code> 的过程。</p>
 <h2 id="类型属性">类型属性</h2>
-<p>类型属性指的是通过类型直接访问的属性，这样的存储属性将类似于全局变量，即只会在内存中保存一份。我们在结构体、类、枚举中均可以定义类型属性，通常使用 <code>static</code> 关键字；在类中，如果定义的类型属性是计算属性，那么也可以使用 <code>class</code> 关键字：</p>
+<p>类型属性指的是通过类型直接访问的属性。我们在结构体、类、枚举中均可以定义类型属性，通常使用 <code>static</code> 关键字；在类中，如果定义的类型属性是计算属性，那么也可以使用 <code>class</code> 关键字：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span> {
     <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">var</span> foo: Int = <span style="color:#ae81ff">0</span>
 }
@@ -669,7 +669,67 @@ print(Bar.bar1) <span style="color:#75715e">// 0</span>
 print(Bar.bar2) <span style="color:#75715e">// 0</span>
 print(Bar.bar3) <span style="color:#75715e">// 0</span>
 print(Baz.baz)  <span style="color:#75715e">// 0</span>
-</code></pre></div><p>需要注意的是，由于类型属性非针对于某一实例对象，因此其必须在声明时即给定初始值；类型属性如果同时为存储属性，默认即为 <code>lazy</code> 延迟：</p>
+</code></pre></div><p>类型属性其实类似于全局变量，即只会在内存中保存一份，且实际在内存中与全局变量存储在同一位置：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">var</span> foo = <span style="color:#ae81ff">10</span>
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Bar</span> {
+    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">var</span> bar1: Int = <span style="color:#ae81ff">20</span>
+}
+
+Bar.bar1 = <span style="color:#ae81ff">21</span> <span style="color:#75715e">// BREAKPOINT 🔴</span>
+Bar.bar1 = <span style="color:#ae81ff">22</span>
+
+<span style="color:#66d9ef">var</span> baz = <span style="color:#ae81ff">30</span>
+</code></pre></div><p>尝试运行后在断点处查看汇编：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">main</span>:
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002940</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002941</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002944</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0x50</span>, %rsp
+    <span style="color:#75715e">; 全局变量 foo：移动立即数 10 到 rip + 0x5955（0x1000082A8）
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002948</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0xa</span>, <span style="color:#ae81ff">0x5955</span>(%rip)        <span style="color:#75715e">; Swift51Overrides + 180
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100002953</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">19</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   %edi, -<span style="color:#ae81ff">0x34</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002956</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">22</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsi, -<span style="color:#ae81ff">0x40</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x10000295a</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">26</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100002a20</span>               <span style="color:#75715e">; demo.Bar.bar.unsafeMutableAddressor : Swift.Int at main.swift
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x10000295f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">31</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">xorl</span>   %ecx, %ecx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002961</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">33</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002964</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">36</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rdx, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002967</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">39</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x18</span>(%rbp), %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x10000296b</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">43</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x21</span>, %edx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002970</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">48</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x48</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002974</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">52</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100003cd2</span>               <span style="color:#75715e">; symbol stub for: swift_beginAccess
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100002979</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">57</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x48</span>(%rbp), %rax
+    <span style="color:#75715e">; (lldb) register read rax =&gt; rax = 0x00000001000082b0  demo`static demo.Bar.bar : Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 类型属性 Bar.bar：移动立即数 21 到 rax 寄存器中地址对应的内存空间
+</span><span style="color:#75715e"></span><span style="color:#960050;background-color:#1e0010">-&gt;</span>  <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x10000297d</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">61</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x15</span>, (%rax)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002984</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">68</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x18</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002988</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">72</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100003cde</span>               <span style="color:#75715e">; symbol stub for: swift_endAccess
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x10000298d</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">77</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100002a20</span>               <span style="color:#75715e">; demo.Bar.bar.unsafeMutableAddressor : Swift.Int at main.swift
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100002992</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">82</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">xorl</span>   %r8d, %r8d
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002995</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">85</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   %r8d, %ecx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002998</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">88</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x10000299b</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">91</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rdx, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x10000299e</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">94</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x30</span>(%rbp), %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x1000029a2</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">98</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x21</span>, %edx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x1000029a7</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">103</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x50</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x1000029ab</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">107</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100003cd2</span>               <span style="color:#75715e">; symbol stub for: swift_beginAccess
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x1000029b0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">112</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x50</span>(%rbp), %rax
+    <span style="color:#75715e">; (lldb) register read rax =&gt; rax = 0x00000001000082b0  demo`static demo.Bar.bar : Swift.Int
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 类型属性 Bar.bar：移动立即数 22 到 rax 寄存器中地址对应的内存空间
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x1000029b4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">116</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x16</span>, (%rax)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x1000029bb</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">123</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x30</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x1000029bf</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">127</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100003cde</span>               <span style="color:#75715e">; symbol stub for: swift_endAccess
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x1000029c4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">132</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %eax, %eax
+    <span style="color:#75715e">; 全局变量 baz：移动立即数 30 到 rip + 0x58e7（0x1000082B8）
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x1000029c6</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">134</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   <span style="color:#66d9ef">$0x1e</span>, <span style="color:#ae81ff">0x58e7</span>(%rip)       <span style="color:#75715e">; static demo.Bar.bar : Swift.Int + 4
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x1000029d1</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">145</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x50</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x1000029d5</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">149</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x1000029d6</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">150</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
+
+<span style="color:#75715e">; 全局变量 foo：0x1000082A8
+</span><span style="color:#75715e">; 类型属性 Bar.bar：0x00000001000082b0（foo：0x1000082B0）
+</span><span style="color:#75715e">; 全局变量 baz：0x1000082B8
+</span></code></pre></div><p>如上，三个变量均是在内存中占用了连续的存储空间，也证明了类型属性本质也是存储在全局区，其在整个程序生命周期中只会有一份。只是类型属性定义类的内部，需要通过类名来访问，以及可以额外使用一些访问控制。</p>
+<p>需要注意的是，由于类型属性非针对于某一实例对象，因此其必须在声明时即给定初始值；类型属性如果同时为存储属性，默认即为 <code>lazy</code> 延迟：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span> {
     <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">var</span> foo: Int = <span style="color:#ae81ff">0</span>
 
@@ -713,7 +773,90 @@ DispatchQueue.concurrentPerform(iterations: <span style="color:#ae81ff">5</span>
 <span style="color:#75715e">// --- &lt;NSThread: 0x1022040c0&gt;{number = 5, name = (null)} ---</span>
 <span style="color:#75715e">// 0</span>
 <span style="color:#75715e">// 0</span>
-</code></pre></div><p>如上，即使同时 5 个线程并发访问，<code>calculateFoo</code> 也将被保证只初始化一次。类型属性通常可以用于单例模式，即整个生命周期内仅初始化一次：</p>
+</code></pre></div><p>如上，即使同时 5 个线程并发访问，<code>calculateFoo</code> 也将被保证只初始化一次。那么如何证明其是线程安全的呢？</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Bar</span> {
+    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">var</span> bar: Int = <span style="color:#ae81ff">20</span> <span style="color:#75715e">// BREAKPOINT 🔴</span>
+}
+
+Bar.bar = <span style="color:#ae81ff">21</span> <span style="color:#75715e">// BREAKPOINT 🔴</span>
+</code></pre></div><p>尝试运行后在断点处查看汇编：</p>
+<pre><code class="language-sam" data-lang="sam">demo`main:
+    0x100002990 &lt;+0&gt;:  pushq  %rbp
+    0x100002991 &lt;+1&gt;:  movq   %rsp, %rbp
+    0x100002994 &lt;+4&gt;:  subq   $0x30, %rsp
+    0x100002998 &lt;+8&gt;:  movl   %edi, -0x1c(%rbp)
+    0x10000299b &lt;+11&gt;: movq   %rsi, -0x28(%rbp)
+-&gt;  0x10000299f &lt;+15&gt;: callq  0x100002a20               ; demo.Bar.bar.unsafeMutableAddressor : Swift.Int at main.swift
+    ; 调用后返回值（即 Bar.bar 的内存地址）存储在 rax 寄存器
+    0x1000029a4 &lt;+20&gt;: xorl   %ecx, %ecx
+    0x1000029a6 &lt;+22&gt;: movq   %rax, %rdx
+    0x1000029a9 &lt;+25&gt;: movq   %rdx, %rdi
+    0x1000029ac &lt;+28&gt;: leaq   -0x18(%rbp), %rsi
+    0x1000029b0 &lt;+32&gt;: movl   $0x21, %edx
+    0x1000029b5 &lt;+37&gt;: movq   %rax, -0x30(%rbp)
+    0x1000029b9 &lt;+41&gt;: callq  0x100003cd2               ; symbol stub for: swift_beginAccess
+    0x1000029be &lt;+46&gt;: movq   -0x30(%rbp), %rax
+    ; (lldb) register read rax =&gt; rax = 0x0000000100008378  demo`static demo.Bar.bar : Swift.Int
+    ; 移动立即数 21 到 rax（0x0000000100008378，即 Bar.bar 的内存地址）
+    0x1000029c2 &lt;+50&gt;: movq   $0x15, (%rax)
+    0x1000029c9 &lt;+57&gt;: leaq   -0x18(%rbp), %rdi
+    0x1000029cd &lt;+61&gt;: callq  0x100003cde               ; symbol stub for: swift_endAccess
+    0x1000029d2 &lt;+66&gt;: xorl   %eax, %eax
+    0x1000029d4 &lt;+68&gt;: addq   $0x30, %rsp
+    0x1000029d8 &lt;+72&gt;: popq   %rbp
+    0x1000029d9 &lt;+73&gt;: retq
+
+demo`Bar.bar.unsafeMutableAddressor:
+    0x100002a20 &lt;+0&gt;:  pushq  %rbp
+    0x100002a21 &lt;+1&gt;:  movq   %rsp, %rbp
+-&gt;  0x100002a24 &lt;+4&gt;:  cmpq   $-0x1, 0x587c(%rip)       ; Swift51Overrides + 183
+    0x100002a2c &lt;+12&gt;: sete   %al
+    0x100002a2f &lt;+15&gt;: testb  $0x1, %al
+    0x100002a31 &lt;+17&gt;: jne    0x100002a35               ; &lt;+21&gt; at main.swift:4:16
+    0x100002a33 &lt;+19&gt;: jmp    0x100002a3e               ; &lt;+30&gt; at main.swift
+    ; 将 rip + 0x593c（0x100008378，即 Bar.bar 的内存地址）放在 rax 寄存器中（即返回值）
+    0x100002a35 &lt;+21&gt;: leaq   0x593c(%rip), %rax        ; static demo.Bar.bar : Swift.Int
+    0x100002a3c &lt;+28&gt;: popq   %rbp
+    ; 函数返回
+    0x100002a3d &lt;+29&gt;: retq
+    ; 将类型属性初始化代码所在闭包的函数地址存储在 rax 寄存器
+    0x100002a3e &lt;+30&gt;: leaq   -0x45(%rip), %rax         ; globalinit_33_8E34543FA00B3A97BCFBD7BFA4EE5AD5_func0 at main.swift
+    0x100002a45 &lt;+37&gt;: leaq   0x585c(%rip), %rdi        ; globalinit_33_8E34543FA00B3A97BCFBD7BFA4EE5AD5_token0
+    ; 移动 rax 寄存器中的内容到 rsi 寄存器（作为 swift_once 函数第一个参数）
+    0x100002a4c &lt;+44&gt;: movq   %rax, %rsi
+    ; 从 swift_once 开始 si，直到进入 libswiftCore.dylib`swift_once:
+    0x100002a4f &lt;+47&gt;: callq  0x100003ce4               ; symbol stub for: swift_once
+    ; 跳转到 0x100002a35 ⬆️
+    0x100002a54 &lt;+52&gt;: jmp    0x100002a35               ; &lt;+21&gt; at main.swift:4:16
+
+libswiftCore.dylib`swift_once:
+-&gt;  0x7fff6806a820 &lt;+0&gt;:  pushq  %rbp
+    0x7fff6806a821 &lt;+1&gt;:  movq   %rsp, %rbp
+    0x7fff6806a824 &lt;+4&gt;:  cmpq   $-0x1, (%rdi)
+    0x7fff6806a828 &lt;+8&gt;:  jne    0x7fff6806a82c            ; &lt;+12&gt;
+    0x7fff6806a82a &lt;+10&gt;: popq   %rbp
+    0x7fff6806a82b &lt;+11&gt;: retq
+    0x7fff6806a82c &lt;+12&gt;: movq   %rsi, %rax
+    0x7fff6806a82f &lt;+15&gt;: movq   %rdx, %rsi
+    0x7fff6806a832 &lt;+18&gt;: movq   %rax, %rdx
+    ; swift_once 内部实际调用了 dispatch_once_f
+    0x7fff6806a835 &lt;+21&gt;: callq  0x7fff680bf19c            ; symbol stub for: dispatch_once_f
+    0x7fff6806a83a &lt;+26&gt;: popq   %rbp
+    0x7fff6806a83b &lt;+27&gt;: retq
+    0x7fff6806a83c &lt;+28&gt;: nop
+    0x7fff6806a83d &lt;+29&gt;: nop
+    0x7fff6806a83e &lt;+30&gt;: nop
+    0x7fff6806a83f &lt;+31&gt;: nop
+
+demo`globalinit_33_8E34543FA00B3A97BCFBD7BFA4EE5AD5_func0:
+    0x100002a00 &lt;+0&gt;:  pushq  %rbp
+    0x100002a01 &lt;+1&gt;:  movq   %rsp, %rbp
+    ; 移动立即数 20 到 rip + 0x5969（0x100008378，即 Bar.bar 的内存地址）
+-&gt;  0x100002a04 &lt;+4&gt;:  movq   $0x14, 0x5969(%rip)       ; getExistentialTypeMetadata(swift::ProtocolClassConstraint, swift::TargetMetadata&lt;swift::InProcess&gt; const*, unsigned long, swift::TargetProtocolDescriptorRef&lt;swift::InProcess&gt; const*)::$_3::operator()() const::TheLazy + 12
+    0x100002a0f &lt;+15&gt;: popq   %rbp
+    0x100002a10 &lt;+16&gt;: retq
+</code></pre><p>因此类型属性默认即是 <code>lazy</code> 延迟初始化的，并由 <code>swift_once</code> 内的 <code>dispatch_once_f</code> 保证了线程安全。</p>
+<p>类型属性通常可以用于单例模式，即整个生命周期内仅初始化一次：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">SomeManager</span> {
     <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">var</span> manager: SomeManager = {
         <span style="color:#66d9ef">var</span> manager = SomeManager()
