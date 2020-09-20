@@ -39,8 +39,8 @@ import Foundation func foo() -&amp;gt; String { return &amp;#34;kingcos.me&amp;#
 <meta property="og:description" content="《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。那么作为起始篇，随着整个系列的进行，其中「遗」漏的基本使用将在本文中得到补充。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/posts/2020/swift_tips/" />
-<meta property="article:published_time" content="2020-07-21T00:00:00+00:00" />
-<meta property="article:modified_time" content="2020-07-21T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+<meta property="article:published_time" content="2020-09-20T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-09-20T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
 
 
 
@@ -137,12 +137,12 @@ import Foundation func foo() -&amp;gt; String { return &amp;#34;kingcos.me&amp;#
     <div class="post-meta">
       
         <span class="post-date">
-            2020-07-21
+            2020-09-20
         </span>
       
       
       
-        <span class="post-read-time">— 3 min read</span>
+        <span class="post-read-time">— 5 min read</span>
       
     </div>
 
@@ -292,6 +292,169 @@ withUnsafeMutablePointer(to: &amp;foo) { print(<span style="color:#e6db74">&#34;
 <span style="color:#66d9ef">var</span> gloA = <span style="color:#ae81ff">100</span>
 
 withUnsafePointer(to: &amp;gloA) { print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>$0<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>) } <span style="color:#75715e">// 0x00000001000031c0</span>
+</code></pre></div><h3 id="下标subscript">下标（Subscript）</h3>
+<p>下标是指我们可以在类、结构体、枚举中定义 <code>subscript</code> 方法（但省略 <code>func</code> 关键字），即可使相应实例获得通过下标访问的能力：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span> {
+    <span style="color:#66d9ef">var</span> a = <span style="color:#ae81ff">10</span>
+    <span style="color:#66d9ef">var</span> b = <span style="color:#ae81ff">20</span>
+
+    <span style="color:#66d9ef">subscript</span>(index: Int) -&gt; Int {
+        <span style="color:#66d9ef">get</span> {
+            <span style="color:#66d9ef">switch</span> index {
+            <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">0</span>:
+                <span style="color:#66d9ef">return</span> a
+            <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">1</span>:
+                <span style="color:#66d9ef">return</span> b
+            <span style="color:#66d9ef">default</span>:
+                fatalError(<span style="color:#e6db74">&#34;Index out of range.&#34;</span>)
+            }
+        }
+
+        <span style="color:#66d9ef">set</span> {
+            <span style="color:#66d9ef">switch</span> index {
+            <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">0</span>:
+                a = newValue
+            <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">1</span>:
+                b = newValue
+            <span style="color:#66d9ef">default</span>:
+                fatalError(<span style="color:#e6db74">&#34;Index out of range.&#34;</span>)
+            }
+        }
+    }
+}
+
+<span style="color:#66d9ef">var</span> foo = Foo()
+
+foo[<span style="color:#ae81ff">0</span>] = <span style="color:#ae81ff">100</span>
+foo[<span style="color:#ae81ff">1</span>] = <span style="color:#ae81ff">200</span>
+
+print(foo[<span style="color:#ae81ff">0</span>]) <span style="color:#75715e">// 100</span>
+print(foo[<span style="color:#ae81ff">1</span>]) <span style="color:#75715e">// 200</span>
+</code></pre></div><p>下标十分类似计算属性的写法，通过 <code>get</code> 获取值，并通过 <code>set</code> 设置值；当不实现 <code>set</code> 时，将变成只读下标，即只可以通过下标访问而不能更改。下标支持设置显式的参数标签，以及支持同时多个下标索引；也支持针对于类型的下标，只需要在声明前添加 <code>static</code> 或 <code>class</code> 关键字修饰即可（但需要注意由于 <code>static</code> 修饰的方法将不能被子类重写，下标也同理）：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Bar</span> {
+    <span style="color:#66d9ef">var</span> colmunA = [<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>]
+    <span style="color:#66d9ef">var</span> columnB = [<span style="color:#ae81ff">10</span>, <span style="color:#ae81ff">20</span>]
+
+    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">var</span> c = <span style="color:#ae81ff">30</span>
+    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">var</span> d = <span style="color:#ae81ff">40</span>
+
+    <span style="color:#66d9ef">subscript</span>(i index: Int, row: Int) -&gt; Int {
+        <span style="color:#66d9ef">get</span> {
+            <span style="color:#66d9ef">switch</span> index {
+            <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">0</span>:
+                <span style="color:#66d9ef">return</span> colmunA[row]
+            <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">1</span>:
+                <span style="color:#66d9ef">return</span> columnB[row]
+            <span style="color:#66d9ef">default</span>:
+                fatalError(<span style="color:#e6db74">&#34;Index out of range.&#34;</span>)
+            }
+        }
+    }
+
+    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">subscript</span>(index: Int) -&gt; Int {
+        <span style="color:#66d9ef">switch</span> index {
+        <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">0</span>:
+            <span style="color:#66d9ef">return</span> c
+        <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">1</span>:
+            <span style="color:#66d9ef">return</span> d
+        <span style="color:#66d9ef">default</span>:
+            fatalError(<span style="color:#e6db74">&#34;Index out of range.&#34;</span>)
+        }
+    }
+}
+
+print(Bar()[i: <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>]) <span style="color:#75715e">// 10</span>
+print(Bar[<span style="color:#ae81ff">0</span>])         <span style="color:#75715e">// 30</span>
+</code></pre></div><p>当下标为只读下标时，下标获取的类型根据是结构体还是类的情况有些许不同：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ClassFoo</span> {
+    <span style="color:#66d9ef">var</span> a = <span style="color:#ae81ff">10</span>
+}
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">StructBar</span> {
+    <span style="color:#66d9ef">var</span> b = <span style="color:#ae81ff">20</span>
+}
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">BazByClass</span> {
+    <span style="color:#66d9ef">var</span> foo = ClassFoo()
+
+    <span style="color:#66d9ef">subscript</span>(index: Int) -&gt; ClassFoo {
+        <span style="color:#66d9ef">get</span> { foo }
+    }
+}
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">BazByStruct</span> {
+    <span style="color:#66d9ef">var</span> bar = StructBar()
+
+    <span style="color:#66d9ef">subscript</span>(index: Int) -&gt; StructBar {
+        <span style="color:#66d9ef">get</span> { bar }
+    }
+}
+
+<span style="color:#66d9ef">var</span> baz1 = BazByClass()
+baz1[<span style="color:#ae81ff">0</span>].a = <span style="color:#ae81ff">100</span>
+<span style="color:#75715e">// ERROR: Cannot assign through subscript: subscript is get-only</span>
+<span style="color:#75715e">// baz1[0] = ClassFoo()</span>
+print(baz1[<span style="color:#ae81ff">0</span>].a)
+
+<span style="color:#66d9ef">var</span> baz2 = BazByStruct()
+<span style="color:#75715e">// ERROR: Cannot assign to property: subscript is get-only</span>
+<span style="color:#75715e">//baz2[0].b = 200</span>
+print(baz2[<span style="color:#ae81ff">0</span>].b)
+</code></pre></div><p>当只读下标获取的类型为类时（引用类型），只读只针对于指向堆空间实例的指针指向的地址，即无法指向新的实例，但可以读写地址的内存空间；而当只读下标获取的类型为结构体时（值类型），将无法通过下标设置结构体变量的值，那么想要修改就要通过 <code>set</code> 实现：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">BazByStruct2</span> {
+    <span style="color:#66d9ef">var</span> bar = StructBar()
+
+    <span style="color:#66d9ef">subscript</span>(index: Int) -&gt; StructBar {
+        <span style="color:#66d9ef">get</span> { bar }
+        <span style="color:#66d9ef">set</span> {
+            bar = newValue
+        }
+    }
+}
+
+<span style="color:#66d9ef">var</span> baz3 = BazByStruct2()
+withUnsafeMutablePointer(to: &amp;baz3.bar) { print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>$0<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>) } <span style="color:#75715e">// 0x0000000100523ac0</span>
+baz3[<span style="color:#ae81ff">0</span>].b = <span style="color:#ae81ff">200</span>
+withUnsafeMutablePointer(to: &amp;baz3.bar) { print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>$0<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>) } <span style="color:#75715e">// 0x0000000100523ac0</span>
+print(baz3[<span style="color:#ae81ff">0</span>].b) <span style="color:#75715e">// 200</span>
+</code></pre></div><h3 id="static-与-class">static 与 class</h3>
+<p><code>static</code> 和 <code>class</code> 均可以在 <code>class</code> 类型中修饰方法或属性，即类型方法或类型属性。但两者的不同是，<code>static</code> 修饰的方法或属性子类将不能重写：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span> {
+    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">var</span> staticProp = <span style="color:#ae81ff">1</span>
+    <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">var</span> classProp: Int { <span style="color:#ae81ff">1</span> }
+
+    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">staticFunc</span>() { }
+    <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">func</span> classFunc() { }
+}
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">SubFoo</span>: Foo {
+    <span style="color:#75715e">// ERROR: Cannot override static method</span>
+<span style="color:#75715e">//    static var staticProp: Int {</span>
+<span style="color:#75715e">//        get { super.staticProp }</span>
+<span style="color:#75715e">//        set { super.staticProp = newValue }</span>
+<span style="color:#75715e">//    }</span>
+
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">var</span> classProp: Int {
+        <span style="color:#66d9ef">get</span> { <span style="color:#66d9ef">super</span>.staticProp }
+        <span style="color:#66d9ef">set</span> { <span style="color:#66d9ef">super</span>.staticProp = newValue <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span> }
+    }
+
+    <span style="color:#75715e">// ERROR: Cannot override static method</span>
+<span style="color:#75715e">//    static func staticFunc() { }</span>
+    <span style="color:#75715e">// 重写时使用 static 则子类不得重写</span>
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">classFunc</span>() {}
+}
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">SubSubFoo</span>: SubFoo {
+    <span style="color:#75715e">// 重写时使用 class 修饰则子类仍可不得重写</span>
+    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">var</span> classProp: Int {
+        <span style="color:#66d9ef">get</span> { <span style="color:#66d9ef">super</span>.staticProp }
+        <span style="color:#66d9ef">set</span> { <span style="color:#66d9ef">super</span>.staticProp = newValue <span style="color:#f92672">+</span> <span style="color:#ae81ff">2</span> }
+    }
+
+    <span style="color:#75715e">// ERROR: Cannot override static method</span>
+<span style="color:#75715e">//    override class func classFunc() {}</span>
+}
 </code></pre></div><!-- ### API & ABI
 
 - API（Application Programming Interface，应用程序编程接口）：源代码和库之间的接口。
@@ -311,17 +474,10 @@ withUnsafePointer(to: &amp;gloA) { print(<span style="color:#e6db74">&#34;</span
         </div>
         <div class="pagination__buttons">
           
-            <span class="button previous">
-              <a href="/posts/2020/array_in_ios/">
-                <span class="button__icon">←</span>
-                <span class="button__text">iOS 中的数组</span>
-              </a>
-            </span>
-          
           
             <span class="button next">
-              <a href="/posts/2020/booleans_in_objc/">
-                <span class="button__text">Obj-C 中的 Boolean</span>
+              <a href="/posts/2016/swift_properties/">
+                <span class="button__text">Swift 拾遗 - 属性</span>
                 <span class="button__icon">→</span>
               </a>
             </span>
