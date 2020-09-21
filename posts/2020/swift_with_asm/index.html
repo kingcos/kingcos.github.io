@@ -7,7 +7,7 @@
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <meta name="description" content="Date Notes     2020-08-10 首次提交    Preface 《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。本文涉及了各个部分关于汇编的内容。
-struct &amp;amp; class struct 栈区 // main.swift struct Foo { var a: Int var b: Int } func bar() { var foo1 = Foo(a: 10, b: 11) // BREAKPOINT 🔴 var foo2 = foo1 foo2.a = 20 foo2.b = 22 } bar() 我们定义一个结构体 Foo，并在函数 bar 中声明和构造后赋值于 foo1，之后将 foo1 赋值给新变量 foo2；此时改变 foo2 中的值，由于结构体是值类型，因此对于 foo2 的改变将不会影响 foo1，我们尝试从汇编底层看一下这个过程："/>
+struct &amp;amp; class struct 分配在栈区 // main.swift struct Foo { var a: Int var b: Int } func bar() { var foo1 = Foo(a: 10, b: 11) // BREAKPOINT 🔴 var foo2 = foo1 foo2.a = 20 foo2.b = 22 } bar() 我们定义一个结构体 Foo，并在函数 bar 中声明和构造后赋值于 foo1，之后将 foo1 赋值给新变量 foo2；此时改变 foo2 中的值，由于结构体是值类型，因此对于 foo2 的改变将不会影响 foo1，我们尝试从汇编底层看一下这个过程："/>
 <meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
 <meta name="robots" content="noodp"/>
 <link rel="canonical" href="/posts/2020/swift_with_asm/" />
@@ -180,7 +180,7 @@ struct &amp;amp; class struct 栈区 // main.swift struct Foo { var a: Int var b
   - 结构体和对象等均存储在内存（非寄存器） -->
 <h2 id="struct--class">struct &amp; class</h2>
 <h3 id="struct">struct</h3>
-<h4 id="栈区">栈区</h4>
+<h4 id="分配在栈区">分配在栈区</h4>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// main.swift</span>
 
 <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span> {
@@ -242,7 +242,7 @@ bar()
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b5a</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">10</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000b5b</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">11</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
 </code></pre></div><p>综上，变量的内存地址格式为：<code>-0x10(%rbp)</code> 一般是栈空间的局部变量。这是因为 <code>rbp</code> 会根据每次函数调用而有不一样的值，局部变量的内存地址也在每次调用时会重新分配。</p>
-<h4 id="全局区">全局区</h4>
+<h4 id="分配在全局区">分配在全局区</h4>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// main.swift</span>
 
 <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span> {
@@ -343,7 +343,7 @@ foo2.b = <span style="color:#ae81ff">22</span>
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100000c0b</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">11</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
 </code></pre></div><p>与刚才在函数体内的栈区不同的是，全局区（数据段）大量使用了 <code>rip</code> 寄存器。<code>rip</code> 作为指令指针寄存器，存储着 CPU 下一条要执行的指令的地址，一旦 CPU 读取一条指令，<code>rip</code> 会自动指向下一条指令。而代码一旦装载，每条指令的地址就会得以确认，因此通常使用 <code>rip</code> 加偏移的地址来存放全局变量。</p>
 <h3 id="class">class</h3>
-<h4 id="栈区-1">栈区</h4>
+<h4 id="分配在栈区-1">分配在栈区</h4>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// main.swift</span>
 
 <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span> {
