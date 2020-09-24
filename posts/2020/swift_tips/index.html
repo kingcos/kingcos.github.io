@@ -39,8 +39,8 @@ import Foundation func foo() -&amp;gt; String { return &amp;#34;kingcos.me&amp;#
 <meta property="og:description" content="《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。那么作为起始篇，随着整个系列的进行，其中「遗」漏的基本使用将在本文中得到补充。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/posts/2020/swift_tips/" />
-<meta property="article:published_time" content="2020-09-20T00:00:00+00:00" />
-<meta property="article:modified_time" content="2020-09-20T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
+<meta property="article:published_time" content="2020-09-23T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-09-23T00:00:00+00:00" /><meta property="og:site_name" content="iBlog" />
 
 
 
@@ -137,12 +137,12 @@ import Foundation func foo() -&amp;gt; String { return &amp;#34;kingcos.me&amp;#
     <div class="post-meta">
       
         <span class="post-date">
-            2020-09-20
+            2020-09-23
         </span>
       
       
       
-        <span class="post-read-time">— 5 min read</span>
+        <span class="post-read-time">— 8 min read</span>
       
     </div>
 
@@ -455,6 +455,155 @@ print(baz3[<span style="color:#ae81ff">0</span>].b) <span style="color:#75715e">
     <span style="color:#75715e">// ERROR: Cannot override static method</span>
 <span style="color:#75715e">//    override class func classFunc() {}</span>
 }
+</code></pre></div><h3 id="any-与-anyobject">Any 与 AnyObject</h3>
+<p>Swift 中的 <code>Any</code> 类型可以代表包括结构体、枚举、类、函数等任意类型；<code>AnyObject</code> 类型可以代表任意 <code>class</code> 类型。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span> {
+    <span style="color:#66d9ef">var</span> foo = <span style="color:#ae81ff">1</span>
+}
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Bar</span> {
+    <span style="color:#66d9ef">var</span> bar = <span style="color:#ae81ff">2</span>
+}
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">AnotherBar</span> {
+    <span style="color:#66d9ef">var</span> bar = <span style="color:#ae81ff">3</span>
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">baz</span>() {}
+
+<span style="color:#66d9ef">var</span> any: Any = <span style="color:#ae81ff">10</span>
+any = <span style="color:#ae81ff">3.14</span>
+any = Foo()
+any = Bar()
+any = baz
+
+<span style="color:#66d9ef">var</span> anyObject: AnyObject = Bar()
+anyObject = AnotherBar()
+</code></pre></div><p>当 Swift 的协议遵守 <code>AnyObject</code> 时，该协议将只能被类遵守：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">protocol</span> <span style="color:#a6e22e">ProtocolA</span> {
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">a</span>()
+}
+
+<span style="color:#66d9ef">protocol</span> <span style="color:#a6e22e">ProtocolB</span>: AnyObject {
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">b</span>()
+}
+
+<span style="color:#75715e">// 协议遵守 class 时也将只能被类遵守</span>
+<span style="color:#66d9ef">protocol</span> <span style="color:#a6e22e">ProtocolC</span>: <span style="color:#66d9ef">class</span> {
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">c</span>()
+}
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span>: ProtocolA {
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">a</span>() {}
+}
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Bar</span>: ProtocolA <span style="color:#f92672">&amp;</span> ProtocolB <span style="color:#f92672">&amp;</span> ProtocolC {
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">a</span>() {}
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">b</span>() {}
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">c</span>() {}
+}
+</code></pre></div><ul>
+<li><a href="../../2019/type_introspection_and_reflection/">Obj-C &amp; Swift 的类型内省与反射</a></li>
+</ul>
+<h3 id="tselfttypeself-与-typeof">T.self、T.Type、Self 与 type(of:)</h3>
+<p>若 <code>T</code> 为类型，<code>T.self</code> 是元类型的指针，类型为 <code>T.type</code>，元类型中存储了类型信息：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span> { }
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Bar</span> { }
+
+<span style="color:#66d9ef">var</span> selfInt = Int.<span style="color:#66d9ef">self</span>           <span style="color:#75715e">// Int.Type</span>
+<span style="color:#66d9ef">var</span> selfFoo: Foo.<span style="color:#66d9ef">Type</span> = Foo.<span style="color:#66d9ef">self</span> <span style="color:#75715e">// Foo.Type</span>
+<span style="color:#66d9ef">var</span> selfBar: Bar.<span style="color:#66d9ef">Type</span> = Bar.<span style="color:#66d9ef">self</span> <span style="color:#75715e">// Bar.Type</span>
+</code></pre></div><p><code>Self</code> 代表当前所在的<strong>类型</strong>本身（类似于 Obj-C 中的 <code>instancetype</code>），可定义为函数的返回值：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">protocol</span> <span style="color:#a6e22e">Protocol</span> {
+    <span style="color:#75715e">// 在协议中，Self 可作为函数参数使用</span>
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">function</span>(<span style="color:#66d9ef">_</span> param: <span style="color:#66d9ef">Self</span>)
+}
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span>: <span style="color:#66d9ef">Protocol</span> {
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">foo</span>() {}
+
+    <span style="color:#75715e">// 必须声明为 required，防止子类声明其它构造方法，导致丢失 init() 后无法被 type(of: self) 调用</span>
+    <span style="color:#66d9ef">required</span> <span style="color:#66d9ef">init</span>() { }
+
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">foo</span>() -&gt; <span style="color:#66d9ef">Self</span> {
+        <span style="color:#75715e">// type(of value: T) -&gt; Metatype ：返回参数的类型</span>
+        <span style="color:#75715e">// 即使子类也可获取类型，并初始化</span>
+        <span style="color:#66d9ef">return</span> type(of: <span style="color:#66d9ef">self</span>).<span style="color:#66d9ef">init</span>()
+    }
+
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">function</span>(<span style="color:#66d9ef">_</span> param: Foo) { }
+}
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">SubFoo</span>: Foo { }
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Bar</span> {
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">bar</span>() -&gt; <span style="color:#66d9ef">Self</span> {
+        <span style="color:#66d9ef">return</span> type(of: <span style="color:#66d9ef">self</span>).<span style="color:#66d9ef">init</span>()
+    }
+}
+</code></pre></div><p><code>type(of:)</code> 在 Swift 中看似被认为是函数，带有参数与返回值，但从现有汇编中可以得出其本质上并非函数调用：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span> {
+    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">foo</span>() {}
+}
+
+<span style="color:#66d9ef">var</span> f = Foo()
+<span style="color:#75715e">// Foo.Type</span>
+<span style="color:#66d9ef">var</span> fType = type(of: f)  <span style="color:#75715e">// BREAKPOINT 🔴</span>
+<span style="color:#75715e">// Foo.self 为指向元类型的指针，即类型信息的地址，因此与 type(of:) 返回值相同</span>
+print(Foo.<span style="color:#66d9ef">self</span> == fType) <span style="color:#75715e">// true</span>
+</code></pre></div><p>运行至断点处并查看汇编：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#a6e22e">demo</span><span style="color:#960050;background-color:#1e0010">`</span><span style="color:#66d9ef">main</span>:
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002ad0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">pushq</span>  %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002ad1</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">movq</span>   %rsp, %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002ad4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">pushq</span>  %r13
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002ad6</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">6</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:   <span style="color:#66d9ef">subq</span>   <span style="color:#66d9ef">$0x58</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002ada</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">10</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">xorl</span>   %eax, %eax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002adc</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">12</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   %eax, %ecx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002ade</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">14</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   %edi, -<span style="color:#ae81ff">0x24</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002ae1</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">17</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002ae4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">20</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rsi, -<span style="color:#ae81ff">0x30</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002ae8</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">24</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100002b80</span>               <span style="color:#75715e">; type metadata accessor for demo.Foo at &lt;compiler-generated&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100002aed</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">29</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, %r13
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002af0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">32</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rdx, -<span style="color:#ae81ff">0x38</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002af4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">36</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100002c20</span>               <span style="color:#75715e">; demo.Foo.__allocating_init() -&gt; demo.Foo at main.swift:3
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100002af9</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">41</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x57b8</span>(%rip), %rcx        <span style="color:#75715e">; demo.f : demo.Foo
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100002b00</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">48</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">xorl</span>   %r8d, %r8d
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b03</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">51</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   %r8d, %edx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b06</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">54</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, <span style="color:#ae81ff">0x57ab</span>(%rip)        <span style="color:#75715e">; demo.f : demo.Foo
+</span><span style="color:#75715e"></span>-<span style="color:#960050;background-color:#1e0010">&gt;</span>  <span style="color:#ae81ff">0x100002b0d</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">61</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b10</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">64</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x20</span>(%rbp), %rsi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b14</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">68</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   <span style="color:#66d9ef">$0x20</span>, %eax
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b19</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">73</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rdx, -<span style="color:#ae81ff">0x40</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b1d</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">77</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, %rdx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b20</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">80</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x40</span>(%rbp), %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b24</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">84</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100003d12</span>               <span style="color:#75715e">; symbol stub for: swift_beginAccess
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 移动 rip + 0x5788 内容（全局变量 f，即 Foo 类型对象的指针）至 rax 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100002b29</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">89</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   <span style="color:#ae81ff">0x5788</span>(%rip), %rax        <span style="color:#75715e">; demo.f : demo.Foo
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100002b30</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">96</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b33</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">99</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rcx, %rdi
+    <span style="color:#75715e">; 移动 rax 寄存器内容至 rbp - 0x48
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b36</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">102</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x48</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b3a</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">106</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100003d2a</span>               <span style="color:#75715e">; symbol stub for: swift_retain
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100002b3f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">111</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">leaq</span>   -<span style="color:#ae81ff">0x20</span>(%rbp), %rdi
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b43</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">115</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, -<span style="color:#ae81ff">0x50</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b47</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">119</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100003d1e</span>               <span style="color:#75715e">; symbol stub for: swift_endAccess
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 移动 rbp - 0x48 内容至 rax 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100002b4c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">124</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x48</span>(%rbp), %rax
+    <span style="color:#75715e">; 取 rax 寄存器内容所指向的内存空间的内容（前八个字节，即类型信息）至 rcx 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b50</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">128</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   (%rax), %rcx
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b53</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">131</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rax, %rdi
+    <span style="color:#75715e">; 移动 rcx 寄存器内容至 rbp - 0x58
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b56</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">134</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rcx, -<span style="color:#ae81ff">0x58</span>(%rbp)
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b5a</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">138</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100003d24</span>               <span style="color:#75715e">; symbol stub for: swift_release
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100002b5f</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">143</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">xorl</span>   %eax, %eax
+    <span style="color:#75715e">; 移动 rbp - 0x58 内容至 rcx 寄存器
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b61</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">145</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   -<span style="color:#ae81ff">0x58</span>(%rbp), %rcx
+    <span style="color:#75715e">; 移动 rcx 寄存器内容（前八个字节）至 rip + 0x5754（全局变量 fType）
+</span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b65</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">149</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">movq</span>   %rcx, <span style="color:#ae81ff">0x5754</span>(%rip)        <span style="color:#75715e">; demo.fType : demo.Foo.Type
+</span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100002b6c</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">156</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">addq</span>   <span style="color:#66d9ef">$0x58</span>, %rsp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b70</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">160</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %r13
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b72</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">162</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
+    <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b73</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">163</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
 </code></pre></div><!-- ### API & ABI
 
 - API（Application Programming Interface，应用程序编程接口）：源代码和库之间的接口。
