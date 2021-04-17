@@ -409,42 +409,45 @@ print(baz3[<span style="color:#ae81ff">0</span>].b) <span style="color:#75715e">
 <p><code>static</code> 和 <code>class</code> 均可以在 <code>class</code> 类型中修饰方法或属性，即类型方法或类型属性。但两者的不同是，<code>static</code> 修饰的方法或属性子类将不能重写：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span> {
     <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">var</span> staticProp = <span style="color:#ae81ff">1</span>
-    <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">var</span> classProp: Int { <span style="color:#ae81ff">1</span> }
-
     <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">staticFunc</span>() { }
+
+    <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">var</span> classProp: Int { <span style="color:#ae81ff">1</span> }
     <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">func</span> classFunc() { }
 }
 
 <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">SubFoo</span>: Foo {
-    <span style="color:#75715e">// ERROR: Cannot override static method</span>
+    <span style="color:#75715e">// static 修饰的属性 / 方法不可被重写</span>
+    <span style="color:#75715e">// ERROR: Cannot override static property</span>
 <span style="color:#75715e">//    static var staticProp: Int {</span>
 <span style="color:#75715e">//        get { super.staticProp }</span>
 <span style="color:#75715e">//        set { super.staticProp = newValue }</span>
 <span style="color:#75715e">//    }</span>
 
+    <span style="color:#75715e">// ERROR: Cannot override static method</span>
+<span style="color:#75715e">//    static func staticFunc() { }</span>
+    
+    <span style="color:#75715e">// class 修饰的属性 / 方法可被重写</span>
     <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">var</span> classProp: Int {
         <span style="color:#66d9ef">get</span> { <span style="color:#66d9ef">super</span>.staticProp }
         <span style="color:#66d9ef">set</span> { <span style="color:#66d9ef">super</span>.staticProp = newValue <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span> }
     }
-
-    <span style="color:#75715e">// ERROR: Cannot override static method</span>
-<span style="color:#75715e">//    static func staticFunc() { }</span>
-    <span style="color:#75715e">// 重写时使用 static 则子类不得重写</span>
+    
     <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">classFunc</span>() {}
 }
 
 <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">SubSubFoo</span>: SubFoo {
-    <span style="color:#75715e">// 重写时使用 class 修饰则子类仍可不得重写</span>
+    <span style="color:#75715e">// 二次重写时使用 class 修饰，子类仍可重写</span>
     <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">var</span> classProp: Int {
         <span style="color:#66d9ef">get</span> { <span style="color:#66d9ef">super</span>.staticProp }
         <span style="color:#66d9ef">set</span> { <span style="color:#66d9ef">super</span>.staticProp = newValue <span style="color:#f92672">+</span> <span style="color:#ae81ff">2</span> }
     }
 
+    <span style="color:#75715e">// 二次重写时使用 static 修饰，子类将不可重写</span>
     <span style="color:#75715e">// ERROR: Cannot override static method</span>
 <span style="color:#75715e">//    override class func classFunc() {}</span>
 }
 </code></pre></div><h3 id="any-与-anyobject">Any 与 AnyObject</h3>
-<p>Swift 中的 <code>Any</code> 类型可以代表包括结构体、枚举、类、函数等任意类型；<code>AnyObject</code> 类型可以代表任意 <code>class</code> 类型。</p>
+<p>Swift 中的 <code>Any</code> 类型可以代表包括结构体、枚举、类、函数等任意类型；<code>AnyObject</code> 类型仅可以代表任意 <code>class</code> 类型。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span> {
     <span style="color:#66d9ef">var</span> foo = <span style="color:#ae81ff">1</span>
 }
@@ -467,6 +470,8 @@ any = baz
 
 <span style="color:#66d9ef">var</span> anyObject: AnyObject = Bar()
 anyObject = AnotherBar()
+<span style="color:#75715e">// ERROR: Value of type &#39;Foo&#39; expected to be an instance of a class or class-constrained type in assignment</span>
+<span style="color:#75715e">// anyObject = Foo()</span>
 </code></pre></div><p>当 Swift 的协议遵守 <code>AnyObject</code> 时，该协议将只能被类遵守：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">protocol</span> <span style="color:#a6e22e">ProtocolA</span> {
     <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">a</span>()
@@ -485,6 +490,7 @@ anyObject = AnotherBar()
     <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">a</span>() {}
 }
 
+<span style="color:#75715e">// class Bar: ProtocolA, ProtocolB, ProtocolC {</span>
 <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Bar</span>: ProtocolA <span style="color:#f92672">&amp;</span> ProtocolB <span style="color:#f92672">&amp;</span> ProtocolC {
     <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">a</span>() {}
     <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">b</span>() {}
@@ -494,7 +500,7 @@ anyObject = AnotherBar()
 <li>另可参考《<a href="../../2019/type_introspection_and_reflection/">Obj-C &amp; Swift 的类型内省与反射</a>》</li>
 </ul>
 <h3 id="tselfttypeself-与-typeof">T.self、T.Type、Self 与 type(of:)</h3>
-<p>若 <code>T</code> 为类型，<code>T.self</code> 是元类型的指针，类型为 <code>T.type</code>，元类型中存储了类型信息：</p>
+<p>若 <code>T</code> 为某一类型，<code>T.self</code> 是元类型（Metatype）的指针，类型为 <code>T.Type</code>，元类型中存储了类型本身的信息：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span> { }
 <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Bar</span> { }
 
@@ -502,8 +508,24 @@ anyObject = AnotherBar()
 <span style="color:#66d9ef">var</span> selfFoo: Foo.<span style="color:#66d9ef">Type</span> = Foo.<span style="color:#66d9ef">self</span> <span style="color:#75715e">// Foo.Type</span>
 <span style="color:#66d9ef">var</span> selfBar: Bar.<span style="color:#66d9ef">Type</span> = Bar.<span style="color:#66d9ef">self</span> <span style="color:#75715e">// Bar.Type</span>
 
-<span style="color:#75715e">// AnyClass 为任意 class 类型</span>
+<span style="color:#66d9ef">var</span> intA = intSelf.<span style="color:#66d9ef">init</span>(<span style="color:#ae81ff">5</span>)       <span style="color:#75715e">// 5: Int</span>
+</code></pre></div><p><code>AnyClass</code> 是 <code>AnyObject.Type</code> 的类型别名，即任意 <code>class</code> 类型的元类型指针：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// Swift / Misc</span>
 <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">typealias</span> AnyClass = AnyObject.<span style="color:#66d9ef">Type</span>
+</code></pre></div><p>我们可以尝试将其转换为不同的元类型指针，用以构造：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span> {
+    <span style="color:#66d9ef">required</span> <span style="color:#66d9ef">init</span>(<span style="color:#66d9ef">_</span> str: String) { }
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">initAnyClass</span>(<span style="color:#66d9ef">_</span> ac: AnyClass) -&gt; AnyObject {
+    <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> ac = ac <span style="color:#66d9ef">as</span>? Foo.<span style="color:#66d9ef">Type</span> {
+        <span style="color:#66d9ef">return</span> ac.<span style="color:#66d9ef">init</span>(<span style="color:#e6db74">&#34;ac&#34;</span>) <span style="color:#75715e">// 编译器已经替我们尝试约束 Foo 所必须具备（required）的 init 方法</span>
+    }
+    
+    fatalError()
+}
+
+print(initAnyClass(Foo.<span style="color:#66d9ef">self</span>)) <span style="color:#75715e">// demo.Foo</span>
 </code></pre></div><p><code>Self</code> 代表当前所在的<strong>类型</strong>本身（类似于 Obj-C 中的 <code>instancetype</code>），可定义为函数的返回值：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">protocol</span> <span style="color:#a6e22e">Protocol</span> {
     <span style="color:#75715e">// 在协议中，Self 可作为函数参数使用</span>
@@ -513,7 +535,7 @@ anyObject = AnotherBar()
 <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span>: <span style="color:#66d9ef">Protocol</span> {
     <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">foo</span>() {}
 
-    <span style="color:#75715e">// 必须声明为 required，防止子类声明其它构造方法，导致丢失 init() 后无法被 type(of: self) 调用</span>
+    <span style="color:#75715e">// 必须声明为 required，防止子类声明其它构造方法导致 init() 丢失后无法被调用</span>
     <span style="color:#66d9ef">required</span> <span style="color:#66d9ef">init</span>() { }
 
     <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">foo</span>() -&gt; <span style="color:#66d9ef">Self</span> {
@@ -538,8 +560,7 @@ anyObject = AnotherBar()
 }
 
 <span style="color:#66d9ef">var</span> f = Foo()
-<span style="color:#75715e">// Foo.Type</span>
-<span style="color:#66d9ef">var</span> fType = type(of: f)  <span style="color:#75715e">// BREAKPOINT 🔴</span>
+<span style="color:#66d9ef">var</span> fType = type(of: f)  <span style="color:#75715e">// Foo.Type；BREAKPOINT 🔴</span>
 <span style="color:#75715e">// Foo.self 为指向元类型的指针，即类型信息的地址，因此与 type(of:) 返回值相同</span>
 print(Foo.<span style="color:#66d9ef">self</span> == fType) <span style="color:#75715e">// true</span>
 </code></pre></div><p>运行至断点处并查看汇编：</p>
@@ -557,6 +578,7 @@ print(Foo.<span style="color:#66d9ef">self</span> == fType) <span style="color:#
 </span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100002aed</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">29</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rax, %r13
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002af0</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">32</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movq</span>   %rdx, -<span style="color:#ae81ff">0x38</span>(%rbp)
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002af4</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">36</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">callq</span>  <span style="color:#ae81ff">0x100002c20</span>               <span style="color:#75715e">; demo.Foo.__allocating_init() -&gt; demo.Foo at main.swift:3
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">; 取 rip 寄存器中的值（0x100002b00）+ 0x57b8（0x1000082B8）存储在 rcx 寄存器中（全局变量 f）
 </span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100002af9</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">41</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">leaq</span>   <span style="color:#ae81ff">0x57b8</span>(%rip), %rcx        <span style="color:#75715e">; demo.f : demo.Foo
 </span><span style="color:#75715e"></span>    <span style="color:#ae81ff">0x100002b00</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">48</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">xorl</span>   %r8d, %r8d
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b03</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">51</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:  <span style="color:#66d9ef">movl</span>   %r8d, %edx
