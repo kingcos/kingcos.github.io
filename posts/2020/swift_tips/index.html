@@ -245,8 +245,8 @@ print(MemoryLayout&lt;Int&gt;.stride)    <span style="color:#75715e">// 8</span>
 <span style="color:#75715e">// alignment：内存对齐参数（最终分配的空间大小即其倍数）</span>
 print(MemoryLayout&lt;Int&gt;.alignment) <span style="color:#75715e">// 8</span>
 
-<span style="color:#66d9ef">var</span> intFoo = <span style="color:#ae81ff">100</span> <span style="color:#75715e">// 16 * 6 + 4</span>
-<span style="color:#66d9ef">var</span> intBar = <span style="color:#ae81ff">18</span>  <span style="color:#75715e">// 16 * 1 + 2</span>
+<span style="color:#66d9ef">var</span> intFoo = <span style="color:#ae81ff">100</span> <span style="color:#75715e">// 16 * 6 + 4 =&gt; 0x0000000000000064</span>
+<span style="color:#66d9ef">var</span> intBar = <span style="color:#ae81ff">18</span>  <span style="color:#75715e">// 16 * 1 + 2 =&gt; 0x0000000000000012</span>
 
 print(MemoryLayout.size(ofValue: intFoo))      <span style="color:#75715e">// 8</span>
 print(MemoryLayout.stride(ofValue: intFoo))    <span style="color:#75715e">// 8</span>
@@ -256,15 +256,16 @@ print(MemoryLayout.alignment(ofValue: intFoo)) <span style="color:#75715e">// 8<
 withUnsafePointer(to: &amp;intFoo) { print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>$0<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>) } <span style="color:#75715e">// 0x0000000100003088</span>
 
 <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">StructFoo</span> {
-    <span style="color:#66d9ef">var</span> a = <span style="color:#ae81ff">1</span>
-    <span style="color:#66d9ef">var</span> b = <span style="color:#ae81ff">1</span>
+    <span style="color:#66d9ef">var</span> a = <span style="color:#ae81ff">1</span> <span style="color:#75715e">// 0 + 1 =&gt; 0x0000000000000001</span>
+    <span style="color:#66d9ef">var</span> b = <span style="color:#ae81ff">1</span> <span style="color:#75715e">// 0 + 1 =&gt; 0x0000000000000001</span>
 }
 
 <span style="color:#66d9ef">var</span> foo = StructFoo()
 <span style="color:#75715e">// 打印结构体类型变量的内存地址</span>
 withUnsafeMutablePointer(to: &amp;foo) { print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>$0<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>) } <span style="color:#75715e">// 0x0000000100003098</span>
 
-<span style="color:#75715e">// （x86_64 小端：高字节放在高位）</span>
+<span style="color:#75715e">// x86_64 / arm64 小端：高位字节存放在高位地址</span>
+<span style="color:#75715e">// eg. 0x0000000000000064，64 为低位，00 为高位，内存地址从左至右依次升高，64 低位字节存放在低位地址即开头</span>
 <span style="color:#75715e">// (lldb) memory read 0x0000000100003088</span>
 <span style="color:#75715e">// 0x100003088: 64 00 00 00 00 00 00 00 12 00 00 00 00 00 00 00  d...............</span>
 <span style="color:#75715e">// 0x100003098: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................</span>
@@ -275,20 +276,20 @@ withUnsafeMutablePointer(to: &amp;foo) { print(<span style="color:#e6db74">&#34;
 <li>另可参考《<a href="https://developer.apple.com/documentation/swift/memorylayout">MemoryLayout - Apple Inc.</a>》</li>
 </ul>
 <h3 id="main">main</h3>
-<p>Swift 项目中没有显式的 <code>main</code> 函数作为整个程序的入口，但当我们断点在 <code>main.swift</code> 中时，Debug Navigator 仍将展示 <code>0 main</code>，此时打开汇编也会在第一行展示<code>demo`main</code>。需要注意的是，声明在 <code>main.swift</code> 的变量将类似全局变量，存储在内存的全局区（数据段），可以直接在其它文件中使用：</p>
+<p>Swift 项目中没有显式的 <code>main</code> 函数作为整个程序的入口，但当我们断点在 <code>main.swift</code> 中时，Debug Navigator 中仍将展示 <code>0 main</code>，此时打开汇编也会在第一行展示<code>demo`main:</code>。需要注意的是，声明在 <code>main.swift</code> 的变量将类似全局变量，存储在内存的全局区（数据段），可以直接在其它文件中使用：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// main.swift</span>
 
 <span style="color:#66d9ef">var</span> gloA = <span style="color:#ae81ff">100</span>
 
 withUnsafePointer(to: &amp;gloA) { print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span>$0<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>) } <span style="color:#75715e">// 0x00000001000031c0</span>
 </code></pre></div><h3 id="下标subscript">下标（Subscript）</h3>
-<p>下标是指我们可以在类、结构体、枚举中定义 <code>subscript</code> 方法（但省略 <code>func</code> 关键字），即可使相应实例获得通过下标访问的能力：</p>
+<p>下标是指可以在类、结构体、或枚举中定义 <code>subscript</code> 方法，即可使相应实例获得通过下标访问的能力：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span> {
     <span style="color:#66d9ef">var</span> a = <span style="color:#ae81ff">10</span>
     <span style="color:#66d9ef">var</span> b = <span style="color:#ae81ff">20</span>
 
-    <span style="color:#66d9ef">subscript</span>(index: Int) -&gt; Int {
-        <span style="color:#66d9ef">get</span> {
+    <span style="color:#66d9ef">subscript</span>(index: Int) -&gt; Int { <span style="color:#75715e">// 省略 `func` 关键字</span>
+        <span style="color:#66d9ef">get</span> {                      <span style="color:#75715e">// 通过 subscript 获取，类似计算属性</span>
             <span style="color:#66d9ef">switch</span> index {
             <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">0</span>:
                 <span style="color:#66d9ef">return</span> a
@@ -299,7 +300,7 @@ withUnsafePointer(to: &amp;gloA) { print(<span style="color:#e6db74">&#34;</span
             }
         }
 
-        <span style="color:#66d9ef">set</span> {
+        <span style="color:#66d9ef">set</span> {                      <span style="color:#75715e">// 通过 subscript 设置，类似计算属性</span>
             <span style="color:#66d9ef">switch</span> index {
             <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">0</span>:
                 a = newValue
@@ -319,7 +320,7 @@ foo[<span style="color:#ae81ff">1</span>] = <span style="color:#ae81ff">200</spa
 
 print(foo[<span style="color:#ae81ff">0</span>]) <span style="color:#75715e">// 100</span>
 print(foo[<span style="color:#ae81ff">1</span>]) <span style="color:#75715e">// 200</span>
-</code></pre></div><p>下标十分类似计算属性的写法，通过 <code>get</code> 获取值，并通过 <code>set</code> 设置值；当不实现 <code>set</code> 时，将变成只读下标，即只可以通过下标访问而不能更改。下标支持设置显式的参数标签，以及支持同时多个下标索引；也支持针对于类型的下标，只需要在声明前添加 <code>static</code> 或 <code>class</code> 关键字修饰即可（但需要注意由于 <code>static</code> 修饰的方法将不能被子类重写，下标也同理）：</p>
+</code></pre></div><p>当不实现 <code>set</code> 时，将变成只读下标，即只可以通过下标访问而不能更改。下标支持设置显式的参数标签，以及支持同时多个下标索引；也支持针对于类型的下标，只需要在声明前添加 <code>static</code> 或 <code>class</code> 关键字修饰即可（但需要注意由于 <code>static</code> 修饰的方法将不能被子类重写，下标也同理）：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Bar</span> {
     <span style="color:#66d9ef">var</span> colmunA = [<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>]
     <span style="color:#66d9ef">var</span> columnB = [<span style="color:#ae81ff">10</span>, <span style="color:#ae81ff">20</span>]
@@ -327,7 +328,7 @@ print(foo[<span style="color:#ae81ff">1</span>]) <span style="color:#75715e">// 
     <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">var</span> c = <span style="color:#ae81ff">30</span>
     <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">var</span> d = <span style="color:#ae81ff">40</span>
 
-    <span style="color:#66d9ef">subscript</span>(i index: Int, row: Int) -&gt; Int {
+    <span style="color:#66d9ef">subscript</span>(i index: Int, row: Int) -&gt; Int { <span style="color:#75715e">// 只读下标 &amp; 多下标索引</span>
         <span style="color:#66d9ef">get</span> {
             <span style="color:#66d9ef">switch</span> index {
             <span style="color:#66d9ef">case</span> <span style="color:#ae81ff">0</span>:
@@ -354,7 +355,7 @@ print(foo[<span style="color:#ae81ff">1</span>]) <span style="color:#75715e">// 
 
 print(Bar()[i: <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>]) <span style="color:#75715e">// 10</span>
 print(Bar[<span style="color:#ae81ff">0</span>])         <span style="color:#75715e">// 30</span>
-</code></pre></div><p>当下标为只读下标时，下标获取的类型根据是结构体还是类的情况有些许不同：</p>
+</code></pre></div><p>当为只读下标时，通过下标获取的类型根据是结构体还是类的情况有些许不同：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ClassFoo</span> {
     <span style="color:#66d9ef">var</span> a = <span style="color:#ae81ff">10</span>
 }
@@ -381,15 +382,13 @@ print(Bar[<span style="color:#ae81ff">0</span>])         <span style="color:#757
 
 <span style="color:#66d9ef">var</span> baz1 = BazByClass()
 baz1[<span style="color:#ae81ff">0</span>].a = <span style="color:#ae81ff">100</span>
-<span style="color:#75715e">// ERROR: Cannot assign through subscript: subscript is get-only</span>
-<span style="color:#75715e">// baz1[0] = ClassFoo()</span>
+<span style="color:#75715e">// baz1[0] = ClassFoo() // ERROR: Cannot assign through subscript: subscript is get-only</span>
 print(baz1[<span style="color:#ae81ff">0</span>].a)
 
 <span style="color:#66d9ef">var</span> baz2 = BazByStruct()
-<span style="color:#75715e">// ERROR: Cannot assign to property: subscript is get-only</span>
-<span style="color:#75715e">//baz2[0].b = 200</span>
+<span style="color:#75715e">// baz2[0].b = 200 // ERROR: Cannot assign to property: subscript is get-only</span>
 print(baz2[<span style="color:#ae81ff">0</span>].b)
-</code></pre></div><p>当只读下标获取的类型为类时（引用类型），只读只针对于指向堆空间实例的指针指向的地址，即无法指向新的实例，但可以读写地址的内存空间；而当只读下标获取的类型为结构体时（值类型），将无法通过下标设置结构体变量的值，那么想要修改就要通过 <code>set</code> 实现：</p>
+</code></pre></div><p>当只读下标获取的类型为类时（引用类型），只读只针对于指向堆空间实例的地址，即无法设置指向为新的实例，但仍可以读写堆的内存空间；而当只读下标获取的类型为结构体时（值类型），将无法通过下标设置结构体变量的值，那么想要修改就要通过 <code>set</code> 实现：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">BazByStruct2</span> {
     <span style="color:#66d9ef">var</span> bar = StructBar()
 
