@@ -39,8 +39,8 @@ import Foundation func foo() -&amp;gt; String { return &amp;#34;kingcos.me&amp;#
 <meta property="og:description" content="《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。那么作为起始篇，随着整个系列的进行，其中「遗」漏的基本使用将在本文中得到补充。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/posts/2020/swift_tips/" /><meta property="article:section" content="posts" />
-<meta property="article:published_time" content="2020-09-23T00:00:00&#43;00:00" />
-<meta property="article:modified_time" content="2020-09-23T00:00:00&#43;00:00" /><meta property="og:site_name" content="iBlog" />
+<meta property="article:published_time" content="2021-04-16T00:00:00&#43;00:00" />
+<meta property="article:modified_time" content="2021-04-16T00:00:00&#43;00:00" /><meta property="og:site_name" content="iBlog" />
 
 
 
@@ -122,12 +122,12 @@ import Foundation func foo() -&amp;gt; String { return &amp;#34;kingcos.me&amp;#
     <div class="post-meta">
       
         <span class="post-date">
-            2020-09-23
+            2021-04-16
         </span>
       
       
       
-        <span class="post-read-time">— 8 min read</span>
+        <span class="post-read-time">— 9 min read</span>
       
     </div>
 
@@ -617,7 +617,104 @@ print(Foo.<span style="color:#66d9ef">self</span> == fType) <span style="color:#
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b70</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">160</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %r13
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b72</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">162</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">popq</span>   %rbp
     <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">x100002b73</span> <span style="color:#960050;background-color:#1e0010">&lt;+</span><span style="color:#ae81ff">163</span><span style="color:#960050;background-color:#1e0010">&gt;</span>: <span style="color:#66d9ef">retq</span>
-</code></pre></div><!-- ### API & ABI
+</code></pre></div><h3 id="customstringconvertible">CustomStringConvertible</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">protocol</span> <span style="color:#a6e22e">CustomStringConvertible</span> {
+    <span style="color:#66d9ef">var</span> description: String { <span style="color:#66d9ef">get</span> }
+}
+
+<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">protocol</span> <span style="color:#a6e22e">LosslessStringConvertible</span> : CustomStringConvertible {
+    <span style="color:#66d9ef">init</span>?(<span style="color:#66d9ef">_</span> description: String)
+}
+
+<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">protocol</span> <span style="color:#a6e22e">CustomDebugStringConvertible</span> {
+    <span style="color:#66d9ef">var</span> debugDescription: String { <span style="color:#66d9ef">get</span> }
+}
+</code></pre></div><p><code>CustomStringConvertible</code> 协议中只有一个 <code>description</code> 属性，类似 Obj-C 中 <code>NSObject</code> 的 <code>description</code> 方法，Swift 中的类型可以通过实现该协议在需要打印对象的时候进行自定义表示。<code>LosslessStringConvertible</code> 协议继承自 <code>CustomStringConvertible</code>，提供了从表示到对象的可失败构造方法。<code>CustomDebugStringConvertible</code> 则提供了更多 Debug 下常用的对象打印，如 <code>debugPrint</code> 与 LLDB 的 <code>po</code> 命令：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// Swift / Misc</span>
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span>: CustomStringConvertible,
+            LosslessStringConvertible,
+            CustomDebugStringConvertible {
+    <span style="color:#66d9ef">var</span> foo: String
+    
+    <span style="color:#66d9ef">init</span>?(<span style="color:#66d9ef">_</span> description: String) {
+        foo = description
+    }
+    
+    <span style="color:#66d9ef">var</span> description: String {
+        <span style="color:#e6db74">&#34;Foo - </span><span style="color:#e6db74">\(</span>foo<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>
+    }
+    
+    <span style="color:#66d9ef">var</span> debugDescription: String {
+        <span style="color:#e6db74">&#34;Debug - Foo - </span><span style="color:#e6db74">\(</span>foo<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>
+    }
+}
+
+<span style="color:#66d9ef">let</span> f = Foo(<span style="color:#e6db74">&#34;foo&#34;</span>)<span style="color:#f92672">!</span>
+
+print(f)      <span style="color:#75715e">// Foo - foo，BREAKPOINT 🔴</span>
+debugPrint(f) <span style="color:#75715e">// Debug - Foo - foo</span>
+
+<span style="color:#75715e">// LLDB:</span>
+<span style="color:#75715e">// (lldb) po f</span>
+<span style="color:#75715e">// ▿ Debug - Foo - foo</span>
+<span style="color:#75715e">//   - foo : &#34;foo&#34;</span>
+<span style="color:#75715e">// (lldb) p f</span>
+<span style="color:#75715e">// (demo.Foo) $R4 = (foo = &#34;foo&#34;) </span>
+</code></pre></div><blockquote>
+<p><strong>默认情况</strong></p>
+<p>当未实现 <code>CustomStringConvertible</code> 协议时，<code>print</code>、<code>debugPrint</code>、<code>po</code> 均可正常使用，表现如下；当仅实现 <code>CustomStringConvertible</code> 协议时，<code>debugPrint</code> 与 <code>po</code> 将默认以实现的 <code>description</code> 为准，表现如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Bar</span> {
+    <span style="color:#66d9ef">var</span> bar: String
+}
+
+<span style="color:#66d9ef">let</span> bar = Bar(bar: <span style="color:#e6db74">&#34;bar&#34;</span>)
+
+print(bar)      <span style="color:#75715e">// Bar(bar: &#34;bar&#34;)</span>
+debugPrint(bar) <span style="color:#75715e">// demo.Bar(bar: &#34;bar&#34;)</span>
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Baz</span>: CustomStringConvertible {
+    <span style="color:#66d9ef">var</span> baz: String
+    
+    <span style="color:#66d9ef">var</span> description: String {
+        <span style="color:#e6db74">&#34;Baz - </span><span style="color:#e6db74">\(</span>baz<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>
+    }
+}
+
+<span style="color:#66d9ef">let</span> baz = Baz(baz: <span style="color:#e6db74">&#34;baz&#34;</span>)
+
+print(baz)      <span style="color:#75715e">// Baz - baz，BREAKPOINT 🔴</span>
+debugPrint(baz) <span style="color:#75715e">// Baz - baz</span>
+
+<span style="color:#75715e">// LLDB:</span>
+<span style="color:#75715e">// (lldb) po bar</span>
+<span style="color:#75715e">// ▿ Bar</span>
+<span style="color:#75715e">//   - bar : &#34;bar&#34;</span>
+<span style="color:#75715e">// (lldb) po baz</span>
+<span style="color:#75715e">// ▿ Baz - baz</span>
+<span style="color:#75715e">//   - baz : &#34;baz&#34;</span>
+</code></pre></div></blockquote>
+<h3 id="断言assert">断言（assert）</h3>
+<p>我们常在 Debug 模式下使用断言来保证代码的健壮性。默认情况下，Swift 中的断言仅在 Debug 模式下生效，但我们也可以通过编译选项配置：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Other Swift Flags</th>
+<th style="text-align:center">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-assert-config Release</td>
+<td style="text-align:center">断言失效</td>
+</tr>
+<tr>
+<td style="text-align:center">-assert-config Debug</td>
+<td style="text-align:center">断言生效</td>
+</tr>
+</tbody>
+</table>
+<!-- ### API & ABI
 
 - API（Application Programming Interface，应用程序编程接口）：源代码和库之间的接口。
 - ABI（Application Binary Interface，应用程序二进制接口）：
