@@ -1,149 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
+<html lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="kingcos" />
+	
+	
+	
+	<title>iOS 中的 KVO ｜ 萌面大道</title>
+	
     
-      <title>iOS 中的 KVO :: iBlog</title>
     
-    <meta http-equiv="content-type" content="text/html; charset=utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes     2019-03-13 首次提交    Preface KVO 即 Key-Value Observing，译作键值监听（下文简称 KVO），通常用于监听对象的某个特定属性值的变化。本文将由浅入深，谈谈 iOS 中的 KVO。
-How #import &amp;#34;ViewController.h&amp;#34;  @interface Computer : NSObject @property (nonatomic, assign) int buttonClickTimes; @end @implementation Computer @end @interface ViewController () @property (nonatomic, strong) Computer *cpt; @end @implementation ViewController - (Computer *)cpt { if (!_cpt) { _cpt = [[Computer alloc] init]; // ➡️ 为 cpt 属性的键路径 buttonClickTimes 增加监听者 self（该控制器）  // options 决定监听者将同时接收到新值和旧值  // context 决定附带的上下文信息「ViewController-buttonClickTimes」。  [_cpt addObserver:self forKeyPath:@&amp;#34;buttonClickTimes&amp;#34; options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld context:@&amp;#34;ViewController-buttonClickTimes&amp;#34;]; } return _cpt; } - (void)dealloc { // ➡️ 在监听者销毁前将其移除  [self."/>
-<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
-<meta name="robots" content="noodp"/>
-<link rel="canonical" href="/posts/2019/kvo_in_ios/" />
+    <meta name="description" content="KVO 即 Key-Value Observing，译作键值监听，通常用于监听对象的某个特定属性值的变化。本文将由浅入深，谈谈 iOS 中的 KVO。" />
+    
 
+    
+    
+    <meta name="keywords" content="Hugo, theme, zozo" />
+    
 
+	
+    
+    <link rel="shortcut icon" href="https://kingcos.me/images/favicon.png" />
 
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.mecss/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/highlight.css" />
 
-
-<link rel="stylesheet" href="/assets/style.css">
-
-
-<link rel="stylesheet" href="/style.css">
-
-
-<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
-<link rel="shortcut icon" href="/img/favicon.png">
-
-
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="iOS 中的 KVO"/>
-<meta name="twitter:description" content="KVO 即 Key-Value Observing，译作键值监听，通常用于监听对象的某个特定属性值的变化。本文将由浅入深，谈谈 iOS 中的 KVO。"/>
-
-
-
-<meta property="og:title" content="iOS 中的 KVO" />
-<meta property="og:description" content="KVO 即 Key-Value Observing，译作键值监听，通常用于监听对象的某个特定属性值的变化。本文将由浅入深，谈谈 iOS 中的 KVO。" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="/posts/2019/kvo_in_ios/" /><meta property="article:section" content="posts" />
-<meta property="article:published_time" content="2019-03-13T00:00:00&#43;00:00" />
-<meta property="article:modified_time" content="2019-03-13T00:00:00&#43;00:00" /><meta property="og:site_name" content="iBlog" />
-
-
-
-
+    
+    
+</head>
 
 <script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
 
-  </head>
-  <body class="">
-    <div class="container">
-      <header class="header">
-  <span class="header__inner">
-    <a href="/" class="logo" style="text-decoration: none;">
-  
-    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
-  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
-</svg>
-</span>
-    <span class="logo__text">kingcos.me</span>
-    <span class="logo__cursor"></span>
-  
-</a>
 
-    <span class="header__right">
-      
-        <nav class="menu">
-  <ul class="menu__inner menu__inner--desktop">
-    
-      
-        
-          <li><a href="/about">About</a></li>
-        
-      
-        
-          <li><a href="/read">Read</a></li>
-        
-      
-      
-    
-  </ul>
-
-  <ul class="menu__inner menu__inner--mobile">
-    
-      
-        <li><a href="/about">About</a></li>
-      
-    
-      
-        <li><a href="/read">Read</a></li>
-      
-    
-  </ul>
-</nav>
-
-        <span class="menu-trigger">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M0 0h24v24H0z" fill="none"/>
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-          </svg>
-        </span>
-      
-      <span class="theme-toggle">
-        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
-  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
-  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
-</svg>
-
-      </span>
-    </span>
-  </span>
-</header>
-
-
-      <div class="content">
-        
-  <div class="post">
-    <h2 class="post-title"><a href="/posts/2019/kvo_in_ios/">iOS 中的 KVO</a></h2>
-    <div class="post-meta">
-      
-        <span class="post-date">
-            2019-03-13
-        </span>
-      
-      
-      
-        <span class="post-read-time">— 8 min read</span>
-      
+<body>
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/posts/">Archive</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/about/">About</a>
+            </li>
+            
+        </ul>
     </div>
-
-    
-      <span class="post-tags">
-        
-          #<a href="/tags/focus/">Focus</a>&nbsp;
-        
-          #<a href="/tags/ios/">iOS</a>&nbsp;
-        
-          #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
-        
-      </span>
-    
-
-    
-
-    <div class="post-content">
-      <table>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            <h1>
+                <a href="https://kingcos.me">
+                    <span>萌面大道</span>
+                </a>
+            </h1>
+        </div>
+        <div class="description">
+            <p class="sub_title">kingcos | Focus</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/kingcos" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://www.instagram.com/kingcos_v/" title="instagram" target="_blank"><i class="ri-instagram-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/kingcos_v" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/u/1798410923" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                <a href="https://kingcos.me/index.xml" type="application/rss+xml" title="rss" target="_blank"><i
+                        class="ri-rss-fill"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/2019/kvo_in_ios/'>iOS 中的 KVO</a></h2>
+                        <span class="date">2019.03.13</span>
+                    </div>
+                    <div class="post_content markdown"><table>
 <thead>
 <tr>
 <th style="text-align:center">Date</th>
@@ -160,260 +124,260 @@ How #import &amp;#34;ViewController.h&amp;#34;  @interface Computer : NSObject @
 <h2 id="preface">Preface</h2>
 <p>KVO 即 Key-Value Observing，译作键值监听（下文简称 KVO），通常用于监听对象的某个特定属性值的变化。本文将由浅入深，谈谈 iOS 中的 KVO。</p>
 <h2 id="how">How</h2>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#import &#34;ViewController.h&#34;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span>
-<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">assign</span>) <span style="color:#66d9ef">int</span> buttonClickTimes;
-<span style="color:#66d9ef">@end</span>
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &#34;ViewController.h&#34;
+</span><span class="cp"></span>
+<span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">assign</span><span class="p">)</span> <span class="kt">int</span> <span class="n">buttonClickTimes</span><span class="p">;</span>
+<span class="k">@end</span>
 
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
-<span style="color:#66d9ef">@end</span>
+<span class="k">@implementation</span> <span class="nc">Computer</span>
+<span class="k">@end</span>
 
 
-<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">ViewController</span> ()
-<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">strong</span>) Computer <span style="color:#f92672">*</span>cpt;
-<span style="color:#66d9ef">@end</span>
+<span class="k">@interface</span> <span class="nc">ViewController</span> <span class="p">()</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">strong</span><span class="p">)</span> <span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span><span class="p">;</span>
+<span class="k">@end</span>
 
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">ViewController</span>
+<span class="k">@implementation</span> <span class="nc">ViewController</span>
 
-- (Computer <span style="color:#f92672">*</span>)<span style="color:#a6e22e">cpt</span> {
-    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>_cpt) {
-        _cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
-        <span style="color:#75715e">// ➡️ 为 cpt 属性的键路径 buttonClickTimes 增加监听者 self（该控制器）
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// options 决定监听者将同时接收到新值和旧值
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// context 决定附带的上下文信息「ViewController-buttonClickTimes」。
-</span><span style="color:#75715e"></span>        [_cpt addObserver:self
-               forKeyPath:<span style="color:#e6db74">@&#34;buttonClickTimes&#34;</span>
-                  options:NSKeyValueObservingOptionNew <span style="color:#f92672">|</span> NSKeyValueObservingOptionOld
-                  context:<span style="color:#e6db74">@&#34;ViewController-buttonClickTimes&#34;</span>];
-    }
-    <span style="color:#66d9ef">return</span> _cpt;
-}
+<span class="p">-</span> <span class="p">(</span><span class="n">Computer</span> <span class="o">*</span><span class="p">)</span><span class="nf">cpt</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">_cpt</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">_cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+        <span class="c1">// ➡️ 为 cpt 属性的键路径 buttonClickTimes 增加监听者 self（该控制器）
+</span><span class="c1"></span>        <span class="c1">// options 决定监听者将同时接收到新值和旧值
+</span><span class="c1"></span>        <span class="c1">// context 决定附带的上下文信息「ViewController-buttonClickTimes」。
+</span><span class="c1"></span>        <span class="p">[</span><span class="n">_cpt</span> <span class="nl">addObserver</span><span class="p">:</span><span class="nb">self</span>
+               <span class="nl">forKeyPath</span><span class="p">:</span><span class="s">@&#34;buttonClickTimes&#34;</span>
+                  <span class="nl">options</span><span class="p">:</span><span class="n">NSKeyValueObservingOptionNew</span> <span class="o">|</span> <span class="n">NSKeyValueObservingOptionOld</span>
+                  <span class="nl">context</span><span class="p">:</span><span class="s">@&#34;ViewController-buttonClickTimes&#34;</span><span class="p">];</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">_cpt</span><span class="p">;</span>
+<span class="p">}</span>
 
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">dealloc</span> {
-    <span style="color:#75715e">// ➡️ 在监听者销毁前将其移除
-</span><span style="color:#75715e"></span>    [self.cpt removeObserver:self forKeyPath:<span style="color:#e6db74">@&#34;buttonClickTimes&#34;</span>];
-}
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">dealloc</span> <span class="p">{</span>
+    <span class="c1">// ➡️ 在监听者销毁前将其移除
+</span><span class="c1"></span>    <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">cpt</span> <span class="nl">removeObserver</span><span class="p">:</span><span class="nb">self</span> <span class="nl">forKeyPath</span><span class="p">:</span><span class="s">@&#34;buttonClickTimes&#34;</span><span class="p">];</span>
+<span class="p">}</span>
 
-- (<span style="color:#66d9ef">IBAction</span>)<span style="color:#a6e22e">clickOnButton:</span>(<span style="color:#66d9ef">id</span>)sender {
-    self.cpt.buttonClickTimes <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>;
-}
+<span class="p">-</span> <span class="p">(</span><span class="kt">IBAction</span><span class="p">)</span><span class="nf">clickOnButton:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">sender</span> <span class="p">{</span>
+    <span class="nb">self</span><span class="p">.</span><span class="n">cpt</span><span class="p">.</span><span class="n">buttonClickTimes</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
 
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">observeValueForKeyPath:</span>(NSString <span style="color:#f92672">*</span>)keyPath
-                      <span style="color:#a6e22e">ofObject:</span>(<span style="color:#66d9ef">id</span>)object
-                        <span style="color:#a6e22e">change:</span>(NSDictionary <span style="color:#f92672">*</span>)change
-                       <span style="color:#a6e22e">context:</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)context {
-    <span style="color:#75715e">// ➡️ 根据 context 判定
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (context <span style="color:#f92672">==</span> <span style="color:#e6db74">@&#34;ViewController-buttonClickTimes&#34;</span>) {
-        NSLog(<span style="color:#e6db74">@&#34;%@ - %@ - %@ - %@&#34;</span>, change, keyPath, object, context);
-    } <span style="color:#66d9ef">else</span> {
-        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
-    }
-}
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">observeValueForKeyPath:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">keyPath</span>
+                      <span class="nf">ofObject:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">object</span>
+                        <span class="nf">change:</span><span class="p">(</span><span class="n">NSDictionary</span> <span class="o">*</span><span class="p">)</span><span class="nv">change</span>
+                       <span class="nf">context:</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="nv">context</span> <span class="p">{</span>
+    <span class="c1">// ➡️ 根据 context 判定
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">context</span> <span class="o">==</span> <span class="s">@&#34;ViewController-buttonClickTimes&#34;</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@ - %@ - %@ - %@&#34;</span><span class="p">,</span> <span class="n">change</span><span class="p">,</span> <span class="n">keyPath</span><span class="p">,</span> <span class="n">object</span><span class="p">,</span> <span class="n">context</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="p">[</span><span class="nb">super</span> <span class="nl">observeValueForKeyPath</span><span class="p">:</span><span class="n">keyPath</span> <span class="nl">ofObject</span><span class="p">:</span><span class="n">object</span> <span class="nl">change</span><span class="p">:</span><span class="n">change</span> <span class="nl">context</span><span class="p">:</span><span class="n">context</span><span class="p">];</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-<span style="color:#66d9ef">@end</span>
+<span class="k">@end</span>
 </code></pre></div><p>在 <code>ViewController</code> 中，定义一个 <code>Computer</code> 类型的属性 <code>cpt</code>，并希望得知其中 <code>buttonClickTimes</code> 的每次变更。这时就可以将当前 <code>ViewController</code> 设置为 <code>cpt. buttonClickTimes</code> 的监听者；在按钮绑定的方法中，会对 <code>cpt.buttonClickTimes</code> 进行更新，所以当用户点击后，监听者就可以在 <code>observeValueForKeyPath:ofObject:change:context:</code> 中得知变更的通知；最后，在监听者销毁前，需要将其移除。</p>
 <h2 id="what">What</h2>
 <p>简单来说，KVO 总共分为三个步骤，添加监听者、监听者得到通知、移除监听者。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// NSKeyValueObserving.h
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">NSObject</span>(NSKeyValueObserverRegistration)
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// NSKeyValueObserving.h
+</span><span class="c1"></span>
+<span class="k">@interface</span> <span class="nc">NSObject</span><span class="nl">(NSKeyValueObserverRegistration)</span>
 
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">addObserver:</span>(NSObject <span style="color:#f92672">*</span>)observer <span style="color:#a6e22e">forKeyPath:</span>(NSString <span style="color:#f92672">*</span>)keyPath <span style="color:#a6e22e">options:</span>(NSKeyValueObservingOptions)options <span style="color:#a6e22e">context:</span>(nullable <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)context;
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">removeObserver:</span>(NSObject <span style="color:#f92672">*</span>)observer <span style="color:#a6e22e">forKeyPath:</span>(NSString <span style="color:#f92672">*</span>)keyPath <span style="color:#a6e22e">context:</span>(nullable <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)context API_AVAILABLE(macos(<span style="color:#ae81ff">10.7</span>), ios(<span style="color:#ae81ff">5.0</span>), watchos(<span style="color:#ae81ff">2.0</span>), tvos(<span style="color:#ae81ff">9.0</span>));
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">removeObserver:</span>(NSObject <span style="color:#f92672">*</span>)observer <span style="color:#a6e22e">forKeyPath:</span>(NSString <span style="color:#f92672">*</span>)keyPath;
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">addObserver:</span><span class="p">(</span><span class="n">NSObject</span> <span class="o">*</span><span class="p">)</span><span class="nv">observer</span> <span class="nf">forKeyPath:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">keyPath</span> <span class="nf">options:</span><span class="p">(</span><span class="n">NSKeyValueObservingOptions</span><span class="p">)</span><span class="nv">options</span> <span class="nf">context:</span><span class="p">(</span><span class="n">nullable</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="nv">context</span><span class="p">;</span>
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">removeObserver:</span><span class="p">(</span><span class="n">NSObject</span> <span class="o">*</span><span class="p">)</span><span class="nv">observer</span> <span class="nf">forKeyPath:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">keyPath</span> <span class="nf">context:</span><span class="p">(</span><span class="n">nullable</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="nv">context</span> <span class="n">API_AVAILABLE</span><span class="p">(</span><span class="n">macos</span><span class="p">(</span><span class="mf">10.7</span><span class="p">),</span> <span class="n">ios</span><span class="p">(</span><span class="mf">5.0</span><span class="p">),</span> <span class="n">watchos</span><span class="p">(</span><span class="mf">2.0</span><span class="p">),</span> <span class="n">tvos</span><span class="p">(</span><span class="mf">9.0</span><span class="p">));</span>
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">removeObserver:</span><span class="p">(</span><span class="n">NSObject</span> <span class="o">*</span><span class="p">)</span><span class="nv">observer</span> <span class="nf">forKeyPath:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">keyPath</span><span class="p">;</span>
 
-<span style="color:#66d9ef">@end</span>
+<span class="k">@end</span>
 </code></pre></div><h3 id="添加监听者">添加监听者</h3>
 <p>为属性添加监听者的 <code>addObserver:forKeyPath:options:context:</code> 方法中一共接收四个参数，下面来逐个分析一下。</p>
 <h4 id="observer">observer</h4>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// NSKeyValueObserving.h
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">NSObject</span>(NSKeyValueObserving)
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// NSKeyValueObserving.h
+</span><span class="c1"></span>
+<span class="k">@interface</span> <span class="nc">NSObject</span><span class="nl">(NSKeyValueObserving)</span>
 
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">observeValueForKeyPath:</span>(nullable NSString <span style="color:#f92672">*</span>)keyPath <span style="color:#a6e22e">ofObject:</span>(nullable <span style="color:#66d9ef">id</span>)object <span style="color:#a6e22e">change:</span>(nullable NSDictionary<span style="color:#f92672">&lt;</span>NSKeyValueChangeKey, <span style="color:#66d9ef">id</span><span style="color:#f92672">&gt;</span> <span style="color:#f92672">*</span>)change <span style="color:#a6e22e">context:</span>(nullable <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)context;
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">observeValueForKeyPath:</span><span class="p">(</span><span class="n">nullable</span> <span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">keyPath</span> <span class="nf">ofObject:</span><span class="p">(</span><span class="n">nullable</span> <span class="kt">id</span><span class="p">)</span><span class="nv">object</span> <span class="nf">change:</span><span class="p">(</span><span class="n">nullable</span> <span class="n">NSDictionary</span><span class="o">&lt;</span><span class="n">NSKeyValueChangeKey</span><span class="p">,</span> <span class="kt">id</span><span class="o">&gt;</span> <span class="o">*</span><span class="p">)</span><span class="nv">change</span> <span class="nf">context:</span><span class="p">(</span><span class="n">nullable</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="nv">context</span><span class="p">;</span>
 
-<span style="color:#66d9ef">@end</span>
+<span class="k">@end</span>
 </code></pre></div><p><code>observer</code> 即监听者，当监听的值发生改变后，监听者的 <code>observeValueForKeyPath:ofObject:change:context:</code> 方法就会被调用。而由于该方法定义在 Obj-C 中 NSObject 的 <code>NSKeyValueObserving</code> 分类中，所以任何 NSObject 的子类都是 KVO 兼容的。</p>
 <h4 id="keypath">keyPath</h4>
 <p><code>keyPath</code> 即键路径。如上我们要监听 <code>cpt</code> 的 <code>buttonClickTimes</code> 属性，那么其绝对键路径就是 <code>cpt.buttonClickTimes</code>。而这里的 <code>keyPath</code> 其实是相对于被监听者的相对键路径，所以使用 <code>buttonClickTimes</code> 即可。在单一键路径时，也可以使用 <code>NSStringFromSelector(@selector(buttonClickTimes))</code> 获取 getter 的方法名作为键路径，更加安全。</p>
 <p>如果是嵌套多个对象，则使用多个 <code>.</code> 即可，比如下例中要监听 <code>cpt</code> 的 <code>screen.refreshedTimes</code> 可以拥有两种方式进行监听：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#import &#34;ViewController.h&#34;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Screen</span> : <span style="color:#a6e22e">NSObject</span>
-<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">assign</span>) <span style="color:#66d9ef">int</span> refreshedTimes;
-<span style="color:#66d9ef">@end</span>
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &#34;ViewController.h&#34;
+</span><span class="cp"></span>
+<span class="k">@interface</span> <span class="nc">Screen</span> : <span class="nc">NSObject</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">assign</span><span class="p">)</span> <span class="kt">int</span> <span class="n">refreshedTimes</span><span class="p">;</span>
+<span class="k">@end</span>
 
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Screen</span>
-<span style="color:#66d9ef">@end</span>
+<span class="k">@implementation</span> <span class="nc">Screen</span>
+<span class="k">@end</span>
 
-<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span>
-<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">assign</span>) <span style="color:#66d9ef">int</span> buttonClickTimes;
-<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">strong</span>) Screen <span style="color:#f92672">*</span>screen;
-<span style="color:#66d9ef">@end</span>
+<span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">assign</span><span class="p">)</span> <span class="kt">int</span> <span class="n">buttonClickTimes</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">strong</span><span class="p">)</span> <span class="n">Screen</span> <span class="o">*</span><span class="n">screen</span><span class="p">;</span>
+<span class="k">@end</span>
 
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
-<span style="color:#66d9ef">@end</span>
+<span class="k">@implementation</span> <span class="nc">Computer</span>
+<span class="k">@end</span>
 
-<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">ViewController</span> ()
-<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">strong</span>) Computer <span style="color:#f92672">*</span>cpt;
-<span style="color:#66d9ef">@end</span>
+<span class="k">@interface</span> <span class="nc">ViewController</span> <span class="p">()</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">strong</span><span class="p">)</span> <span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span><span class="p">;</span>
+<span class="k">@end</span>
 
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">ViewController</span>
+<span class="k">@implementation</span> <span class="nc">ViewController</span>
 
-- (Computer <span style="color:#f92672">*</span>)<span style="color:#a6e22e">cpt</span> {
-    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>_cpt) {
-        _cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
-        _cpt.screen <span style="color:#f92672">=</span> [[Screen alloc] init];
+<span class="p">-</span> <span class="p">(</span><span class="n">Computer</span> <span class="o">*</span><span class="p">)</span><span class="nf">cpt</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">_cpt</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">_cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+        <span class="n">_cpt</span><span class="p">.</span><span class="n">screen</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Screen</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
         
-        [_cpt addObserver:self
-               forKeyPath:<span style="color:#e6db74">@&#34;buttonClickTimes&#34;</span> <span style="color:#75715e">// NSStringFromSelector(@selector(buttonClickTimes))
-</span><span style="color:#75715e"></span>                  options:NSKeyValueObservingOptionNew <span style="color:#f92672">|</span> NSKeyValueObservingOptionOld
-                  context:<span style="color:#e6db74">@&#34;ViewController - buttonClickTimes&#34;</span>];
-        <span style="color:#75715e">// ➡️ 监听 cpt 的 screen.refreshedTimes
-</span><span style="color:#75715e"></span>        [_cpt addObserver:self
-               forKeyPath:<span style="color:#e6db74">@&#34;screen.refreshedTimes&#34;</span>
-                  options:NSKeyValueObservingOptionNew <span style="color:#f92672">|</span> NSKeyValueObservingOptionOld
-                  context:<span style="color:#e6db74">@&#34;ViewController - screen.refreshedTimes&#34;</span>];
-        <span style="color:#75715e">// ➡️ 也可以监听 cpt.screen 的 refreshedTimes 
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// [_cpt.screen addObserver:self
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">//               forKeyPath:@&#34;refreshedTimes&#34;
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">//                  options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">//                  context:@&#34;ViewController - screen.refreshedTimes&#34;];
-</span><span style="color:#75715e"></span>    }
-    <span style="color:#66d9ef">return</span> _cpt;
-}
+        <span class="p">[</span><span class="n">_cpt</span> <span class="nl">addObserver</span><span class="p">:</span><span class="nb">self</span>
+               <span class="nl">forKeyPath</span><span class="p">:</span><span class="s">@&#34;buttonClickTimes&#34;</span> <span class="c1">// NSStringFromSelector(@selector(buttonClickTimes))
+</span><span class="c1"></span>                  <span class="nl">options</span><span class="p">:</span><span class="n">NSKeyValueObservingOptionNew</span> <span class="o">|</span> <span class="n">NSKeyValueObservingOptionOld</span>
+                  <span class="nl">context</span><span class="p">:</span><span class="s">@&#34;ViewController - buttonClickTimes&#34;</span><span class="p">];</span>
+        <span class="c1">// ➡️ 监听 cpt 的 screen.refreshedTimes
+</span><span class="c1"></span>        <span class="p">[</span><span class="n">_cpt</span> <span class="nl">addObserver</span><span class="p">:</span><span class="nb">self</span>
+               <span class="nl">forKeyPath</span><span class="p">:</span><span class="s">@&#34;screen.refreshedTimes&#34;</span>
+                  <span class="nl">options</span><span class="p">:</span><span class="n">NSKeyValueObservingOptionNew</span> <span class="o">|</span> <span class="n">NSKeyValueObservingOptionOld</span>
+                  <span class="nl">context</span><span class="p">:</span><span class="s">@&#34;ViewController - screen.refreshedTimes&#34;</span><span class="p">];</span>
+        <span class="c1">// ➡️ 也可以监听 cpt.screen 的 refreshedTimes 
+</span><span class="c1"></span>        <span class="c1">// [_cpt.screen addObserver:self
+</span><span class="c1"></span>        <span class="c1">//               forKeyPath:@&#34;refreshedTimes&#34;
+</span><span class="c1"></span>        <span class="c1">//                  options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld
+</span><span class="c1"></span>        <span class="c1">//                  context:@&#34;ViewController - screen.refreshedTimes&#34;];
+</span><span class="c1"></span>    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">_cpt</span><span class="p">;</span>
+<span class="p">}</span>
 
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">dealloc</span> {
-    [self.cpt removeObserver:self forKeyPath:<span style="color:#e6db74">@&#34;buttonClickTimes&#34;</span>];
-    [self.cpt removeObserver:self forKeyPath:<span style="color:#e6db74">@&#34;screen.refreshedTimes&#34;</span>];
-}
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">dealloc</span> <span class="p">{</span>
+    <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">cpt</span> <span class="nl">removeObserver</span><span class="p">:</span><span class="nb">self</span> <span class="nl">forKeyPath</span><span class="p">:</span><span class="s">@&#34;buttonClickTimes&#34;</span><span class="p">];</span>
+    <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">cpt</span> <span class="nl">removeObserver</span><span class="p">:</span><span class="nb">self</span> <span class="nl">forKeyPath</span><span class="p">:</span><span class="s">@&#34;screen.refreshedTimes&#34;</span><span class="p">];</span>
+<span class="p">}</span>
 
-- (<span style="color:#66d9ef">IBAction</span>)<span style="color:#a6e22e">clickOnButton:</span>(<span style="color:#66d9ef">id</span>)sender {
-    self.cpt.buttonClickTimes <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>;
-    self.cpt.screen.refreshedTimes <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>;
-}
+<span class="p">-</span> <span class="p">(</span><span class="kt">IBAction</span><span class="p">)</span><span class="nf">clickOnButton:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">sender</span> <span class="p">{</span>
+    <span class="nb">self</span><span class="p">.</span><span class="n">cpt</span><span class="p">.</span><span class="n">buttonClickTimes</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="nb">self</span><span class="p">.</span><span class="n">cpt</span><span class="p">.</span><span class="n">screen</span><span class="p">.</span><span class="n">refreshedTimes</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
 
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">observeValueForKeyPath:</span>(NSString <span style="color:#f92672">*</span>)keyPath
-                      <span style="color:#a6e22e">ofObject:</span>(<span style="color:#66d9ef">id</span>)object
-                        <span style="color:#a6e22e">change:</span>(NSDictionary <span style="color:#f92672">*</span>)change
-                       <span style="color:#a6e22e">context:</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)context {
-    <span style="color:#66d9ef">if</span> (context <span style="color:#f92672">==</span> <span style="color:#e6db74">@&#34;ViewController - buttonClickTimes&#34;</span>) {
-        NSLog(<span style="color:#e6db74">@&#34;%@ - %@ - %@ - %@&#34;</span>, change, keyPath, object, context);
-    } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (context <span style="color:#f92672">==</span> <span style="color:#e6db74">@&#34;ViewController - screen.refreshedTimes&#34;</span>) {
-        NSLog(<span style="color:#e6db74">@&#34;%@ - %@ - %@ - %@&#34;</span>, change, keyPath, object, context);
-    } <span style="color:#66d9ef">else</span> {
-        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
-    }
-}
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">observeValueForKeyPath:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">keyPath</span>
+                      <span class="nf">ofObject:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">object</span>
+                        <span class="nf">change:</span><span class="p">(</span><span class="n">NSDictionary</span> <span class="o">*</span><span class="p">)</span><span class="nv">change</span>
+                       <span class="nf">context:</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="nv">context</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">context</span> <span class="o">==</span> <span class="s">@&#34;ViewController - buttonClickTimes&#34;</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@ - %@ - %@ - %@&#34;</span><span class="p">,</span> <span class="n">change</span><span class="p">,</span> <span class="n">keyPath</span><span class="p">,</span> <span class="n">object</span><span class="p">,</span> <span class="n">context</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">context</span> <span class="o">==</span> <span class="s">@&#34;ViewController - screen.refreshedTimes&#34;</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@ - %@ - %@ - %@&#34;</span><span class="p">,</span> <span class="n">change</span><span class="p">,</span> <span class="n">keyPath</span><span class="p">,</span> <span class="n">object</span><span class="p">,</span> <span class="n">context</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="p">[</span><span class="nb">super</span> <span class="nl">observeValueForKeyPath</span><span class="p">:</span><span class="n">keyPath</span> <span class="nl">ofObject</span><span class="p">:</span><span class="n">object</span> <span class="nl">change</span><span class="p">:</span><span class="n">change</span> <span class="nl">context</span><span class="p">:</span><span class="n">context</span><span class="p">];</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-<span style="color:#66d9ef">@end</span>
+<span class="k">@end</span>
 </code></pre></div><p>需要注意的是，当 <code>keyPath</code> 为空时，编译器会警告「Null passed to a callee that requires a non-null argument」，此时监听是无意义的；当需要监听本类中无需嵌套的属性时，为 <code>self</code> 添加监听即可，若将 <code>keyPath</code> 设置为 <code>@&quot;&quot;</code> 也是无效的。</p>
 <h4 id="options">options</h4>
 <p><code>options</code> 即配置选项，其类型为 <code>NSKeyValueObservingOptions</code> 枚举，用来确定监听通知的内容和发送时机，其一共有四个枚举值，但可以通过 <code>|</code> 按位或运算符进行组合。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// NSKeyValueObserving.h
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">typedef</span> <span style="color:#a6e22e">NS_OPTIONS</span>(NSUInteger, NSKeyValueObservingOptions) {
-    NSKeyValueObservingOptionNew <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x01</span>,
-    NSKeyValueObservingOptionOld <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x02</span>,
-    NSKeyValueObservingOptionInitial API_AVAILABLE(macos(<span style="color:#ae81ff">10.5</span>), ios(<span style="color:#ae81ff">2.0</span>), watchos(<span style="color:#ae81ff">2.0</span>), tvos(<span style="color:#ae81ff">9.0</span>)) <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x04</span>,
-    NSKeyValueObservingOptionPrior API_AVAILABLE(macos(<span style="color:#ae81ff">10.5</span>), ios(<span style="color:#ae81ff">2.0</span>), watchos(<span style="color:#ae81ff">2.0</span>), tvos(<span style="color:#ae81ff">9.0</span>)) <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x08</span>
-};
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// NSKeyValueObserving.h
+</span><span class="c1"></span><span class="k">typedef</span> <span class="nf">NS_OPTIONS</span><span class="p">(</span><span class="n">NSUInteger</span><span class="p">,</span> <span class="n">NSKeyValueObservingOptions</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">NSKeyValueObservingOptionNew</span> <span class="o">=</span> <span class="mh">0x01</span><span class="p">,</span>
+    <span class="n">NSKeyValueObservingOptionOld</span> <span class="o">=</span> <span class="mh">0x02</span><span class="p">,</span>
+    <span class="n">NSKeyValueObservingOptionInitial</span> <span class="n">API_AVAILABLE</span><span class="p">(</span><span class="n">macos</span><span class="p">(</span><span class="mf">10.5</span><span class="p">),</span> <span class="n">ios</span><span class="p">(</span><span class="mf">2.0</span><span class="p">),</span> <span class="n">watchos</span><span class="p">(</span><span class="mf">2.0</span><span class="p">),</span> <span class="n">tvos</span><span class="p">(</span><span class="mf">9.0</span><span class="p">))</span> <span class="o">=</span> <span class="mh">0x04</span><span class="p">,</span>
+    <span class="n">NSKeyValueObservingOptionPrior</span> <span class="n">API_AVAILABLE</span><span class="p">(</span><span class="n">macos</span><span class="p">(</span><span class="mf">10.5</span><span class="p">),</span> <span class="n">ios</span><span class="p">(</span><span class="mf">2.0</span><span class="p">),</span> <span class="n">watchos</span><span class="p">(</span><span class="mf">2.0</span><span class="p">),</span> <span class="n">tvos</span><span class="p">(</span><span class="mf">9.0</span><span class="p">))</span> <span class="o">=</span> <span class="mh">0x08</span>
+<span class="p">};</span>
 </code></pre></div><p>在四个枚举值中，<code>NSKeyValueObservingOptionNew</code> 和 <code>NSKeyValueObservingOptionOld</code> 选项决定了监听者接收改变前的值和改变后的值，使用 <code>NSKeyValueChangeNewKey</code> 和 <code>NSKeyValueChangeOldKey</code> 即可取得 <code>change</code> 中对应的值：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">observeValueForKeyPath:</span>(NSString <span style="color:#f92672">*</span>)keyPath
-                      <span style="color:#a6e22e">ofObject:</span>(<span style="color:#66d9ef">id</span>)object
-                        <span style="color:#a6e22e">change:</span>(NSDictionary <span style="color:#f92672">*</span>)change
-                       <span style="color:#a6e22e">context:</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)context {
-    <span style="color:#66d9ef">if</span> (context <span style="color:#f92672">==</span> <span style="color:#e6db74">@&#34;ViewController - buttonClickTimes&#34;</span>) {
-        NSLog(<span style="color:#e6db74">@&#34;New: %@, old: %@ - %@ - %@ - %@&#34;</span>, change[NSKeyValueChangeNewKey], change[NSKeyValueChangeOldKey], keyPath, object, context);
-    } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (context <span style="color:#f92672">==</span> <span style="color:#e6db74">@&#34;ViewController - screen.refreshedTimes&#34;</span>) {
-        NSLog(<span style="color:#e6db74">@&#34;New: %@, old: %@ - %@ - %@ - %@&#34;</span>, change[NSKeyValueChangeNewKey], change[NSKeyValueChangeOldKey], keyPath, object, context);
-    } <span style="color:#66d9ef">else</span> {
-        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
-    }
-}
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">observeValueForKeyPath:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">keyPath</span>
+                      <span class="nf">ofObject:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">object</span>
+                        <span class="nf">change:</span><span class="p">(</span><span class="n">NSDictionary</span> <span class="o">*</span><span class="p">)</span><span class="nv">change</span>
+                       <span class="nf">context:</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="nv">context</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">context</span> <span class="o">==</span> <span class="s">@&#34;ViewController - buttonClickTimes&#34;</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;New: %@, old: %@ - %@ - %@ - %@&#34;</span><span class="p">,</span> <span class="n">change</span><span class="p">[</span><span class="n">NSKeyValueChangeNewKey</span><span class="p">],</span> <span class="n">change</span><span class="p">[</span><span class="n">NSKeyValueChangeOldKey</span><span class="p">],</span> <span class="n">keyPath</span><span class="p">,</span> <span class="n">object</span><span class="p">,</span> <span class="n">context</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">context</span> <span class="o">==</span> <span class="s">@&#34;ViewController - screen.refreshedTimes&#34;</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;New: %@, old: %@ - %@ - %@ - %@&#34;</span><span class="p">,</span> <span class="n">change</span><span class="p">[</span><span class="n">NSKeyValueChangeNewKey</span><span class="p">],</span> <span class="n">change</span><span class="p">[</span><span class="n">NSKeyValueChangeOldKey</span><span class="p">],</span> <span class="n">keyPath</span><span class="p">,</span> <span class="n">object</span><span class="p">,</span> <span class="n">context</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="p">[</span><span class="nb">super</span> <span class="nl">observeValueForKeyPath</span><span class="p">:</span><span class="n">keyPath</span> <span class="nl">ofObject</span><span class="p">:</span><span class="n">object</span> <span class="nl">change</span><span class="p">:</span><span class="n">change</span> <span class="nl">context</span><span class="p">:</span><span class="n">context</span><span class="p">];</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// OUTPUT:
-</span><span style="color:#75715e">// New: 1, old: 0 - buttonClickTimes - &lt;Computer: 0x600001a1c3e0&gt; - ViewController - buttonClickTimes
-</span><span style="color:#75715e">// New: 1, old: 0 - refreshedTimes - &lt;Screen: 0x600001844680&gt; - ViewController - screen.refreshedTimes
+<span class="c1">// OUTPUT:
+</span><span class="c1">// New: 1, old: 0 - buttonClickTimes - &lt;Computer: 0x600001a1c3e0&gt; - ViewController - buttonClickTimes
+</span><span class="c1">// New: 1, old: 0 - refreshedTimes - &lt;Screen: 0x600001844680&gt; - ViewController - screen.refreshedTimes
 </span></code></pre></div><p><code>NSKeyValueObservingOptionInitial</code> 选项可以当添加监听者后立刻收到仅且一次的通知。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">[_cpt addObserver:self
-       forKeyPath:NSStringFromSelector(<span style="color:#66d9ef">@selector</span>(buttonClickTimes))
-          options:NSKeyValueObservingOptionNew <span style="color:#f92672">|</span> NSKeyValueObservingOptionOld <span style="color:#f92672">|</span> NSKeyValueObservingOptionInitial
-          context:<span style="color:#e6db74">@&#34;ViewController - buttonClickTimes&#34;</span>];
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">[</span><span class="n">_cpt</span> <span class="nl">addObserver</span><span class="p">:</span><span class="nb">self</span>
+       <span class="nl">forKeyPath</span><span class="p">:</span><span class="n">NSStringFromSelector</span><span class="p">(</span><span class="k">@selector</span><span class="p">(</span><span class="n">buttonClickTimes</span><span class="p">))</span>
+          <span class="nl">options</span><span class="p">:</span><span class="n">NSKeyValueObservingOptionNew</span> <span class="o">|</span> <span class="n">NSKeyValueObservingOptionOld</span> <span class="o">|</span> <span class="n">NSKeyValueObservingOptionInitial</span>
+          <span class="nl">context</span><span class="p">:</span><span class="s">@&#34;ViewController - buttonClickTimes&#34;</span><span class="p">];</span>
 
-<span style="color:#75715e">// ➡️ 首次触发是由于添加了监听者而无需改变值，NSKeyValueObservingOptionInitial 会立刻触发
-</span><span style="color:#75715e">// 注意如果加了 NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld 选项，则新值为添加时属性的值，旧值为空
-</span><span style="color:#75715e">// New: 0, old: (null) - buttonClickTimes - &lt;Computer: 0x6000016464c0&gt; - ViewController - buttonClickTimes
-</span><span style="color:#75715e">// ➡️ buttonClickTimes 增加，监听者接收到通知
-</span><span style="color:#75715e">// New: 1, old: 0 - buttonClickTimes - &lt;Computer: 0x6000016464c0&gt; - ViewController - buttonClickTimes
+<span class="c1">// ➡️ 首次触发是由于添加了监听者而无需改变值，NSKeyValueObservingOptionInitial 会立刻触发
+</span><span class="c1">// 注意如果加了 NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld 选项，则新值为添加时属性的值，旧值为空
+</span><span class="c1">// New: 0, old: (null) - buttonClickTimes - &lt;Computer: 0x6000016464c0&gt; - ViewController - buttonClickTimes
+</span><span class="c1">// ➡️ buttonClickTimes 增加，监听者接收到通知
+</span><span class="c1">// New: 1, old: 0 - buttonClickTimes - &lt;Computer: 0x6000016464c0&gt; - ViewController - buttonClickTimes
 </span></code></pre></div><p><code>NSKeyValueObservingOptionPrior</code> 选项可以在属性改变前，还未得到新值时收到通知。我们可以在 <code>change</code> 中 <code>NSKeyValueChangeNotificationIsPriorKey</code> 对应值里检查是否来自该选项触发。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">[_cpt addObserver:self
-       forKeyPath:NSStringFromSelector(<span style="color:#66d9ef">@selector</span>(buttonClickTimes))
-          options:NSKeyValueObservingOptionNew <span style="color:#f92672">|</span> NSKeyValueObservingOptionOld <span style="color:#f92672">|</span> NSKeyValueObservingOptionInitial <span style="color:#f92672">|</span> NSKeyValueObservingOptionPrior
-          context:<span style="color:#e6db74">@&#34;ViewController - buttonClickTimes&#34;</span>];
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">[</span><span class="n">_cpt</span> <span class="nl">addObserver</span><span class="p">:</span><span class="nb">self</span>
+       <span class="nl">forKeyPath</span><span class="p">:</span><span class="n">NSStringFromSelector</span><span class="p">(</span><span class="k">@selector</span><span class="p">(</span><span class="n">buttonClickTimes</span><span class="p">))</span>
+          <span class="nl">options</span><span class="p">:</span><span class="n">NSKeyValueObservingOptionNew</span> <span class="o">|</span> <span class="n">NSKeyValueObservingOptionOld</span> <span class="o">|</span> <span class="n">NSKeyValueObservingOptionInitial</span> <span class="o">|</span> <span class="n">NSKeyValueObservingOptionPrior</span>
+          <span class="nl">context</span><span class="p">:</span><span class="s">@&#34;ViewController - buttonClickTimes&#34;</span><span class="p">];</span>
 
-<span style="color:#75715e">// NSLog(@&#34;New: %@, old: %@ - isPrior %@ - %@ - %@ - %@&#34;, change[NSKeyValueChangeNewKey], change[NSKeyValueChangeOldKey], change[NSKeyValueChangeNotificationIsPriorKey], keyPath, object, context);
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">// ➡️ NSKeyValueObservingOptionInitial：一旦添加监听者，立即触发
-</span><span style="color:#75715e">// New: 0, old: (null) - isPrior (null) - buttonClickTimes - &lt;Computer: 0x60000168dd00&gt; - ViewController - buttonClickTimes
-</span><span style="color:#75715e">// ➡️ NSKeyValueObservingOptionPrior：属性改变前触发
-</span><span style="color:#75715e">// New: (null), old: 0 - isPrior 1 - buttonClickTimes - &lt;Computer: 0x60000168dd00&gt; - ViewController - buttonClickTimes
-</span><span style="color:#75715e">// ➡️ 属性已更新为新值
-</span><span style="color:#75715e">// New: 1, old: 0 - isPrior (null) - buttonClickTimes - &lt;Computer: 0x60000168dd00&gt; - ViewController - buttonClickTimes
+<span class="c1">// NSLog(@&#34;New: %@, old: %@ - isPrior %@ - %@ - %@ - %@&#34;, change[NSKeyValueChangeNewKey], change[NSKeyValueChangeOldKey], change[NSKeyValueChangeNotificationIsPriorKey], keyPath, object, context);
+</span><span class="c1"></span>
+<span class="c1">// ➡️ NSKeyValueObservingOptionInitial：一旦添加监听者，立即触发
+</span><span class="c1">// New: 0, old: (null) - isPrior (null) - buttonClickTimes - &lt;Computer: 0x60000168dd00&gt; - ViewController - buttonClickTimes
+</span><span class="c1">// ➡️ NSKeyValueObservingOptionPrior：属性改变前触发
+</span><span class="c1">// New: (null), old: 0 - isPrior 1 - buttonClickTimes - &lt;Computer: 0x60000168dd00&gt; - ViewController - buttonClickTimes
+</span><span class="c1">// ➡️ 属性已更新为新值
+</span><span class="c1">// New: 1, old: 0 - isPrior (null) - buttonClickTimes - &lt;Computer: 0x60000168dd00&gt; - ViewController - buttonClickTimes
 </span></code></pre></div><h4 id="context">context</h4>
 <p><code>context</code> 即上下文。上下文是一个在阅读中常用的词，指文章的上文与下文，编程中常用的上下文也与此类似，泛指环境条件等信息。关于此处的 <code>context</code>，主要意义是来区分不同的监听通知，在后续也可以根据 <code>context</code> 移除指定的通知。关于 <code>context</code> 的最佳实践，首先要做到唯一且私有，唯一是为了区分不同的监听通知，而私有代表其不能被外界知晓甚至随意更改。比较好的实践是将 <code>context</code> 定义为静态全局变量，只可在定义该变量的源文件（.m）中有效，防止子类或其他源文件使用，做到私有；进而将 <code>context</code> 赋值为指向其本身内存地址，做到唯一。<code>context</code> 在参数中的类型为 <code>void *</code>，则将地址转换为该类型；为了防止在同一源文件中对该变量的更改，将其声明为 <code>const</code> 保证了其本身为常量，不可更改。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> <span style="color:#66d9ef">const</span> kButtonClickTimesKVOContext <span style="color:#f92672">=</span> (<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)<span style="color:#f92672">&amp;</span>kButtonClickTimesKVOContext;
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">static</span> <span class="kt">void</span> <span class="o">*</span> <span class="k">const</span> <span class="n">kButtonClickTimesKVOContext</span> <span class="o">=</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">kButtonClickTimesKVOContext</span><span class="p">;</span>
 
-<span style="color:#66d9ef">if</span> (context <span style="color:#f92672">==</span> kButtonClickTimesKVOContext) {
-    NSLog(<span style="color:#e6db74">@&#34;New: %@, old: %@ - isPrior %@ - %@ - %@&#34;</span>, change[NSKeyValueChangeNewKey], change[NSKeyValueChangeOldKey], change[NSKeyValueChangeNotificationIsPriorKey], keyPath, object);
-}
+<span class="k">if</span> <span class="p">(</span><span class="n">context</span> <span class="o">==</span> <span class="n">kButtonClickTimesKVOContext</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;New: %@, old: %@ - isPrior %@ - %@ - %@&#34;</span><span class="p">,</span> <span class="n">change</span><span class="p">[</span><span class="n">NSKeyValueChangeNewKey</span><span class="p">],</span> <span class="n">change</span><span class="p">[</span><span class="n">NSKeyValueChangeOldKey</span><span class="p">],</span> <span class="n">change</span><span class="p">[</span><span class="n">NSKeyValueChangeNotificationIsPriorKey</span><span class="p">],</span> <span class="n">keyPath</span><span class="p">,</span> <span class="n">object</span><span class="p">);</span>
+<span class="p">}</span>
 </code></pre></div><p>需要注意的是，<code>addObserver</code> 方法中并不会对监听者、被监听者、以及上下文进行强引用，需要我们自己来保证不会被释放。</p>
 <h3 id="监听者得到通知">监听者得到通知</h3>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">NSObject</span>(NSKeyValueObserving)
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">NSObject</span><span class="nl">(NSKeyValueObserving)</span>
 
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">observeValueForKeyPath:</span>(nullable NSString <span style="color:#f92672">*</span>)keyPath <span style="color:#a6e22e">ofObject:</span>(nullable <span style="color:#66d9ef">id</span>)object <span style="color:#a6e22e">change:</span>(nullable NSDictionary<span style="color:#f92672">&lt;</span>NSKeyValueChangeKey, <span style="color:#66d9ef">id</span><span style="color:#f92672">&gt;</span> <span style="color:#f92672">*</span>)change <span style="color:#a6e22e">context:</span>(nullable <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)context;
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">observeValueForKeyPath:</span><span class="p">(</span><span class="n">nullable</span> <span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">keyPath</span> <span class="nf">ofObject:</span><span class="p">(</span><span class="n">nullable</span> <span class="kt">id</span><span class="p">)</span><span class="nv">object</span> <span class="nf">change:</span><span class="p">(</span><span class="n">nullable</span> <span class="n">NSDictionary</span><span class="o">&lt;</span><span class="n">NSKeyValueChangeKey</span><span class="p">,</span> <span class="kt">id</span><span class="o">&gt;</span> <span class="o">*</span><span class="p">)</span><span class="nv">change</span> <span class="nf">context:</span><span class="p">(</span><span class="n">nullable</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="nv">context</span><span class="p">;</span>
 
-<span style="color:#66d9ef">@end</span>
+<span class="k">@end</span>
 </code></pre></div><p>监听者要实现 <code>NSKeyValueObserving</code> 分类中的 <code>observeValueForKeyPath:ofObject:change:context:</code> 方法来接收被监听对象改变的通知，其中大部分参数与添加监听者中的一致。如果监听者不实现该方法，将在运行时发生崩溃：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// *** Terminating app due to uncaught exception &#39;NSInternalInconsistencyException&#39;, reason: &#39;&lt;ViewCotroller: 0x7f859a4093e0&gt;: An -observeValueForKeyPath:ofObject:change:context: message was received but not handled.
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// *** Terminating app due to uncaught exception &#39;NSInternalInconsistencyException&#39;, reason: &#39;&lt;ViewCotroller: 0x7f859a4093e0&gt;: An -observeValueForKeyPath:ofObject:change:context: message was received but not handled.
 </span></code></pre></div><h4 id="change">change</h4>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">typedef</span> NSString <span style="color:#f92672">*</span> NSKeyValueChangeKey NS_STRING_ENUM;
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">typedef</span> <span class="n">NSString</span> <span class="o">*</span> <span class="n">NSKeyValueChangeKey</span> <span class="n">NS_STRING_ENUM</span><span class="p">;</span>
 
-FOUNDATION_EXPORT NSKeyValueChangeKey <span style="color:#66d9ef">const</span> NSKeyValueChangeKindKey;
-FOUNDATION_EXPORT NSKeyValueChangeKey <span style="color:#66d9ef">const</span> NSKeyValueChangeNewKey;
-FOUNDATION_EXPORT NSKeyValueChangeKey <span style="color:#66d9ef">const</span> NSKeyValueChangeOldKey;
-FOUNDATION_EXPORT NSKeyValueChangeKey <span style="color:#66d9ef">const</span> NSKeyValueChangeIndexesKey;
-FOUNDATION_EXPORT NSKeyValueChangeKey <span style="color:#66d9ef">const</span> NSKeyValueChangeNotificationIsPriorKey <span style="color:#a6e22e">API_AVAILABLE</span>(macos(<span style="color:#ae81ff">10.5</span>), ios(<span style="color:#ae81ff">2.0</span>), watchos(<span style="color:#ae81ff">2.0</span>), tvos(<span style="color:#ae81ff">9.0</span>));
+<span class="n">FOUNDATION_EXPORT</span> <span class="n">NSKeyValueChangeKey</span> <span class="k">const</span> <span class="n">NSKeyValueChangeKindKey</span><span class="p">;</span>
+<span class="n">FOUNDATION_EXPORT</span> <span class="n">NSKeyValueChangeKey</span> <span class="k">const</span> <span class="n">NSKeyValueChangeNewKey</span><span class="p">;</span>
+<span class="n">FOUNDATION_EXPORT</span> <span class="n">NSKeyValueChangeKey</span> <span class="k">const</span> <span class="n">NSKeyValueChangeOldKey</span><span class="p">;</span>
+<span class="n">FOUNDATION_EXPORT</span> <span class="n">NSKeyValueChangeKey</span> <span class="k">const</span> <span class="n">NSKeyValueChangeIndexesKey</span><span class="p">;</span>
+<span class="n">FOUNDATION_EXPORT</span> <span class="n">NSKeyValueChangeKey</span> <span class="k">const</span> <span class="n">NSKeyValueChangeNotificationIsPriorKey</span> <span class="nf">API_AVAILABLE</span><span class="p">(</span><span class="n">macos</span><span class="p">(</span><span class="mf">10.5</span><span class="p">),</span> <span class="n">ios</span><span class="p">(</span><span class="mf">2.0</span><span class="p">),</span> <span class="n">watchos</span><span class="p">(</span><span class="mf">2.0</span><span class="p">),</span> <span class="n">tvos</span><span class="p">(</span><span class="mf">9.0</span><span class="p">));</span>
 </code></pre></div><p><code>NSKeyValueChangeKindKey</code> 指变更的类型，又有以下四个枚举。当被监听的对象为非集合类型时，总是为 <code>NSKeyValueChangeSetting</code>；当为集合类型时，插入、删除、替换操作分别对应其余的几个枚举。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">typedef</span> <span style="color:#a6e22e">NS_ENUM</span>(NSUInteger, NSKeyValueChange) {
-    NSKeyValueChangeSetting <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>,
-    NSKeyValueChangeInsertion <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>,
-    NSKeyValueChangeRemoval <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>,
-    NSKeyValueChangeReplacement <span style="color:#f92672">=</span> <span style="color:#ae81ff">4</span>,
-};
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">typedef</span> <span class="nf">NS_ENUM</span><span class="p">(</span><span class="n">NSUInteger</span><span class="p">,</span> <span class="n">NSKeyValueChange</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">NSKeyValueChangeSetting</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">NSKeyValueChangeInsertion</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="n">NSKeyValueChangeRemoval</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="n">NSKeyValueChangeReplacement</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+<span class="p">};</span>
 </code></pre></div><p><code>NSKeyValueChangeIndexesKey</code> 指变更的索引，类型为 <code>NSIndexSet</code>，仅当被监听对象为集合类型时，对应变更的索引集合。</p>
 <h3 id="移除监听者">移除监听者</h3>
 <p>KVO 给开发者带来个很强的自由性，但移除监听者中却有不少「坑」在这里的。</p>
 <h4 id="监听者销毁前移除监听者">监听者销毁前移除监听者</h4>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
-[self addObserver:cpt forKeyPath:<span style="color:#e6db74">@&#34;number&#34;</span> options:NSKeyValueObservingOptionNew <span style="color:#f92672">|</span> NSKeyValueObservingOptionOld context:nil];
-<span style="color:#75715e">// [self removeObserver:cpt forKeyPath:@&#34;number&#34;];
-</span><span style="color:#75715e"></span>cpt <span style="color:#f92672">=</span> nil;
-self.number <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>;
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+<span class="p">[</span><span class="nb">self</span> <span class="nl">addObserver</span><span class="p">:</span><span class="n">cpt</span> <span class="nl">forKeyPath</span><span class="p">:</span><span class="s">@&#34;number&#34;</span> <span class="nl">options</span><span class="p">:</span><span class="n">NSKeyValueObservingOptionNew</span> <span class="o">|</span> <span class="n">NSKeyValueObservingOptionOld</span> <span class="nl">context</span><span class="p">:</span><span class="nb">nil</span><span class="p">];</span>
+<span class="c1">// [self removeObserver:cpt forKeyPath:@&#34;number&#34;];
+</span><span class="c1"></span><span class="n">cpt</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+<span class="nb">self</span><span class="p">.</span><span class="n">number</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span>
 
-<span style="color:#75715e">// Crash: Thread 1: EXC_BAD_ACCESS
+<span class="c1">// Crash: Thread 1: EXC_BAD_ACCESS
 </span></code></pre></div><p>我们尝试下在监听者销毁后，对被监听者的值做出改变。这时程序将崩溃，为野指针错误。这说明在系统得知被监听者改变后，尝试去寻找监听者，但此时监听者已经被销毁，其保存的内存地址已经不再是监听者了，所以发生此错误。为了比较移除监听者的作用，首先我们在未移除的代码中 <code>self.number += 1;</code> 一行打个断点，查看 Debug Memory Graph：</p>
 <p><img src="/img/2019/kvo_in_ios/1.png" alt=""></p>
 <p>其中有两个 <code>NSKeyValueObservationInfo</code> 对象，尝试将它们打印出来：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// LLDB:
-</span><span style="color:#75715e">// Printing description of $6:
-</span><span style="color:#75715e">// &lt;NSKeyValueObservationInfo 0x600001794720&gt; (
-</span><span style="color:#75715e">// &lt;NSKeyValueObservance 0x6000019c5170: Observer: 0x7fb98f4024e0, Key path: cloned, Options: &lt;New: YES, Old: NO, Prior: NO&gt; Context: 0x10c01f500, Property: 0x6000019c50e0&gt;
-</span><span style="color:#75715e">// )
-</span><span style="color:#75715e">// Printing description of $7:
-</span><span style="color:#75715e">// &lt;NSKeyValueObservationInfo 0x6000017cd780&gt; (
-</span><span style="color:#75715e">// &lt;NSKeyValueObservance 0x60000198b840: Observer: 0x600001592720, Key path: number, Options: &lt;New: YES, Old: YES, Prior: NO&gt; Context: 0x0, Property: 0x60000198b7b0&gt;
-</span><span style="color:#75715e">// )
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// LLDB:
+</span><span class="c1">// Printing description of $6:
+</span><span class="c1">// &lt;NSKeyValueObservationInfo 0x600001794720&gt; (
+</span><span class="c1">// &lt;NSKeyValueObservance 0x6000019c5170: Observer: 0x7fb98f4024e0, Key path: cloned, Options: &lt;New: YES, Old: NO, Prior: NO&gt; Context: 0x10c01f500, Property: 0x6000019c50e0&gt;
+</span><span class="c1">// )
+</span><span class="c1">// Printing description of $7:
+</span><span class="c1">// &lt;NSKeyValueObservationInfo 0x6000017cd780&gt; (
+</span><span class="c1">// &lt;NSKeyValueObservance 0x60000198b840: Observer: 0x600001592720, Key path: number, Options: &lt;New: YES, Old: YES, Prior: NO&gt; Context: 0x0, Property: 0x60000198b7b0&gt;
+</span><span class="c1">// )
 </span></code></pre></div><p>第一个 KVO 应该是系统在底层加入的，监听者是 <code>0x7fb98f4024e0</code>，查一下发现是 <code>UIScreen</code>，这里略过。</p>
 <p><img src="/img/2019/kvo_in_ios/2.png" alt=""></p>
 <p>第二 KVO 就是我们加入的对 <code>number</code> 的监听。由于我们没有手动移除监听者，虽然监听者已经销毁，但监听关系仍然存在。所以当我们继续执行，程序将发生崩溃。</p>
@@ -424,39 +388,39 @@ self.number <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1<
 <p>由于 Apple 并没有将 KVO 开源，对于「移除监听者」我查阅了不少资料，并进行了实践。似乎在之前的系统版本中（具体不明），当未在被监听者销毁前移除监听者时，程序也将发生崩溃。但在最新的系统中，相同的测试代码却未发生崩溃。且在 Debug Memory Graph 可以看出，即使没有移除监听者，<code>NSKeyValueObservationInfo</code> 却也在被监听者销毁后销毁了。</p>
 <p>对于此，我也在 StackOverflow 中进行了提问，希望有明白这里细节的同学多多指点。如果有了答案，我在这里也将会进行补充。</p>
 <h4 id="context-1">context</h4>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// 添加两次 KVO
-</span><span style="color:#75715e"></span>[_cpt addObserver:self
-       forKeyPath:NSStringFromSelector(<span style="color:#66d9ef">@selector</span>(buttonClickTimes))
-          options:NSKeyValueObservingOptionNew
-          context:kButtonClickTimesKVOContext1];
-[_cpt addObserver:self
-       forKeyPath:NSStringFromSelector(<span style="color:#66d9ef">@selector</span>(buttonClickTimes))
-          options:NSKeyValueObservingOptionNew
-          context:kButtonClickTimesKVOContext2];
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// 添加两次 KVO
+</span><span class="c1"></span><span class="p">[</span><span class="n">_cpt</span> <span class="nl">addObserver</span><span class="p">:</span><span class="nb">self</span>
+       <span class="nl">forKeyPath</span><span class="p">:</span><span class="n">NSStringFromSelector</span><span class="p">(</span><span class="k">@selector</span><span class="p">(</span><span class="n">buttonClickTimes</span><span class="p">))</span>
+          <span class="nl">options</span><span class="p">:</span><span class="n">NSKeyValueObservingOptionNew</span>
+          <span class="nl">context</span><span class="p">:</span><span class="n">kButtonClickTimesKVOContext1</span><span class="p">];</span>
+<span class="p">[</span><span class="n">_cpt</span> <span class="nl">addObserver</span><span class="p">:</span><span class="nb">self</span>
+       <span class="nl">forKeyPath</span><span class="p">:</span><span class="n">NSStringFromSelector</span><span class="p">(</span><span class="k">@selector</span><span class="p">(</span><span class="n">buttonClickTimes</span><span class="p">))</span>
+          <span class="nl">options</span><span class="p">:</span><span class="n">NSKeyValueObservingOptionNew</span>
+          <span class="nl">context</span><span class="p">:</span><span class="n">kButtonClickTimesKVOContext2</span><span class="p">];</span>
           
-- (<span style="color:#66d9ef">IBAction</span>)<span style="color:#a6e22e">click:</span>(<span style="color:#66d9ef">id</span>)sender {
-    NSLog(<span style="color:#e6db74">@&#34;---&#34;</span>);
-    <span style="color:#75715e">// 移除一次
-</span><span style="color:#75715e"></span>    [self.cpt removeObserver:self forKeyPath:NSStringFromSelector(<span style="color:#66d9ef">@selector</span>(buttonClickTimes))];
-}
+<span class="p">-</span> <span class="p">(</span><span class="kt">IBAction</span><span class="p">)</span><span class="nf">click:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">sender</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;---&#34;</span><span class="p">);</span>
+    <span class="c1">// 移除一次
+</span><span class="c1"></span>    <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">cpt</span> <span class="nl">removeObserver</span><span class="p">:</span><span class="nb">self</span> <span class="nl">forKeyPath</span><span class="p">:</span><span class="n">NSStringFromSelector</span><span class="p">(</span><span class="k">@selector</span><span class="p">(</span><span class="n">buttonClickTimes</span><span class="p">))];</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// kButtonClickTimesKVOContext2
-</span><span style="color:#75715e">// kButtonClickTimesKVOContext1
-</span><span style="color:#75715e">// ---
-</span><span style="color:#75715e">// kButtonClickTimesKVOContext1
-</span><span style="color:#75715e">// ---
+<span class="c1">// kButtonClickTimesKVOContext2
+</span><span class="c1">// kButtonClickTimesKVOContext1
+</span><span class="c1">// ---
+</span><span class="c1">// kButtonClickTimesKVOContext1
+</span><span class="c1">// ---
 </span></code></pre></div><p><code>context</code> 是 <code>removeObserver:forKeyPath:context:</code> 的参数，与添加监听者类似，用作区分通知。当我们尝试添加两次 KVO，并在点击方法中移除而不指定 <code>context</code>，监听者收到通知会打印相应的 <code>context</code> 名。从输出可以看出 <code>removeObserver:forKeyPath:</code> 并没有移除所有的监听者。根据官方的注释：建议使用 <code>removeObserver:forKeyPath:context:</code> 取代 <code>removeObserver:forKeyPath:</code>，因为后者并未指定 <code>context</code>，将会自动猜测 <code>context</code> 指针，从而可能导致不可预知的错误。</p>
 <h4 id="非被监听者移除监听者">非被监听者移除监听者</h4>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// &#39;NSRangeException&#39;, reason: &#39;Cannot remove an observer &lt;ViewController 0x7fa953c18bd0&gt; for the key path &#34;buttonClickTimes&#34; from &lt;Computer 0x6000007731e0&gt; because it is not registered as an observer.&#39;
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// &#39;NSRangeException&#39;, reason: &#39;Cannot remove an observer &lt;ViewController 0x7fa953c18bd0&gt; for the key path &#34;buttonClickTimes&#34; from &lt;Computer 0x6000007731e0&gt; because it is not registered as an observer.&#39;
 </span></code></pre></div><p>当我们在被监听者上移除监听者，被监听者将自动恢复为非被监听者，但当此时再次尝试移除监听者时，程序将发生崩溃。所以建议和 <code>try/catch</code> 一同使用，防止多次移除引起崩溃。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@try</span> {
-    [self.cpt removeObserver:self forKeyPath:<span style="color:#e6db74">@&#34;buttonClickTimes&#34;</span>];
-} <span style="color:#66d9ef">@catch</span> (NSException <span style="color:#f92672">*</span>exception) {
-    NSLog(<span style="color:#e6db74">@&#34;%@&#34;</span>, [exception description]);
-}
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@try</span> <span class="p">{</span>
+    <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">cpt</span> <span class="nl">removeObserver</span><span class="p">:</span><span class="nb">self</span> <span class="nl">forKeyPath</span><span class="p">:</span><span class="s">@&#34;buttonClickTimes&#34;</span><span class="p">];</span>
+<span class="p">}</span> <span class="k">@catch</span> <span class="p">(</span><span class="n">NSException</span> <span class="o">*</span><span class="n">exception</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">exception</span> <span class="n">description</span><span class="p">]);</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// OUTPUT:
-</span><span style="color:#75715e">// Cannot remove an observer &lt;ViewController 0x7f9b60d012a0&gt; for the key path &#34;buttonClickTimes&#34; from &lt;Computer 0x600002975960&gt; because it is not registered as an observer.
+<span class="c1">// OUTPUT:
+</span><span class="c1">// Cannot remove an observer &lt;ViewController 0x7f9b60d012a0&gt; for the key path &#34;buttonClickTimes&#34; from &lt;Computer 0x600002975960&gt; because it is not registered as an observer.
 </span></code></pre></div><h2 id="why">Why</h2>
 <p>那么 KVO 的本质什么呢？官方文档在「Key-Value Observing Implementation Details」一节中描述如下：</p>
 <blockquote>
@@ -472,54 +436,54 @@ self.number <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1<
 <p>我们绝不应当依赖 isa 指针来确定类的成员身份，相反，我们应当使用 <code>class</code> 方法来确定一个对象实例的类。</p>
 <p>—— <a href="/img/2019/KVO_in_iOS/https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/KeyValueObserving/Articles/KVOImplementation.html#//apple_ref/doc/uid/20002307-BAJEAIEE">键值监听实现细节，键值监听编程指南，苹果</a></p>
 </blockquote>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">[self.cpt addObserver:self
-           forKeyPath:NSStringFromSelector(<span style="color:#66d9ef">@selector</span>(buttonClickTimes))
-              options:NSKeyValueObservingOptionNew
-              context:ButtonClickTimesKVOContext];
-<span style="color:#75715e">// LLDB:
-</span><span style="color:#75715e">// 注意我们这里使用了 object_getClass 来获取其类对象
-</span><span style="color:#75715e">// (lldb) po object_getClass(self.cpt)
-</span><span style="color:#75715e">// NSKVONotifying_Computer
-</span><span style="color:#75715e">// // 因为如官方文档所写 class 中会隐藏一些细节
-</span><span style="color:#75715e">// (lldb) po [self.cpt class]
-</span><span style="color:#75715e">// Computer
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">cpt</span> <span class="nl">addObserver</span><span class="p">:</span><span class="nb">self</span>
+           <span class="nl">forKeyPath</span><span class="p">:</span><span class="n">NSStringFromSelector</span><span class="p">(</span><span class="k">@selector</span><span class="p">(</span><span class="n">buttonClickTimes</span><span class="p">))</span>
+              <span class="nl">options</span><span class="p">:</span><span class="n">NSKeyValueObservingOptionNew</span>
+              <span class="nl">context</span><span class="p">:</span><span class="n">ButtonClickTimesKVOContext</span><span class="p">];</span>
+<span class="c1">// LLDB:
+</span><span class="c1">// 注意我们这里使用了 object_getClass 来获取其类对象
+</span><span class="c1">// (lldb) po object_getClass(self.cpt)
+</span><span class="c1">// NSKVONotifying_Computer
+</span><span class="c1">// // 因为如官方文档所写 class 中会隐藏一些细节
+</span><span class="c1">// (lldb) po [self.cpt class]
+</span><span class="c1">// Computer
 </span></code></pre></div><p>通过官方这一段简短的解释，其实就能找到突破口了，即 <code>isa</code>。仍然拿最初的 Demo 举例，在添加监听者之前，<code>cpt</code> 实例对象的 <code>isa</code> 指向了 <code>Computer</code> 类对象，而当添加完监听者之后，<code>isa</code> 指向了 <code>NSKVONotifying_Computer</code> 类对象，即官方文档中提到的的「中间类」。<code>NSKVONotifying_Computer</code> 并不是我们手动建立的，它是由在运行时动态生成的，尝试打印其方法列表：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">printMethodList:</span>(<span style="color:#66d9ef">Class</span>)someClass {
-    <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> count;
-    Method <span style="color:#f92672">*</span>methods <span style="color:#f92672">=</span> class_copyMethodList([someClass <span style="color:#66d9ef">class</span>], <span style="color:#f92672">&amp;</span>count);
-    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> count; i <span style="color:#f92672">++</span>) {
-        Method method <span style="color:#f92672">=</span> methods[i];
-        <span style="color:#66d9ef">SEL</span> sel <span style="color:#f92672">=</span> method_getName(method);
-        <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>name <span style="color:#f92672">=</span> sel_getName(sel);
-        NSLog(<span style="color:#e6db74">@&#34;%s&#34;</span>, name);
-    }
-    free(methods);
-}
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">printMethodList:</span><span class="p">(</span><span class="kt">Class</span><span class="p">)</span><span class="nv">someClass</span> <span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">count</span><span class="p">;</span>
+    <span class="n">Method</span> <span class="o">*</span><span class="n">methods</span> <span class="o">=</span> <span class="n">class_copyMethodList</span><span class="p">([</span><span class="n">someClass</span> <span class="k">class</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">count</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">count</span><span class="p">;</span> <span class="n">i</span> <span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">Method</span> <span class="n">method</span> <span class="o">=</span> <span class="n">methods</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="kt">SEL</span> <span class="n">sel</span> <span class="o">=</span> <span class="n">method_getName</span><span class="p">(</span><span class="n">method</span><span class="p">);</span>
+        <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span> <span class="o">=</span> <span class="n">sel_getName</span><span class="p">(</span><span class="n">sel</span><span class="p">);</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">name</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">free</span><span class="p">(</span><span class="n">methods</span><span class="p">);</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// OUTPUT:
-</span><span style="color:#75715e">// 添加监听前：
-</span><span style="color:#75715e">// buttonClickTimes
-</span><span style="color:#75715e">// setButtonClickTimes:
-</span><span style="color:#75715e">// ---
-</span><span style="color:#75715e">// 添加监听后：
-</span><span style="color:#75715e">// setButtonClickTimes:
-</span><span style="color:#75715e">// class
-</span><span style="color:#75715e">// dealloc
-</span><span style="color:#75715e">// _isKVOA
+<span class="c1">// OUTPUT:
+</span><span class="c1">// 添加监听前：
+</span><span class="c1">// buttonClickTimes
+</span><span class="c1">// setButtonClickTimes:
+</span><span class="c1">// ---
+</span><span class="c1">// 添加监听后：
+</span><span class="c1">// setButtonClickTimes:
+</span><span class="c1">// class
+</span><span class="c1">// dealloc
+</span><span class="c1">// _isKVOA
 </span></code></pre></div><p>我们再进一步，尝试探究一下 <code>NSKVONotifying_Computer</code> 中方法。</p>
 <h3 id="class">class</h3>
 <p>如官方文档所述，<code>class</code> 方法返回了实例对象「真正」的类，而原因其实是因为 <code>NSKVONotifying_Computer</code> 是运行时为了实现 KVO 所自行生成的类，其目的是来管理和实现 KVO，但作为开发者，其实多数时候不必关心其内部细节，所以，在 <code>NSKVONotifying_Computer</code> 中，<code>class</code> 需要重写为返回其原本的类。</p>
 <h3 id="dealloc">dealloc</h3>
 <p><code>dealloc</code> 也比较容易理解，我们虽然无法得知其中的具体实现，但 <code>dealloc</code> 通常是做一些在对象销毁前的准备工作。<code>NSKVONotifying_Computer</code> 实现该方法也是为了在销毁前将其动态创建类和对象等资源进行回收等。</p>
 <h3 id="_iskvoa">_isKVOA</h3>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// LLDB:
-</span><span style="color:#75715e">// (lldb) po (BOOL)[self.cpt _isKVOA]
-</span><span style="color:#75715e">// YES
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// LLDB:
+</span><span class="c1">// (lldb) po (BOOL)[self.cpt _isKVOA]
+</span><span class="c1">// YES
 </span></code></pre></div><p><code>_isKVOA</code> 通过其方法名可以认为是一个系统内部判断对象是否为 KVO 对象的方法。</p>
 <h3 id="setter">setter</h3>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// LLDB:
-</span><span style="color:#75715e">// (lldb) po [self.cpt methodForSelector:@selector(setButtonClickTimes:)]
-</span><span style="color:#75715e">// (Foundation`_NSSetIntValueAndNotify)
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// LLDB:
+</span><span class="c1">// (lldb) po [self.cpt methodForSelector:@selector(setButtonClickTimes:)]
+</span><span class="c1">// (Foundation`_NSSetIntValueAndNotify)
 </span></code></pre></div><p><code>setButtonClickTimes:</code> 是 <code>NSKVONotifying_Computer</code> 中唯一和 <code>keyPath</code> 相关的方法。其 <code>IMP</code> 是 <code>Foundation</code> 中的 <code>_NSSetIntValueAndNotify</code>。注意观察该方法名，其中的 <code>Int</code> 其实是 <code>buttonClickTimes</code> 的类型，尝试在 <code>Foundation</code> 搜索一下类似的方法（<code>nm</code>，即 llvm symbol table dumper，LLVM 符号表 Dumper）：</p>
 <p><img src="/img/2019/kvo_in_ios/4.png" alt=""></p>
 <p>为了能一探 <code>_NSSetIntValueAndNotify</code> 究竟，此处稍微暴力一点，使用 Hopper 将 <code>Foundation</code> 中的类 dump 出来。</p>
@@ -527,42 +491,42 @@ self.number <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1<
 <p>其中能让我们比较熟悉的是 <code>willChangeValueForKey</code>，我们尝试在被监听者的该方法中个打个断点，就可以在 Xcode 中看到 <code>_NSSetIntValueAndNotify</code> 中先调用了 <code>willChangeValueForKey</code>，之后又调用了 <code>didChangeValueForKey</code>。</p>
 <p><img src="/img/2019/kvo_in_ios/6.png" alt=""></p>
 <p>在 <code>didChangeValueForKey</code> 和 setter 中也加入断点，就可以发现它们的调用顺序是：<code>willChangeValueForKey</code> -&gt; <code>setButtonClickTimes</code> -&gt; <code>didChangeValueForKey</code>（并在其中通知监听者：<code>observeValueForKeyPath</code>）。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">willChangeValueForKey:</span>(NSString <span style="color:#f92672">*</span>)key {
-    NSLog(<span style="color:#e6db74">@&#34;willChangeValueForKey -&gt;&#34;</span>);
-    [super willChangeValueForKey:key];
-    NSLog(<span style="color:#e6db74">@&#34;willChangeValueForKey -&gt;&#34;</span>);
-}
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">willChangeValueForKey:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">key</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;willChangeValueForKey -&gt;&#34;</span><span class="p">);</span>
+    <span class="p">[</span><span class="nb">super</span> <span class="nl">willChangeValueForKey</span><span class="p">:</span><span class="n">key</span><span class="p">];</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;willChangeValueForKey -&gt;&#34;</span><span class="p">);</span>
+<span class="p">}</span>
 
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">setButtonClickTimes:</span>(<span style="color:#66d9ef">int</span>)buttonClickTimes {
-    NSLog(<span style="color:#e6db74">@&#34;setButtonClickTimes -&gt;&#34;</span>);
-    _buttonClickTimes <span style="color:#f92672">=</span> buttonClickTimes;
-    NSLog(<span style="color:#e6db74">@&#34;setButtonClickTimes -&gt;&#34;</span>);
-}
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">setButtonClickTimes:</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="nv">buttonClickTimes</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;setButtonClickTimes -&gt;&#34;</span><span class="p">);</span>
+    <span class="n">_buttonClickTimes</span> <span class="o">=</span> <span class="n">buttonClickTimes</span><span class="p">;</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;setButtonClickTimes -&gt;&#34;</span><span class="p">);</span>
+<span class="p">}</span>
 
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">didChangeValueForKey:</span>(NSString <span style="color:#f92672">*</span>)key {
-    NSLog(<span style="color:#e6db74">@&#34;didChangeValueForKey -&gt;&#34;</span>);
-    [super didChangeValueForKey:key];
-    NSLog(<span style="color:#e6db74">@&#34;didChangeValueForKey -&gt;&#34;</span>);
-}
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">didChangeValueForKey:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">key</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;didChangeValueForKey -&gt;&#34;</span><span class="p">);</span>
+    <span class="p">[</span><span class="nb">super</span> <span class="nl">didChangeValueForKey</span><span class="p">:</span><span class="n">key</span><span class="p">];</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;didChangeValueForKey -&gt;&#34;</span><span class="p">);</span>
+<span class="p">}</span>
 
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">observeValueForKeyPath:</span>(NSString <span style="color:#f92672">*</span>)keyPath
-                      <span style="color:#a6e22e">ofObject:</span>(<span style="color:#66d9ef">id</span>)object
-                        <span style="color:#a6e22e">change:</span>(NSDictionary <span style="color:#f92672">*</span>)change
-                       <span style="color:#a6e22e">context:</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)context {
-    NSLog(<span style="color:#e6db74">@&#34;observeValueForKeyPath -&gt;&#34;</span>);
-}
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">observeValueForKeyPath:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">keyPath</span>
+                      <span class="nf">ofObject:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">object</span>
+                        <span class="nf">change:</span><span class="p">(</span><span class="n">NSDictionary</span> <span class="o">*</span><span class="p">)</span><span class="nv">change</span>
+                       <span class="nf">context:</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="nv">context</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;observeValueForKeyPath -&gt;&#34;</span><span class="p">);</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// OUTPUT:
-</span><span style="color:#75715e">// willChangeValueForKey -&gt;
-</span><span style="color:#75715e">// willChangeValueForKey -&gt;
-</span><span style="color:#75715e">// setButtonClickTimes -&gt;
-</span><span style="color:#75715e">// setButtonClickTimes -&gt;
-</span><span style="color:#75715e">// didChangeValueForKey -&gt;
-</span><span style="color:#75715e">// observeValueForKeyPath -&gt;
-</span><span style="color:#75715e">// didChangeValueForKey -&gt;
+<span class="c1">// OUTPUT:
+</span><span class="c1">// willChangeValueForKey -&gt;
+</span><span class="c1">// willChangeValueForKey -&gt;
+</span><span class="c1">// setButtonClickTimes -&gt;
+</span><span class="c1">// setButtonClickTimes -&gt;
+</span><span class="c1">// didChangeValueForKey -&gt;
+</span><span class="c1">// observeValueForKeyPath -&gt;
+</span><span class="c1">// didChangeValueForKey -&gt;
 </span></code></pre></div><p>所以综上，KVO 其实是在运行时为被监听者动态创建一个新类，并将其需要监听的属性的 setter 进行重写，在其中会先调用 <code>willChangeValueForKey</code>，进而调用存放在原本类对象中的 setter，之后再调用 <code>didChangeValueForKey</code>，并在其中通知监听者。所以 KVO 本质是对 setter 方法的加工，如果我们直接访问属性（<code>_cpt</code>）或者定义成员变量但不手动生成 getter &amp; setter，KVO 就不会被触发。而我们想手动触发而不想改变值时，手动进行调用 <code>willChangeValueForKey</code> 和 <code>didChangeValueForKey</code> 即可（但这样的操作意义何在）。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">[self.cpt willChangeValueForKey:<span style="color:#e6db74">@&#34;buttonClickTimes&#34;</span>];
-[self.cpt didChangeValueForKey:<span style="color:#e6db74">@&#34;buttonClickTimes&#34;</span>];
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">cpt</span> <span class="nl">willChangeValueForKey</span><span class="p">:</span><span class="s">@&#34;buttonClickTimes&#34;</span><span class="p">];</span>
+<span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">cpt</span> <span class="nl">didChangeValueForKey</span><span class="p">:</span><span class="s">@&#34;buttonClickTimes&#34;</span><span class="p">];</span>
 </code></pre></div><h2 id="reference">Reference</h2>
 <ul>
 <li><a href="/img/2019/KVO_in_iOS/https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/KeyValueObserving/KeyValueObserving.html">Key-Value Observing Programming Guide - Apple Inc.</a></li>
@@ -572,143 +536,118 @@ self.number <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1<
 <li><a href="/img/2019/KVO_in_iOS/https://github.com/kingcos/Perspective/tree/writing/Posts/Focus/NSObject_in_iOS">Focus - iOS 中的 NSObject</a></li>
 <li><a href="/img/2019/KVO_in_iOS/https://www.jianshu.com/p/4abbf4f3b4f0">iOS KVO原理的探究实现 - chouson_chan</a></li>
 </ul>
-
-    </div>
-    
-      <div class="pagination">
-        <div class="pagination__title">
-          <span class="pagination__title-h">Read other posts</span>
-          <hr />
-        </div>
-        <div class="pagination__buttons">
-          
-            <span class="button previous">
-              <a href="/posts/draft/friday_qa_swift_name_mangling/">
-                <span class="button__icon">←</span>
-                <span class="button__text">[译] Swift 名字修饰（Name Mangling）</span>
-              </a>
-            </span>
-          
-          
-            <span class="button next">
-              <a href="/posts/2019/nsobject_in_ios/">
-                <span class="button__text">iOS 中的 NSObject</span>
-                <span class="button__icon">→</span>
-              </a>
-            </span>
-          
-        </div>
-      </div>
-    
-
-    
-
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-<table style="border: 0;">
-  <tr>
-  <td style="border: 0; width: 30%;">
-    <img src='/img/about/1.jpg'>
-  </td>
-  <td style="border: 0;">
-    <ins class="adsbygoogle"
-     style="display:block"
-     data-ad-client="ca-pub-9925978992661955"
-     data-ad-slot="3213735320"
-     data-ad-format="auto"
-     data-full-width-responsive="true"></ins>
-  </td>
-  </tr>
-</table>
-
-
-
-<script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
-</script>
-
-
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://kingcos.me/tags/focus/">Focus</a>
+                                    
+                                    <a href="https://kingcos.me/tags/ios/">iOS</a>
+                                    
+                                    <a href="https://kingcos.me/tags/obj-c/">Obj-C</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                <div class="doc_comments"><div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
     
     
-    <div>
-      <div id="github-comment">
-      </div>
-
-      <script type="text/javascript">
-        function getUtterances(isDark) {
-          var utterances = document.createElement('script');
-          utterances.type = 'text/javascript';
-          utterances.async = true;
-          utterances.setAttribute('issue-term', "pathname")
-          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
-          utterances.setAttribute('label', "comments")
-          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
-          utterances.crossorigin = 'anonymous';
-          utterances.src = 'https://utteranc.es/client.js';
-
-          return utterances
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
         }
-
-        var themeToggle = document.querySelector(".theme-toggle")
-        themeToggle.addEventListener("click", function () {
-          var getTheme = window.localStorage && window.localStorage.getItem("theme")
-          var divNode = document.getElementById('github-comment')
-          while(divNode.hasChildNodes()) {
-            divNode.removeChild(divNode.firstChild);
-          }
-          
-          
-          
-
-          
-          
-          
-          
-          
-          
-          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
-        })
-
-        var getTheme = window.localStorage && window.localStorage.getItem("theme")
-        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
-      </script>
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "kingcos" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div>
+                
+            </div>
+        </div>
     </div>
-    
-
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://kingcos.me">Powered by kingcos with love.</a>
     </div>
 
-      </div>
-
-      
-        <footer class="footer">
-  <div class="footer__inner">
-    
-      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
-    
-  </div>
+    <div class="footer_slogan">
+        <span>❤️</span>
+    </div>
 </footer>
+    <script src="https://kingcos.me/js/jquery-3.5.1.min.js"></script>
+<link href="https://kingcos.me/css/fancybox.min.css" rel="stylesheet">
+<script src="https://kingcos.me/js/fancybox.min.js"></script>
+<script src="https://kingcos.me/js/zozo.js"></script>
 
-<script src="/assets/main.js"></script>
-<script src="/assets/prism.js"></script>
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
 
 
 
-      
-    </div>
-
-    
-      
 <script type="application/javascript">
 var doNotTrack = false;
 if (!doNotTrack) {
-	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
 	ga('create', 'UA-138311951-1', 'auto');
 	
 	ga('send', 'pageview');
 }
 </script>
-    
-  </body>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+
 </html>

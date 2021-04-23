@@ -1,151 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
+<html lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="kingcos" />
+	
+	
+	
+	<title>iOS 中的关联对象 ｜ 萌面大道</title>
+	
     
-      <title>iOS 中的关联对象 :: iBlog</title>
     
-    <meta http-equiv="content-type" content="text/html; charset=utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Source Code Demo     2019-05-18 首次提交 objc4-750 -    Preface 提到 iOS 中的关联对象，即 Associated Objects，又可以算是一项利用 Runtime 的「黑魔法」。然而作为初学者，很难从其名称联想到是为谁关联对象，以及是如何关联对象的，那么今天就来一起研究下 iOS 中的关联对象是什么、怎么用、以及为什么。
-What 虽然这部分的官方文档已经「年久失修」，不过我们仍然简单看一下官方的概括：
- Associative References
-Associative references, available starting in OS X v10.6, simulate the addition of object instance variables to an existing class. Using associative references, you can add storage to an object without modifying the class declaration. This may be useful if you do not have access to the source code for the class, or if for binary-compatibility reasons you cannot alter the layout of the object."/>
-<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
-<meta name="robots" content="noodp"/>
-<link rel="canonical" href="/posts/2019/associated_objects_in_ios/" />
+    <meta name="description" content="提到 iOS 中的关联对象，即 Associated Objects，又可以算是一项利用 Runtime 的「黑魔法」。然而作为初学者，很难从其名称联想到是为谁关联对象，以及是如何关联对象的，那么今天就来一起研究下 iOS 中的关联对象是什么、怎么用、以及为什么。" />
+    
 
+    
+    
+    <meta name="keywords" content="Hugo, theme, zozo" />
+    
 
+	
+    
+    <link rel="shortcut icon" href="https://kingcos.me/images/favicon.png" />
 
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.mecss/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/highlight.css" />
 
-
-<link rel="stylesheet" href="/assets/style.css">
-
-
-<link rel="stylesheet" href="/style.css">
-
-
-<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
-<link rel="shortcut icon" href="/img/favicon.png">
-
-
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="iOS 中的关联对象"/>
-<meta name="twitter:description" content="提到 iOS 中的关联对象，即 Associated Objects，又可以算是一项利用 Runtime 的「黑魔法」。然而作为初学者，很难从其名称联想到是为谁关联对象，以及是如何关联对象的，那么今天就来一起研究下 iOS 中的关联对象是什么、怎么用、以及为什么。"/>
-
-
-
-<meta property="og:title" content="iOS 中的关联对象" />
-<meta property="og:description" content="提到 iOS 中的关联对象，即 Associated Objects，又可以算是一项利用 Runtime 的「黑魔法」。然而作为初学者，很难从其名称联想到是为谁关联对象，以及是如何关联对象的，那么今天就来一起研究下 iOS 中的关联对象是什么、怎么用、以及为什么。" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="/posts/2019/associated_objects_in_ios/" /><meta property="article:section" content="posts" />
-<meta property="article:published_time" content="2019-05-18T00:00:00&#43;00:00" />
-<meta property="article:modified_time" content="2019-05-18T00:00:00&#43;00:00" /><meta property="og:site_name" content="iBlog" />
-
-
-
-
+    
+    
+</head>
 
 <script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
 
-  </head>
-  <body class="">
-    <div class="container">
-      <header class="header">
-  <span class="header__inner">
-    <a href="/" class="logo" style="text-decoration: none;">
-  
-    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
-  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
-</svg>
-</span>
-    <span class="logo__text">kingcos.me</span>
-    <span class="logo__cursor"></span>
-  
-</a>
 
-    <span class="header__right">
-      
-        <nav class="menu">
-  <ul class="menu__inner menu__inner--desktop">
-    
-      
-        
-          <li><a href="/about">About</a></li>
-        
-      
-        
-          <li><a href="/read">Read</a></li>
-        
-      
-      
-    
-  </ul>
-
-  <ul class="menu__inner menu__inner--mobile">
-    
-      
-        <li><a href="/about">About</a></li>
-      
-    
-      
-        <li><a href="/read">Read</a></li>
-      
-    
-  </ul>
-</nav>
-
-        <span class="menu-trigger">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M0 0h24v24H0z" fill="none"/>
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-          </svg>
-        </span>
-      
-      <span class="theme-toggle">
-        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
-  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
-  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
-</svg>
-
-      </span>
-    </span>
-  </span>
-</header>
-
-
-      <div class="content">
-        
-  <div class="post">
-    <h2 class="post-title"><a href="/posts/2019/associated_objects_in_ios/">iOS 中的关联对象</a></h2>
-    <div class="post-meta">
-      
-        <span class="post-date">
-            2019-05-18
-        </span>
-      
-      
-      
-        <span class="post-read-time">— 6 min read</span>
-      
+<body>
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/posts/">Archive</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/about/">About</a>
+            </li>
+            
+        </ul>
     </div>
-
-    
-      <span class="post-tags">
-        
-          #<a href="/tags/focus/">Focus</a>&nbsp;
-        
-          #<a href="/tags/ios/">iOS</a>&nbsp;
-        
-          #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
-        
-      </span>
-    
-
-    
-
-    <div class="post-content">
-      <table>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            <h1>
+                <a href="https://kingcos.me">
+                    <span>萌面大道</span>
+                </a>
+            </h1>
+        </div>
+        <div class="description">
+            <p class="sub_title">kingcos | Focus</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/kingcos" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://www.instagram.com/kingcos_v/" title="instagram" target="_blank"><i class="ri-instagram-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/kingcos_v" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/u/1798410923" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                <a href="https://kingcos.me/index.xml" type="application/rss+xml" title="rss" target="_blank"><i
+                        class="ri-rss-fill"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/2019/associated_objects_in_ios/'>iOS 中的关联对象</a></h2>
+                        <span class="date">2019.05.18</span>
+                    </div>
+                    <div class="post_content markdown"><table>
 <thead>
 <tr>
 <th style="text-align:center">Date</th>
@@ -180,96 +142,96 @@ Associative references, available starting in OS X v10.6, simulate the addition 
 <h2 id="how">How</h2>
 <h3 id="类与分类category的属性">类与分类（Category）的属性</h3>
 <p>在类（Class）中定义一个属性（<code>@property</code>），默认会生成 getter &amp; setter，以及 <code>_</code> 开头的成员变量：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// Person.h
-</span><span style="color:#75715e"></span><span style="color:#75715e">#import &lt;Foundation/Foundation.h&gt;
-</span><span style="color:#75715e"></span>
-NS_ASSUME_NONNULL_BEGIN
-<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Person</span> : <span style="color:#a6e22e">NSObject</span>
-<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">copy</span>) NSString <span style="color:#f92672">*</span>name;
-<span style="color:#66d9ef">@end</span>
-NS_ASSUME_NONNULL_END
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Person.h
+</span><span class="c1"></span><span class="cp">#import &lt;Foundation/Foundation.h&gt;
+</span><span class="cp"></span>
+<span class="n">NS_ASSUME_NONNULL_BEGIN</span>
+<span class="k">@interface</span> <span class="nc">Person</span> : <span class="nc">NSObject</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">)</span> <span class="n">NSString</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+<span class="k">@end</span>
+<span class="n">NS_ASSUME_NONNULL_END</span>
 
-<span style="color:#75715e">// Person.m
-</span><span style="color:#75715e"></span><span style="color:#75715e">#import &#34;Person.h&#34;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Person</span>
-<span style="color:#66d9ef">@end</span>
+<span class="c1">// Person.m
+</span><span class="c1"></span><span class="cp">#import &#34;Person.h&#34;
+</span><span class="cp"></span>
+<span class="k">@implementation</span> <span class="nc">Person</span>
+<span class="k">@end</span>
 
-<span style="color:#75715e">// main.m
-</span><span style="color:#75715e"></span>Person <span style="color:#f92672">*</span>person <span style="color:#f92672">=</span> [[Person alloc] init];
-[person setName:<span style="color:#e6db74">@&#34;kingcos&#34;</span>];
-NSLog(<span style="color:#e6db74">@&#34;Name: %@&#34;</span>, [person name]);
-<span style="color:#75715e">// OUTPUT:
-</span><span style="color:#75715e">// Name: kingcos
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">// LLDB:
-</span><span style="color:#75715e">// (lldb) po person-&gt;_name
-</span><span style="color:#75715e">// kingcos
+<span class="c1">// main.m
+</span><span class="c1"></span><span class="n">Person</span> <span class="o">*</span><span class="n">person</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Person</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+<span class="p">[</span><span class="n">person</span> <span class="nl">setName</span><span class="p">:</span><span class="s">@&#34;kingcos&#34;</span><span class="p">];</span>
+<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Name: %@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">person</span> <span class="n">name</span><span class="p">]);</span>
+<span class="c1">// OUTPUT:
+</span><span class="c1">// Name: kingcos
+</span><span class="c1"></span>
+<span class="c1">// LLDB:
+</span><span class="c1">// (lldb) po person-&gt;_name
+</span><span class="c1">// kingcos
 </span></code></pre></div><p>而在「iOS 中的 Category」一文中，我们介绍了分类中也是可以添加属性的，因为分类的结构 <code>category_t</code> 中也有存储属性列表的指针：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_category_t</span> {
-    <span style="color:#75715e">// ...
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_prop_list_t</span> <span style="color:#f92672">*</span>properties;          <span style="color:#75715e">// 属性列表指针
-</span><span style="color:#75715e"></span>};
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">struct</span> <span class="nc">_category_t</span> <span class="p">{</span>
+    <span class="c1">// ...
+</span><span class="c1"></span>    <span class="k">const</span> <span class="k">struct</span> <span class="nc">_prop_list_t</span> <span class="o">*</span><span class="n">properties</span><span class="p">;</span>          <span class="c1">// 属性列表指针
+</span><span class="c1"></span><span class="p">};</span>
 </code></pre></div><p>我们也尝试为「Person+Life」分类添加一个属性并使用：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// Person+Life.h
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Person</span> (Life)
-<span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">nonatomic</span>, <span style="color:#66d9ef">copy</span>) NSString <span style="color:#f92672">*</span>nickname;
-<span style="color:#66d9ef">@end</span>
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Person+Life.h
+</span><span class="c1"></span><span class="k">@interface</span> <span class="nc">Person</span> <span class="nl">(Life)</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">)</span> <span class="n">NSString</span> <span class="o">*</span><span class="n">nickname</span><span class="p">;</span>
+<span class="k">@end</span>
 
-<span style="color:#75715e">// Person+Life.m
-</span><span style="color:#75715e"></span><span style="color:#75715e">#import &#34;Person+Life.h&#34;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Person</span> (Life)
-<span style="color:#66d9ef">@end</span>
+<span class="c1">// Person+Life.m
+</span><span class="c1"></span><span class="cp">#import &#34;Person+Life.h&#34;
+</span><span class="cp"></span>
+<span class="k">@implementation</span> <span class="nc">Person</span> <span class="nl">(Life)</span>
+<span class="k">@end</span>
 
-<span style="color:#75715e">// main.m
-</span><span style="color:#75715e"></span>Person <span style="color:#f92672">*</span>person <span style="color:#f92672">=</span> [[Person alloc] init];
-[person setNickname:<span style="color:#e6db74">@&#34;kingcos&#34;</span>];
-NSLog(<span style="color:#e6db74">@&#34;Name: %@&#34;</span>, [person nickname]);
-<span style="color:#75715e">// Crash:
-</span><span style="color:#75715e">// &#39;-[Person setNickname:]: unrecognized selector sent to instance 0x10050fdf0&#39;
-</span><span style="color:#75715e">// &#39;-[Person nickname]: unrecognized selector sent to instance 0x102185520&#39;
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">// LLDB:
-</span><span style="color:#75715e">// (lldb) po person-&gt;_nickname
-</span><span style="color:#75715e">// error: &#39;Person&#39; does not have a member named &#39;_nickname&#39;
+<span class="c1">// main.m
+</span><span class="c1"></span><span class="n">Person</span> <span class="o">*</span><span class="n">person</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Person</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+<span class="p">[</span><span class="n">person</span> <span class="nl">setNickname</span><span class="p">:</span><span class="s">@&#34;kingcos&#34;</span><span class="p">];</span>
+<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Name: %@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">person</span> <span class="n">nickname</span><span class="p">]);</span>
+<span class="c1">// Crash:
+</span><span class="c1">// &#39;-[Person setNickname:]: unrecognized selector sent to instance 0x10050fdf0&#39;
+</span><span class="c1">// &#39;-[Person nickname]: unrecognized selector sent to instance 0x102185520&#39;
+</span><span class="c1"></span>
+<span class="c1">// LLDB:
+</span><span class="c1">// (lldb) po person-&gt;_nickname
+</span><span class="c1">// error: &#39;Person&#39; does not have a member named &#39;_nickname&#39;
 </span></code></pre></div><p>然而我们发现程序在这里崩溃了，这是因为分类中虽然可以定义属性，但其只会为我们声明 getter &amp; setter，并不会创建实例变量，也不会实现 getter &amp; setter，因为分类的结构 <code>category_t</code> 中也确实没有存储成员变量的地方。那么这时我们使用关联对象就可以为分类「假装」添加成员变量。</p>
 <h3 id="关联对象的使用">关联对象的使用</h3>
 <p>由于关联对象是 Obj-C 运行时的特性之一，因此在使用相关 API 前需要引入 <code>#import &lt;objc/runtime.h&gt;</code>。其中与关联对象相关的函数主要为以下三个：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// runtime.h
-</span><span style="color:#75715e"></span>objc_setAssociatedObject(<span style="color:#66d9ef">id</span> _Nonnull object, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> _Nonnull key,
-                         <span style="color:#66d9ef">id</span> _Nullable value, objc_AssociationPolicy policy)
-    OBJC_AVAILABLE(<span style="color:#ae81ff">10.6</span>, <span style="color:#ae81ff">3.1</span>, <span style="color:#ae81ff">9.0</span>, <span style="color:#ae81ff">1.0</span>, <span style="color:#ae81ff">2.0</span>);
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// runtime.h
+</span><span class="c1"></span><span class="n">objc_setAssociatedObject</span><span class="p">(</span><span class="kt">id</span> <span class="n">_Nonnull</span> <span class="n">object</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span> <span class="n">_Nonnull</span> <span class="n">key</span><span class="p">,</span>
+                         <span class="kt">id</span> <span class="n">_Nullable</span> <span class="n">value</span><span class="p">,</span> <span class="n">objc_AssociationPolicy</span> <span class="n">policy</span><span class="p">)</span>
+    <span class="n">OBJC_AVAILABLE</span><span class="p">(</span><span class="mf">10.6</span><span class="p">,</span> <span class="mf">3.1</span><span class="p">,</span> <span class="mf">9.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">);</span>
 
-objc_getAssociatedObject(<span style="color:#66d9ef">id</span> _Nonnull object, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> _Nonnull key)
-    OBJC_AVAILABLE(<span style="color:#ae81ff">10.6</span>, <span style="color:#ae81ff">3.1</span>, <span style="color:#ae81ff">9.0</span>, <span style="color:#ae81ff">1.0</span>, <span style="color:#ae81ff">2.0</span>);
+<span class="n">objc_getAssociatedObject</span><span class="p">(</span><span class="kt">id</span> <span class="n">_Nonnull</span> <span class="n">object</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span> <span class="n">_Nonnull</span> <span class="n">key</span><span class="p">)</span>
+    <span class="n">OBJC_AVAILABLE</span><span class="p">(</span><span class="mf">10.6</span><span class="p">,</span> <span class="mf">3.1</span><span class="p">,</span> <span class="mf">9.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">);</span>
 
-objc_removeAssociatedObjects(<span style="color:#66d9ef">id</span> _Nonnull object)
-    OBJC_AVAILABLE(<span style="color:#ae81ff">10.6</span>, <span style="color:#ae81ff">3.1</span>, <span style="color:#ae81ff">9.0</span>, <span style="color:#ae81ff">1.0</span>, <span style="color:#ae81ff">2.0</span>);
+<span class="n">objc_removeAssociatedObjects</span><span class="p">(</span><span class="kt">id</span> <span class="n">_Nonnull</span> <span class="n">object</span><span class="p">)</span>
+    <span class="n">OBJC_AVAILABLE</span><span class="p">(</span><span class="mf">10.6</span><span class="p">,</span> <span class="mf">3.1</span><span class="p">,</span> <span class="mf">9.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">);</span>
 </code></pre></div><p>这三个函数从名称也能认出其分别为设置关联对象、获取关联对象、以及移除关联对象；即我们可以在 setter 的实现中设置关联对象，在 getter 中获取关联对象，在不再需要时移除关联对象。尝试将上一节崩溃的程序使用关联对象进行改写：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// Person+Life.m
-</span><span style="color:#75715e"></span><span style="color:#75715e">#import &#34;Person+Life.h&#34;
-</span><span style="color:#75715e">#import &lt;objc/runtime.h&gt;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Person</span> (Life)
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Person+Life.m
+</span><span class="c1"></span><span class="cp">#import &#34;Person+Life.h&#34;
+</span><span class="cp">#import &lt;objc/runtime.h&gt;
+</span><span class="cp"></span>
+<span class="k">@implementation</span> <span class="nc">Person</span> <span class="nl">(Life)</span>
 
-<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>nicknameKey <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>nicknameKey;
+<span class="k">static</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">nicknameKey</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">nicknameKey</span><span class="p">;</span>
 
-- (NSString <span style="color:#f92672">*</span>)<span style="color:#a6e22e">nickname</span> {
-    <span style="color:#66d9ef">return</span> objc_getAssociatedObject(self, nicknameKey);
-}
+<span class="p">-</span> <span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">nickname</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">objc_getAssociatedObject</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="n">nicknameKey</span><span class="p">);</span>
+<span class="p">}</span>
 
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">setNickname:</span>(NSString <span style="color:#f92672">*</span>)nickname {
-    objc_setAssociatedObject(self, nicknameKey, nickname, OBJC_ASSOCIATION_COPY_NONATOMIC);
-}
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">setNickname:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">nickname</span> <span class="p">{</span>
+    <span class="n">objc_setAssociatedObject</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="n">nicknameKey</span><span class="p">,</span> <span class="n">nickname</span><span class="p">,</span> <span class="n">OBJC_ASSOCIATION_COPY_NONATOMIC</span><span class="p">);</span>
+<span class="p">}</span>
 
-<span style="color:#66d9ef">@end</span>
+<span class="k">@end</span>
 
-<span style="color:#75715e">// main.m
-</span><span style="color:#75715e"></span>Person <span style="color:#f92672">*</span>person <span style="color:#f92672">=</span> [[Person alloc] init];
-[person setNickname:<span style="color:#e6db74">@&#34;kingcos&#34;</span>];
-<span style="color:#75715e">// OUTPUT:
-</span><span style="color:#75715e">// Name: kingcos
+<span class="c1">// main.m
+</span><span class="c1"></span><span class="n">Person</span> <span class="o">*</span><span class="n">person</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Person</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+<span class="p">[</span><span class="n">person</span> <span class="nl">setNickname</span><span class="p">:</span><span class="s">@&#34;kingcos&#34;</span><span class="p">];</span>
+<span class="c1">// OUTPUT:
+</span><span class="c1">// Name: kingcos
 </span></code></pre></div><p>我们在 setter 中使用 <code>objc_setAssociatedObject</code> 实现，其一共需要四个参数：</p>
 <ul>
 <li>
@@ -279,32 +241,32 @@ objc_removeAssociatedObjects(<span style="color:#66d9ef">id</span> _Nonnull obje
 <p>第二个参数是标示存入的 <code>const void * _Nonnull key</code>，可以放入指向任何类型的指针。我们可以仿照「iOS 中的 KVO」中对于 <code>context</code> 的定义，将 <code>key</code> 设置为声明变量自身的内存地址，保证了唯一性，并加上 <code>static</code>，保证该变量仅在该 .m 中可以访问。但这样不太方便的是每次都需要额外定义，有更好的解决方案吗？我们其实可以将 getter 或者 setter 方法的地址作为 <code>key</code> 存入，这样就无需再去单独声明一个 <code>key</code> 且支持编译检查。再进一步，由于 Obj-C 中的方法都会有两个隐式参数 <code>self</code> 和 <code>_cmd</code> 分别代表当前对象和当前方法 <code>SEL</code>，后者在 getter 中就等同于的 <code>@selector(nickname)</code>，这样在 getter 中写法就更简单了：</p>
 </li>
 </ul>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Person</span> (Life)
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@implementation</span> <span class="nc">Person</span> <span class="nl">(Life)</span>
 
-- (NSString <span style="color:#f92672">*</span>)<span style="color:#a6e22e">nickname</span> {
-    <span style="color:#75715e">// return objc_getAssociatedObject(self, @selector(nickname));
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> objc_getAssociatedObject(self, _cmd);
-}
+<span class="p">-</span> <span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">nickname</span> <span class="p">{</span>
+    <span class="c1">// return objc_getAssociatedObject(self, @selector(nickname));
+</span><span class="c1"></span>    <span class="k">return</span> <span class="n">objc_getAssociatedObject</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="n">_cmd</span><span class="p">);</span>
+<span class="p">}</span>
 
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">setNickname:</span>(NSString <span style="color:#f92672">*</span>)nickname {
-    objc_setAssociatedObject(self, <span style="color:#66d9ef">@selector</span>(nickname), nickname, OBJC_ASSOCIATION_COPY_NONATOMIC);
-}
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">setNickname:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">nickname</span> <span class="p">{</span>
+    <span class="n">objc_setAssociatedObject</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="k">@selector</span><span class="p">(</span><span class="n">nickname</span><span class="p">),</span> <span class="n">nickname</span><span class="p">,</span> <span class="n">OBJC_ASSOCIATION_COPY_NONATOMIC</span><span class="p">);</span>
+<span class="p">}</span>
 
-<span style="color:#66d9ef">@end</span>
+<span class="k">@end</span>
 </code></pre></div><ul>
 <li>第三个参数是要关联上的值 <code>id _Nullable value</code>，注意其类型为 <code>id</code>，因此如果想要存入 <code>int</code> 等 C 语言中的类型时，需要先在 setter 中转换为 Obj-C 的对象类型，并在 getter 中再转回：</li>
 </ul>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Person</span> (Life)
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@implementation</span> <span class="nc">Person</span> <span class="nl">(Life)</span>
 
-- (<span style="color:#66d9ef">int</span>)<span style="color:#a6e22e">age</span> {
-    <span style="color:#66d9ef">return</span> [objc_getAssociatedObject(self, _cmd) intValue];
-}
+<span class="p">-</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="nf">age</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">objc_getAssociatedObject</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="n">_cmd</span><span class="p">)</span> <span class="n">intValue</span><span class="p">];</span>
+<span class="p">}</span>
 
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">setAge:</span>(<span style="color:#66d9ef">int</span>)age {
-    objc_setAssociatedObject(self, <span style="color:#66d9ef">@selector</span>(age), <span style="color:#ae81ff">@(</span>age<span style="color:#ae81ff">)</span>, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-}
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">setAge:</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="nv">age</span> <span class="p">{</span>
+    <span class="n">objc_setAssociatedObject</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="k">@selector</span><span class="p">(</span><span class="n">age</span><span class="p">),</span> <span class="l">@(</span><span class="n">age</span><span class="l">)</span><span class="p">,</span> <span class="n">OBJC_ASSOCIATION_RETAIN_NONATOMIC</span><span class="p">);</span>
+<span class="p">}</span>
 
-<span style="color:#66d9ef">@end</span>
+<span class="k">@end</span>
 </code></pre></div><ul>
 <li>第四个参数是关联的内存语义策略 <code>objc_AssociationPolicy</code>，其中包含了五个枚举项，对应了不同的内存管理策略。可以对照属性的内存管理修饰符来选择合适的策略：</li>
 </ul>
@@ -346,222 +308,222 @@ objc_removeAssociatedObjects(<span style="color:#66d9ef">id</span> _Nonnull obje
 </table>
 <h2 id="why">Why</h2>
 <p>了解了关联对象是什么、怎么用，那么关联对象到底是如何实现的呢？我们先从 <code>objc_setAssociatedObject</code> 着手：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// objc-runtime.mm
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">objc_setAssociatedObject</span>(<span style="color:#66d9ef">id</span> object, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>key, <span style="color:#66d9ef">id</span> value, objc_AssociationPolicy policy) {
-    <span style="color:#75715e">// ➡️ 内部实际调用 _object_set_associative_reference
-</span><span style="color:#75715e"></span>    _object_set_associative_reference(object, (<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)key, value, policy);
-}
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-runtime.mm
+</span><span class="c1"></span><span class="kt">void</span> <span class="nf">objc_setAssociatedObject</span><span class="p">(</span><span class="kt">id</span> <span class="n">object</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">key</span><span class="p">,</span> <span class="kt">id</span> <span class="n">value</span><span class="p">,</span> <span class="n">objc_AssociationPolicy</span> <span class="n">policy</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// ➡️ 内部实际调用 _object_set_associative_reference
+</span><span class="c1"></span>    <span class="n">_object_set_associative_reference</span><span class="p">(</span><span class="n">object</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">policy</span><span class="p">);</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// objc-references.mm
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">_object_set_associative_reference</span>(<span style="color:#66d9ef">id</span> object, <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>key, <span style="color:#66d9ef">id</span> value, uintptr_t policy) {
-    <span style="color:#75715e">// retain the new value (if any) outside the lock.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 在加锁前持有新值（如果有）
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 初始化一个存储原始关联的对象
-</span><span style="color:#75715e"></span>    ObjcAssociation old_association(<span style="color:#ae81ff">0</span>, nil);
-    <span style="color:#75715e">// 根据内存策略和值本身获取值
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">id</span> new_value <span style="color:#f92672">=</span> value <span style="color:#f92672">?</span> acquireValue(value, policy) <span style="color:#f92672">:</span> nil;
-    {
-        <span style="color:#75715e">// 声明关联管理器
-</span><span style="color:#75715e"></span>        AssociationsManager manager;
-        <span style="color:#75715e">// 从关联管理器中取出所有关联，HashMap 数据结构
-</span><span style="color:#75715e"></span>        AssociationsHashMap <span style="color:#f92672">&amp;</span>associations(manager.associations());
-        <span style="color:#75715e">// 「伪装」要关联上的对象
-</span><span style="color:#75715e"></span>        disguised_ptr_t disguised_object <span style="color:#f92672">=</span> DISGUISE(object);
-        <span style="color:#66d9ef">if</span> (new_value) {
-            <span style="color:#75715e">// 如果有新值
-</span><span style="color:#75715e"></span>            <span style="color:#75715e">// break any existing association.
-</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 打破任何现有的关联。
-</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 在管理器的所有关联中根据 object 查找其关联，并放入迭代器
-</span><span style="color:#75715e"></span>            AssociationsHashMap<span style="color:#f92672">::</span>iterator i <span style="color:#f92672">=</span> associations.find(disguised_object);
-            <span style="color:#66d9ef">if</span> (i <span style="color:#f92672">!=</span> associations.end()) {
-                <span style="color:#75715e">// 如果已存在该对象的关联
-</span><span style="color:#75715e"></span>                <span style="color:#75715e">// secondary table exists
-</span><span style="color:#75715e"></span>                <span style="color:#75715e">// 存在二级表
-</span><span style="color:#75715e"></span>                ObjectAssociationMap <span style="color:#f92672">*</span>refs <span style="color:#f92672">=</span> i<span style="color:#f92672">-&gt;</span>second;
-                <span style="color:#75715e">// 在 object 的所有关联中根据 key 查找对应的某个关联，并放入迭代器
-</span><span style="color:#75715e"></span>                ObjectAssociationMap<span style="color:#f92672">::</span>iterator j <span style="color:#f92672">=</span> refs<span style="color:#f92672">-&gt;</span>find(key);
-                <span style="color:#66d9ef">if</span> (j <span style="color:#f92672">!=</span> refs<span style="color:#f92672">-&gt;</span>end()) {
-                    <span style="color:#75715e">// 如果已存在该 key 的关联
-</span><span style="color:#75715e"></span>                    <span style="color:#75715e">// 原始关联暂存
-</span><span style="color:#75715e"></span>                    old_association <span style="color:#f92672">=</span> j<span style="color:#f92672">-&gt;</span>second;
-                    <span style="color:#75715e">// 用新关联的值和内存管理策略构造对象关联并赋值
-</span><span style="color:#75715e"></span>                    j<span style="color:#f92672">-&gt;</span>second <span style="color:#f92672">=</span> ObjcAssociation(policy, new_value);
-                } <span style="color:#66d9ef">else</span> {
-                    <span style="color:#75715e">// 如果未存在该 key 的关联
-</span><span style="color:#75715e"></span>                    <span style="color:#75715e">// 用新关联的值和内存管理策略构造对象关联并赋值
-</span><span style="color:#75715e"></span>                    (<span style="color:#f92672">*</span>refs)[key] <span style="color:#f92672">=</span> ObjcAssociation(policy, new_value);
-                }
-            } <span style="color:#66d9ef">else</span> {
-                <span style="color:#75715e">// 如果未存在该对象的关联
-</span><span style="color:#75715e"></span>                <span style="color:#75715e">// create the new association (first time).
-</span><span style="color:#75715e"></span>                <span style="color:#75715e">// 创建新关联（首次）
-</span><span style="color:#75715e"></span>                ObjectAssociationMap <span style="color:#f92672">*</span>refs <span style="color:#f92672">=</span> new ObjectAssociationMap;
-                <span style="color:#75715e">// 将新创建 ObjectAssociationMap 存入所有关联中
-</span><span style="color:#75715e"></span>                associations[disguised_object] <span style="color:#f92672">=</span> refs;
-                <span style="color:#75715e">// 用新关联的值和内存管理策略构造对象关联并赋值
-</span><span style="color:#75715e"></span>                (<span style="color:#f92672">*</span>refs)[key] <span style="color:#f92672">=</span> ObjcAssociation(policy, new_value);
-                object<span style="color:#f92672">-&gt;</span>setHasAssociatedObjects();
-            }
-        } <span style="color:#66d9ef">else</span> {
-            <span style="color:#75715e">// 如果值为 nil
-</span><span style="color:#75715e"></span>            <span style="color:#75715e">// setting the association to nil breaks the association.
-</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 设置关系为 nil 来打破关联
-</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 在管理器里所有的关联中根据 object 查找其关联，并放入迭代器
-</span><span style="color:#75715e"></span>            AssociationsHashMap<span style="color:#f92672">::</span>iterator i <span style="color:#f92672">=</span> associations.find(disguised_object);
-            <span style="color:#66d9ef">if</span> (i <span style="color:#f92672">!=</span>  associations.end()) {
-                <span style="color:#75715e">// 如果已存在该对象的关联
-</span><span style="color:#75715e"></span>                ObjectAssociationMap <span style="color:#f92672">*</span>refs <span style="color:#f92672">=</span> i<span style="color:#f92672">-&gt;</span>second;
-                <span style="color:#75715e">// 在 object 的所有关联中根据 key 查找对应的某个关联，并放入迭代器
-</span><span style="color:#75715e"></span>                ObjectAssociationMap<span style="color:#f92672">::</span>iterator j <span style="color:#f92672">=</span> refs<span style="color:#f92672">-&gt;</span>find(key);
-                <span style="color:#66d9ef">if</span> (j <span style="color:#f92672">!=</span> refs<span style="color:#f92672">-&gt;</span>end()) {
-                    old_association <span style="color:#f92672">=</span> j<span style="color:#f92672">-&gt;</span>second;
-                    <span style="color:#75715e">// 清除该关联
-</span><span style="color:#75715e"></span>                    refs<span style="color:#f92672">-&gt;</span>erase(j);
-                }
-            }
-        }
-    }
-    <span style="color:#75715e">// release the old value (outside of the lock).
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 在加锁后释放原始值
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (old_association.hasValue()) ReleaseValue()(old_association);
-}
+<span class="c1">// objc-references.mm
+</span><span class="c1"></span><span class="kt">void</span> <span class="nf">_object_set_associative_reference</span><span class="p">(</span><span class="kt">id</span> <span class="n">object</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">key</span><span class="p">,</span> <span class="kt">id</span> <span class="n">value</span><span class="p">,</span> <span class="n">uintptr_t</span> <span class="n">policy</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// retain the new value (if any) outside the lock.
+</span><span class="c1"></span>    <span class="c1">// 在加锁前持有新值（如果有）
+</span><span class="c1"></span>    <span class="c1">// 初始化一个存储原始关联的对象
+</span><span class="c1"></span>    <span class="n">ObjcAssociation</span> <span class="n">old_association</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">nil</span><span class="p">);</span>
+    <span class="c1">// 根据内存策略和值本身获取值
+</span><span class="c1"></span>    <span class="kt">id</span> <span class="n">new_value</span> <span class="o">=</span> <span class="n">value</span> <span class="o">?</span> <span class="n">acquireValue</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">policy</span><span class="p">)</span> <span class="o">:</span> <span class="nb">nil</span><span class="p">;</span>
+    <span class="p">{</span>
+        <span class="c1">// 声明关联管理器
+</span><span class="c1"></span>        <span class="n">AssociationsManager</span> <span class="n">manager</span><span class="p">;</span>
+        <span class="c1">// 从关联管理器中取出所有关联，HashMap 数据结构
+</span><span class="c1"></span>        <span class="n">AssociationsHashMap</span> <span class="o">&amp;</span><span class="n">associations</span><span class="p">(</span><span class="n">manager</span><span class="p">.</span><span class="n">associations</span><span class="p">());</span>
+        <span class="c1">// 「伪装」要关联上的对象
+</span><span class="c1"></span>        <span class="n">disguised_ptr_t</span> <span class="n">disguised_object</span> <span class="o">=</span> <span class="n">DISGUISE</span><span class="p">(</span><span class="n">object</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">new_value</span><span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// 如果有新值
+</span><span class="c1"></span>            <span class="c1">// break any existing association.
+</span><span class="c1"></span>            <span class="c1">// 打破任何现有的关联。
+</span><span class="c1"></span>            <span class="c1">// 在管理器的所有关联中根据 object 查找其关联，并放入迭代器
+</span><span class="c1"></span>            <span class="n">AssociationsHashMap</span><span class="o">::</span><span class="n">iterator</span> <span class="n">i</span> <span class="o">=</span> <span class="n">associations</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">disguised_object</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">!=</span> <span class="n">associations</span><span class="p">.</span><span class="n">end</span><span class="p">())</span> <span class="p">{</span>
+                <span class="c1">// 如果已存在该对象的关联
+</span><span class="c1"></span>                <span class="c1">// secondary table exists
+</span><span class="c1"></span>                <span class="c1">// 存在二级表
+</span><span class="c1"></span>                <span class="n">ObjectAssociationMap</span> <span class="o">*</span><span class="n">refs</span> <span class="o">=</span> <span class="n">i</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">;</span>
+                <span class="c1">// 在 object 的所有关联中根据 key 查找对应的某个关联，并放入迭代器
+</span><span class="c1"></span>                <span class="n">ObjectAssociationMap</span><span class="o">::</span><span class="n">iterator</span> <span class="n">j</span> <span class="o">=</span> <span class="n">refs</span><span class="o">-&gt;</span><span class="n">find</span><span class="p">(</span><span class="n">key</span><span class="p">);</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">j</span> <span class="o">!=</span> <span class="n">refs</span><span class="o">-&gt;</span><span class="n">end</span><span class="p">())</span> <span class="p">{</span>
+                    <span class="c1">// 如果已存在该 key 的关联
+</span><span class="c1"></span>                    <span class="c1">// 原始关联暂存
+</span><span class="c1"></span>                    <span class="n">old_association</span> <span class="o">=</span> <span class="n">j</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">;</span>
+                    <span class="c1">// 用新关联的值和内存管理策略构造对象关联并赋值
+</span><span class="c1"></span>                    <span class="n">j</span><span class="o">-&gt;</span><span class="n">second</span> <span class="o">=</span> <span class="n">ObjcAssociation</span><span class="p">(</span><span class="n">policy</span><span class="p">,</span> <span class="n">new_value</span><span class="p">);</span>
+                <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                    <span class="c1">// 如果未存在该 key 的关联
+</span><span class="c1"></span>                    <span class="c1">// 用新关联的值和内存管理策略构造对象关联并赋值
+</span><span class="c1"></span>                    <span class="p">(</span><span class="o">*</span><span class="n">refs</span><span class="p">)[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">ObjcAssociation</span><span class="p">(</span><span class="n">policy</span><span class="p">,</span> <span class="n">new_value</span><span class="p">);</span>
+                <span class="p">}</span>
+            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                <span class="c1">// 如果未存在该对象的关联
+</span><span class="c1"></span>                <span class="c1">// create the new association (first time).
+</span><span class="c1"></span>                <span class="c1">// 创建新关联（首次）
+</span><span class="c1"></span>                <span class="n">ObjectAssociationMap</span> <span class="o">*</span><span class="n">refs</span> <span class="o">=</span> <span class="n">new</span> <span class="n">ObjectAssociationMap</span><span class="p">;</span>
+                <span class="c1">// 将新创建 ObjectAssociationMap 存入所有关联中
+</span><span class="c1"></span>                <span class="n">associations</span><span class="p">[</span><span class="n">disguised_object</span><span class="p">]</span> <span class="o">=</span> <span class="n">refs</span><span class="p">;</span>
+                <span class="c1">// 用新关联的值和内存管理策略构造对象关联并赋值
+</span><span class="c1"></span>                <span class="p">(</span><span class="o">*</span><span class="n">refs</span><span class="p">)[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">ObjcAssociation</span><span class="p">(</span><span class="n">policy</span><span class="p">,</span> <span class="n">new_value</span><span class="p">);</span>
+                <span class="n">object</span><span class="o">-&gt;</span><span class="n">setHasAssociatedObjects</span><span class="p">();</span>
+            <span class="p">}</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="c1">// 如果值为 nil
+</span><span class="c1"></span>            <span class="c1">// setting the association to nil breaks the association.
+</span><span class="c1"></span>            <span class="c1">// 设置关系为 nil 来打破关联
+</span><span class="c1"></span>            <span class="c1">// 在管理器里所有的关联中根据 object 查找其关联，并放入迭代器
+</span><span class="c1"></span>            <span class="n">AssociationsHashMap</span><span class="o">::</span><span class="n">iterator</span> <span class="n">i</span> <span class="o">=</span> <span class="n">associations</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">disguised_object</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">!=</span>  <span class="n">associations</span><span class="p">.</span><span class="n">end</span><span class="p">())</span> <span class="p">{</span>
+                <span class="c1">// 如果已存在该对象的关联
+</span><span class="c1"></span>                <span class="n">ObjectAssociationMap</span> <span class="o">*</span><span class="n">refs</span> <span class="o">=</span> <span class="n">i</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">;</span>
+                <span class="c1">// 在 object 的所有关联中根据 key 查找对应的某个关联，并放入迭代器
+</span><span class="c1"></span>                <span class="n">ObjectAssociationMap</span><span class="o">::</span><span class="n">iterator</span> <span class="n">j</span> <span class="o">=</span> <span class="n">refs</span><span class="o">-&gt;</span><span class="n">find</span><span class="p">(</span><span class="n">key</span><span class="p">);</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">j</span> <span class="o">!=</span> <span class="n">refs</span><span class="o">-&gt;</span><span class="n">end</span><span class="p">())</span> <span class="p">{</span>
+                    <span class="n">old_association</span> <span class="o">=</span> <span class="n">j</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">;</span>
+                    <span class="c1">// 清除该关联
+</span><span class="c1"></span>                    <span class="n">refs</span><span class="o">-&gt;</span><span class="n">erase</span><span class="p">(</span><span class="n">j</span><span class="p">);</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="c1">// release the old value (outside of the lock).
+</span><span class="c1"></span>    <span class="c1">// 在加锁后释放原始值
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">old_association</span><span class="p">.</span><span class="n">hasValue</span><span class="p">())</span> <span class="n">ReleaseValue</span><span class="p">()(</span><span class="n">old_association</span><span class="p">);</span>
+<span class="p">}</span>
 </code></pre></div><p>在分析以上代码时，我们注意到了几个与关联对象紧密相关的类型：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// objc-references.mm
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> ObjcAssociation {
-    <span style="color:#75715e">// 内存策略
-</span><span style="color:#75715e"></span>    uintptr_t _policy;
-    <span style="color:#75715e">// 值
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">id</span> _value;
-public:
-    ObjcAssociation(uintptr_t policy, <span style="color:#66d9ef">id</span> value) <span style="color:#f92672">:</span> _policy(policy), _value(value) {}
-    ObjcAssociation() <span style="color:#f92672">:</span> _policy(<span style="color:#ae81ff">0</span>), _value(nil) {}
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-references.mm
+</span><span class="c1"></span><span class="k">class</span> <span class="n">ObjcAssociation</span> <span class="p">{</span>
+    <span class="c1">// 内存策略
+</span><span class="c1"></span>    <span class="n">uintptr_t</span> <span class="n">_policy</span><span class="p">;</span>
+    <span class="c1">// 值
+</span><span class="c1"></span>    <span class="kt">id</span> <span class="n">_value</span><span class="p">;</span>
+<span class="nl">public</span><span class="p">:</span>
+    <span class="n">ObjcAssociation</span><span class="p">(</span><span class="n">uintptr_t</span> <span class="n">policy</span><span class="p">,</span> <span class="kt">id</span> <span class="n">value</span><span class="p">)</span> <span class="o">:</span> <span class="n">_policy</span><span class="p">(</span><span class="n">policy</span><span class="p">),</span> <span class="n">_value</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="p">{}</span>
+    <span class="n">ObjcAssociation</span><span class="p">()</span> <span class="o">:</span> <span class="n">_policy</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">_value</span><span class="p">(</span><span class="nb">nil</span><span class="p">)</span> <span class="p">{}</span>
 
-    uintptr_t policy() <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> _policy; }
-    <span style="color:#66d9ef">id</span> value() <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> _value; }
+    <span class="n">uintptr_t</span> <span class="n">policy</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span> <span class="k">return</span> <span class="n">_policy</span><span class="p">;</span> <span class="p">}</span>
+    <span class="kt">id</span> <span class="n">value</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span> <span class="k">return</span> <span class="n">_value</span><span class="p">;</span> <span class="p">}</span>
 
-    <span style="color:#66d9ef">bool</span> hasValue() { <span style="color:#66d9ef">return</span> _value <span style="color:#f92672">!=</span> nil; }
-};
+    <span class="kt">bool</span> <span class="n">hasValue</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">_value</span> <span class="o">!=</span> <span class="nb">nil</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">};</span>
 
-<span style="color:#75715e">// objc-references.mm
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> AssociationsManager {
-    <span style="color:#75715e">// associative references: object pointer -&gt; PtrPtrHashMap.
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">static</span> AssociationsHashMap <span style="color:#f92672">*</span>_map;
-public:
-    AssociationsManager()   { AssociationsManagerLock.lock(); }
-    <span style="color:#f92672">~</span>AssociationsManager()  { AssociationsManagerLock.unlock(); }
+<span class="c1">// objc-references.mm
+</span><span class="c1"></span><span class="k">class</span> <span class="n">AssociationsManager</span> <span class="p">{</span>
+    <span class="c1">// associative references: object pointer -&gt; PtrPtrHashMap.
+</span><span class="c1"></span>    <span class="k">static</span> <span class="n">AssociationsHashMap</span> <span class="o">*</span><span class="n">_map</span><span class="p">;</span>
+<span class="nl">public</span><span class="p">:</span>
+    <span class="n">AssociationsManager</span><span class="p">()</span>   <span class="p">{</span> <span class="n">AssociationsManagerLock</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span> <span class="p">}</span>
+    <span class="o">~</span><span class="n">AssociationsManager</span><span class="p">()</span>  <span class="p">{</span> <span class="n">AssociationsManagerLock</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span> <span class="p">}</span>
 
-    AssociationsHashMap <span style="color:#f92672">&amp;</span>associations() {
-        <span style="color:#66d9ef">if</span> (_map <span style="color:#f92672">==</span> NULL)
-            _map <span style="color:#f92672">=</span> new AssociationsHashMap();
-        <span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span>_map;
-    }
-};
+    <span class="n">AssociationsHashMap</span> <span class="o">&amp;</span><span class="n">associations</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">_map</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span>
+            <span class="n">_map</span> <span class="o">=</span> <span class="n">new</span> <span class="n">AssociationsHashMap</span><span class="p">();</span>
+        <span class="k">return</span> <span class="o">*</span><span class="n">_map</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span>
 
-<span style="color:#75715e">// objc-references.mm
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> AssociationsHashMap : public unordered_map<span style="color:#f92672">&lt;</span>disguised_ptr_t, ObjectAssociationMap <span style="color:#f92672">*</span>, DisguisedPointerHash, DisguisedPointerEqual, AssociationsHashMapAllocator<span style="color:#f92672">&gt;</span> {
-public:
-    <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>operator new(size_t n) { <span style="color:#66d9ef">return</span> <span style="color:#f92672">::</span>malloc(n); }
-    <span style="color:#66d9ef">void</span> operator delete(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>ptr) { <span style="color:#f92672">::</span>free(ptr); }
-};
+<span class="c1">// objc-references.mm
+</span><span class="c1"></span><span class="k">class</span> <span class="nl">AssociationsHashMap</span> <span class="p">:</span> <span class="n">public</span> <span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">disguised_ptr_t</span><span class="p">,</span> <span class="n">ObjectAssociationMap</span> <span class="o">*</span><span class="p">,</span> <span class="n">DisguisedPointerHash</span><span class="p">,</span> <span class="n">DisguisedPointerEqual</span><span class="p">,</span> <span class="n">AssociationsHashMapAllocator</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="nl">public</span><span class="p">:</span>
+    <span class="kt">void</span> <span class="o">*</span><span class="n">operator</span> <span class="n">new</span><span class="p">(</span><span class="n">size_t</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="o">::</span><span class="n">malloc</span><span class="p">(</span><span class="n">n</span><span class="p">);</span> <span class="p">}</span>
+    <span class="kt">void</span> <span class="n">operator</span> <span class="n">delete</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">)</span> <span class="p">{</span> <span class="o">::</span><span class="n">free</span><span class="p">(</span><span class="n">ptr</span><span class="p">);</span> <span class="p">}</span>
+<span class="p">};</span>
 
-<span style="color:#75715e">// objc-references.mm
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> ObjectAssociationMap : public std<span style="color:#f92672">::</span>map<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>, ObjcAssociation, ObjectPointerLess, ObjectAssociationMapAllocator<span style="color:#f92672">&gt;</span> {
-public:
-    <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>operator new(size_t n) { <span style="color:#66d9ef">return</span> <span style="color:#f92672">::</span>malloc(n); }
-    <span style="color:#66d9ef">void</span> operator delete(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>ptr) { <span style="color:#f92672">::</span>free(ptr); }
-};
+<span class="c1">// objc-references.mm
+</span><span class="c1"></span><span class="k">class</span> <span class="nl">ObjectAssociationMap</span> <span class="p">:</span> <span class="n">public</span> <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="kt">void</span> <span class="o">*</span><span class="p">,</span> <span class="n">ObjcAssociation</span><span class="p">,</span> <span class="n">ObjectPointerLess</span><span class="p">,</span> <span class="n">ObjectAssociationMapAllocator</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="nl">public</span><span class="p">:</span>
+    <span class="kt">void</span> <span class="o">*</span><span class="n">operator</span> <span class="n">new</span><span class="p">(</span><span class="n">size_t</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="o">::</span><span class="n">malloc</span><span class="p">(</span><span class="n">n</span><span class="p">);</span> <span class="p">}</span>
+    <span class="kt">void</span> <span class="n">operator</span> <span class="n">delete</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">)</span> <span class="p">{</span> <span class="o">::</span><span class="n">free</span><span class="p">(</span><span class="n">ptr</span><span class="p">);</span> <span class="p">}</span>
+<span class="p">};</span>
 </code></pre></div><p>为了更加直观表述它们的关系，整理成图即：</p>
 <p><img src="/img/2019/Associated_Objects_in_iOS/1.png" alt="1"></p>
 <p>同理我们可以分析关联对象的其它两个方法：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// --- objc_getAssociatedObject ---
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">// objc-runtime.mm
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">id</span> <span style="color:#a6e22e">objc_getAssociatedObject</span>(<span style="color:#66d9ef">id</span> object, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>key) {
-    <span style="color:#66d9ef">return</span> _object_get_associative_reference(object, (<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)key);
-}
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// --- objc_getAssociatedObject ---
+</span><span class="c1"></span>
+<span class="c1">// objc-runtime.mm
+</span><span class="c1"></span><span class="kt">id</span> <span class="nf">objc_getAssociatedObject</span><span class="p">(</span><span class="kt">id</span> <span class="n">object</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">_object_get_associative_reference</span><span class="p">(</span><span class="n">object</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="n">key</span><span class="p">);</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// objc-references.mm
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">id</span> <span style="color:#a6e22e">_object_get_associative_reference</span>(<span style="color:#66d9ef">id</span> object, <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>key) {
-    <span style="color:#75715e">// 默认值 nil
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">id</span> value <span style="color:#f92672">=</span> nil;
-    <span style="color:#75715e">// 默认策略 OBJC_ASSOCIATION_ASSIGN
-</span><span style="color:#75715e"></span>    uintptr_t policy <span style="color:#f92672">=</span> OBJC_ASSOCIATION_ASSIGN;
-    {
-        <span style="color:#75715e">// 声明关联管理器
-</span><span style="color:#75715e"></span>        AssociationsManager manager;
-        <span style="color:#75715e">// 从关联管理器中取出所有关联
-</span><span style="color:#75715e"></span>        AssociationsHashMap <span style="color:#f92672">&amp;</span>associations(manager.associations());
-        <span style="color:#75715e">// 「伪装」要关联上的对象
-</span><span style="color:#75715e"></span>        disguised_ptr_t disguised_object <span style="color:#f92672">=</span> DISGUISE(object);
-        <span style="color:#75715e">// 在管理器的所有关联中根据 object 查找其关联，并放入迭代器
-</span><span style="color:#75715e"></span>        AssociationsHashMap<span style="color:#f92672">::</span>iterator i <span style="color:#f92672">=</span> associations.find(disguised_object);
-        <span style="color:#66d9ef">if</span> (i <span style="color:#f92672">!=</span> associations.end()) {
-            <span style="color:#75715e">// 如果存在该对象的关联
-</span><span style="color:#75715e"></span>            ObjectAssociationMap <span style="color:#f92672">*</span>refs <span style="color:#f92672">=</span> i<span style="color:#f92672">-&gt;</span>second;
-            <span style="color:#75715e">// 在 object 的所有关联中根据 key 查找对应的某个关联，并放入迭代器
-</span><span style="color:#75715e"></span>            ObjectAssociationMap<span style="color:#f92672">::</span>iterator j <span style="color:#f92672">=</span> refs<span style="color:#f92672">-&gt;</span>find(key);
-            <span style="color:#66d9ef">if</span> (j <span style="color:#f92672">!=</span> refs<span style="color:#f92672">-&gt;</span>end()) {
-                <span style="color:#75715e">// 如果存在该 key 的关联
-</span><span style="color:#75715e"></span>                ObjcAssociation <span style="color:#f92672">&amp;</span>entry <span style="color:#f92672">=</span> j<span style="color:#f92672">-&gt;</span>second;
-                <span style="color:#75715e">// 取值
-</span><span style="color:#75715e"></span>                value <span style="color:#f92672">=</span> entry.value();
-                <span style="color:#75715e">// 取策略
-</span><span style="color:#75715e"></span>                policy <span style="color:#f92672">=</span> entry.policy();
-                <span style="color:#66d9ef">if</span> (policy <span style="color:#f92672">&amp;</span> OBJC_ASSOCIATION_GETTER_RETAIN) {
-                    objc_retain(value);
-                }
-            }
-        }
-    }
-    <span style="color:#66d9ef">if</span> (value <span style="color:#f92672">&amp;&amp;</span> (policy <span style="color:#f92672">&amp;</span> OBJC_ASSOCIATION_GETTER_AUTORELEASE)) {
-        objc_autorelease(value);
-    }
-    <span style="color:#66d9ef">return</span> value;
-}
+<span class="c1">// objc-references.mm
+</span><span class="c1"></span><span class="kt">id</span> <span class="nf">_object_get_associative_reference</span><span class="p">(</span><span class="kt">id</span> <span class="n">object</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// 默认值 nil
+</span><span class="c1"></span>    <span class="kt">id</span> <span class="n">value</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+    <span class="c1">// 默认策略 OBJC_ASSOCIATION_ASSIGN
+</span><span class="c1"></span>    <span class="n">uintptr_t</span> <span class="n">policy</span> <span class="o">=</span> <span class="n">OBJC_ASSOCIATION_ASSIGN</span><span class="p">;</span>
+    <span class="p">{</span>
+        <span class="c1">// 声明关联管理器
+</span><span class="c1"></span>        <span class="n">AssociationsManager</span> <span class="n">manager</span><span class="p">;</span>
+        <span class="c1">// 从关联管理器中取出所有关联
+</span><span class="c1"></span>        <span class="n">AssociationsHashMap</span> <span class="o">&amp;</span><span class="n">associations</span><span class="p">(</span><span class="n">manager</span><span class="p">.</span><span class="n">associations</span><span class="p">());</span>
+        <span class="c1">// 「伪装」要关联上的对象
+</span><span class="c1"></span>        <span class="n">disguised_ptr_t</span> <span class="n">disguised_object</span> <span class="o">=</span> <span class="n">DISGUISE</span><span class="p">(</span><span class="n">object</span><span class="p">);</span>
+        <span class="c1">// 在管理器的所有关联中根据 object 查找其关联，并放入迭代器
+</span><span class="c1"></span>        <span class="n">AssociationsHashMap</span><span class="o">::</span><span class="n">iterator</span> <span class="n">i</span> <span class="o">=</span> <span class="n">associations</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">disguised_object</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">!=</span> <span class="n">associations</span><span class="p">.</span><span class="n">end</span><span class="p">())</span> <span class="p">{</span>
+            <span class="c1">// 如果存在该对象的关联
+</span><span class="c1"></span>            <span class="n">ObjectAssociationMap</span> <span class="o">*</span><span class="n">refs</span> <span class="o">=</span> <span class="n">i</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">;</span>
+            <span class="c1">// 在 object 的所有关联中根据 key 查找对应的某个关联，并放入迭代器
+</span><span class="c1"></span>            <span class="n">ObjectAssociationMap</span><span class="o">::</span><span class="n">iterator</span> <span class="n">j</span> <span class="o">=</span> <span class="n">refs</span><span class="o">-&gt;</span><span class="n">find</span><span class="p">(</span><span class="n">key</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">j</span> <span class="o">!=</span> <span class="n">refs</span><span class="o">-&gt;</span><span class="n">end</span><span class="p">())</span> <span class="p">{</span>
+                <span class="c1">// 如果存在该 key 的关联
+</span><span class="c1"></span>                <span class="n">ObjcAssociation</span> <span class="o">&amp;</span><span class="n">entry</span> <span class="o">=</span> <span class="n">j</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">;</span>
+                <span class="c1">// 取值
+</span><span class="c1"></span>                <span class="n">value</span> <span class="o">=</span> <span class="n">entry</span><span class="p">.</span><span class="n">value</span><span class="p">();</span>
+                <span class="c1">// 取策略
+</span><span class="c1"></span>                <span class="n">policy</span> <span class="o">=</span> <span class="n">entry</span><span class="p">.</span><span class="n">policy</span><span class="p">();</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">policy</span> <span class="o">&amp;</span> <span class="n">OBJC_ASSOCIATION_GETTER_RETAIN</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="n">objc_retain</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">value</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">policy</span> <span class="o">&amp;</span> <span class="n">OBJC_ASSOCIATION_GETTER_AUTORELEASE</span><span class="p">))</span> <span class="p">{</span>
+        <span class="n">objc_autorelease</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">value</span><span class="p">;</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// --- objc_removeAssociatedObjects ---
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">// objc-runtime.mm
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">objc_removeAssociatedObjects</span>(<span style="color:#66d9ef">id</span> object)
-{
-    <span style="color:#66d9ef">if</span> (object <span style="color:#f92672">&amp;&amp;</span> object<span style="color:#f92672">-&gt;</span>hasAssociatedObjects()) {
-        _object_remove_assocations(object);
-    }
-}
+<span class="c1">// --- objc_removeAssociatedObjects ---
+</span><span class="c1"></span>
+<span class="c1">// objc-runtime.mm
+</span><span class="c1"></span><span class="kt">void</span> <span class="nf">objc_removeAssociatedObjects</span><span class="p">(</span><span class="kt">id</span> <span class="n">object</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">object</span> <span class="o">&amp;&amp;</span> <span class="n">object</span><span class="o">-&gt;</span><span class="n">hasAssociatedObjects</span><span class="p">())</span> <span class="p">{</span>
+        <span class="n">_object_remove_assocations</span><span class="p">(</span><span class="n">object</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// objc-references.mm
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">_object_remove_assocations</span>(<span style="color:#66d9ef">id</span> object) {
-    <span style="color:#75715e">// 声明存储 ObjcAssociation 的 elements
-</span><span style="color:#75715e"></span>    vector<span style="color:#f92672">&lt;</span> ObjcAssociation,ObjcAllocator<span style="color:#f92672">&lt;</span>ObjcAssociation<span style="color:#f92672">&gt;</span> <span style="color:#f92672">&gt;</span> elements;
-    {
-        <span style="color:#75715e">// 声明关联管理器
-</span><span style="color:#75715e"></span>        AssociationsManager manager;
-        <span style="color:#75715e">// 从关联管理器中取出所有关联
-</span><span style="color:#75715e"></span>        AssociationsHashMap <span style="color:#f92672">&amp;</span>associations(manager.associations());
-        <span style="color:#75715e">// 如果关联为空，则返回
-</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (associations.size() <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) <span style="color:#66d9ef">return</span>;
-        <span style="color:#75715e">// 「伪装」要关联上的对象
-</span><span style="color:#75715e"></span>        disguised_ptr_t disguised_object <span style="color:#f92672">=</span> DISGUISE(object);
-        <span style="color:#75715e">// 在管理器的所有关联中根据 object 查找其关联，并放入迭代器
-</span><span style="color:#75715e"></span>        AssociationsHashMap<span style="color:#f92672">::</span>iterator i <span style="color:#f92672">=</span> associations.find(disguised_object);
-        <span style="color:#66d9ef">if</span> (i <span style="color:#f92672">!=</span> associations.end()) {
-            <span style="color:#75715e">// 如果存在该对象的关联
-</span><span style="color:#75715e"></span>            <span style="color:#75715e">// copy all of the associations that need to be removed.
-</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 拷贝所有需要被移除的关系
-</span><span style="color:#75715e"></span>            ObjectAssociationMap <span style="color:#f92672">*</span>refs <span style="color:#f92672">=</span> i<span style="color:#f92672">-&gt;</span>second;
-            <span style="color:#66d9ef">for</span> (ObjectAssociationMap<span style="color:#f92672">::</span>iterator j <span style="color:#f92672">=</span> refs<span style="color:#f92672">-&gt;</span>begin(), end <span style="color:#f92672">=</span> refs<span style="color:#f92672">-&gt;</span>end(); j <span style="color:#f92672">!=</span> end; <span style="color:#f92672">++</span>j) {
-                elements.push_back(j<span style="color:#f92672">-&gt;</span>second);
-            }
-            <span style="color:#75715e">// remove the secondary table.
-</span><span style="color:#75715e"></span>            <span style="color:#75715e">// 移除二级表
-</span><span style="color:#75715e"></span>            delete refs;
-            associations.erase(i);
-        }
-    }
-    <span style="color:#75715e">// the calls to releaseValue() happen outside of the lock.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// releaseValue() 的调用发生在锁之外
-</span><span style="color:#75715e"></span>    for_each(elements.begin(), elements.end(), ReleaseValue());
-}
+<span class="c1">// objc-references.mm
+</span><span class="c1"></span><span class="kt">void</span> <span class="nf">_object_remove_assocations</span><span class="p">(</span><span class="kt">id</span> <span class="n">object</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// 声明存储 ObjcAssociation 的 elements
+</span><span class="c1"></span>    <span class="n">vector</span><span class="o">&lt;</span> <span class="n">ObjcAssociation</span><span class="p">,</span><span class="n">ObjcAllocator</span><span class="o">&lt;</span><span class="n">ObjcAssociation</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">elements</span><span class="p">;</span>
+    <span class="p">{</span>
+        <span class="c1">// 声明关联管理器
+</span><span class="c1"></span>        <span class="n">AssociationsManager</span> <span class="n">manager</span><span class="p">;</span>
+        <span class="c1">// 从关联管理器中取出所有关联
+</span><span class="c1"></span>        <span class="n">AssociationsHashMap</span> <span class="o">&amp;</span><span class="n">associations</span><span class="p">(</span><span class="n">manager</span><span class="p">.</span><span class="n">associations</span><span class="p">());</span>
+        <span class="c1">// 如果关联为空，则返回
+</span><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span><span class="n">associations</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
+        <span class="c1">// 「伪装」要关联上的对象
+</span><span class="c1"></span>        <span class="n">disguised_ptr_t</span> <span class="n">disguised_object</span> <span class="o">=</span> <span class="n">DISGUISE</span><span class="p">(</span><span class="n">object</span><span class="p">);</span>
+        <span class="c1">// 在管理器的所有关联中根据 object 查找其关联，并放入迭代器
+</span><span class="c1"></span>        <span class="n">AssociationsHashMap</span><span class="o">::</span><span class="n">iterator</span> <span class="n">i</span> <span class="o">=</span> <span class="n">associations</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">disguised_object</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">!=</span> <span class="n">associations</span><span class="p">.</span><span class="n">end</span><span class="p">())</span> <span class="p">{</span>
+            <span class="c1">// 如果存在该对象的关联
+</span><span class="c1"></span>            <span class="c1">// copy all of the associations that need to be removed.
+</span><span class="c1"></span>            <span class="c1">// 拷贝所有需要被移除的关系
+</span><span class="c1"></span>            <span class="n">ObjectAssociationMap</span> <span class="o">*</span><span class="n">refs</span> <span class="o">=</span> <span class="n">i</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">;</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">ObjectAssociationMap</span><span class="o">::</span><span class="n">iterator</span> <span class="n">j</span> <span class="o">=</span> <span class="n">refs</span><span class="o">-&gt;</span><span class="n">begin</span><span class="p">(),</span> <span class="n">end</span> <span class="o">=</span> <span class="n">refs</span><span class="o">-&gt;</span><span class="n">end</span><span class="p">();</span> <span class="n">j</span> <span class="o">!=</span> <span class="n">end</span><span class="p">;</span> <span class="o">++</span><span class="n">j</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">elements</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">j</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">);</span>
+            <span class="p">}</span>
+            <span class="c1">// remove the secondary table.
+</span><span class="c1"></span>            <span class="c1">// 移除二级表
+</span><span class="c1"></span>            <span class="n">delete</span> <span class="n">refs</span><span class="p">;</span>
+            <span class="n">associations</span><span class="p">.</span><span class="n">erase</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="c1">// the calls to releaseValue() happen outside of the lock.
+</span><span class="c1"></span>    <span class="c1">// releaseValue() 的调用发生在锁之外
+</span><span class="c1"></span>    <span class="n">for_each</span><span class="p">(</span><span class="n">elements</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">elements</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">ReleaseValue</span><span class="p">());</span>
+<span class="p">}</span>
 </code></pre></div><h2 id="future">Future</h2>
 <ul>
 <li>如果被关联的对象销毁了，关联对象会被销毁吗？</li>
@@ -577,143 +539,118 @@ public:
 <li><a href="http://blog.leichunfeng.com/blog/2015/06/26/objective-c-associated-objects-implementation-principle/">Objective-C Associated Objects 的实现原理 - 雷纯锋</a></li>
 <li><a href="https://nshipster.com/associated-objects/">Associated Objects - Mattt</a></li>
 </ul>
-
-    </div>
-    
-      <div class="pagination">
-        <div class="pagination__title">
-          <span class="pagination__title-h">Read other posts</span>
-          <hr />
-        </div>
-        <div class="pagination__buttons">
-          
-            <span class="button previous">
-              <a href="/posts/2019/shopping_618/">
-                <span class="button__icon">←</span>
-                <span class="button__text">618 买买买 - 这个 618 我都买了啥？</span>
-              </a>
-            </span>
-          
-          
-            <span class="button next">
-              <a href="/posts/2019/insurance_plan/">
-                <span class="button__text">谈谈我的家庭保险计划</span>
-                <span class="button__icon">→</span>
-              </a>
-            </span>
-          
-        </div>
-      </div>
-    
-
-    
-
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-<table style="border: 0;">
-  <tr>
-  <td style="border: 0; width: 30%;">
-    <img src='/img/about/1.jpg'>
-  </td>
-  <td style="border: 0;">
-    <ins class="adsbygoogle"
-     style="display:block"
-     data-ad-client="ca-pub-9925978992661955"
-     data-ad-slot="3213735320"
-     data-ad-format="auto"
-     data-full-width-responsive="true"></ins>
-  </td>
-  </tr>
-</table>
-
-
-
-<script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
-</script>
-
-
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://kingcos.me/tags/focus/">Focus</a>
+                                    
+                                    <a href="https://kingcos.me/tags/ios/">iOS</a>
+                                    
+                                    <a href="https://kingcos.me/tags/obj-c/">Obj-C</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                <div class="doc_comments"><div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
     
     
-    <div>
-      <div id="github-comment">
-      </div>
-
-      <script type="text/javascript">
-        function getUtterances(isDark) {
-          var utterances = document.createElement('script');
-          utterances.type = 'text/javascript';
-          utterances.async = true;
-          utterances.setAttribute('issue-term', "pathname")
-          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
-          utterances.setAttribute('label', "comments")
-          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
-          utterances.crossorigin = 'anonymous';
-          utterances.src = 'https://utteranc.es/client.js';
-
-          return utterances
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
         }
-
-        var themeToggle = document.querySelector(".theme-toggle")
-        themeToggle.addEventListener("click", function () {
-          var getTheme = window.localStorage && window.localStorage.getItem("theme")
-          var divNode = document.getElementById('github-comment')
-          while(divNode.hasChildNodes()) {
-            divNode.removeChild(divNode.firstChild);
-          }
-          
-          
-          
-
-          
-          
-          
-          
-          
-          
-          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
-        })
-
-        var getTheme = window.localStorage && window.localStorage.getItem("theme")
-        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
-      </script>
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "kingcos" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div>
+                
+            </div>
+        </div>
     </div>
-    
-
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://kingcos.me">Powered by kingcos with love.</a>
     </div>
 
-      </div>
-
-      
-        <footer class="footer">
-  <div class="footer__inner">
-    
-      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
-    
-  </div>
+    <div class="footer_slogan">
+        <span>❤️</span>
+    </div>
 </footer>
+    <script src="https://kingcos.me/js/jquery-3.5.1.min.js"></script>
+<link href="https://kingcos.me/css/fancybox.min.css" rel="stylesheet">
+<script src="https://kingcos.me/js/fancybox.min.js"></script>
+<script src="https://kingcos.me/js/zozo.js"></script>
 
-<script src="/assets/main.js"></script>
-<script src="/assets/prism.js"></script>
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
 
 
 
-      
-    </div>
-
-    
-      
 <script type="application/javascript">
 var doNotTrack = false;
 if (!doNotTrack) {
-	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
 	ga('create', 'UA-138311951-1', 'auto');
 	
 	ga('send', 'pageview');
 }
 </script>
-    
-  </body>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+
 </html>

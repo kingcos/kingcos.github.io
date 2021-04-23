@@ -1,151 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
+<html lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="kingcos" />
+	
+	
+	
+	<title>iOS 中的 &#43;initialize 方法 ｜ 萌面大道</title>
+	
     
-      <title>iOS 中的 &#43;initialize 方法 :: iBlog</title>
     
-    <meta http-equiv="content-type" content="text/html; charset=utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Source Code Demo     2019-04-21 首次提交 objc4-750 -   2019-05-01 补充细节 - Initialize_Demo    Preface 在 iOS 中，经常与 &#43;load 相提并论的一个方法便是 &#43;initialize。从方法名来看，它的作用是进行初始化，但不同于平时使用的 init，&#43;initialize 是一个类方法。那么它的本质到底是什么呢？
-为了更好地叙述 &#43;initialize 的特点，本文部分描述尝试与 &#43;load 方法对比，建议阅读本文前先阅读「iOS 中的 &#43;load 方法」。
-What // NSObject.h @interface NSObject &amp;lt;NSObject&amp;gt; { &#43; (void)initialize; } Obj-C 中的 &#43;initialize 方法指的是 NSObject 中的 &#43; (void)initialize 类方法。官方文档中的 &#43;initialize 如下：
- Initializes the class before it receives its first message."/>
-<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
-<meta name="robots" content="noodp"/>
-<link rel="canonical" href="/posts/2019/&#43;initialize_in_ios/" />
+    <meta name="description" content="在 iOS 中，经常与 &#43;load 相提并论的一个方法便是 &#43;initialize。从方法名来看，它的作用是进行初始化，但不同于平时使用的 `init`，&#43;initialize 是一个类方法。那么它的本质到底是什么呢？" />
+    
 
+    
+    
+    <meta name="keywords" content="Hugo, theme, zozo" />
+    
 
+	
+    
+    <link rel="shortcut icon" href="https://kingcos.me/images/favicon.png" />
 
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.mecss/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/highlight.css" />
 
-
-<link rel="stylesheet" href="/assets/style.css">
-
-
-<link rel="stylesheet" href="/style.css">
-
-
-<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
-<link rel="shortcut icon" href="/img/favicon.png">
-
-
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="iOS 中的 &#43;initialize 方法"/>
-<meta name="twitter:description" content="在 iOS 中，经常与 &#43;load 相提并论的一个方法便是 &#43;initialize。从方法名来看，它的作用是进行初始化，但不同于平时使用的 `init`，&#43;initialize 是一个类方法。那么它的本质到底是什么呢？"/>
-
-
-
-<meta property="og:title" content="iOS 中的 &#43;initialize 方法" />
-<meta property="og:description" content="在 iOS 中，经常与 &#43;load 相提并论的一个方法便是 &#43;initialize。从方法名来看，它的作用是进行初始化，但不同于平时使用的 `init`，&#43;initialize 是一个类方法。那么它的本质到底是什么呢？" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="/posts/2019/&#43;initialize_in_ios/" /><meta property="article:section" content="posts" />
-<meta property="article:published_time" content="2019-04-21T00:00:00&#43;00:00" />
-<meta property="article:modified_time" content="2019-04-21T00:00:00&#43;00:00" /><meta property="og:site_name" content="iBlog" />
-
-
-
-
+    
+    
+</head>
 
 <script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
 
-  </head>
-  <body class="">
-    <div class="container">
-      <header class="header">
-  <span class="header__inner">
-    <a href="/" class="logo" style="text-decoration: none;">
-  
-    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
-  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
-</svg>
-</span>
-    <span class="logo__text">kingcos.me</span>
-    <span class="logo__cursor"></span>
-  
-</a>
 
-    <span class="header__right">
-      
-        <nav class="menu">
-  <ul class="menu__inner menu__inner--desktop">
-    
-      
-        
-          <li><a href="/about">About</a></li>
-        
-      
-        
-          <li><a href="/read">Read</a></li>
-        
-      
-      
-    
-  </ul>
-
-  <ul class="menu__inner menu__inner--mobile">
-    
-      
-        <li><a href="/about">About</a></li>
-      
-    
-      
-        <li><a href="/read">Read</a></li>
-      
-    
-  </ul>
-</nav>
-
-        <span class="menu-trigger">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M0 0h24v24H0z" fill="none"/>
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-          </svg>
-        </span>
-      
-      <span class="theme-toggle">
-        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
-  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
-  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
-</svg>
-
-      </span>
-    </span>
-  </span>
-</header>
-
-
-      <div class="content">
-        
-  <div class="post">
-    <h2 class="post-title"><a href="/posts/2019/&#43;initialize_in_ios/">iOS 中的 +initialize 方法</a></h2>
-    <div class="post-meta">
-      
-        <span class="post-date">
-            2019-04-21
-        </span>
-      
-      
-      
-        <span class="post-read-time">— 18 min read</span>
-      
+<body>
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/posts/">Archive</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/about/">About</a>
+            </li>
+            
+        </ul>
     </div>
-
-    
-      <span class="post-tags">
-        
-          #<a href="/tags/focus/">Focus</a>&nbsp;
-        
-          #<a href="/tags/ios/">iOS</a>&nbsp;
-        
-          #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
-        
-      </span>
-    
-
-    
-
-    <div class="post-content">
-      <table>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            <h1>
+                <a href="https://kingcos.me">
+                    <span>萌面大道</span>
+                </a>
+            </h1>
+        </div>
+        <div class="description">
+            <p class="sub_title">kingcos | Focus</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/kingcos" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://www.instagram.com/kingcos_v/" title="instagram" target="_blank"><i class="ri-instagram-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/kingcos_v" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/u/1798410923" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                <a href="https://kingcos.me/index.xml" type="application/rss+xml" title="rss" target="_blank"><i
+                        class="ri-rss-fill"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/2019/&#43;initialize_in_ios/'>iOS 中的 &#43;initialize 方法</a></h2>
+                        <span class="date">2019.04.21</span>
+                    </div>
+                    <div class="post_content markdown"><table>
 <thead>
 <tr>
 <th style="text-align:center">Date</th>
@@ -173,10 +135,10 @@ What // NSObject.h @interface NSObject &amp;lt;NSObject&amp;gt; { &#43; (void)in
 <p>在 iOS 中，经常与 +load 相提并论的一个方法便是 +initialize。从方法名来看，它的作用是进行初始化，但不同于平时使用的 <code>init</code>，+initialize 是一个类方法。那么它的本质到底是什么呢？</p>
 <p>为了更好地叙述 +initialize 的特点，本文部分描述尝试与 +load 方法对比，建议阅读本文前先阅读「iOS 中的 +load 方法」。</p>
 <h2 id="what">What</h2>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// NSObject.h
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">NSObject</span> <span style="color:#f92672">&lt;</span>NSObject<span style="color:#f92672">&gt;</span> {
-<span style="color:#f92672">+</span> (<span style="color:#66d9ef">void</span>)initialize;
-}
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// NSObject.h
+</span><span class="c1"></span><span class="k">@interface</span> <span class="nc">NSObject</span> <span class="o">&lt;</span><span class="n">NSObject</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="o">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">initialize</span><span class="p">;</span>
+<span class="p">}</span>
 </code></pre></div><p>Obj-C 中的 +initialize 方法指的是 NSObject 中的 <code>+ (void)initialize</code> 类方法。官方文档中的 +initialize 如下：</p>
 <blockquote>
 <p>Initializes the class before it receives its first message.</p>
@@ -184,11 +146,11 @@ What // NSObject.h @interface NSObject &amp;lt;NSObject&amp;gt; { &#43; (void)in
 <p>The runtime sends the <code>initialize</code> message to classes in a thread-safe manner. That is, <code>initialize</code> is run by the first thread to send a message to a class, and any other thread that tries to send a message to that class will block until <code>initialize</code> completes.</p>
 <p>The superclass implementation may be called multiple times if subclasses do not implement <code>initialize</code>—the runtime will call the inherited implementation—or if subclasses explicitly call <code>[super initialize]</code>. If you want to protect yourself from being run multiple times, you can structure your implementation along these lines:</p>
 </blockquote>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">+ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">initialize</span> {
-  <span style="color:#66d9ef">if</span> (self <span style="color:#f92672">==</span> [ClassName self]) {
-    <span style="color:#75715e">// ... do the initialization ...
-</span><span style="color:#75715e"></span>  }
-}
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">initialize</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nb">self</span> <span class="o">==</span> <span class="p">[</span><span class="n">ClassName</span> <span class="nb">self</span><span class="p">])</span> <span class="p">{</span>
+    <span class="c1">// ... do the initialization ...
+</span><span class="c1"></span>  <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><blockquote>
 <p>Because <code>initialize</code> is called in a blocking manner, it’s important to limit method implementations to the minimum amount of work necessary possible. Specifically, any code that takes locks that might be required by other classes in their <code>initialize</code> methods is liable to lead to deadlocks. Therefore, you should not rely on <code>initialize</code> for complex initialization, and should instead limit it to straightforward, class local initialization.</p>
 <p><code>initialize</code> is invoked only once per class. If you want to perform independent initialization for the class and for categories of the class, you should implement <a href="https://developer.apple.com/documentation/objectivec/nsobject/1418815-load?language=objc"><code>load</code></a> methods.</p>
@@ -199,11 +161,11 @@ What // NSObject.h @interface NSObject &amp;lt;NSObject&amp;gt; { &#43; (void)in
 <p>运行时以线程安全的方式发送 <code>initialize</code> 消息到类。即 <code>initialize</code> 由第一个线程运行来发送消息到一个类，并且其它任何尝试发送消息的线程都将会被阻塞，直到 <code>initialize</code> 完成。</p>
 <p>如果子类未实现 <code>initialize</code> 则父类的实现可能会被调用多次 —— 运行时将会调用继承（自父类）的实现 —— 或者如果子类明确调用 <code>[super initialize]</code>。如果不希望运行多次，可以参考如下实现：</p>
 </blockquote>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">+ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">initialize</span> {
-  <span style="color:#66d9ef">if</span> (self <span style="color:#f92672">==</span> [ClassName self]) {
-    <span style="color:#75715e">// ... do the initialization ...
-</span><span style="color:#75715e"></span>  }
-}
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">initialize</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nb">self</span> <span class="o">==</span> <span class="p">[</span><span class="n">ClassName</span> <span class="nb">self</span><span class="p">])</span> <span class="p">{</span>
+    <span class="c1">// ... do the initialization ...
+</span><span class="c1"></span>  <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><blockquote>
 <p>由于 <code>initialize</code> 以阻塞的方式被调用，因此将方法实现限制为最小工作量是很有必要的。尤其是在 <code>initialize</code> 中使用任何可能被其它类所必需锁的代码都有可能会导致死锁。因此不应当依赖 <code>initialize</code> 做复杂的初始化，相反应该将其限制为简单的类本地初始化。</p>
 <p><code>initialize</code> 在每个类中只会被调用一次。如果希望为类以及分类执行独立的初始化，应当实现 <a href="https://developer.apple.com/documentation/objectivec/nsobject/1418815-load?language=objc"><code>load</code></a> 方法。</p>
@@ -211,453 +173,453 @@ What // NSObject.h @interface NSObject &amp;lt;NSObject&amp;gt; { &#43; (void)in
 </blockquote>
 <h2 id="how">How</h2>
 <p>根据官方文档的描述，我们可以尝试定义一个继承自 <code>NSObject</code> 的 <code>Person</code> 类，并对其添加两个分类 <code>Life</code> 和 <code>Work</code>；再定义一个 <code>Student</code> 类继承自 <code>Person</code>，并对其添加 <code>School</code> 分类；最后定义一个 <code>Programmer</code> 类继承自 <code>Person</code>。在以上除了 <code>Programmer</code> 的类和分类中，均实现 +initialize：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// Person.m
-</span><span style="color:#75715e"></span><span style="color:#75715e">#import &#34;Person.h&#34;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Person</span>
-+ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">initialize</span> {
-    NSLog(<span style="color:#e6db74">@&#34;Person %s&#34;</span>, __func__);
-}
-<span style="color:#66d9ef">@end</span>
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Person.m
+</span><span class="c1"></span><span class="cp">#import &#34;Person.h&#34;
+</span><span class="cp"></span>
+<span class="k">@implementation</span> <span class="nc">Person</span>
+<span class="p">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">initialize</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Person %s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="k">@end</span>
 
-<span style="color:#75715e">// Person+Life.m
-</span><span style="color:#75715e"></span><span style="color:#75715e">#import &#34;Person+Life.h&#34;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Person</span> (Life)
-+ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">initialize</span> {
-    NSLog(<span style="color:#e6db74">@&#34;Person+Life %s&#34;</span>, __func__);
-}
-<span style="color:#66d9ef">@end</span>
+<span class="c1">// Person+Life.m
+</span><span class="c1"></span><span class="cp">#import &#34;Person+Life.h&#34;
+</span><span class="cp"></span>
+<span class="k">@implementation</span> <span class="nc">Person</span> <span class="nl">(Life)</span>
+<span class="p">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">initialize</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Person+Life %s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="k">@end</span>
 
-<span style="color:#75715e">//  Person+Work.m
-</span><span style="color:#75715e"></span><span style="color:#75715e">#import &#34;Person+Work.h&#34;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Person</span> (Work)
-+ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">initialize</span> {
-    NSLog(<span style="color:#e6db74">@&#34;Person+Work %s&#34;</span>, __func__);
-}
-<span style="color:#66d9ef">@end</span>
+<span class="c1">//  Person+Work.m
+</span><span class="c1"></span><span class="cp">#import &#34;Person+Work.h&#34;
+</span><span class="cp"></span>
+<span class="k">@implementation</span> <span class="nc">Person</span> <span class="nl">(Work)</span>
+<span class="p">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">initialize</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Person+Work %s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="k">@end</span>
 
-<span style="color:#75715e">//  Student.m
-</span><span style="color:#75715e"></span><span style="color:#75715e">#import &#34;Student.h&#34;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Student</span>
-+ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">initialize</span> {
-    NSLog(<span style="color:#e6db74">@&#34;Student %s&#34;</span>, __func__);
-}
-<span style="color:#66d9ef">@end</span>
+<span class="c1">//  Student.m
+</span><span class="c1"></span><span class="cp">#import &#34;Student.h&#34;
+</span><span class="cp"></span>
+<span class="k">@implementation</span> <span class="nc">Student</span>
+<span class="p">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">initialize</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Student %s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="k">@end</span>
 
-<span style="color:#75715e">//  Student+School.m
-</span><span style="color:#75715e"></span><span style="color:#75715e">#import &#34;Student+School.h&#34;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Student</span> (School)
-+ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">initialize</span> {
-    NSLog(<span style="color:#e6db74">@&#34;Student+School %s&#34;</span>, __func__);
-}
-<span style="color:#66d9ef">@end</span>
+<span class="c1">//  Student+School.m
+</span><span class="c1"></span><span class="cp">#import &#34;Student+School.h&#34;
+</span><span class="cp"></span>
+<span class="k">@implementation</span> <span class="nc">Student</span> <span class="nl">(School)</span>
+<span class="p">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">initialize</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Student+School %s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="k">@end</span>
 
-<span style="color:#75715e">//  Programmer.m
-</span><span style="color:#75715e"></span><span style="color:#75715e">#import &#34;Programmer.h&#34;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Programmer</span>
-<span style="color:#66d9ef">@end</span>
+<span class="c1">//  Programmer.m
+</span><span class="c1"></span><span class="cp">#import &#34;Programmer.h&#34;
+</span><span class="cp"></span>
+<span class="k">@implementation</span> <span class="nc">Programmer</span>
+<span class="k">@end</span>
 
-<span style="color:#75715e">// OUTPUT:
-</span><span style="color:#75715e">// Hello, World!
+<span class="c1">// OUTPUT:
+</span><span class="c1">// Hello, World!
 </span></code></pre></div><p>首先我们不更改 main.m，尝试运行程序，结果只输出了 <code>main</code> 函数 <code>Hello, World!</code>，因为 +initialize 并不像 +load 一样是在 <code>main</code> 函数前调用的，而没有输出的原因是这些类还没有收到一条消息。众所周知，Obj-C 中大部分方法调用的本质都是消息发送（Message Sending），<code>[SomeClass classMethod]</code> 是向 <code>SomeClass</code> 类对象发送 <code>classMethod</code> 消息；<code>[SomeObject instanceMethod]</code> 是向 <code>SomeObject</code> 实例对象发送 <code>instanceMethod</code> 方法；由于如果要调用对象方法，也必须要先进行 <code>alloc</code> 并 <code>init</code>（或者 <code>new</code>）才能创建完一个实例对象，因此可以认为类接收到的第一条消息永远是类方法。这次我们尝试向它们发送消息：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// main.m
-</span><span style="color:#75715e"></span><span style="color:#75715e">#import &lt;Foundation/Foundation.h&gt;
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">#import &#34;Person.h&#34;
-</span><span style="color:#75715e">#import &#34;Student.h&#34;
-</span><span style="color:#75715e">#import &#34;Programmer.h&#34;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
-    <span style="color:#66d9ef">@autoreleasepool</span> {
-        NSLog(<span style="color:#e6db74">@&#34;---&#34;</span>);
-        Student <span style="color:#f92672">*</span>stu <span style="color:#f92672">=</span> [Student alloc];
-        NSLog(<span style="color:#e6db74">@&#34;---&#34;</span>);
-        stu <span style="color:#f92672">=</span> [stu init];
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// main.m
+</span><span class="c1"></span><span class="cp">#import &lt;Foundation/Foundation.h&gt;
+</span><span class="cp"></span>
+<span class="cp">#import &#34;Person.h&#34;
+</span><span class="cp">#import &#34;Student.h&#34;
+</span><span class="cp">#import &#34;Programmer.h&#34;
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+    <span class="k">@autoreleasepool</span> <span class="p">{</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;---&#34;</span><span class="p">);</span>
+        <span class="n">Student</span> <span class="o">*</span><span class="n">stu</span> <span class="o">=</span> <span class="p">[</span><span class="n">Student</span> <span class="n">alloc</span><span class="p">];</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;---&#34;</span><span class="p">);</span>
+        <span class="n">stu</span> <span class="o">=</span> <span class="p">[</span><span class="n">stu</span> <span class="n">init</span><span class="p">];</span>
 
-        NSLog(<span style="color:#e6db74">@&#34;---&#34;</span>);
-        [Programmer load];
-    }
-    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
-}
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;---&#34;</span><span class="p">);</span>
+        <span class="p">[</span><span class="n">Programmer</span> <span class="n">load</span><span class="p">];</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
 
 
-<span style="color:#75715e">// OUTPUT:
-</span><span style="color:#75715e">// ---
-</span><span style="color:#75715e">// Person+Work +[Person(Work) initialize]
-</span><span style="color:#75715e">// Student+School +[Student(School) initialize]
-</span><span style="color:#75715e">// ---
-</span><span style="color:#75715e">// ---
-</span><span style="color:#75715e">// Person+Work +[Person(Work) initialize]
+<span class="c1">// OUTPUT:
+</span><span class="c1">// ---
+</span><span class="c1">// Person+Work +[Person(Work) initialize]
+</span><span class="c1">// Student+School +[Student(School) initialize]
+</span><span class="c1">// ---
+</span><span class="c1">// ---
+</span><span class="c1">// Person+Work +[Person(Work) initialize]
 </span></code></pre></div><p>通过以上代码的输出，虽然我们并没有主动调用这些类的 +initialize 方法，但 +initialize 确实被自动调用了。我们先抛出结论：<strong>+initialize 方法在类（类对象）接收到第一条消息（类方法）前被调用；子类中如果实现了该方法，会先父类再子类；且遵守分类（Category）「覆盖」主类的 +initialize；若子类未实现 +initialize，将调用父类中的该方法，因此一个类中的 +initialize 并不能保证只被调用一次，但对于某个类，只会被调用一次</strong>。</p>
 <h2 id="why">Why</h2>
 <h4 id="实现原理">实现原理</h4>
 <p>上面我们先抛出了结论，那么该如何验证呢？Talk is cheap, show me the code:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// objc-class.mm
-</span><span style="color:#75715e"></span><span style="color:#75715e">/***********************************************************************
-</span><span style="color:#75715e">* class_getClassMethod.  Return the class method for the specified
-</span><span style="color:#75715e">* class and selector.
-</span><span style="color:#75715e">* 为指定的类和方法选择器返回相应的类方法。
-</span><span style="color:#75715e">**********************************************************************/</span>
-Method <span style="color:#a6e22e">class_getClassMethod</span>(<span style="color:#66d9ef">Class</span> cls, <span style="color:#66d9ef">SEL</span> sel)
-{
-    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>cls  <span style="color:#f92672">||</span>  <span style="color:#f92672">!</span>sel) <span style="color:#66d9ef">return</span> nil;
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-class.mm
+</span><span class="c1"></span><span class="cm">/***********************************************************************
+</span><span class="cm">* class_getClassMethod.  Return the class method for the specified
+</span><span class="cm">* class and selector.
+</span><span class="cm">* 为指定的类和方法选择器返回相应的类方法。
+</span><span class="cm">**********************************************************************/</span>
+<span class="n">Method</span> <span class="nf">class_getClassMethod</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">,</span> <span class="kt">SEL</span> <span class="n">sel</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">cls</span>  <span class="o">||</span>  <span class="o">!</span><span class="n">sel</span><span class="p">)</span> <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
 
-    <span style="color:#75715e">// ➡️ 返回元类的方法
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 因为类对象和元类对象的结构一致（均为 Class），因此元类的类方法和类的对象方法存储在同样的结构中
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> class_getInstanceMethod(cls<span style="color:#f92672">-&gt;</span>getMeta(), sel);
-}
+    <span class="c1">// ➡️ 返回元类的方法
+</span><span class="c1"></span>    <span class="c1">// 因为类对象和元类对象的结构一致（均为 Class），因此元类的类方法和类的对象方法存储在同样的结构中
+</span><span class="c1"></span>    <span class="k">return</span> <span class="n">class_getInstanceMethod</span><span class="p">(</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">getMeta</span><span class="p">(),</span> <span class="n">sel</span><span class="p">);</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// objc-runtime-new.mm
-</span><span style="color:#75715e"></span><span style="color:#75715e">/***********************************************************************
-</span><span style="color:#75715e">* class_getInstanceMethod.  Return the instance method for the
-</span><span style="color:#75715e">* specified class and selector.
-</span><span style="color:#75715e">* 为指定的类和方法选择器返回相应的对象方法。
-</span><span style="color:#75715e">**********************************************************************/</span>
-Method <span style="color:#a6e22e">class_getInstanceMethod</span>(<span style="color:#66d9ef">Class</span> cls, <span style="color:#66d9ef">SEL</span> sel)
-{
-    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>cls  <span style="color:#f92672">||</span>  <span style="color:#f92672">!</span>sel) <span style="color:#66d9ef">return</span> nil;
+<span class="c1">// objc-runtime-new.mm
+</span><span class="c1"></span><span class="cm">/***********************************************************************
+</span><span class="cm">* class_getInstanceMethod.  Return the instance method for the
+</span><span class="cm">* specified class and selector.
+</span><span class="cm">* 为指定的类和方法选择器返回相应的对象方法。
+</span><span class="cm">**********************************************************************/</span>
+<span class="n">Method</span> <span class="nf">class_getInstanceMethod</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">,</span> <span class="kt">SEL</span> <span class="n">sel</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">cls</span>  <span class="o">||</span>  <span class="o">!</span><span class="n">sel</span><span class="p">)</span> <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
 
-    <span style="color:#75715e">// This deliberately avoids +initialize because it historically did so.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 由于历史原因，这里故意避免 +initialize。
-</span><span style="color:#75715e"></span>
-    <span style="color:#75715e">// This implementation is a bit weird because it&#39;s the only place that
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// wants a Method instead of an IMP.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 这里的实现有点奇怪，因为这是唯一需要 Method 而非 IMP 的地方。
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">#warning fixme build and search caches
-</span><span style="color:#75715e"></span>
-    <span style="color:#75715e">// Search method lists, try method resolver, etc.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 搜索方法列表，尝试方法解析器等。
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// ➡️ 查找 IMP
-</span><span style="color:#75715e"></span>    lookUpImpOrNil(cls, sel, nil,
-                   NO<span style="color:#75715e">/*initialize*/</span>, NO<span style="color:#75715e">/*cache*/</span>, YES<span style="color:#75715e">/*resolver*/</span>);
+    <span class="c1">// This deliberately avoids +initialize because it historically did so.
+</span><span class="c1"></span>    <span class="c1">// 由于历史原因，这里故意避免 +initialize。
+</span><span class="c1"></span>
+    <span class="c1">// This implementation is a bit weird because it&#39;s the only place that
+</span><span class="c1"></span>    <span class="c1">// wants a Method instead of an IMP.
+</span><span class="c1"></span>    <span class="c1">// 这里的实现有点奇怪，因为这是唯一需要 Method 而非 IMP 的地方。
+</span><span class="c1"></span>
+<span class="cp">#warning fixme build and search caches
+</span><span class="cp"></span>
+    <span class="c1">// Search method lists, try method resolver, etc.
+</span><span class="c1"></span>    <span class="c1">// 搜索方法列表，尝试方法解析器等。
+</span><span class="c1"></span>    <span class="c1">// ➡️ 查找 IMP
+</span><span class="c1"></span>    <span class="n">lookUpImpOrNil</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">sel</span><span class="p">,</span> <span class="nb">nil</span><span class="p">,</span>
+                   <span class="nb">NO</span><span class="cm">/*initialize*/</span><span class="p">,</span> <span class="nb">NO</span><span class="cm">/*cache*/</span><span class="p">,</span> <span class="nb">YES</span><span class="cm">/*resolver*/</span><span class="p">);</span>
 
-<span style="color:#75715e">#warning fixme build and search caches
-</span><span style="color:#75715e"></span>
-    <span style="color:#66d9ef">return</span> _class_getMethod(cls, sel);
-}
+<span class="cp">#warning fixme build and search caches
+</span><span class="cp"></span>
+    <span class="k">return</span> <span class="n">_class_getMethod</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">sel</span><span class="p">);</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// objc-runtime-new.mm
-</span><span style="color:#75715e"></span><span style="color:#75715e">/***********************************************************************
-</span><span style="color:#75715e">* lookUpImpOrNil.
-</span><span style="color:#75715e">* Like lookUpImpOrForward, but returns nil instead of _objc_msgForward_impcache
-</span><span style="color:#75715e">* 类似 lookUpImpOrForward，但返回 nil 替代 _objc_msgForward_impcache
-</span><span style="color:#75715e">**********************************************************************/</span>
-<span style="color:#66d9ef">IMP</span> <span style="color:#a6e22e">lookUpImpOrNil</span>(<span style="color:#66d9ef">Class</span> cls, <span style="color:#66d9ef">SEL</span> sel, <span style="color:#66d9ef">id</span> inst,
-                   <span style="color:#66d9ef">bool</span> initialize, <span style="color:#66d9ef">bool</span> cache, <span style="color:#66d9ef">bool</span> resolver)
-{
-    <span style="color:#75715e">// ➡️ 查找 IMP
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">IMP</span> imp <span style="color:#f92672">=</span> lookUpImpOrForward(cls, sel, inst, initialize, cache, resolver);
-    <span style="color:#75715e">// 当 IMP 为 _objc_msgForward_impcache 时，返回 nil
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (imp <span style="color:#f92672">==</span> _objc_msgForward_impcache) <span style="color:#66d9ef">return</span> nil;
-    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">return</span> imp;
-}
+<span class="c1">// objc-runtime-new.mm
+</span><span class="c1"></span><span class="cm">/***********************************************************************
+</span><span class="cm">* lookUpImpOrNil.
+</span><span class="cm">* Like lookUpImpOrForward, but returns nil instead of _objc_msgForward_impcache
+</span><span class="cm">* 类似 lookUpImpOrForward，但返回 nil 替代 _objc_msgForward_impcache
+</span><span class="cm">**********************************************************************/</span>
+<span class="kt">IMP</span> <span class="nf">lookUpImpOrNil</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">,</span> <span class="kt">SEL</span> <span class="n">sel</span><span class="p">,</span> <span class="kt">id</span> <span class="n">inst</span><span class="p">,</span>
+                   <span class="kt">bool</span> <span class="n">initialize</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">cache</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">resolver</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="c1">// ➡️ 查找 IMP
+</span><span class="c1"></span>    <span class="kt">IMP</span> <span class="n">imp</span> <span class="o">=</span> <span class="n">lookUpImpOrForward</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">sel</span><span class="p">,</span> <span class="n">inst</span><span class="p">,</span> <span class="n">initialize</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">resolver</span><span class="p">);</span>
+    <span class="c1">// 当 IMP 为 _objc_msgForward_impcache 时，返回 nil
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">imp</span> <span class="o">==</span> <span class="n">_objc_msgForward_impcache</span><span class="p">)</span> <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+    <span class="k">else</span> <span class="k">return</span> <span class="n">imp</span><span class="p">;</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// objc-runtime-new.mm
-</span><span style="color:#75715e"></span><span style="color:#75715e">/***********************************************************************
-</span><span style="color:#75715e">* lookUpImpOrForward.
-</span><span style="color:#75715e">* The standard IMP lookup.
-</span><span style="color:#75715e">* 标准 IMP 查找。
-</span><span style="color:#75715e">* initialize==NO tries to avoid +initialize (but sometimes fails)
-</span><span style="color:#75715e">* initialize==NO 尝试避免 +initialize（但有时会失败）
-</span><span style="color:#75715e">* cache==NO skips optimistic unlocked lookup (but uses cache elsewhere)
-</span><span style="color:#75715e">* cache==NO 跳过乐观解锁查找（但有时仍会使用缓存）
-</span><span style="color:#75715e">* Most callers should use initialize==YES and cache==YES.
-</span><span style="color:#75715e">* 大多数调用者应当使用 initialize==YES 且 cache==YES。
-</span><span style="color:#75715e">* inst is an instance of cls or a subclass thereof, or nil if none is known.
-</span><span style="color:#75715e">* inst 是 cls 或其子类，如果没有，则为 nil。
-</span><span style="color:#75715e">*   If cls is an un-initialized metaclass then a non-nil inst is faster.
-</span><span style="color:#75715e">*   如果 cls 是未初始化的元类，那么非 nil 的 inst 更快。
-</span><span style="color:#75715e">* May return _objc_msgForward_impcache. IMPs destined for external use
-</span><span style="color:#75715e">*   must be converted to _objc_msgForward or _objc_msgForward_stret.
-</span><span style="color:#75715e">* 可能返回 _objc_msgForward_impcache。外部使用 IMP 则注定必须被转换为 _objc_msgForward 或 _objc_msgForward_stret。
-</span><span style="color:#75715e">*   If you don&#39;t want forwarding at all, use lookUpImpOrNil() instead.
-</span><span style="color:#75715e">*   如果根本不需要转发，使用 lookUpImpOrNil() 替代。
-</span><span style="color:#75715e">**********************************************************************/</span>
-<span style="color:#66d9ef">IMP</span> <span style="color:#a6e22e">lookUpImpOrForward</span>(<span style="color:#66d9ef">Class</span> cls, <span style="color:#66d9ef">SEL</span> sel, <span style="color:#66d9ef">id</span> inst,
-                       <span style="color:#66d9ef">bool</span> initialize, <span style="color:#66d9ef">bool</span> cache, <span style="color:#66d9ef">bool</span> resolver)
-{
-    <span style="color:#66d9ef">IMP</span> imp <span style="color:#f92672">=</span> nil;
-    <span style="color:#66d9ef">bool</span> triedResolver <span style="color:#f92672">=</span> NO;
+<span class="c1">// objc-runtime-new.mm
+</span><span class="c1"></span><span class="cm">/***********************************************************************
+</span><span class="cm">* lookUpImpOrForward.
+</span><span class="cm">* The standard IMP lookup.
+</span><span class="cm">* 标准 IMP 查找。
+</span><span class="cm">* initialize==NO tries to avoid +initialize (but sometimes fails)
+</span><span class="cm">* initialize==NO 尝试避免 +initialize（但有时会失败）
+</span><span class="cm">* cache==NO skips optimistic unlocked lookup (but uses cache elsewhere)
+</span><span class="cm">* cache==NO 跳过乐观解锁查找（但有时仍会使用缓存）
+</span><span class="cm">* Most callers should use initialize==YES and cache==YES.
+</span><span class="cm">* 大多数调用者应当使用 initialize==YES 且 cache==YES。
+</span><span class="cm">* inst is an instance of cls or a subclass thereof, or nil if none is known.
+</span><span class="cm">* inst 是 cls 或其子类，如果没有，则为 nil。
+</span><span class="cm">*   If cls is an un-initialized metaclass then a non-nil inst is faster.
+</span><span class="cm">*   如果 cls 是未初始化的元类，那么非 nil 的 inst 更快。
+</span><span class="cm">* May return _objc_msgForward_impcache. IMPs destined for external use
+</span><span class="cm">*   must be converted to _objc_msgForward or _objc_msgForward_stret.
+</span><span class="cm">* 可能返回 _objc_msgForward_impcache。外部使用 IMP 则注定必须被转换为 _objc_msgForward 或 _objc_msgForward_stret。
+</span><span class="cm">*   If you don&#39;t want forwarding at all, use lookUpImpOrNil() instead.
+</span><span class="cm">*   如果根本不需要转发，使用 lookUpImpOrNil() 替代。
+</span><span class="cm">**********************************************************************/</span>
+<span class="kt">IMP</span> <span class="nf">lookUpImpOrForward</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">,</span> <span class="kt">SEL</span> <span class="n">sel</span><span class="p">,</span> <span class="kt">id</span> <span class="n">inst</span><span class="p">,</span>
+                       <span class="kt">bool</span> <span class="n">initialize</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">cache</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">resolver</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">IMP</span> <span class="n">imp</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+    <span class="kt">bool</span> <span class="n">triedResolver</span> <span class="o">=</span> <span class="nb">NO</span><span class="p">;</span>
 
-    <span style="color:#75715e">// 断言解锁
-</span><span style="color:#75715e"></span>    runtimeLock.assertUnlocked();
+    <span class="c1">// 断言解锁
+</span><span class="c1"></span>    <span class="n">runtimeLock</span><span class="p">.</span><span class="n">assertUnlocked</span><span class="p">();</span>
 
-    <span style="color:#75715e">// Optimistic cache lookup
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 乐观缓存查找
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (cache) {
-        imp <span style="color:#f92672">=</span> cache_getImp(cls, sel);
-        <span style="color:#66d9ef">if</span> (imp) <span style="color:#66d9ef">return</span> imp;
-    }
+    <span class="c1">// Optimistic cache lookup
+</span><span class="c1"></span>    <span class="c1">// 乐观缓存查找
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">cache</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">imp</span> <span class="o">=</span> <span class="n">cache_getImp</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">sel</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">imp</span><span class="p">)</span> <span class="k">return</span> <span class="n">imp</span><span class="p">;</span>
+    <span class="p">}</span>
 
-    <span style="color:#75715e">// runtimeLock is held during isRealized and isInitialized checking
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// to prevent races against concurrent realization.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 在 isRealized 和 isInitialized 检查期间保持 runtimeLock，防止并发实化竞争。
-</span><span style="color:#75715e"></span>
-    <span style="color:#75715e">// runtimeLock is held during method search to make
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// method-lookup + cache-fill atomic with respect to method addition.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 关于方法添加，在方法搜索期间保持 runtimeLock，使得方法查找和缓存填充原子化（不可再分割）。
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Otherwise, a category could be added but ignored indefinitely because
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// the cache was re-filled with the old value after the cache flush on
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// behalf of the category.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 否则，分类可以被添加但总会被忽略，因为分类的缓存在刷新后会被旧值重复填充。
-</span><span style="color:#75715e"></span>
-    runtimeLock.lock();
-    checkIsKnownClass(cls);
+    <span class="c1">// runtimeLock is held during isRealized and isInitialized checking
+</span><span class="c1"></span>    <span class="c1">// to prevent races against concurrent realization.
+</span><span class="c1"></span>    <span class="c1">// 在 isRealized 和 isInitialized 检查期间保持 runtimeLock，防止并发实化竞争。
+</span><span class="c1"></span>
+    <span class="c1">// runtimeLock is held during method search to make
+</span><span class="c1"></span>    <span class="c1">// method-lookup + cache-fill atomic with respect to method addition.
+</span><span class="c1"></span>    <span class="c1">// 关于方法添加，在方法搜索期间保持 runtimeLock，使得方法查找和缓存填充原子化（不可再分割）。
+</span><span class="c1"></span>    <span class="c1">// Otherwise, a category could be added but ignored indefinitely because
+</span><span class="c1"></span>    <span class="c1">// the cache was re-filled with the old value after the cache flush on
+</span><span class="c1"></span>    <span class="c1">// behalf of the category.
+</span><span class="c1"></span>    <span class="c1">// 否则，分类可以被添加但总会被忽略，因为分类的缓存在刷新后会被旧值重复填充。
+</span><span class="c1"></span>
+    <span class="n">runtimeLock</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span>
+    <span class="n">checkIsKnownClass</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
 
-    <span style="color:#75715e">// 如果未实化，进行实化
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>cls<span style="color:#f92672">-&gt;</span>isRealized()) {
-        realizeClass(cls);
-    }
+    <span class="c1">// 如果未实化，进行实化
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">isRealized</span><span class="p">())</span> <span class="p">{</span>
+        <span class="n">realizeClass</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
+    <span class="p">}</span>
 
-    <span style="color:#75715e">// 如果需要初始化但未初始化，进行初始化
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (initialize  <span style="color:#f92672">&amp;&amp;</span>  <span style="color:#f92672">!</span>cls<span style="color:#f92672">-&gt;</span>isInitialized()) {
-        runtimeLock.unlock();
-        <span style="color:#75715e">// ➡️ 类初始化
-</span><span style="color:#75715e"></span>        _class_initialize (_class_getNonMetaClass(cls, inst));
-        runtimeLock.lock();
-        <span style="color:#75715e">// If sel == initialize, _class_initialize will send +initialize and
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// then the messenger will send +initialize again after this
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// procedure finishes. Of course, if this is not being called
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// from the messenger then it won&#39;t happen. 2778172
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 如果 sel 等于 initialize，_class_initialize 将发送 +initialize 消息，
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 之后发送者将会在该过程完成后再次发送 +initialize。当然，如果不是发送者调用，则不会发生。
-</span><span style="color:#75715e"></span>    }
+    <span class="c1">// 如果需要初始化但未初始化，进行初始化
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">initialize</span>  <span class="o">&amp;&amp;</span>  <span class="o">!</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">isInitialized</span><span class="p">())</span> <span class="p">{</span>
+        <span class="n">runtimeLock</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span>
+        <span class="c1">// ➡️ 类初始化
+</span><span class="c1"></span>        <span class="n">_class_initialize</span> <span class="p">(</span><span class="n">_class_getNonMetaClass</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">inst</span><span class="p">));</span>
+        <span class="n">runtimeLock</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span>
+        <span class="c1">// If sel == initialize, _class_initialize will send +initialize and
+</span><span class="c1"></span>        <span class="c1">// then the messenger will send +initialize again after this
+</span><span class="c1"></span>        <span class="c1">// procedure finishes. Of course, if this is not being called
+</span><span class="c1"></span>        <span class="c1">// from the messenger then it won&#39;t happen. 2778172
+</span><span class="c1"></span>        <span class="c1">// 如果 sel 等于 initialize，_class_initialize 将发送 +initialize 消息，
+</span><span class="c1"></span>        <span class="c1">// 之后发送者将会在该过程完成后再次发送 +initialize。当然，如果不是发送者调用，则不会发生。
+</span><span class="c1"></span>    <span class="p">}</span>
 
 
- retry:
-    runtimeLock.assertLocked();
+ <span class="nl">retry</span><span class="p">:</span>
+    <span class="n">runtimeLock</span><span class="p">.</span><span class="n">assertLocked</span><span class="p">();</span>
 
-    <span style="color:#75715e">// Try this class&#39;s cache.
-</span><span style="color:#75715e"></span>
-    imp <span style="color:#f92672">=</span> cache_getImp(cls, sel);
-    <span style="color:#66d9ef">if</span> (imp) <span style="color:#66d9ef">goto</span> done;
+    <span class="c1">// Try this class&#39;s cache.
+</span><span class="c1"></span>
+    <span class="n">imp</span> <span class="o">=</span> <span class="n">cache_getImp</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">sel</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">imp</span><span class="p">)</span> <span class="k">goto</span> <span class="n">done</span><span class="p">;</span>
 
-    <span style="color:#75715e">// Try this class&#39;s method lists.
-</span><span style="color:#75715e"></span>    {
-        Method meth <span style="color:#f92672">=</span> getMethodNoSuper_nolock(cls, sel);
-        <span style="color:#66d9ef">if</span> (meth) {
-            log_and_fill_cache(cls, meth<span style="color:#f92672">-&gt;</span>imp, sel, inst, cls);
-            imp <span style="color:#f92672">=</span> meth<span style="color:#f92672">-&gt;</span>imp;
-            <span style="color:#66d9ef">goto</span> done;
-        }
-    }
+    <span class="c1">// Try this class&#39;s method lists.
+</span><span class="c1"></span>    <span class="p">{</span>
+        <span class="n">Method</span> <span class="n">meth</span> <span class="o">=</span> <span class="n">getMethodNoSuper_nolock</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">sel</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">meth</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">log_and_fill_cache</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">meth</span><span class="o">-&gt;</span><span class="n">imp</span><span class="p">,</span> <span class="n">sel</span><span class="p">,</span> <span class="n">inst</span><span class="p">,</span> <span class="n">cls</span><span class="p">);</span>
+            <span class="n">imp</span> <span class="o">=</span> <span class="n">meth</span><span class="o">-&gt;</span><span class="n">imp</span><span class="p">;</span>
+            <span class="k">goto</span> <span class="n">done</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
 
-    <span style="color:#75715e">// Try superclass caches and method lists.
-</span><span style="color:#75715e"></span>    {
-        <span style="color:#66d9ef">unsigned</span> attempts <span style="color:#f92672">=</span> unreasonableClassCount();
-        <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">Class</span> curClass <span style="color:#f92672">=</span> cls<span style="color:#f92672">-&gt;</span>superclass;
-             curClass <span style="color:#f92672">!=</span> nil;
-             curClass <span style="color:#f92672">=</span> curClass<span style="color:#f92672">-&gt;</span>superclass)
-        {
-            <span style="color:#75715e">// Halt if there is a cycle in the superclass chain.
-</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (<span style="color:#f92672">--</span>attempts <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) {
-                _objc_fatal(<span style="color:#e6db74">&#34;Memory corruption in class list.&#34;</span>);
-            }
+    <span class="c1">// Try superclass caches and method lists.
+</span><span class="c1"></span>    <span class="p">{</span>
+        <span class="kt">unsigned</span> <span class="n">attempts</span> <span class="o">=</span> <span class="n">unreasonableClassCount</span><span class="p">();</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">Class</span> <span class="n">curClass</span> <span class="o">=</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">superclass</span><span class="p">;</span>
+             <span class="n">curClass</span> <span class="o">!=</span> <span class="nb">nil</span><span class="p">;</span>
+             <span class="n">curClass</span> <span class="o">=</span> <span class="n">curClass</span><span class="o">-&gt;</span><span class="n">superclass</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="c1">// Halt if there is a cycle in the superclass chain.
+</span><span class="c1"></span>            <span class="k">if</span> <span class="p">(</span><span class="o">--</span><span class="n">attempts</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">_objc_fatal</span><span class="p">(</span><span class="s">&#34;Memory corruption in class list.&#34;</span><span class="p">);</span>
+            <span class="p">}</span>
 
-            <span style="color:#75715e">// Superclass cache.
-</span><span style="color:#75715e"></span>            imp <span style="color:#f92672">=</span> cache_getImp(curClass, sel);
-            <span style="color:#66d9ef">if</span> (imp) {
-                <span style="color:#66d9ef">if</span> (imp <span style="color:#f92672">!=</span> (<span style="color:#66d9ef">IMP</span>)_objc_msgForward_impcache) {
-                    <span style="color:#75715e">// Found the method in a superclass. Cache it in this class.
-</span><span style="color:#75715e"></span>                    log_and_fill_cache(cls, imp, sel, inst, curClass);
-                    <span style="color:#66d9ef">goto</span> done;
-                }
-                <span style="color:#66d9ef">else</span> {
-                    <span style="color:#75715e">// Found a forward:: entry in a superclass.
-</span><span style="color:#75715e"></span>                    <span style="color:#75715e">// Stop searching, but don&#39;t cache yet; call method
-</span><span style="color:#75715e"></span>                    <span style="color:#75715e">// resolver for this class first.
-</span><span style="color:#75715e"></span>                    <span style="color:#66d9ef">break</span>;
-                }
-            }
+            <span class="c1">// Superclass cache.
+</span><span class="c1"></span>            <span class="n">imp</span> <span class="o">=</span> <span class="n">cache_getImp</span><span class="p">(</span><span class="n">curClass</span><span class="p">,</span> <span class="n">sel</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">imp</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">imp</span> <span class="o">!=</span> <span class="p">(</span><span class="kt">IMP</span><span class="p">)</span><span class="n">_objc_msgForward_impcache</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="c1">// Found the method in a superclass. Cache it in this class.
+</span><span class="c1"></span>                    <span class="n">log_and_fill_cache</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">imp</span><span class="p">,</span> <span class="n">sel</span><span class="p">,</span> <span class="n">inst</span><span class="p">,</span> <span class="n">curClass</span><span class="p">);</span>
+                    <span class="k">goto</span> <span class="n">done</span><span class="p">;</span>
+                <span class="p">}</span>
+                <span class="k">else</span> <span class="p">{</span>
+                    <span class="c1">// Found a forward:: entry in a superclass.
+</span><span class="c1"></span>                    <span class="c1">// Stop searching, but don&#39;t cache yet; call method
+</span><span class="c1"></span>                    <span class="c1">// resolver for this class first.
+</span><span class="c1"></span>                    <span class="k">break</span><span class="p">;</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
 
-            <span style="color:#75715e">// Superclass method list.
-</span><span style="color:#75715e"></span>            Method meth <span style="color:#f92672">=</span> getMethodNoSuper_nolock(curClass, sel);
-            <span style="color:#66d9ef">if</span> (meth) {
-                log_and_fill_cache(cls, meth<span style="color:#f92672">-&gt;</span>imp, sel, inst, curClass);
-                imp <span style="color:#f92672">=</span> meth<span style="color:#f92672">-&gt;</span>imp;
-                <span style="color:#66d9ef">goto</span> done;
-            }
-        }
-    }
+            <span class="c1">// Superclass method list.
+</span><span class="c1"></span>            <span class="n">Method</span> <span class="n">meth</span> <span class="o">=</span> <span class="n">getMethodNoSuper_nolock</span><span class="p">(</span><span class="n">curClass</span><span class="p">,</span> <span class="n">sel</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">meth</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">log_and_fill_cache</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">meth</span><span class="o">-&gt;</span><span class="n">imp</span><span class="p">,</span> <span class="n">sel</span><span class="p">,</span> <span class="n">inst</span><span class="p">,</span> <span class="n">curClass</span><span class="p">);</span>
+                <span class="n">imp</span> <span class="o">=</span> <span class="n">meth</span><span class="o">-&gt;</span><span class="n">imp</span><span class="p">;</span>
+                <span class="k">goto</span> <span class="n">done</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
 
-    <span style="color:#75715e">// No implementation found. Try method resolver once.
-</span><span style="color:#75715e"></span>
-    <span style="color:#66d9ef">if</span> (resolver  <span style="color:#f92672">&amp;&amp;</span>  <span style="color:#f92672">!</span>triedResolver) {
-        runtimeLock.unlock();
-        _class_resolveMethod(cls, sel, inst);
-        runtimeLock.lock();
-        <span style="color:#75715e">// Don&#39;t cache the result; we don&#39;t hold the lock so it may have
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// changed already. Re-do the search from scratch instead.
-</span><span style="color:#75715e"></span>        triedResolver <span style="color:#f92672">=</span> YES;
-        <span style="color:#66d9ef">goto</span> retry;
-    }
+    <span class="c1">// No implementation found. Try method resolver once.
+</span><span class="c1"></span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">resolver</span>  <span class="o">&amp;&amp;</span>  <span class="o">!</span><span class="n">triedResolver</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">runtimeLock</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span>
+        <span class="n">_class_resolveMethod</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">sel</span><span class="p">,</span> <span class="n">inst</span><span class="p">);</span>
+        <span class="n">runtimeLock</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span>
+        <span class="c1">// Don&#39;t cache the result; we don&#39;t hold the lock so it may have
+</span><span class="c1"></span>        <span class="c1">// changed already. Re-do the search from scratch instead.
+</span><span class="c1"></span>        <span class="n">triedResolver</span> <span class="o">=</span> <span class="nb">YES</span><span class="p">;</span>
+        <span class="k">goto</span> <span class="n">retry</span><span class="p">;</span>
+    <span class="p">}</span>
 
-    <span style="color:#75715e">// No implementation found, and method resolver didn&#39;t help.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Use forwarding.
-</span><span style="color:#75715e"></span>
-    imp <span style="color:#f92672">=</span> (<span style="color:#66d9ef">IMP</span>)_objc_msgForward_impcache;
-    cache_fill(cls, sel, imp, inst);
+    <span class="c1">// No implementation found, and method resolver didn&#39;t help.
+</span><span class="c1"></span>    <span class="c1">// Use forwarding.
+</span><span class="c1"></span>
+    <span class="n">imp</span> <span class="o">=</span> <span class="p">(</span><span class="kt">IMP</span><span class="p">)</span><span class="n">_objc_msgForward_impcache</span><span class="p">;</span>
+    <span class="n">cache_fill</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">sel</span><span class="p">,</span> <span class="n">imp</span><span class="p">,</span> <span class="n">inst</span><span class="p">);</span>
 
- done:
-    runtimeLock.unlock();
+ <span class="nl">done</span><span class="p">:</span>
+    <span class="n">runtimeLock</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span>
 
-    <span style="color:#66d9ef">return</span> imp;
-}
+    <span class="k">return</span> <span class="n">imp</span><span class="p">;</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// objc-initialize.mm
-</span><span style="color:#75715e"></span><span style="color:#75715e">/***********************************************************************
-</span><span style="color:#75715e">* class_initialize.  Send the &#39;+initialize&#39; message on demand to any
-</span><span style="color:#75715e">* uninitialized class. Force initialization of superclasses first.
-</span><span style="color:#75715e">* class_initialize。按需发送「+initialize」消息到所有未初始化的类。强制父类最先初始化。
-</span><span style="color:#75715e">**********************************************************************/</span>
-<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">_class_initialize</span>(<span style="color:#66d9ef">Class</span> cls)
-{
-    <span style="color:#75715e">// 断言非元类
-</span><span style="color:#75715e"></span>    assert(<span style="color:#f92672">!</span>cls<span style="color:#f92672">-&gt;</span>isMetaClass());
+<span class="c1">// objc-initialize.mm
+</span><span class="c1"></span><span class="cm">/***********************************************************************
+</span><span class="cm">* class_initialize.  Send the &#39;+initialize&#39; message on demand to any
+</span><span class="cm">* uninitialized class. Force initialization of superclasses first.
+</span><span class="cm">* class_initialize。按需发送「+initialize」消息到所有未初始化的类。强制父类最先初始化。
+</span><span class="cm">**********************************************************************/</span>
+<span class="kt">void</span> <span class="nf">_class_initialize</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="c1">// 断言非元类
+</span><span class="c1"></span>    <span class="n">assert</span><span class="p">(</span><span class="o">!</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">isMetaClass</span><span class="p">());</span>
 
-    <span style="color:#66d9ef">Class</span> supercls;
-    <span style="color:#66d9ef">bool</span> reallyInitialize <span style="color:#f92672">=</span> NO;
+    <span class="kt">Class</span> <span class="n">supercls</span><span class="p">;</span>
+    <span class="kt">bool</span> <span class="n">reallyInitialize</span> <span class="o">=</span> <span class="nb">NO</span><span class="p">;</span>
 
-    <span style="color:#75715e">// Make sure super is done initializing BEFORE beginning to initialize cls.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 在开始初始化 cls 前确保父类已经完成初始化。
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// See note about deadlock above.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 查看上面死锁的备注。
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 取得父类
-</span><span style="color:#75715e"></span>    supercls <span style="color:#f92672">=</span> cls<span style="color:#f92672">-&gt;</span>superclass;
-    <span style="color:#75715e">// 如果父类存在，且未初始化
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (supercls  <span style="color:#f92672">&amp;&amp;</span>  <span style="color:#f92672">!</span>supercls<span style="color:#f92672">-&gt;</span>isInitialized()) {
-    	 <span style="color:#75715e">// 递归初始化父类
-</span><span style="color:#75715e"></span>        _class_initialize(supercls);
-    }
+    <span class="c1">// Make sure super is done initializing BEFORE beginning to initialize cls.
+</span><span class="c1"></span>    <span class="c1">// 在开始初始化 cls 前确保父类已经完成初始化。
+</span><span class="c1"></span>    <span class="c1">// See note about deadlock above.
+</span><span class="c1"></span>    <span class="c1">// 查看上面死锁的备注。
+</span><span class="c1"></span>    <span class="c1">// 取得父类
+</span><span class="c1"></span>    <span class="n">supercls</span> <span class="o">=</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">superclass</span><span class="p">;</span>
+    <span class="c1">// 如果父类存在，且未初始化
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">supercls</span>  <span class="o">&amp;&amp;</span>  <span class="o">!</span><span class="n">supercls</span><span class="o">-&gt;</span><span class="n">isInitialized</span><span class="p">())</span> <span class="p">{</span>
+    	 <span class="c1">// 递归初始化父类
+</span><span class="c1"></span>        <span class="n">_class_initialize</span><span class="p">(</span><span class="n">supercls</span><span class="p">);</span>
+    <span class="p">}</span>
 
-    <span style="color:#75715e">// Try to atomically set CLS_INITIALIZING.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 原子化地设置 CLS_INITIALIZING。
-</span><span style="color:#75715e"></span>    {
-        monitor_locker_t lock(classInitLock);
-        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>cls<span style="color:#f92672">-&gt;</span>isInitialized() <span style="color:#f92672">&amp;&amp;</span> <span style="color:#f92672">!</span>cls<span style="color:#f92672">-&gt;</span>isInitializing()) {
-            cls<span style="color:#f92672">-&gt;</span>setInitializing();
-            reallyInitialize <span style="color:#f92672">=</span> YES;
-        }
-    }
+    <span class="c1">// Try to atomically set CLS_INITIALIZING.
+</span><span class="c1"></span>    <span class="c1">// 原子化地设置 CLS_INITIALIZING。
+</span><span class="c1"></span>    <span class="p">{</span>
+        <span class="n">monitor_locker_t</span> <span class="n">lock</span><span class="p">(</span><span class="n">classInitLock</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">isInitialized</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">isInitializing</span><span class="p">())</span> <span class="p">{</span>
+            <span class="n">cls</span><span class="o">-&gt;</span><span class="n">setInitializing</span><span class="p">();</span>
+            <span class="n">reallyInitialize</span> <span class="o">=</span> <span class="nb">YES</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
 
-    <span style="color:#66d9ef">if</span> (reallyInitialize) {
-        <span style="color:#75715e">// We successfully set the CLS_INITIALIZING bit. Initialize the class.
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 成功设置 CLS_INITIALIZING 位。初始化类。
-</span><span style="color:#75715e"></span>
-        <span style="color:#75715e">// Record that we&#39;re initializing this class so we can message it.
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 记录我们正在初始化该类，以便可以发送这个消息。
-</span><span style="color:#75715e"></span>        _setThisThreadIsInitializingClass(cls);
+    <span class="k">if</span> <span class="p">(</span><span class="n">reallyInitialize</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// We successfully set the CLS_INITIALIZING bit. Initialize the class.
+</span><span class="c1"></span>        <span class="c1">// 成功设置 CLS_INITIALIZING 位。初始化类。
+</span><span class="c1"></span>
+        <span class="c1">// Record that we&#39;re initializing this class so we can message it.
+</span><span class="c1"></span>        <span class="c1">// 记录我们正在初始化该类，以便可以发送这个消息。
+</span><span class="c1"></span>        <span class="n">_setThisThreadIsInitializingClass</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
 
-        <span style="color:#66d9ef">if</span> (MultithreadedForkChild) {
-            <span style="color:#75715e">// LOL JK we don&#39;t really call +initialize methods after fork().
-</span><span style="color:#75715e"></span>            performForkChildInitialize(cls, supercls);
-            <span style="color:#66d9ef">return</span>;
-        }
+        <span class="k">if</span> <span class="p">(</span><span class="n">MultithreadedForkChild</span><span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// LOL JK we don&#39;t really call +initialize methods after fork().
+</span><span class="c1"></span>            <span class="n">performForkChildInitialize</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">supercls</span><span class="p">);</span>
+            <span class="k">return</span><span class="p">;</span>
+        <span class="p">}</span>
 
-        <span style="color:#75715e">// Send the +initialize message.
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 发送 +initialize 消息。
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Note that +initialize is sent to the superclass (again) if
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// this class doesn&#39;t implement +initialize. 2157218
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 如果该类未实现 +initialize，需要注意 +initialize（再次）被发送到了父类
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Xcode 中 OBJC_PRINT_INITIALIZE_METHODS 环境变量值为 YES 时，将可在控制台打印该信息
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// OPTION(PrintInitializing, OBJC_PRINT_INITIALIZE_METHODS, &#34;log calls to class +initialize methods&#34;)
-</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (PrintInitializing) {
-            _objc_inform(<span style="color:#e6db74">&#34;INITIALIZE: thread %p: calling +[%s initialize]&#34;</span>,
-                         pthread_self(), cls<span style="color:#f92672">-&gt;</span>nameForLogging());
-        }
+        <span class="c1">// Send the +initialize message.
+</span><span class="c1"></span>        <span class="c1">// 发送 +initialize 消息。
+</span><span class="c1"></span>        <span class="c1">// Note that +initialize is sent to the superclass (again) if
+</span><span class="c1"></span>        <span class="c1">// this class doesn&#39;t implement +initialize. 2157218
+</span><span class="c1"></span>        <span class="c1">// 如果该类未实现 +initialize，需要注意 +initialize（再次）被发送到了父类
+</span><span class="c1"></span>        <span class="c1">// Xcode 中 OBJC_PRINT_INITIALIZE_METHODS 环境变量值为 YES 时，将可在控制台打印该信息
+</span><span class="c1"></span>        <span class="c1">// OPTION(PrintInitializing, OBJC_PRINT_INITIALIZE_METHODS, &#34;log calls to class +initialize methods&#34;)
+</span><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span><span class="n">PrintInitializing</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">_objc_inform</span><span class="p">(</span><span class="s">&#34;INITIALIZE: thread %p: calling +[%s initialize]&#34;</span><span class="p">,</span>
+                         <span class="n">pthread_self</span><span class="p">(),</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">nameForLogging</span><span class="p">());</span>
+        <span class="p">}</span>
 
-        <span style="color:#75715e">// Exceptions: A +initialize call that throws an exception
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// is deemed to be a complete and successful +initialize.
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">//
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Only __OBJC2__ adds these handlers. !__OBJC2__ has a
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// bootstrapping problem of this versus CF&#39;s call to
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// objc_exception_set_functions().
-</span><span style="color:#75715e"></span><span style="color:#75715e">#if __OBJC2__
-</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">@try</span>
-<span style="color:#75715e">#endif
-</span><span style="color:#75715e"></span>        {
-            <span style="color:#75715e">// ➡️ 调用 +initialize
-</span><span style="color:#75715e"></span>            callInitialize(cls);
+        <span class="c1">// Exceptions: A +initialize call that throws an exception
+</span><span class="c1"></span>        <span class="c1">// is deemed to be a complete and successful +initialize.
+</span><span class="c1"></span>        <span class="c1">//
+</span><span class="c1"></span>        <span class="c1">// Only __OBJC2__ adds these handlers. !__OBJC2__ has a
+</span><span class="c1"></span>        <span class="c1">// bootstrapping problem of this versus CF&#39;s call to
+</span><span class="c1"></span>        <span class="c1">// objc_exception_set_functions().
+</span><span class="c1"></span><span class="cp">#if __OBJC2__
+</span><span class="cp"></span>        <span class="k">@try</span>
+<span class="cp">#endif
+</span><span class="cp"></span>        <span class="p">{</span>
+            <span class="c1">// ➡️ 调用 +initialize
+</span><span class="c1"></span>            <span class="n">callInitialize</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
 
-            <span style="color:#66d9ef">if</span> (PrintInitializing) {
-                _objc_inform(<span style="color:#e6db74">&#34;INITIALIZE: thread %p: finished +[%s initialize]&#34;</span>,
-                             pthread_self(), cls<span style="color:#f92672">-&gt;</span>nameForLogging());
-            }
-        }
-<span style="color:#75715e">#if __OBJC2__
-</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">@catch</span> (...) {
-            <span style="color:#66d9ef">if</span> (PrintInitializing) {
-                _objc_inform(<span style="color:#e6db74">&#34;INITIALIZE: thread %p: +[%s initialize] &#34;</span>
-                             <span style="color:#e6db74">&#34;threw an exception&#34;</span>,
-                             pthread_self(), cls<span style="color:#f92672">-&gt;</span>nameForLogging());
-            }
-            <span style="color:#66d9ef">@throw</span>;
-        }
-        <span style="color:#66d9ef">@finally</span>
-<span style="color:#75715e">#endif
-</span><span style="color:#75715e"></span>        {
-            <span style="color:#75715e">// Done initializing.
-</span><span style="color:#75715e"></span>            lockAndFinishInitializing(cls, supercls);
-        }
-        <span style="color:#66d9ef">return</span>;
-    }
+            <span class="k">if</span> <span class="p">(</span><span class="n">PrintInitializing</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">_objc_inform</span><span class="p">(</span><span class="s">&#34;INITIALIZE: thread %p: finished +[%s initialize]&#34;</span><span class="p">,</span>
+                             <span class="n">pthread_self</span><span class="p">(),</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">nameForLogging</span><span class="p">());</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+<span class="cp">#if __OBJC2__
+</span><span class="cp"></span>        <span class="k">@catch</span> <span class="p">(...)</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">PrintInitializing</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">_objc_inform</span><span class="p">(</span><span class="s">&#34;INITIALIZE: thread %p: +[%s initialize] &#34;</span>
+                             <span class="s">&#34;threw an exception&#34;</span><span class="p">,</span>
+                             <span class="n">pthread_self</span><span class="p">(),</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">nameForLogging</span><span class="p">());</span>
+            <span class="p">}</span>
+            <span class="k">@throw</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">@finally</span>
+<span class="cp">#endif
+</span><span class="cp"></span>        <span class="p">{</span>
+            <span class="c1">// Done initializing.
+</span><span class="c1"></span>            <span class="n">lockAndFinishInitializing</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">supercls</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
 
-    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (cls<span style="color:#f92672">-&gt;</span>isInitializing()) {
-        <span style="color:#75715e">// We couldn&#39;t set INITIALIZING because INITIALIZING was already set.
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// If this thread set it earlier, continue normally.
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// If some other thread set it, block until initialize is done.
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// It&#39;s ok if INITIALIZING changes to INITIALIZED while we&#39;re here,
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">//   because we safely check for INITIALIZED inside the lock
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">//   before blocking.
-</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (_thisThreadIsInitializingClass(cls)) {
-            <span style="color:#66d9ef">return</span>;
-        } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>MultithreadedForkChild) {
-            waitForInitializeToComplete(cls);
-            <span style="color:#66d9ef">return</span>;
-        } <span style="color:#66d9ef">else</span> {
-            <span style="color:#75715e">// We&#39;re on the child side of fork(), facing a class that
-</span><span style="color:#75715e"></span>            <span style="color:#75715e">// was initializing by some other thread when fork() was called.
-</span><span style="color:#75715e"></span>            _setThisThreadIsInitializingClass(cls);
-            performForkChildInitialize(cls, supercls);
-        }
-    }
+    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">isInitializing</span><span class="p">())</span> <span class="p">{</span>
+        <span class="c1">// We couldn&#39;t set INITIALIZING because INITIALIZING was already set.
+</span><span class="c1"></span>        <span class="c1">// If this thread set it earlier, continue normally.
+</span><span class="c1"></span>        <span class="c1">// If some other thread set it, block until initialize is done.
+</span><span class="c1"></span>        <span class="c1">// It&#39;s ok if INITIALIZING changes to INITIALIZED while we&#39;re here,
+</span><span class="c1"></span>        <span class="c1">//   because we safely check for INITIALIZED inside the lock
+</span><span class="c1"></span>        <span class="c1">//   before blocking.
+</span><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span><span class="n">_thisThreadIsInitializingClass</span><span class="p">(</span><span class="n">cls</span><span class="p">))</span> <span class="p">{</span>
+            <span class="k">return</span><span class="p">;</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">MultithreadedForkChild</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">waitForInitializeToComplete</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
+            <span class="k">return</span><span class="p">;</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="c1">// We&#39;re on the child side of fork(), facing a class that
+</span><span class="c1"></span>            <span class="c1">// was initializing by some other thread when fork() was called.
+</span><span class="c1"></span>            <span class="n">_setThisThreadIsInitializingClass</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
+            <span class="n">performForkChildInitialize</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">supercls</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
 
-    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (cls<span style="color:#f92672">-&gt;</span>isInitialized()) {
-        <span style="color:#75715e">// Set CLS_INITIALIZING failed because someone else already
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">//   initialized the class. Continue normally.
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// NOTE this check must come AFTER the ISINITIALIZING case.
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Otherwise: Another thread is initializing this class. ISINITIALIZED
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">//   is false. Skip this clause. Then the other thread finishes
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">//   initialization and sets INITIALIZING=no and INITIALIZED=yes.
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">//   Skip the ISINITIALIZING clause. Die horribly.
-</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">return</span>;
-    }
+    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">isInitialized</span><span class="p">())</span> <span class="p">{</span>
+        <span class="c1">// Set CLS_INITIALIZING failed because someone else already
+</span><span class="c1"></span>        <span class="c1">//   initialized the class. Continue normally.
+</span><span class="c1"></span>        <span class="c1">// NOTE this check must come AFTER the ISINITIALIZING case.
+</span><span class="c1"></span>        <span class="c1">// Otherwise: Another thread is initializing this class. ISINITIALIZED
+</span><span class="c1"></span>        <span class="c1">//   is false. Skip this clause. Then the other thread finishes
+</span><span class="c1"></span>        <span class="c1">//   initialization and sets INITIALIZING=no and INITIALIZED=yes.
+</span><span class="c1"></span>        <span class="c1">//   Skip the ISINITIALIZING clause. Die horribly.
+</span><span class="c1"></span>        <span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
 
-    <span style="color:#66d9ef">else</span> {
-        <span style="color:#75715e">// We shouldn&#39;t be here.
-</span><span style="color:#75715e"></span>        _objc_fatal(<span style="color:#e6db74">&#34;thread-safe class init in objc runtime is buggy!&#34;</span>);
-    }
-}
+    <span class="k">else</span> <span class="p">{</span>
+        <span class="c1">// We shouldn&#39;t be here.
+</span><span class="c1"></span>        <span class="n">_objc_fatal</span><span class="p">(</span><span class="s">&#34;thread-safe class init in objc runtime is buggy!&#34;</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// objc-initialize.mm
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">callInitialize</span>(<span style="color:#66d9ef">Class</span> cls)
-{
-    <span style="color:#75715e">// 💡 向 cls 发送 SEL_initialize 消息
-</span><span style="color:#75715e"></span>    ((<span style="color:#66d9ef">void</span>(<span style="color:#f92672">*</span>)(<span style="color:#66d9ef">Class</span>, <span style="color:#66d9ef">SEL</span>))objc_msgSend)(cls, SEL_initialize);
-    <span style="color:#66d9ef">asm</span>(<span style="color:#e6db74">&#34;&#34;</span>);
-}
+<span class="c1">// objc-initialize.mm
+</span><span class="c1"></span><span class="kt">void</span> <span class="nf">callInitialize</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="c1">// 💡 向 cls 发送 SEL_initialize 消息
+</span><span class="c1"></span>    <span class="p">((</span><span class="kt">void</span><span class="p">(</span><span class="o">*</span><span class="p">)(</span><span class="kt">Class</span><span class="p">,</span> <span class="kt">SEL</span><span class="p">))</span><span class="n">objc_msgSend</span><span class="p">)(</span><span class="n">cls</span><span class="p">,</span> <span class="n">SEL_initialize</span><span class="p">);</span>
+    <span class="k">asm</span><span class="p">(</span><span class="s">&#34;&#34;</span><span class="p">);</span>
+<span class="p">}</span>
 </code></pre></div><p>追根溯源，我们可以看到 +initialize 的本质其实是 objc_msgSend，即消息发送机制，不同于 +load 直接根据 IMP 指针进行调用。这也就解释了在 Demo 中，我们首先尝试向 <code>Student</code> 类发送一个 <code>alloc</code> 消息，运行时会先找到父类 <code>Person</code> 的 +initialize 方法进行调用，而由于父类又存在分类，最后编译的 <code>Person+Work</code> 分类「覆盖」了其它分类和主类中相同的方法而得以调用；随后调用子类自身的 +initialize 方法，而 <code>Student+School</code> 分类「覆盖」了主类中相同的方法而得以调用；而向 <code>Programmer</code> 类手动发送 +load 消息时（当然，一般我们不会这么做），由于该类本身没有实现 +initialize 方法，因此最终通过父类的 <code>Person+Work</code> 分类调用了 +initialize 方法。</p>
 <p><img src="/img/2019/+initialize_in_ios/1.png" alt=""></p>
 <p>如上所述，一个类的 +initialize 方法并不能保证只会被调用一次，所以如果我们不希望多次调用，可以在 +initialize 方法中进行判断 <code>self == [ClassName self]</code>。</p>
 <h2 id="objc_print_initialize_methods">OBJC_PRINT_INITIALIZE_METHODS</h2>
 <p>为了便于 Debug 运行时的 +initialize 方法，将 <code>OBJC_PRINT_INITIALIZE_METHODS</code> 在 Xcode 中设置为 YES 后，可以打印出很多 + initialize 方法执行时的信息：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text">objc[23971]: INITIALIZE: thread 0x1000aa5c0: calling +[NSObject initialize]
+<div class="highlight"><pre class="chroma"><code class="language-text" data-lang="text">objc[23971]: INITIALIZE: thread 0x1000aa5c0: calling +[NSObject initialize]
 objc[23971]: INITIALIZE: thread 0x1000aa5c0: finished +[NSObject initialize]
 objc[23971]: INITIALIZE: thread 0x1000aa5c0: NSObject is fully +initialized
 objc[23971]: INITIALIZE: thread 0x1000aa5c0: calling +[OS_dispatch_data initialize]
@@ -900,143 +862,118 @@ objc[23971]: INITIALIZE: thread 0x1000aa5c0: Programmer is fully +initialized
 <ul>
 <li><a href="/posts/2019/+load_in_ios/">iOS 中的 +load 方法</a></li>
 </ul>
-
-    </div>
-    
-      <div class="pagination">
-        <div class="pagination__title">
-          <span class="pagination__title-h">Read other posts</span>
-          <hr />
-        </div>
-        <div class="pagination__buttons">
-          
-            <span class="button previous">
-              <a href="/posts/2019/url_loading_system/">
-                <span class="button__icon">←</span>
-                <span class="button__text">[译] URL 加载系统</span>
-              </a>
-            </span>
-          
-          
-            <span class="button next">
-              <a href="/posts/2019/type_introspection_and_reflection/">
-                <span class="button__text">Obj-C &amp; Swift 的类型内省与反射</span>
-                <span class="button__icon">→</span>
-              </a>
-            </span>
-          
-        </div>
-      </div>
-    
-
-    
-
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-<table style="border: 0;">
-  <tr>
-  <td style="border: 0; width: 30%;">
-    <img src='/img/about/1.jpg'>
-  </td>
-  <td style="border: 0;">
-    <ins class="adsbygoogle"
-     style="display:block"
-     data-ad-client="ca-pub-9925978992661955"
-     data-ad-slot="3213735320"
-     data-ad-format="auto"
-     data-full-width-responsive="true"></ins>
-  </td>
-  </tr>
-</table>
-
-
-
-<script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
-</script>
-
-
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://kingcos.me/tags/focus/">Focus</a>
+                                    
+                                    <a href="https://kingcos.me/tags/ios/">iOS</a>
+                                    
+                                    <a href="https://kingcos.me/tags/obj-c/">Obj-C</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                <div class="doc_comments"><div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
     
     
-    <div>
-      <div id="github-comment">
-      </div>
-
-      <script type="text/javascript">
-        function getUtterances(isDark) {
-          var utterances = document.createElement('script');
-          utterances.type = 'text/javascript';
-          utterances.async = true;
-          utterances.setAttribute('issue-term', "pathname")
-          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
-          utterances.setAttribute('label', "comments")
-          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
-          utterances.crossorigin = 'anonymous';
-          utterances.src = 'https://utteranc.es/client.js';
-
-          return utterances
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
         }
-
-        var themeToggle = document.querySelector(".theme-toggle")
-        themeToggle.addEventListener("click", function () {
-          var getTheme = window.localStorage && window.localStorage.getItem("theme")
-          var divNode = document.getElementById('github-comment')
-          while(divNode.hasChildNodes()) {
-            divNode.removeChild(divNode.firstChild);
-          }
-          
-          
-          
-
-          
-          
-          
-          
-          
-          
-          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
-        })
-
-        var getTheme = window.localStorage && window.localStorage.getItem("theme")
-        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
-      </script>
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "kingcos" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div>
+                
+            </div>
+        </div>
     </div>
-    
-
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://kingcos.me">Powered by kingcos with love.</a>
     </div>
 
-      </div>
-
-      
-        <footer class="footer">
-  <div class="footer__inner">
-    
-      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
-    
-  </div>
+    <div class="footer_slogan">
+        <span>❤️</span>
+    </div>
 </footer>
+    <script src="https://kingcos.me/js/jquery-3.5.1.min.js"></script>
+<link href="https://kingcos.me/css/fancybox.min.css" rel="stylesheet">
+<script src="https://kingcos.me/js/fancybox.min.js"></script>
+<script src="https://kingcos.me/js/zozo.js"></script>
 
-<script src="/assets/main.js"></script>
-<script src="/assets/prism.js"></script>
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
 
 
 
-      
-    </div>
-
-    
-      
 <script type="application/javascript">
 var doNotTrack = false;
 if (!doNotTrack) {
-	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
 	ga('create', 'UA-138311951-1', 'auto');
 	
 	ga('send', 'pageview');
 }
 </script>
-    
-  </body>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+
 </html>

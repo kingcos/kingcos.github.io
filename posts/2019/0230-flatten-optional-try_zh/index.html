@@ -1,153 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
+<html lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="kingcos" />
+	
+	
+	
+	<title>[译] 摊平由「try?」造成的嵌套可选 ｜ 萌面大道</title>
+	
     
-      <title>[译] 摊平由「try?」造成的嵌套可选 :: iBlog</title>
     
-    <meta http-equiv="content-type" content="text/html; charset=utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="提案: SE-0230 作者: BJ Homer 审查管理员: John McCall 状态: 已实现 (Swift 5) 实现: apple/swift#16942 审查: (论坛帖子) (验收)  介绍 Swift 中的 try? 语句目前很容易引入嵌套可选（译者注：嵌套可选即类似 var foo: String?? 可选的可选类型）。而用户难以推断嵌套可选的产生原因，所以 Swift 尝试避免在一些常见情况下产生嵌套可选。
-该文档提议给予 try? 与其它常见的 Swift 功能中相同的可选摊平行为（译者注：可选摊平即将可选类型的值去掉可选的一层），来避免常见的嵌套可选。
-Swift-evolution 帖子: 使 try? 与可选链摊平协同工作
-动机 目前，使用 try? 非常容易产生嵌套的 Optional 类型。虽然构建嵌套可选是被允许的，但这通常并非是开发者所希望的。
-Swift 拥有许多机制来避免意外创建嵌套可选。比如：
-// 注意 as? 是如何可以无视被转换的值是否是可选类型的，其总是产生了相同的类型 let x = nonOptionalValue() as? MyType // x 是 &amp;#39;MyType?&amp;#39; 类型 let y = optionalValue() as? MyType // y 是 &amp;#39;MyType?"/>
-<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
-<meta name="robots" content="noodp"/>
-<link rel="canonical" href="/posts/2019/0230-flatten-optional-try_zh/" />
+    <meta name="description" content="*Flatten nested optionals resulting from &#39;try?&#39;*" />
+    
 
+    
+    
+    <meta name="keywords" content="Hugo, theme, zozo" />
+    
 
+	
+    
+    <link rel="shortcut icon" href="https://kingcos.me/images/favicon.png" />
 
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.mecss/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/highlight.css" />
 
-
-<link rel="stylesheet" href="/assets/style.css">
-
-
-<link rel="stylesheet" href="/style.css">
-
-
-<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
-<link rel="shortcut icon" href="/img/favicon.png">
-
-
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="[译] 摊平由「try?」造成的嵌套可选"/>
-<meta name="twitter:description" content="*Flatten nested optionals resulting from &#39;try?&#39;*"/>
-
-
-
-<meta property="og:title" content="[译] 摊平由「try?」造成的嵌套可选" />
-<meta property="og:description" content="*Flatten nested optionals resulting from &#39;try?&#39;*" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="/posts/2019/0230-flatten-optional-try_zh/" /><meta property="article:section" content="posts" />
-<meta property="article:published_time" content="2019-07-08T00:00:00&#43;00:00" />
-<meta property="article:modified_time" content="2019-07-08T00:00:00&#43;00:00" /><meta property="og:site_name" content="iBlog" />
-
-
-
-
+    
+    
+</head>
 
 <script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
 
-  </head>
-  <body class="">
-    <div class="container">
-      <header class="header">
-  <span class="header__inner">
-    <a href="/" class="logo" style="text-decoration: none;">
-  
-    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
-  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
-</svg>
-</span>
-    <span class="logo__text">kingcos.me</span>
-    <span class="logo__cursor"></span>
-  
-</a>
 
-    <span class="header__right">
-      
-        <nav class="menu">
-  <ul class="menu__inner menu__inner--desktop">
-    
-      
-        
-          <li><a href="/about">About</a></li>
-        
-      
-        
-          <li><a href="/read">Read</a></li>
-        
-      
-      
-    
-  </ul>
-
-  <ul class="menu__inner menu__inner--mobile">
-    
-      
-        <li><a href="/about">About</a></li>
-      
-    
-      
-        <li><a href="/read">Read</a></li>
-      
-    
-  </ul>
-</nav>
-
-        <span class="menu-trigger">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M0 0h24v24H0z" fill="none"/>
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-          </svg>
-        </span>
-      
-      <span class="theme-toggle">
-        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
-  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
-  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
-</svg>
-
-      </span>
-    </span>
-  </span>
-</header>
-
-
-      <div class="content">
-        
-  <div class="post">
-    <h2 class="post-title"><a href="/posts/2019/0230-flatten-optional-try_zh/">[译] 摊平由「try?」造成的嵌套可选</a></h2>
-    <div class="post-meta">
-      
-        <span class="post-date">
-            2019-07-08
-        </span>
-      
-      
-      
-        <span class="post-read-time">— 4 min read</span>
-      
+<body>
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/posts/">Archive</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/about/">About</a>
+            </li>
+            
+        </ul>
     </div>
-
-    
-      <span class="post-tags">
-        
-          #<a href="/tags/translation/">Translation</a>&nbsp;
-        
-          #<a href="/tags/ios/">iOS</a>&nbsp;
-        
-          #<a href="/tags/swift/">Swift</a>&nbsp;
-        
-      </span>
-    
-
-    
-
-    <div class="post-content">
-      <ul>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            <h1>
+                <a href="https://kingcos.me">
+                    <span>萌面大道</span>
+                </a>
+            </h1>
+        </div>
+        <div class="description">
+            <p class="sub_title">kingcos | Focus</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/kingcos" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://www.instagram.com/kingcos_v/" title="instagram" target="_blank"><i class="ri-instagram-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/kingcos_v" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/u/1798410923" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                <a href="https://kingcos.me/index.xml" type="application/rss+xml" title="rss" target="_blank"><i
+                        class="ri-rss-fill"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/2019/0230-flatten-optional-try_zh/'>[译] 摊平由「try?」造成的嵌套可选</a></h2>
+                        <span class="date">2019.07.08</span>
+                    </div>
+                    <div class="post_content markdown"><ul>
 <li>提案: <a href="https://github.com/apple/swift-evolution/blob/master/proposals/0230-flatten-optional-try.md">SE-0230</a></li>
 <li>作者: <a href="https://github.com/bjhomer">BJ Homer</a></li>
 <li>审查管理员: <a href="https://github.com/rjmccall">John McCall</a></li>
@@ -162,40 +122,40 @@ Swift 拥有许多机制来避免意外创建嵌套可选。比如：
 <h2 id="动机">动机</h2>
 <p>目前，使用 <code>try?</code> 非常容易产生嵌套的 <code>Optional</code> 类型。虽然构建嵌套可选是被允许的，但这通常并非是开发者所希望的。</p>
 <p>Swift 拥有许多机制来避免意外创建嵌套可选。比如：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// 注意 as? 是如何可以无视被转换的值是否是可选类型的，其总是产生了相同的类型</span>
-<span style="color:#66d9ef">let</span> x = nonOptionalValue() <span style="color:#66d9ef">as</span>? MyType    <span style="color:#75715e">// x 是 &#39;MyType?&#39; 类型</span>
-<span style="color:#66d9ef">let</span> y = optionalValue() <span style="color:#66d9ef">as</span>? MyType       <span style="color:#75715e">// y 是 &#39;MyType?&#39; 类型</span>
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 注意 as? 是如何可以无视被转换的值是否是可选类型的，其总是产生了相同的类型</span>
+<span class="kd">let</span> <span class="nv">x</span> <span class="p">=</span> <span class="n">nonOptionalValue</span><span class="p">()</span> <span class="k">as</span><span class="p">?</span> <span class="n">MyType</span>    <span class="c1">// x 是 &#39;MyType?&#39; 类型</span>
+<span class="kd">let</span> <span class="nv">y</span> <span class="p">=</span> <span class="n">optionalValue</span><span class="p">()</span> <span class="k">as</span><span class="p">?</span> <span class="n">MyType</span>       <span class="c1">// y 是 &#39;MyType?&#39; 类型</span>
 
-<span style="color:#75715e">// 注意可选链可以无视调用者是否产生可选值，其总是产生了相同的类型</span>
-<span style="color:#66d9ef">let</span> a = optThing?.pizza()             <span style="color:#75715e">// a 是 &#39;Pizza?&#39; 类型</span>
-<span style="color:#66d9ef">let</span> b = optThing?.optionalPizza()     <span style="color:#75715e">// b 是 &#39;Pizza?&#39; 类型</span>
+<span class="c1">// 注意可选链可以无视调用者是否产生可选值，其总是产生了相同的类型</span>
+<span class="kd">let</span> <span class="nv">a</span> <span class="p">=</span> <span class="n">optThing</span><span class="p">?.</span><span class="n">pizza</span><span class="p">()</span>             <span class="c1">// a 是 &#39;Pizza?&#39; 类型</span>
+<span class="kd">let</span> <span class="nv">b</span> <span class="p">=</span> <span class="n">optThing</span><span class="p">?.</span><span class="n">optionalPizza</span><span class="p">()</span>     <span class="c1">// b 是 &#39;Pizza?&#39; 类型</span>
 </code></pre></div><p>但是 <code>try?</code> 的行为不同：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">let</span> q = <span style="color:#66d9ef">try</span>? harbor.boat()           <span style="color:#75715e">// q 是 &#39;Boat?&#39; 类型</span>
-<span style="color:#66d9ef">let</span> r = <span style="color:#66d9ef">try</span>? harbor.optionalBoat()   <span style="color:#75715e">// r 是 &#39;Boat??&#39; 类型</span>
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">let</span> <span class="nv">q</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">harbor</span><span class="p">.</span><span class="n">boat</span><span class="p">()</span>           <span class="c1">// q 是 &#39;Boat?&#39; 类型</span>
+<span class="kd">let</span> <span class="nv">r</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">harbor</span><span class="p">.</span><span class="n">optionalBoat</span><span class="p">()</span>   <span class="c1">// r 是 &#39;Boat??&#39; 类型</span>
 </code></pre></div><p>上述例子是特意举例的，但其实在生产环境的代码中，也很容易造成嵌套可选。举个例子：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// 由于 &#39;foo&#39; 的可选链，&#39;foo?.makeBar()&#39; 的结果是 &#39;Bar?&#39;。</span>
-<span style="color:#75715e">// &#39;try?&#39; 增加了额外一层可选。所以 &#39;x&#39; 类型是 &#39;Bar??&#39;</span>
-<span style="color:#66d9ef">let</span> x = <span style="color:#66d9ef">try</span>? foo?.makeBar()
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 由于 &#39;foo&#39; 的可选链，&#39;foo?.makeBar()&#39; 的结果是 &#39;Bar?&#39;。</span>
+<span class="c1">// &#39;try?&#39; 增加了额外一层可选。所以 &#39;x&#39; 类型是 &#39;Bar??&#39;</span>
+<span class="kd">let</span> <span class="nv">x</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">foo</span><span class="p">?.</span><span class="n">makeBar</span><span class="p">()</span>
 
-<span style="color:#75715e">// JSONSerialization.jsonObject(with:) 返回 &#39;Any&#39;。</span>
-<span style="color:#75715e">// 我们使用 &#39;as?&#39; 来确认结果是否是期望的类型，但 &#39;try?&#39; 增加了额外一层可选，导致结果 &#39;dict&#39; 现在是 &#39;[String: Any]??&#39; 类型。</span>
-<span style="color:#66d9ef">let</span> dict = <span style="color:#66d9ef">try</span>? JSONSerialization.jsonObject(with: data) <span style="color:#66d9ef">as</span>? [String: Any]
+<span class="c1">// JSONSerialization.jsonObject(with:) 返回 &#39;Any&#39;。</span>
+<span class="c1">// 我们使用 &#39;as?&#39; 来确认结果是否是期望的类型，但 &#39;try?&#39; 增加了额外一层可选，导致结果 &#39;dict&#39; 现在是 &#39;[String: Any]??&#39; 类型。</span>
+<span class="kd">let</span> <span class="nv">dict</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">JSONSerialization</span><span class="p">.</span><span class="n">jsonObject</span><span class="p">(</span><span class="n">with</span><span class="p">:</span> <span class="n">data</span><span class="p">)</span> <span class="k">as</span><span class="p">?</span> <span class="p">[</span><span class="nb">String</span><span class="p">:</span> <span class="nb">Any</span><span class="p">]</span>
 </code></pre></div><p>虽然使用 <code>try?</code> 很容易造成嵌套可选，但对现存代码的一个调查显示，这并非是理想的结果。使用 <code>try?</code> 和嵌套可选的代码几乎总是伴随着以下几种模式之一：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// 模式 1：双层 if-let 或 guard-let</span>
-<span style="color:#66d9ef">if</span>  <span style="color:#66d9ef">let</span> optionalX = <span style="color:#66d9ef">try</span>? <span style="color:#66d9ef">self</span>.optionalThing(),
-    <span style="color:#66d9ef">let</span> x = optionalX {
-    <span style="color:#75715e">// 在这里使用 &#39;x&#39;</span>
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 模式 1：双层 if-let 或 guard-let</span>
+<span class="k">if</span>  <span class="kd">let</span> <span class="nv">optionalX</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="kc">self</span><span class="p">.</span><span class="n">optionalThing</span><span class="p">(),</span>
+    <span class="kd">let</span> <span class="nv">x</span> <span class="p">=</span> <span class="n">optionalX</span> <span class="p">{</span>
+    <span class="c1">// 在这里使用 &#39;x&#39;</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// 模式 2：引入括号并使用 &#39;as?&#39; 摊平</span>
-<span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> x = (<span style="color:#66d9ef">try</span>? somethingAsAny()) <span style="color:#66d9ef">as</span>? JournalEntry {
-    <span style="color:#75715e">// 在这里使用 &#39;x&#39;</span>
-}
+<span class="c1">// 模式 2：引入括号并使用 &#39;as?&#39; 摊平</span>
+<span class="k">if</span> <span class="kd">let</span> <span class="nv">x</span> <span class="p">=</span> <span class="p">(</span><span class="k">try</span><span class="p">?</span> <span class="n">somethingAsAny</span><span class="p">())</span> <span class="k">as</span><span class="p">?</span> <span class="n">JournalEntry</span> <span class="p">{</span>
+    <span class="c1">// 在这里使用 &#39;x&#39;</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// 模式 3：模式匹配</span>
-<span style="color:#66d9ef">if</span> <span style="color:#66d9ef">case</span> <span style="color:#66d9ef">let</span> x?? = <span style="color:#66d9ef">try</span>? optionalThing() {
-    <span style="color:#75715e">// 在这里使用 &#39;x&#39;</span>
-}
+<span class="c1">// 模式 3：模式匹配</span>
+<span class="k">if</span> <span class="k">case</span> <span class="kd">let</span> <span class="nv">x</span><span class="p">??</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">optionalThing</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// 在这里使用 &#39;x&#39;</span>
+<span class="p">}</span>
 </code></pre></div><p>这些变通方法使得语言更加难以学习和使用，且没有任何好处或者回报。</p>
 <p>使用 <code>try?</code> 的代码通常不关心错误和空结果的区别，这就是为什么所有这些模式只关注取出值而忽略错误。如果开发者关心错误，那么应该使用 <code>do/try/catch</code> 取而代之。</p>
 <h2 id="提议解决方案">提议解决方案</h2>
@@ -205,30 +165,30 @@ Swift 拥有许多机制来避免意外创建嵌套可选。比如：
 <li>如果 <code>someExpr()</code> 返回 <code>Optional</code>，<code>try? someExpr()</code> 将不会再额外附加可选。</li>
 </ul>
 <p>这将导致以下的 <code>try?</code> 表达式类型改变：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// Swift 4: &#39;Int??&#39;</span>
-<span style="color:#75715e">// Swift 5: &#39;Int?&#39;</span>
-<span style="color:#66d9ef">let</span> result = <span style="color:#66d9ef">try</span>? database?.countOfRows(matching: predicate)
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// Swift 4: &#39;Int??&#39;</span>
+<span class="c1">// Swift 5: &#39;Int?&#39;</span>
+<span class="kd">let</span> <span class="nv">result</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">database</span><span class="p">?.</span><span class="n">countOfRows</span><span class="p">(</span><span class="n">matching</span><span class="p">:</span> <span class="n">predicate</span><span class="p">)</span>
 
 
-<span style="color:#75715e">// Swift 4: &#39;String??&#39;</span>
-<span style="color:#75715e">// Swift 5: &#39;String?&#39;</span>
-<span style="color:#66d9ef">let</span> myString = <span style="color:#66d9ef">try</span>? String(data: someData, encoding: .utf8)
+<span class="c1">// Swift 4: &#39;String??&#39;</span>
+<span class="c1">// Swift 5: &#39;String?&#39;</span>
+<span class="kd">let</span> <span class="nv">myString</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="nb">String</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">someData</span><span class="p">,</span> <span class="n">encoding</span><span class="p">:</span> <span class="p">.</span><span class="n">utf8</span><span class="p">)</span>
 
-<span style="color:#75715e">// Swift 4: &#39;[String: Any]??&#39;</span>
-<span style="color:#75715e">// Swift 5: &#39;[String: Any]?&#39;</span>
-<span style="color:#66d9ef">let</span> dict = <span style="color:#66d9ef">try</span>? JSONSerialization.jsonObject(with: data) <span style="color:#66d9ef">as</span>? [String: Any]
+<span class="c1">// Swift 4: &#39;[String: Any]??&#39;</span>
+<span class="c1">// Swift 5: &#39;[String: Any]?&#39;</span>
+<span class="kd">let</span> <span class="nv">dict</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">JSONSerialization</span><span class="p">.</span><span class="n">jsonObject</span><span class="p">(</span><span class="n">with</span><span class="p">:</span> <span class="n">data</span><span class="p">)</span> <span class="k">as</span><span class="p">?</span> <span class="p">[</span><span class="nb">String</span><span class="p">:</span> <span class="nb">Any</span><span class="p">]</span>
 </code></pre></div><p>当子表达式返回非可选类型时，整体类型将不会发生改变。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// Swift 4: &#39;String?&#39;</span>
-<span style="color:#75715e">// Swift 5: &#39;String?&#39;</span>
-<span style="color:#66d9ef">let</span> fileContents = <span style="color:#66d9ef">try</span>? String(contentsOf: someURL)
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// Swift 4: &#39;String?&#39;</span>
+<span class="c1">// Swift 5: &#39;String?&#39;</span>
+<span class="kd">let</span> <span class="nv">fileContents</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="nb">String</span><span class="p">(</span><span class="n">contentsOf</span><span class="p">:</span> <span class="n">someURL</span><span class="p">)</span>
 </code></pre></div><p>如果子表达式已经是嵌套可选，结果将和此嵌套层级一致：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">doubleOptionalInt</span>() <span style="color:#66d9ef">throws</span> -&gt; Int?? {
-    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">3</span>
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">func</span> <span class="nf">doubleOptionalInt</span><span class="p">()</span> <span class="kr">throws</span> <span class="p">-&gt;</span> <span class="nb">Int</span><span class="p">??</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="mi">3</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// Swift 4: &#39;Int???&#39;</span>
-<span style="color:#75715e">// Swift 5: &#39;Int??&#39;</span>
-<span style="color:#66d9ef">let</span> x = <span style="color:#66d9ef">try</span>? doubleOptionalInt()
+<span class="c1">// Swift 4: &#39;Int???&#39;</span>
+<span class="c1">// Swift 5: &#39;Int??&#39;</span>
+<span class="kd">let</span> <span class="nv">x</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">doubleOptionalInt</span><span class="p">()</span>
 </code></pre></div><blockquote>
 <h3 id="关于-try-和-as-的额外说明">关于 <code>try?</code> 和 <code>as?</code> 的额外说明</h3>
 <p>虽然 <code>as?</code> 常有摊平可选类型的作用（如上在「动机」部分的举例），但这与提议的 <code>try？</code> 并非是完全相同的行为。由于 <code>as?</code> 采用明确的类型，所以它实际上可以摊平多个层级的嵌套可选。无论 <code>foo</code> 上有多少层可选，<code>foo as? T</code> 将总是返回 <code>Optional&lt;T&gt;</code>。取决于指定的类型，<code>as?</code> 可以潜在地增加或减少可选的层级。（<code>as?</code> 同样可以在子类型与父类型之间转换，这与正在审议的行为无关。）</p>
@@ -239,24 +199,24 @@ Swift 拥有许多机制来避免意外创建嵌套可选。比如：
 <p>在 Swift 5 中，<code>try?</code> 表达式的类型将变为某种 <code>U</code>，<code>U</code> 是 <code>Optional&lt;_&gt;</code> 类型且子表达式类型 <code>T</code> 能够强制转换为 <code>U</code>。类型约束系统将自动选择满足约束的最小嵌套可选层级，这将导致本提案中描述的行为。</p>
 <h4 id="泛型">泛型</h4>
 <p>关于与泛型互通性的一些问题被提出，如下例：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">test</span>&lt;T&gt;(fn: () <span style="color:#66d9ef">throws</span> -&gt; T) -&gt; T? {
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">func</span> <span class="nf">test</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;(</span><span class="n">fn</span><span class="p">:</span> <span class="p">()</span> <span class="kr">throws</span> <span class="p">-&gt;</span> <span class="n">T</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">T</span><span class="p">?</span> <span class="p">{</span>
 
-    <span style="color:#75715e">// 如果 T 是可选类型，该行是否会改变行为？</span>
-    <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> result = <span style="color:#66d9ef">try</span>? fn() {
-        print(<span style="color:#e6db74">&#34;We got a result!&#34;</span>)
-        <span style="color:#66d9ef">return</span> result
-    }
-    <span style="color:#66d9ef">else</span> {
-        print(<span style="color:#e6db74">&#34;There was an error&#34;</span>)
-        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
-    }
-}
+    <span class="c1">// 如果 T 是可选类型，该行是否会改变行为？</span>
+    <span class="k">if</span> <span class="kd">let</span> <span class="nv">result</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">fn</span><span class="p">()</span> <span class="p">{</span>
+        <span class="bp">print</span><span class="p">(</span><span class="s">&#34;We got a result!&#34;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="p">{</span>
+        <span class="bp">print</span><span class="p">(</span><span class="s">&#34;There was an error&#34;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">nil</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// T 在这里被推断为 &#39;Int&#39;</span>
-<span style="color:#66d9ef">let</span> value  = test({ <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">15</span> })
+<span class="c1">// T 在这里被推断为 &#39;Int&#39;</span>
+<span class="kd">let</span> <span class="nv">value</span>  <span class="p">=</span> <span class="n">test</span><span class="p">({</span> <span class="k">return</span> <span class="mi">15</span> <span class="p">})</span>
 
-<span style="color:#75715e">// T 在这里被推断为 &#39;Int?&#39;</span>
-<span style="color:#66d9ef">let</span> value2 = test({ <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">15</span> <span style="color:#66d9ef">as</span> Int? })
+<span class="c1">// T 在这里被推断为 &#39;Int?&#39;</span>
+<span class="kd">let</span> <span class="nv">value2</span> <span class="p">=</span> <span class="n">test</span><span class="p">({</span> <span class="k">return</span> <span class="mi">15</span> <span class="k">as</span> <span class="nb">Int</span><span class="p">?</span> <span class="p">})</span>
 </code></pre></div><p>答案是这与 <code>T</code> 在运行时是否可选无关。在编译时刻，<code>result</code> 拥有清晰的类型：<code>T</code>。这在 Swift 4 和 Swift 5 的模式中都是正确的，因为 <code>T</code> 在编译时刻无法得知是否是 <code>Optional</code> 类型，<code>try?</code> 表达式额外增加了一层 <code>Optional</code>，之后又通过 <code>if let</code> 解包。</p>
 <p>使用 <code>try?</code> 的泛型代码仍可继续使用，而无需关心泛型是否可能在运行时变成可选。这种情况的行为并没有发生改变。</p>
 <h2 id="源代码兼容">源代码兼容</h2>
@@ -265,27 +225,27 @@ Swift 拥有许多机制来避免意外创建嵌套可选。比如：
 <h3 id="1-当前的语法或-api-必须主动展示可能为用户带来的问题">1. 当前的语法或 API 必须主动展示可能为用户带来的问题</h3>
 <p>嵌套可选是一个复杂的概念。其在语言中存在是有价值的，但对于其使用应当是目的明确的。由于目前 <code>try?</code> 和可选链或 <code>as?</code> 转换之间的交叉使用，初学者很容易不明所以地造成嵌套可选。</p>
 <p>实际检测错误 <code>try?</code> 要比使用 <code>try</code> 要<em>更加</em>困难。对比：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// 使用 &#39;try?&#39;</span>
-<span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> result = <span style="color:#66d9ef">try</span>? foo?.bar() {
-    <span style="color:#75715e">// 额外对 &#39;result&#39; 做些什么，尽管在 if let 内其仍可能为 nil</span>
-}
-<span style="color:#66d9ef">else</span> {
-    <span style="color:#75715e">//出现错误，但不清楚是什么</span>
-}
-</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// 使用 &#39;try/catch&#39;</span>
-<span style="color:#66d9ef">do</span> {
-    <span style="color:#66d9ef">let</span> result = <span style="color:#66d9ef">try</span> foo?.bar()
-    <span style="color:#75715e">// 额外对 &#39;result&#39; 做些什么，由于可选链其仍可能为 nil</span>
-}
-<span style="color:#66d9ef">catch</span> {
-    <span style="color:#75715e">// 处理错误</span>
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 使用 &#39;try?&#39;</span>
+<span class="k">if</span> <span class="kd">let</span> <span class="nv">result</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">foo</span><span class="p">?.</span><span class="n">bar</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// 额外对 &#39;result&#39; 做些什么，尽管在 if let 内其仍可能为 nil</span>
+<span class="p">}</span>
+<span class="k">else</span> <span class="p">{</span>
+    <span class="c1">//出现错误，但不清楚是什么</span>
+<span class="p">}</span>
+</code></pre></div><div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 使用 &#39;try/catch&#39;</span>
+<span class="k">do</span> <span class="p">{</span>
+    <span class="kd">let</span> <span class="nv">result</span> <span class="p">=</span> <span class="k">try</span> <span class="n">foo</span><span class="p">?.</span><span class="n">bar</span><span class="p">()</span>
+    <span class="c1">// 额外对 &#39;result&#39; 做些什么，由于可选链其仍可能为 nil</span>
+<span class="p">}</span>
+<span class="k">catch</span> <span class="p">{</span>
+    <span class="c1">// 处理错误</span>
+<span class="p">}</span>
 </code></pre></div><p>使用 <code>try?</code> 的变体将变得非常凌乱（比如关于 <code>result</code> 是什么类型？），而且没有显而易见的优点。在不关心 <em>else</em> 语句且只希望处理存在的值时，<code>try?</code> 是更好的选择，但提议的改变将更好的作用于这种情况。</p>
 <p>由于与 <code>as?</code> 转换的交叉使用，因此当前的语法仍比较痛苦，如下：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> x = <span style="color:#66d9ef">try</span>? foo() <span style="color:#66d9ef">as</span>? String {
-    <span style="color:#75715e">// `String` 是这里想要得到的类型，</span>
-    <span style="color:#75715e">// 但意外的是 `x` 是 `Optional&lt;String&gt;` 类型</span>
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="k">if</span> <span class="kd">let</span> <span class="nv">x</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">foo</span><span class="p">()</span> <span class="k">as</span><span class="p">?</span> <span class="nb">String</span> <span class="p">{</span>
+    <span class="c1">// `String` 是这里想要得到的类型，</span>
+    <span class="c1">// 但意外的是 `x` 是 `Optional&lt;String&gt;` 类型</span>
+<span class="p">}</span>
 </code></pre></div><h3 id="2-新语法--api-必须更加清晰且不与现存的-swift-语法冲突">2. 新语法 / API 必须更加清晰且不与现存的 Swift 语法冲突</h3>
 <p>提出的变更更好地解决了以上所有的问题。此次变更同样明确了 <code>try?</code> 的角色，即在可能的情况下访问值，而非 <code>try/catch</code> 类似的错误处理机制。</p>
 <h3 id="3-已存在的代码必须支持合理地自动迁移">3. 已存在的代码必须支持合理地自动迁移</h3>
@@ -299,14 +259,14 @@ Swift 拥有许多机制来避免意外创建嵌套可选。比如：
 </li>
 <li>
 <p><code>try? ... as?</code> 的用例有 <strong>4</strong> 个。它们都将 <code>try?</code> 包裹在括号中以使用 <code>as?</code> 的摊平行为，且这将是兼容的。它们看来像这样：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift">(<span style="color:#66d9ef">try</span>? JSONSerialization.jsonObject(with: $0)) <span style="color:#66d9ef">as</span>? NSDictionary
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="p">(</span><span class="k">try</span><span class="p">?</span> <span class="n">JSONSerialization</span><span class="p">.</span><span class="n">jsonObject</span><span class="p">(</span><span class="n">with</span><span class="p">:</span> <span class="nv">$0</span><span class="p">))</span> <span class="k">as</span><span class="p">?</span> <span class="n">NSDictionary</span>
 </code></pre></div></li>
 <li>
 <p>3 个项目中共有 <strong>12</strong> 个 <code>try? foo?.bar()</code> 的用例。其中 <strong>10</strong> 个为 <code>_ = try? foo?.bar()</code>，所以结果的类型不重要。其中 <strong>2</strong> 个拥有 <code>Void</code> 类型的子表达式，且没有赋值结果到任何变量。</p>
 </li>
 <li>
 <p>有 <strong>6</strong> 个 <code>try? somethingReturningOptional()</code> 的用例。它们全都使用 <code>flatMap { $0 }</code> 手动摊平，且因此兼容，因为该表达式的返回类型在任一行为下都是相同的。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift">(<span style="color:#66d9ef">try</span>? <span style="color:#66d9ef">get</span>(key)).flatMap { $0 }
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="p">(</span><span class="k">try</span><span class="p">?</span> <span class="kr">get</span><span class="p">(</span><span class="n">key</span><span class="p">)).</span><span class="n">flatMap</span> <span class="p">{</span> <span class="nv">$0</span> <span class="p">}</span>
 </code></pre></div></li>
 <li>
 <p>据我所知，整个套件中没有双可选被实际用来区分错误和 nil 转值的情况。</p>
@@ -327,143 +287,118 @@ Swift 拥有许多机制来避免意外创建嵌套可选。比如：
 <h3 id="什么也不做">什么也不做</h3>
 <p>在当前的模式下写出正确的代码是可以的。我们并非提出完全从语言中移除嵌套可选，我们只是希望用户弄清楚它们。</p>
 <p>这是一个可行的解决方案，但作为语法糖的一部分，为简化日常使用却拥有如此复杂的结构是很奇怪的。</p>
-
-    </div>
-    
-      <div class="pagination">
-        <div class="pagination__title">
-          <span class="pagination__title-h">Read other posts</span>
-          <hr />
-        </div>
-        <div class="pagination__buttons">
-          
-            <span class="button previous">
-              <a href="/posts/2019/const_static_extern_in_cpp/">
-                <span class="button__icon">←</span>
-                <span class="button__text">C/C&#43;&#43; 中的 const、static &amp; extern</span>
-              </a>
-            </span>
-          
-          
-            <span class="button next">
-              <a href="/posts/2019/shopping_618_show/">
-                <span class="button__text">618 买买买 - 买家秀</span>
-                <span class="button__icon">→</span>
-              </a>
-            </span>
-          
-        </div>
-      </div>
-    
-
-    
-
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-<table style="border: 0;">
-  <tr>
-  <td style="border: 0; width: 30%;">
-    <img src='/img/about/1.jpg'>
-  </td>
-  <td style="border: 0;">
-    <ins class="adsbygoogle"
-     style="display:block"
-     data-ad-client="ca-pub-9925978992661955"
-     data-ad-slot="3213735320"
-     data-ad-format="auto"
-     data-full-width-responsive="true"></ins>
-  </td>
-  </tr>
-</table>
-
-
-
-<script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
-</script>
-
-
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://kingcos.me/tags/translation/">Translation</a>
+                                    
+                                    <a href="https://kingcos.me/tags/ios/">iOS</a>
+                                    
+                                    <a href="https://kingcos.me/tags/swift/">Swift</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                <div class="doc_comments"><div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
     
     
-    <div>
-      <div id="github-comment">
-      </div>
-
-      <script type="text/javascript">
-        function getUtterances(isDark) {
-          var utterances = document.createElement('script');
-          utterances.type = 'text/javascript';
-          utterances.async = true;
-          utterances.setAttribute('issue-term', "pathname")
-          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
-          utterances.setAttribute('label', "comments")
-          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
-          utterances.crossorigin = 'anonymous';
-          utterances.src = 'https://utteranc.es/client.js';
-
-          return utterances
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
         }
-
-        var themeToggle = document.querySelector(".theme-toggle")
-        themeToggle.addEventListener("click", function () {
-          var getTheme = window.localStorage && window.localStorage.getItem("theme")
-          var divNode = document.getElementById('github-comment')
-          while(divNode.hasChildNodes()) {
-            divNode.removeChild(divNode.firstChild);
-          }
-          
-          
-          
-
-          
-          
-          
-          
-          
-          
-          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
-        })
-
-        var getTheme = window.localStorage && window.localStorage.getItem("theme")
-        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
-      </script>
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "kingcos" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div>
+                
+            </div>
+        </div>
     </div>
-    
-
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://kingcos.me">Powered by kingcos with love.</a>
     </div>
 
-      </div>
-
-      
-        <footer class="footer">
-  <div class="footer__inner">
-    
-      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
-    
-  </div>
+    <div class="footer_slogan">
+        <span>❤️</span>
+    </div>
 </footer>
+    <script src="https://kingcos.me/js/jquery-3.5.1.min.js"></script>
+<link href="https://kingcos.me/css/fancybox.min.css" rel="stylesheet">
+<script src="https://kingcos.me/js/fancybox.min.js"></script>
+<script src="https://kingcos.me/js/zozo.js"></script>
 
-<script src="/assets/main.js"></script>
-<script src="/assets/prism.js"></script>
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
 
 
 
-      
-    </div>
-
-    
-      
 <script type="application/javascript">
 var doNotTrack = false;
 if (!doNotTrack) {
-	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
 	ga('create', 'UA-138311951-1', 'auto');
 	
 	ga('send', 'pageview');
 }
 </script>
-    
-  </body>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+
 </html>

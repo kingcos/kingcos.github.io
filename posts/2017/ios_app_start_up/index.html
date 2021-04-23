@@ -1,153 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
+<html lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="kingcos" />
+	
+	
+	
+	<title>浅谈 iOS 应用启动过程 ｜ 萌面大道</title>
+	
     
-      <title>浅谈 iOS 应用启动过程 :: iBlog</title>
     
-    <meta http-equiv="content-type" content="text/html; charset=utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Swift Xcode     2017-05-26 CS193p UIApplication 3.1 8.3.2   2017-03-28 首次提交 3.0 8.2.1    Preface 首先要感谢没故事的卓同学大大送的泊学会员，在泊学学了几节课，了解了很多不同角度的 iOS 开发知识。这篇文章就启发自其 iOS 101 中的一个纯手工的 Single View Application 一文。但本文将更加深入的叙述了启动过程，且实现均为 Swift 3.0。
-本文对应的 Demo 可以在：https://github.com/kingcos/SingleViewAppManually-Demo 查看、下载。
-Manually or Storyboard main.m in Objective-C Single View Application
-#import &amp;lt;UIKit/UIKit.h&amp;gt; #import &amp;#34;AppDelegate.h&amp;#34;  int main(int argc, char * argv[]) { @autoreleasepool { return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class])); } }  自从 Storyboard 诞生以来，关于纯代码、Xib、以及 Storyboard 的选择就在 iOS 开发圈中炸开了锅。这里不会探讨各种姿势的优劣，只是可能很多和我一样的初学者，从一开始就被 Storyboard 先入为主。加上方便灵活的拖控件，自然而然就可能没有机会去思考一个 iOS 应用是如何启动起来的。加上 Swift 的诞生，使得整个项目的初始结构得到了更大的简化（少了 main."/>
-<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
-<meta name="robots" content="noodp"/>
-<link rel="canonical" href="/posts/2017/ios_app_start_up/" />
+    <meta name="description" content="浅谈 iOS 应用启动过程。" />
+    
 
+    
+    
+    <meta name="keywords" content="Hugo, theme, zozo" />
+    
 
+	
+    
+    <link rel="shortcut icon" href="https://kingcos.me/images/favicon.png" />
 
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.mecss/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/highlight.css" />
 
-
-<link rel="stylesheet" href="/assets/style.css">
-
-
-<link rel="stylesheet" href="/style.css">
-
-
-<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
-<link rel="shortcut icon" href="/img/favicon.png">
-
-
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="浅谈 iOS 应用启动过程"/>
-<meta name="twitter:description" content="浅谈 iOS 应用启动过程。"/>
-
-
-
-<meta property="og:title" content="浅谈 iOS 应用启动过程" />
-<meta property="og:description" content="浅谈 iOS 应用启动过程。" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="/posts/2017/ios_app_start_up/" /><meta property="article:section" content="posts" />
-<meta property="article:published_time" content="2017-03-28T00:00:00&#43;00:00" />
-<meta property="article:modified_time" content="2017-03-28T00:00:00&#43;00:00" /><meta property="og:site_name" content="iBlog" />
-
-
-
-
+    
+    
+</head>
 
 <script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
 
-  </head>
-  <body class="">
-    <div class="container">
-      <header class="header">
-  <span class="header__inner">
-    <a href="/" class="logo" style="text-decoration: none;">
-  
-    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
-  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
-</svg>
-</span>
-    <span class="logo__text">kingcos.me</span>
-    <span class="logo__cursor"></span>
-  
-</a>
 
-    <span class="header__right">
-      
-        <nav class="menu">
-  <ul class="menu__inner menu__inner--desktop">
-    
-      
-        
-          <li><a href="/about">About</a></li>
-        
-      
-        
-          <li><a href="/read">Read</a></li>
-        
-      
-      
-    
-  </ul>
-
-  <ul class="menu__inner menu__inner--mobile">
-    
-      
-        <li><a href="/about">About</a></li>
-      
-    
-      
-        <li><a href="/read">Read</a></li>
-      
-    
-  </ul>
-</nav>
-
-        <span class="menu-trigger">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M0 0h24v24H0z" fill="none"/>
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-          </svg>
-        </span>
-      
-      <span class="theme-toggle">
-        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
-  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
-  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
-</svg>
-
-      </span>
-    </span>
-  </span>
-</header>
-
-
-      <div class="content">
-        
-  <div class="post">
-    <h2 class="post-title"><a href="/posts/2017/ios_app_start_up/">浅谈 iOS 应用启动过程</a></h2>
-    <div class="post-meta">
-      
-        <span class="post-date">
-            2017-03-28
-        </span>
-      
-      
-      
-        <span class="post-read-time">— 3 min read</span>
-      
+<body>
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/posts/">Archive</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/about/">About</a>
+            </li>
+            
+        </ul>
     </div>
-
-    
-      <span class="post-tags">
-        
-          #<a href="/tags/focus/">Focus</a>&nbsp;
-        
-          #<a href="/tags/ios/">iOS</a>&nbsp;
-        
-          #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
-        
-          #<a href="/tags/swift/">Swift</a>&nbsp;
-        
-      </span>
-    
-
-    
-
-    <div class="post-content">
-      <table>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            <h1>
+                <a href="https://kingcos.me">
+                    <span>萌面大道</span>
+                </a>
+            </h1>
+        </div>
+        <div class="description">
+            <p class="sub_title">kingcos | Focus</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/kingcos" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://www.instagram.com/kingcos_v/" title="instagram" target="_blank"><i class="ri-instagram-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/kingcos_v" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/u/1798410923" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                <a href="https://kingcos.me/index.xml" type="application/rss+xml" title="rss" target="_blank"><i
+                        class="ri-rss-fill"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/2017/ios_app_start_up/'>浅谈 iOS 应用启动过程</a></h2>
+                        <span class="date">2017.03.28</span>
+                    </div>
+                    <div class="post_content markdown"><table>
 <thead>
 <tr>
 <th style="text-align:center">Date</th>
@@ -176,14 +136,14 @@ Manually or Storyboard main.m in Objective-C Single View Application
 <p><strong>本文对应的 Demo 可以在：<a href="https://github.com/kingcos/SingleViewAppManually-Demo">https://github.com/kingcos/SingleViewAppManually-Demo</a> 查看、下载。</strong></p>
 <h2 id="manually-or-storyboard">Manually or Storyboard</h2>
 <p>main.m in Objective-C Single View Application</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">#import &lt;UIKit/UIKit.h&gt;
-</span><span style="color:#75715e">#import &#34;AppDelegate.h&#34;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
-    <span style="color:#66d9ef">@autoreleasepool</span> {
-        <span style="color:#66d9ef">return</span> UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate <span style="color:#66d9ef">class</span>]));
-    }
-}
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;UIKit/UIKit.h&gt;
+</span><span class="cp">#import &#34;AppDelegate.h&#34;
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+    <span class="k">@autoreleasepool</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">UIApplicationMain</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span> <span class="n">argv</span><span class="p">,</span> <span class="nb">nil</span><span class="p">,</span> <span class="n">NSStringFromClass</span><span class="p">([</span><span class="n">AppDelegate</span> <span class="k">class</span><span class="p">]));</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><ul>
 <li>自从 Storyboard 诞生以来，关于纯代码、Xib、以及 Storyboard 的选择就在 iOS 开发圈中炸开了锅。这里不会探讨各种姿势的优劣，只是可能很多和我一样的初学者，从一开始就被 Storyboard 先入为主。加上方便灵活的拖控件，自然而然就可能没有机会去思考一个 iOS 应用是如何启动起来的。加上 Swift 的诞生，使得整个项目的初始结构得到了更大的简化（少了 main.m 以及很多 .h 头文件）。</li>
 <li>为了便于研究 iOS 应用的启动过程，我们删除 Xcode 自动创建的 Main.storyboard，并把 Main Interface 清空。</li>
@@ -201,19 +161,19 @@ An event processing loop that you use to schedule work and coordinate the receip
 Run Loop 是一个事件处理循环，可以用来在应用中安排任务并定位收到的即将到来的事件。</p>
 </blockquote>
 <p>AppDelegate.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">AppDelegate</span>: UIResponder, UIApplicationDelegate {
-    <span style="color:#66d9ef">var</span> window: UIWindow?
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">AppDelegate</span><span class="p">:</span> <span class="n">UIResponder</span><span class="p">,</span> <span class="n">UIApplicationDelegate</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nv">window</span><span class="p">:</span> <span class="n">UIWindow</span><span class="p">?</span>
 
-    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">application</span>(<span style="color:#66d9ef">_</span> application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -&gt; Bool {
+    <span class="kd">func</span> <span class="nf">application</span><span class="p">(</span><span class="kc">_</span> <span class="n">application</span><span class="p">:</span> <span class="n">UIApplication</span><span class="p">,</span> <span class="n">didFinishLaunchingWithOptions</span> <span class="n">launchOptions</span><span class="p">:</span> <span class="p">[</span><span class="n">UIApplicationLaunchOptionsKey</span><span class="p">:</span> <span class="nb">Any</span><span class="p">]?)</span> <span class="p">-&gt;</span> <span class="nb">Bool</span> <span class="p">{</span>
 
-        window = UIWindow()
-        window?.backgroundColor = UIColor.red
-        window?.rootViewController = UIViewController()
-        window?.makeKeyAndVisible()
+        <span class="n">window</span> <span class="p">=</span> <span class="n">UIWindow</span><span class="p">()</span>
+        <span class="n">window</span><span class="p">?.</span><span class="n">backgroundColor</span> <span class="p">=</span> <span class="n">UIColor</span><span class="p">.</span><span class="n">red</span>
+        <span class="n">window</span><span class="p">?.</span><span class="n">rootViewController</span> <span class="p">=</span> <span class="n">UIViewController</span><span class="p">()</span>
+        <span class="n">window</span><span class="p">?.</span><span class="n">makeKeyAndVisible</span><span class="p">()</span>
 
-        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>
-    }
-}
+        <span class="k">return</span> <span class="kc">true</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><ul>
 <li>因为我们删除了 Main.storyboard，我们需要以上代码初始化 UIWindow（根 UIView），并使得其可见，关于 UIWindow 可以参考文末的链接。</li>
 <li>AppDelegate 中的方法将应用程序对象和代理联系起来，当应用在不同状态会自动调用相应的代理方法，我们可以自定义相应的实现，抑或留空或删除即使用默认的实现。</li>
@@ -221,17 +181,17 @@ Run Loop 是一个事件处理循环，可以用来在应用中安排任务并�
 </ul>
 <h2 id="uiapplicationmain">@UIApplicationMain</h2>
 <p>main.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UIKit</span>
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">import</span> <span class="nc">UIKit</span>
 
-UIApplicationMain(
-    CommandLine.argc,
-    UnsafeMutableRawPointer(CommandLine.unsafeArgv)
-        .bindMemory(
-            to: UnsafeMutablePointer&lt;Int8&gt;.<span style="color:#66d9ef">self</span>,
-            capacity: Int(CommandLine.argc)),
-    <span style="color:#66d9ef">nil</span>,
-    NSStringFromClass(AppDelegate.<span style="color:#66d9ef">self</span>)
-)
+<span class="n">UIApplicationMain</span><span class="p">(</span>
+    <span class="n">CommandLine</span><span class="p">.</span><span class="n">argc</span><span class="p">,</span>
+    <span class="n">UnsafeMutableRawPointer</span><span class="p">(</span><span class="n">CommandLine</span><span class="p">.</span><span class="n">unsafeArgv</span><span class="p">)</span>
+        <span class="p">.</span><span class="n">bindMemory</span><span class="p">(</span>
+            <span class="n">to</span><span class="p">:</span> <span class="nb">UnsafeMutablePointer</span><span class="p">&lt;</span><span class="nb">Int8</span><span class="p">&gt;.</span><span class="kc">self</span><span class="p">,</span>
+            <span class="n">capacity</span><span class="p">:</span> <span class="nb">Int</span><span class="p">(</span><span class="n">CommandLine</span><span class="p">.</span><span class="n">argc</span><span class="p">)),</span>
+    <span class="kc">nil</span><span class="p">,</span>
+    <span class="n">NSStringFromClass</span><span class="p">(</span><span class="n">AppDelegate</span><span class="p">.</span><span class="kc">self</span><span class="p">)</span>
+<span class="p">)</span>
 </code></pre></div><ul>
 <li>在 AppDelegate.swift 文件中 AppDelegate 类声明之上的一行便是 @UIApplicationMain。</li>
 <li>我们可以尝试将该行注释，链接器将直接报错「entry point (_main) undefined.」，即入口 main 未定义，因此可以得知 @UIApplicationMain 标签将会根据其下方的 AppDelegate 创建一个 UIApplicationMain 入口并启动程序。</li>
@@ -257,55 +217,55 @@ UIApplicationMain(
 </ul>
 <h2 id="uiapplication">UIApplication</h2>
 <p>MyApp.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">MyApp</span>: UIApplication {
-    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">sendEvent</span>(<span style="color:#66d9ef">_</span> event: UIEvent) {
-        print(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\(</span><span style="color:#66d9ef">#function</span><span style="color:#e6db74">)</span><span style="color:#e6db74"> - Event: </span><span style="color:#e6db74">\(</span>event<span style="color:#e6db74">)</span><span style="color:#e6db74">&#34;</span>)
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">MyApp</span><span class="p">:</span> <span class="n">UIApplication</span> <span class="p">{</span>
+    <span class="kr">override</span> <span class="kd">func</span> <span class="nf">sendEvent</span><span class="p">(</span><span class="kc">_</span> <span class="n">event</span><span class="p">:</span> <span class="n">UIEvent</span><span class="p">)</span> <span class="p">{</span>
+        <span class="bp">print</span><span class="p">(</span><span class="s">&#34;</span><span class="si">\(</span><span class="kc">#function</span><span class="si">)</span><span class="s"> - Event: </span><span class="si">\(</span><span class="n">event</span><span class="si">)</span><span class="s">&#34;</span><span class="p">)</span>
 
-        <span style="color:#66d9ef">super</span>.sendEvent(event)
-    }
-}
+        <span class="kc">super</span><span class="p">.</span><span class="n">sendEvent</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><ul>
 <li>由上文得知，main.swift 中 UIApplication​Main()的第三个参数可以为 UIApplication 类名或其子类名的字符串。</li>
 <li>新建一个 MyApp.swift 在其中定义一个 UIApplication 子类，我们便可以在这里做一些针对应用全局的事情，比如重写 <code>sendEvent(:)</code> 方法便可以监听到整个应用发送事件。</li>
 </ul>
 <h3 id="update-for-cs193p">Update for CS193p</h3>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-Swift" data-lang="Swift"><span style="color:#66d9ef">let</span> myApp = UIApplication.shared
+<div class="highlight"><pre class="chroma"><code class="language-Swift" data-lang="Swift"><span class="kd">let</span> <span class="nv">myApp</span> <span class="p">=</span> <span class="n">UIApplication</span><span class="p">.</span><span class="n">shared</span>
 </code></pre></div><ul>
 <li>UIApplication 在 App 中是单例的。</li>
 <li>UIApplication 管理所有全局行为。</li>
 <li>UIApplication 不需要子类化。</li>
 </ul>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-Swift" data-lang="Swift"><span style="color:#75715e">// 在其他 App 中打开 URL</span>
-open <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">open</span>(<span style="color:#66d9ef">_</span> url: URL, options: [String : Any] = [:], completionHandler completion: ((Bool) -&gt; Swift.Void)? = <span style="color:#66d9ef">nil</span>)
+<div class="highlight"><pre class="chroma"><code class="language-Swift" data-lang="Swift"><span class="c1">// 在其他 App 中打开 URL</span>
+<span class="n">open</span> <span class="kd">func</span> <span class="nf">open</span><span class="p">(</span><span class="kc">_</span> <span class="n">url</span><span class="p">:</span> <span class="n">URL</span><span class="p">,</span> <span class="n">options</span><span class="p">:</span> <span class="p">[</span><span class="nb">String</span> <span class="p">:</span> <span class="nb">Any</span><span class="p">]</span> <span class="p">=</span> <span class="p">[:],</span> <span class="n">completionHandler</span> <span class="n">completion</span><span class="p">:</span> <span class="p">((</span><span class="nb">Bool</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">Swift</span><span class="p">.</span><span class="nb">Void</span><span class="p">)?</span> <span class="p">=</span> <span class="kc">nil</span><span class="p">)</span>
 
-@available(iOS <span style="color:#ae81ff">3.0</span>, <span style="color:#f92672">*</span>)
-open <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">canOpenURL</span>(<span style="color:#66d9ef">_</span> url: URL) -&gt; Bool
+<span class="p">@</span><span class="n">available</span><span class="p">(</span><span class="n">iOS</span> <span class="mf">3.0</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<span class="n">open</span> <span class="kd">func</span> <span class="nf">canOpenURL</span><span class="p">(</span><span class="kc">_</span> <span class="n">url</span><span class="p">:</span> <span class="n">URL</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="nb">Bool</span>
 
-<span style="color:#75715e">// 注册接收推送通知</span>
-@available(iOS <span style="color:#ae81ff">8.0</span>, <span style="color:#f92672">*</span>)
-open <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">registerForRemoteNotifications</span>()
+<span class="c1">// 注册接收推送通知</span>
+<span class="p">@</span><span class="n">available</span><span class="p">(</span><span class="n">iOS</span> <span class="mf">8.0</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<span class="n">open</span> <span class="kd">func</span> <span class="nf">registerForRemoteNotifications</span><span class="p">()</span>
 
-@available(iOS <span style="color:#ae81ff">3.0</span>, <span style="color:#f92672">*</span>)
-open <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">unregisterForRemoteNotifications</span>()
-<span style="color:#75715e">// 本地或推送的通知由 UNNotification 处理</span>
+<span class="p">@</span><span class="n">available</span><span class="p">(</span><span class="n">iOS</span> <span class="mf">3.0</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<span class="n">open</span> <span class="kd">func</span> <span class="nf">unregisterForRemoteNotifications</span><span class="p">()</span>
+<span class="c1">// 本地或推送的通知由 UNNotification 处理</span>
 
-<span style="color:#75715e">// 设置后台取回间隔</span>
-@available(iOS <span style="color:#ae81ff">7.0</span>, <span style="color:#f92672">*</span>)
-open <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">setMinimumBackgroundFetchInterval</span>(<span style="color:#66d9ef">_</span> minimumBackgroundFetchInterval: TimeInterval)
-<span style="color:#75715e">// 通常将其设置为：</span>
-UIApplicationBackgroundFetchIntervalMinimum
+<span class="c1">// 设置后台取回间隔</span>
+<span class="p">@</span><span class="n">available</span><span class="p">(</span><span class="n">iOS</span> <span class="mf">7.0</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<span class="n">open</span> <span class="kd">func</span> <span class="nf">setMinimumBackgroundFetchInterval</span><span class="p">(</span><span class="kc">_</span> <span class="n">minimumBackgroundFetchInterval</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span>
+<span class="c1">// 通常将其设置为：</span>
+<span class="n">UIApplicationBackgroundFetchIntervalMinimum</span>
 
-<span style="color:#75715e">// 后台时请求更长时间</span>
-@available(iOS <span style="color:#ae81ff">4.0</span>, <span style="color:#f92672">*</span>)
-open <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">beginBackgroundTask</span>(expirationHandler handler: (() -&gt; Swift.Void)? = <span style="color:#66d9ef">nil</span>) -&gt; UIBackgroundTaskIdentifier
-<span style="color:#75715e">// 不要忘记结束时调用 endBackgroundTask(UIBackgroundTaskIdentifier)</span>
+<span class="c1">// 后台时请求更长时间</span>
+<span class="p">@</span><span class="n">available</span><span class="p">(</span><span class="n">iOS</span> <span class="mf">4.0</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<span class="n">open</span> <span class="kd">func</span> <span class="nf">beginBackgroundTask</span><span class="p">(</span><span class="n">expirationHandler</span> <span class="n">handler</span><span class="p">:</span> <span class="p">(()</span> <span class="p">-&gt;</span> <span class="n">Swift</span><span class="p">.</span><span class="nb">Void</span><span class="p">)?</span> <span class="p">=</span> <span class="kc">nil</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">UIBackgroundTaskIdentifier</span>
+<span class="c1">// 不要忘记结束时调用 endBackgroundTask(UIBackgroundTaskIdentifier)</span>
 
-<span style="color:#75715e">// 状态来网络使用 Spinner 显示开关</span>
-<span style="color:#66d9ef">var</span> isNetworkActivityIndicatorVisible: Bool
+<span class="c1">// 状态来网络使用 Spinner 显示开关</span>
+<span class="kd">var</span> <span class="nv">isNetworkActivityIndicatorVisible</span><span class="p">:</span> <span class="nb">Bool</span>
 
-<span style="color:#66d9ef">var</span> backgroundTimeRemaining: TimeInterval { <span style="color:#66d9ef">get</span> } <span style="color:#75715e">// 直到暂停</span>
-<span style="color:#66d9ef">var</span> preferredContentSizeCategory: UIContentSizeCategory { <span style="color:#66d9ef">get</span> } <span style="color:#75715e">// 大字体或小字体</span>
-<span style="color:#66d9ef">var</span> applicationState: UIApplicationState { <span style="color:#66d9ef">get</span> } <span style="color:#75715e">// 前台，后台，已激活</span>
+<span class="kd">var</span> <span class="nv">backgroundTimeRemaining</span><span class="p">:</span> <span class="n">TimeInterval</span> <span class="p">{</span> <span class="kr">get</span> <span class="p">}</span> <span class="c1">// 直到暂停</span>
+<span class="kd">var</span> <span class="nv">preferredContentSizeCategory</span><span class="p">:</span> <span class="n">UIContentSizeCategory</span> <span class="p">{</span> <span class="kr">get</span> <span class="p">}</span> <span class="c1">// 大字体或小字体</span>
+<span class="kd">var</span> <span class="nv">applicationState</span><span class="p">:</span> <span class="n">UIApplicationState</span> <span class="p">{</span> <span class="kr">get</span> <span class="p">}</span> <span class="c1">// 前台，后台，已激活</span>
 </code></pre></div><h2 id="reference">Reference</h2>
 <ul>
 <li><a href="https://boxueio.com/series/ios-101/ebook/89">一个纯手工的 Single View Application</a></li>
@@ -316,143 +276,120 @@ open <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">beginBa
 <li><a href="http://www.jianshu.com/p/b850e8d99316">CS193p 查漏补缺（二）Lecture 04 - UIWindow</a></li>
 <li><a href="http://www.jianshu.com/p/7dd2d29d78db">CS193p 查漏补缺（九）Lecture 16</a></li>
 </ul>
-
-    </div>
-    
-      <div class="pagination">
-        <div class="pagination__title">
-          <span class="pagination__title-h">Read other posts</span>
-          <hr />
-        </div>
-        <div class="pagination__buttons">
-          
-            <span class="button previous">
-              <a href="/posts/2017/wwdc-17-823/">
-                <span class="button__icon">←</span>
-                <span class="button__text">WWDC17 - 823 Designing Glyphs</span>
-              </a>
-            </span>
-          
-          
-            <span class="button next">
-              <a href="/posts/2017/docker_for_hadoop/">
-                <span class="button__text">从 0 开始使用 Docker 快速搭建 Hadoop 集群环境</span>
-                <span class="button__icon">→</span>
-              </a>
-            </span>
-          
-        </div>
-      </div>
-    
-
-    
-
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-<table style="border: 0;">
-  <tr>
-  <td style="border: 0; width: 30%;">
-    <img src='/img/about/1.jpg'>
-  </td>
-  <td style="border: 0;">
-    <ins class="adsbygoogle"
-     style="display:block"
-     data-ad-client="ca-pub-9925978992661955"
-     data-ad-slot="3213735320"
-     data-ad-format="auto"
-     data-full-width-responsive="true"></ins>
-  </td>
-  </tr>
-</table>
-
-
-
-<script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
-</script>
-
-
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://kingcos.me/tags/focus/">Focus</a>
+                                    
+                                    <a href="https://kingcos.me/tags/ios/">iOS</a>
+                                    
+                                    <a href="https://kingcos.me/tags/obj-c/">Obj-C</a>
+                                    
+                                    <a href="https://kingcos.me/tags/swift/">Swift</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                <div class="doc_comments"><div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
     
     
-    <div>
-      <div id="github-comment">
-      </div>
-
-      <script type="text/javascript">
-        function getUtterances(isDark) {
-          var utterances = document.createElement('script');
-          utterances.type = 'text/javascript';
-          utterances.async = true;
-          utterances.setAttribute('issue-term', "pathname")
-          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
-          utterances.setAttribute('label', "comments")
-          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
-          utterances.crossorigin = 'anonymous';
-          utterances.src = 'https://utteranc.es/client.js';
-
-          return utterances
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
         }
-
-        var themeToggle = document.querySelector(".theme-toggle")
-        themeToggle.addEventListener("click", function () {
-          var getTheme = window.localStorage && window.localStorage.getItem("theme")
-          var divNode = document.getElementById('github-comment')
-          while(divNode.hasChildNodes()) {
-            divNode.removeChild(divNode.firstChild);
-          }
-          
-          
-          
-
-          
-          
-          
-          
-          
-          
-          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
-        })
-
-        var getTheme = window.localStorage && window.localStorage.getItem("theme")
-        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
-      </script>
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "kingcos" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div>
+                
+            </div>
+        </div>
     </div>
-    
-
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://kingcos.me">Powered by kingcos with love.</a>
     </div>
 
-      </div>
-
-      
-        <footer class="footer">
-  <div class="footer__inner">
-    
-      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
-    
-  </div>
+    <div class="footer_slogan">
+        <span>❤️</span>
+    </div>
 </footer>
+    <script src="https://kingcos.me/js/jquery-3.5.1.min.js"></script>
+<link href="https://kingcos.me/css/fancybox.min.css" rel="stylesheet">
+<script src="https://kingcos.me/js/fancybox.min.js"></script>
+<script src="https://kingcos.me/js/zozo.js"></script>
 
-<script src="/assets/main.js"></script>
-<script src="/assets/prism.js"></script>
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
 
 
 
-      
-    </div>
-
-    
-      
 <script type="application/javascript">
 var doNotTrack = false;
 if (!doNotTrack) {
-	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
 	ga('create', 'UA-138311951-1', 'auto');
 	
 	ga('send', 'pageview');
 }
 </script>
-    
-  </body>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+
 </html>

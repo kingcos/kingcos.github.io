@@ -1,153 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
+<html lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="kingcos" />
+	
+	
+	
+	<title>Obj-C 中的对象 ｜ 萌面大道</title>
+	
     
-      <title>Obj-C 中的对象 :: iBlog</title>
     
-    <meta http-equiv="content-type" content="text/html; charset=utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Refer.     2019-03-18 首次提交 objc4-750   2019-08-18 抽离 isa 部分；
-重整文章结构 Obj-C 中的 isa 指针 - kingcos   2019-08-29 增加 class_rw_t 等细节 -   2019-12-23 细节微调 objc4-756.2    Preface Obj-C 中的对象分为实例对象（Instance Object）、类对象（Class Object）、以及元类对象（Meta-class Object）三种，本文将借助源码简单了解一下不同类型对象的真实构造。
-为了方便下文举例，这里我们定义一个 EDdeviceProtocol 协议，并让继承自 NSObject 的 Computer 类遵守该协议：
-// EDdeviceProtocol 协议 @protocol EDdeviceProtocol - (void)powerOn; @end // Computer 类，继承自 NSObject，遵守 EDdeviceProtocol @interface Computer : NSObject &amp;lt;EDdeviceProtocol&amp;gt; { // 成员变量 @public int _memorySize; int _diskSize; } // 属性 @property (copy) NSString *model; // 实例方法 - (void)print:(NSString *)content; // 类方法 &#43; (NSString *)arch; @end @implementation Computer - (void)print:(NSString *)content { NSLog(@&amp;#34;Print content: %@."/>
-<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
-<meta name="robots" content="noodp"/>
-<link rel="canonical" href="/posts/2019/objects_in_obj-c/" />
+    <meta name="description" content="Obj-C 中的对象分为实例对象、类对象、以及元类对象三种，本文将借助源码简单了解一下不同类型对象的真实构造。" />
+    
 
+    
+    
+    <meta name="keywords" content="Hugo, theme, zozo" />
+    
 
+	
+    
+    <link rel="shortcut icon" href="https://kingcos.me/images/favicon.png" />
 
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.mecss/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/highlight.css" />
 
-
-<link rel="stylesheet" href="/assets/style.css">
-
-
-<link rel="stylesheet" href="/style.css">
-
-
-<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
-<link rel="shortcut icon" href="/img/favicon.png">
-
-
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Obj-C 中的对象"/>
-<meta name="twitter:description" content="Obj-C 中的对象分为实例对象、类对象、以及元类对象三种，本文将借助源码简单了解一下不同类型对象的真实构造。"/>
-
-
-
-<meta property="og:title" content="Obj-C 中的对象" />
-<meta property="og:description" content="Obj-C 中的对象分为实例对象、类对象、以及元类对象三种，本文将借助源码简单了解一下不同类型对象的真实构造。" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="/posts/2019/objects_in_obj-c/" /><meta property="article:section" content="posts" />
-<meta property="article:published_time" content="2019-12-23T00:00:00&#43;00:00" />
-<meta property="article:modified_time" content="2019-12-23T00:00:00&#43;00:00" /><meta property="og:site_name" content="iBlog" />
-
-
-
-
+    
+    
+</head>
 
 <script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
 
-  </head>
-  <body class="">
-    <div class="container">
-      <header class="header">
-  <span class="header__inner">
-    <a href="/" class="logo" style="text-decoration: none;">
-  
-    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
-  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
-</svg>
-</span>
-    <span class="logo__text">kingcos.me</span>
-    <span class="logo__cursor"></span>
-  
-</a>
 
-    <span class="header__right">
-      
-        <nav class="menu">
-  <ul class="menu__inner menu__inner--desktop">
-    
-      
-        
-          <li><a href="/about">About</a></li>
-        
-      
-        
-          <li><a href="/read">Read</a></li>
-        
-      
-      
-    
-  </ul>
-
-  <ul class="menu__inner menu__inner--mobile">
-    
-      
-        <li><a href="/about">About</a></li>
-      
-    
-      
-        <li><a href="/read">Read</a></li>
-      
-    
-  </ul>
-</nav>
-
-        <span class="menu-trigger">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M0 0h24v24H0z" fill="none"/>
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-          </svg>
-        </span>
-      
-      <span class="theme-toggle">
-        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
-  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
-  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
-</svg>
-
-      </span>
-    </span>
-  </span>
-</header>
-
-
-      <div class="content">
-        
-  <div class="post">
-    <h2 class="post-title"><a href="/posts/2019/objects_in_obj-c/">Obj-C 中的对象</a></h2>
-    <div class="post-meta">
-      
-        <span class="post-date">
-            2019-12-23
-        </span>
-      
-      
-      
-        <span class="post-read-time">— 10 min read</span>
-      
+<body>
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/posts/">Archive</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/about/">About</a>
+            </li>
+            
+        </ul>
     </div>
-
-    
-      <span class="post-tags">
-        
-          #<a href="/tags/focus/">Focus</a>&nbsp;
-        
-          #<a href="/tags/ios/">iOS</a>&nbsp;
-        
-          #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
-        
-          #<a href="/tags//">★</a>&nbsp;
-        
-      </span>
-    
-
-    
-
-    <div class="post-content">
-      <table>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            <h1>
+                <a href="https://kingcos.me">
+                    <span>萌面大道</span>
+                </a>
+            </h1>
+        </div>
+        <div class="description">
+            <p class="sub_title">kingcos | Focus</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/kingcos" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://www.instagram.com/kingcos_v/" title="instagram" target="_blank"><i class="ri-instagram-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/kingcos_v" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/u/1798410923" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                <a href="https://kingcos.me/index.xml" type="application/rss+xml" title="rss" target="_blank"><i
+                        class="ri-rss-fill"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/2019/objects_in_obj-c/'>Obj-C 中的对象</a></h2>
+                        <span class="date">2019.12.23</span>
+                    </div>
+                    <div class="post_content markdown"><table>
 <thead>
 <tr>
 <th style="text-align:center">Date</th>
@@ -183,149 +143,149 @@
 <p>Obj-C 中的对象分为实例对象（Instance Object）、类对象（Class Object）、以及元类对象（Meta-class Object）三种，本文将借助源码简单了解一下不同类型对象的真实构造。</p>
 <p><img src="/img/2019/objects_in_obj-c/1.png" alt="1"></p>
 <p>为了方便下文举例，这里我们定义一个 <code>EDdeviceProtocol</code> 协议，并让继承自 <code>NSObject</code> 的 <code>Computer</code> 类遵守该协议：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// EDdeviceProtocol 协议
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">@protocol</span> <span style="color:#a6e22e">EDdeviceProtocol</span>
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">powerOn</span>;
-<span style="color:#66d9ef">@end</span>
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// EDdeviceProtocol 协议
+</span><span class="c1"></span><span class="k">@protocol</span> <span class="nc">EDdeviceProtocol</span>
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">powerOn</span><span class="p">;</span>
+<span class="k">@end</span>
 
-<span style="color:#75715e">// Computer 类，继承自 NSObject，遵守 EDdeviceProtocol
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span> <span style="color:#f92672">&lt;</span>EDdeviceProtocol<span style="color:#f92672">&gt;</span> {
-<span style="color:#75715e">// 成员变量
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">@public</span>
-    <span style="color:#66d9ef">int</span> _memorySize;
-    <span style="color:#66d9ef">int</span> _diskSize;
-}
+<span class="c1">// Computer 类，继承自 NSObject，遵守 EDdeviceProtocol
+</span><span class="c1"></span><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="o">&lt;</span><span class="n">EDdeviceProtocol</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="c1">// 成员变量
+</span><span class="c1"></span><span class="k">@public</span>
+    <span class="kt">int</span> <span class="n">_memorySize</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">_diskSize</span><span class="p">;</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// 属性
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">@property</span> (<span style="color:#66d9ef">copy</span>) NSString <span style="color:#f92672">*</span>model;
+<span class="c1">// 属性
+</span><span class="c1"></span><span class="k">@property</span> <span class="p">(</span><span class="k">copy</span><span class="p">)</span> <span class="n">NSString</span> <span class="o">*</span><span class="n">model</span><span class="p">;</span>
 
-<span style="color:#75715e">// 实例方法
-</span><span style="color:#75715e"></span>- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">print:</span>(NSString <span style="color:#f92672">*</span>)content;
+<span class="c1">// 实例方法
+</span><span class="c1"></span><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">print:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">content</span><span class="p">;</span>
 
-<span style="color:#75715e">// 类方法
-</span><span style="color:#75715e"></span>+ (NSString <span style="color:#f92672">*</span>)<span style="color:#a6e22e">arch</span>;
-<span style="color:#66d9ef">@end</span>
+<span class="c1">// 类方法
+</span><span class="c1"></span><span class="p">+</span> <span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">arch</span><span class="p">;</span>
+<span class="k">@end</span>
 
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">print:</span>(NSString <span style="color:#f92672">*</span>)content {
-    NSLog(<span style="color:#e6db74">@&#34;Print content: %@.&#34;</span>, content);
-}
+<span class="k">@implementation</span> <span class="nc">Computer</span>
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">print:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">content</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Print content: %@.&#34;</span><span class="p">,</span> <span class="n">content</span><span class="p">);</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// 协议方法
-</span><span style="color:#75715e"></span>- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">powerOn</span> {
-    NSLog(<span style="color:#e6db74">@&#34;%s&#34;</span>, __func__);
-}
+<span class="c1">// 协议方法
+</span><span class="c1"></span><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">powerOn</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">);</span>
+<span class="p">}</span>
 
-+ (NSString <span style="color:#f92672">*</span>)<span style="color:#a6e22e">arch</span> {
-    <span style="color:#66d9ef">return</span> <span style="color:#e6db74">@&#34;ARM 64&#34;</span>;
-}
-<span style="color:#66d9ef">@end</span>
+<span class="p">+</span> <span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">arch</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="s">@&#34;ARM 64&#34;</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="k">@end</span>
 </code></pre></div><h2 id="实例对象">实例对象</h2>
 <p>我们创建一个 <code>Computer</code> 类型的实例对象，并对其中的成员变量赋值：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// cpt 为指向 Computer 类型实例对象的指针
-</span><span style="color:#75715e"></span>Computer <span style="color:#f92672">*</span>cpt <span style="color:#f92672">=</span> [[Computer alloc] init];
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// cpt 为指向 Computer 类型实例对象的指针
+</span><span class="c1"></span><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
 
-<span style="color:#75715e">// ERROR: Direct access to Objective-C&#39;s isa is deprecated in favor of object_getClass()
-</span><span style="color:#75715e">// cpt-&gt;isa;
-</span><span style="color:#75715e"></span>
-cpt<span style="color:#f92672">-&gt;</span>_memorySize <span style="color:#f92672">=</span> <span style="color:#ae81ff">16</span>;
-cpt<span style="color:#f92672">-&gt;</span>_diskSize <span style="color:#f92672">=</span> <span style="color:#ae81ff">512</span>;
+<span class="c1">// ERROR: Direct access to Objective-C&#39;s isa is deprecated in favor of object_getClass()
+</span><span class="c1">// cpt-&gt;isa;
+</span><span class="c1"></span>
+<span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_memorySize</span> <span class="o">=</span> <span class="mi">16</span><span class="p">;</span>
+<span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_diskSize</span> <span class="o">=</span> <span class="mi">512</span><span class="p">;</span>
 
-cpt.model <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;MacBook Pro 13&#39;&#34;</span>;
+<span class="n">cpt</span><span class="p">.</span><span class="n">model</span> <span class="o">=</span> <span class="s">@&#34;MacBook Pro 13&#39;&#34;</span><span class="p">;</span>
 </code></pre></div><p>我们在程序结束前的 <code>return 0;</code> 一行打个断点，即可看到 <code>cpt</code> 指向的实例对象中存储的数据：</p>
 <p><img src="/img/2019/objects_in_obj-c/5.png" alt="5"></p>
 <p>其中存放了 <code>isa</code> 指针成员变量（但无法直接访问）以及其它成员变量的具体值。<code>isa</code> 并不是开发者自己定义的，而是继承自 <code>NSObject</code> 基类。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// NSObject.h
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">NSObject</span> <span style="color:#f92672">&lt;</span>NSObject<span style="color:#f92672">&gt;</span> {
-<span style="color:#75715e">#pragma clang diagnostic push
-</span><span style="color:#75715e">#pragma clang diagnostic ignored &#34;-Wobjc-interface-ivars&#34;
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">Class</span> isa  OBJC_ISA_AVAILABILITY;
-<span style="color:#75715e">#pragma clang diagnostic pop
-</span><span style="color:#75715e"></span>}
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// NSObject.h
+</span><span class="c1"></span>
+<span class="k">@interface</span> <span class="nc">NSObject</span> <span class="o">&lt;</span><span class="n">NSObject</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="cp">#pragma clang diagnostic push
+</span><span class="cp">#pragma clang diagnostic ignored &#34;-Wobjc-interface-ivars&#34;
+</span><span class="cp"></span>    <span class="kt">Class</span> <span class="n">isa</span>  <span class="n">OBJC_ISA_AVAILABILITY</span><span class="p">;</span>
+<span class="cp">#pragma clang diagnostic pop
+</span><span class="cp"></span><span class="p">}</span>
 </code></pre></div><h2 id="类对象">类对象</h2>
 <p>我们知道，只要创建的实例对象属于同一个类，那么它们就都可以调用该类的实例方法，因此这些方法其实并不需要每个实例对象都单独保存一份。在 Obj-C 中，实例方法存放在类对象中，类方法存储在元类对象中。与实例对象不同，类对象和元类对象并不需要开发者手动创建。类对象可以通过 <code>[cpt class]</code>、<code>[Computer class]</code> 或 Runtime API <code>object_getClass</code> 获取：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// 获取类对象的方法：
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">Class</span> cptClass1 <span style="color:#f92672">=</span> [cpt <span style="color:#66d9ef">class</span>];
-<span style="color:#66d9ef">Class</span> cptClass2 <span style="color:#f92672">=</span> [Computer <span style="color:#66d9ef">class</span>];
-<span style="color:#66d9ef">Class</span> cptClass3 <span style="color:#f92672">=</span> object_getClass(cpt);
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// 获取类对象的方法：
+</span><span class="c1"></span><span class="kt">Class</span> <span class="n">cptClass1</span> <span class="o">=</span> <span class="p">[</span><span class="n">cpt</span> <span class="k">class</span><span class="p">];</span>
+<span class="kt">Class</span> <span class="n">cptClass2</span> <span class="o">=</span> <span class="p">[</span><span class="n">Computer</span> <span class="k">class</span><span class="p">];</span>
+<span class="kt">Class</span> <span class="n">cptClass3</span> <span class="o">=</span> <span class="n">object_getClass</span><span class="p">(</span><span class="n">cpt</span><span class="p">);</span>
 
-<span style="color:#75715e">// LLDB:
-</span><span style="color:#75715e">// (lldb) p/x cptClass1
-</span><span style="color:#75715e">// (Class) $0 = 0x00000001000013d0 Computer
-</span><span style="color:#75715e">// (lldb) p/x cptClass2
-</span><span style="color:#75715e">// (Class) $1 = 0x00000001000013d0 Computer
-</span><span style="color:#75715e">// (lldb) p/x cptClass3
-</span><span style="color:#75715e">// (Class) $2 = 0x00000001000013d0 Computer
+<span class="c1">// LLDB:
+</span><span class="c1">// (lldb) p/x cptClass1
+</span><span class="c1">// (Class) $0 = 0x00000001000013d0 Computer
+</span><span class="c1">// (lldb) p/x cptClass2
+</span><span class="c1">// (Class) $1 = 0x00000001000013d0 Computer
+</span><span class="c1">// (lldb) p/x cptClass3
+</span><span class="c1">// (Class) $2 = 0x00000001000013d0 Computer
 </span></code></pre></div><p>类对象的类型是 <code>Class</code>，本质是指向 <code>objc_class</code> 结构体的指针。<code>objc_class</code> 结构体中存放了 <code>isa</code>、<code>superclass</code>、方法缓存、以及为该类实例对象所公用的一些信息：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// Object.mm
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> objc_class <span style="color:#f92672">*</span><span style="color:#66d9ef">Class</span>;
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Object.mm
+</span><span class="c1"></span>
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">objc_class</span> <span class="o">*</span><span class="kt">Class</span><span class="p">;</span>
 
-<span style="color:#75715e">// objc-runtime-new.h
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> objc_class : objc_object {
-    <span style="color:#75715e">// Class ISA;
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 父类指针
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">Class</span> superclass;
-    <span style="color:#75715e">// 方法缓存，详见 Reference
-</span><span style="color:#75715e"></span>    cache_t cache;             <span style="color:#75715e">// formerly cache pointer and vtable
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 可读可写表（class_rw_t）等
-</span><span style="color:#75715e"></span>    class_data_bits_t bits;    <span style="color:#75715e">// class_rw_t * plus custom rr/alloc flags
-</span><span style="color:#75715e"></span>
-    <span style="color:#75715e">// ...
-</span><span style="color:#75715e"></span>};
+<span class="c1">// objc-runtime-new.h
+</span><span class="c1"></span><span class="k">struct</span> <span class="nl">objc_class</span> <span class="p">:</span> <span class="n">objc_object</span> <span class="p">{</span>
+    <span class="c1">// Class ISA;
+</span><span class="c1"></span>    <span class="c1">// 父类指针
+</span><span class="c1"></span>    <span class="kt">Class</span> <span class="n">superclass</span><span class="p">;</span>
+    <span class="c1">// 方法缓存，详见 Reference
+</span><span class="c1"></span>    <span class="n">cache_t</span> <span class="n">cache</span><span class="p">;</span>             <span class="c1">// formerly cache pointer and vtable
+</span><span class="c1"></span>    <span class="c1">// 可读可写表（class_rw_t）等
+</span><span class="c1"></span>    <span class="n">class_data_bits_t</span> <span class="n">bits</span><span class="p">;</span>    <span class="c1">// class_rw_t * plus custom rr/alloc flags
+</span><span class="c1"></span>
+    <span class="c1">// ...
+</span><span class="c1"></span><span class="p">};</span>
 
-<span style="color:#75715e">// objc-private.h
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> objc_object {
-private:
-    <span style="color:#75715e">// isa 指针
-</span><span style="color:#75715e"></span>    isa_t isa;
+<span class="c1">// objc-private.h
+</span><span class="c1"></span><span class="k">struct</span> <span class="n">objc_object</span> <span class="p">{</span>
+<span class="nl">private</span><span class="p">:</span>
+    <span class="c1">// isa 指针
+</span><span class="c1"></span>    <span class="n">isa_t</span> <span class="n">isa</span><span class="p">;</span>
 
-<span style="color:#75715e">// ...
-</span><span style="color:#75715e"></span>}
+<span class="c1">// ...
+</span><span class="c1"></span><span class="p">}</span>
 </code></pre></div><h3 id="class_data_bits_t">class_data_bits_t</h3>
 <p>先来看看 <code>objc_class</code> 中的 <code>class_data_bits_t</code>：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// objc-runtime-new.h
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">struct</span> objc_class : objc_object {
-    <span style="color:#75715e">// objc_class 中的 data 方法，返回指向 class_rw_t 的指针
-</span><span style="color:#75715e"></span>    class_rw_t <span style="color:#f92672">*</span>data() {
-        <span style="color:#75715e">// bits 即 objc_class 中 class_data_bits_t 结构体类型的成员变量
-</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">return</span> bits.data();
-    }
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-runtime-new.h
+</span><span class="c1"></span>
+<span class="k">struct</span> <span class="nl">objc_class</span> <span class="p">:</span> <span class="n">objc_object</span> <span class="p">{</span>
+    <span class="c1">// objc_class 中的 data 方法，返回指向 class_rw_t 的指针
+</span><span class="c1"></span>    <span class="n">class_rw_t</span> <span class="o">*</span><span class="n">data</span><span class="p">()</span> <span class="p">{</span>
+        <span class="c1">// bits 即 objc_class 中 class_data_bits_t 结构体类型的成员变量
+</span><span class="c1"></span>        <span class="k">return</span> <span class="n">bits</span><span class="p">.</span><span class="n">data</span><span class="p">();</span>
+    <span class="p">}</span>
 
-    <span style="color:#75715e">// ...
-</span><span style="color:#75715e"></span>}
+    <span class="c1">// ...
+</span><span class="c1"></span><span class="p">}</span>
 
-<span style="color:#75715e">#if !__LP64__
-</span><span style="color:#75715e"></span><span style="color:#75715e">// 非 64 位，跳过
-</span><span style="color:#75715e"></span><span style="color:#75715e">#elif 1
-</span><span style="color:#75715e"></span><span style="color:#75715e">// class is a Swift class from the pre-stable Swift ABI
-</span><span style="color:#75715e"></span><span style="color:#75715e">#define FAST_IS_SWIFT_LEGACY    (1UL&lt;&lt;0)
-</span><span style="color:#75715e"></span><span style="color:#75715e">// class is a Swift class from the stable Swift ABI
-</span><span style="color:#75715e"></span><span style="color:#75715e">#define FAST_IS_SWIFT_STABLE    (1UL&lt;&lt;1)
-</span><span style="color:#75715e"></span><span style="color:#75715e">// class or superclass has default retain/release/autorelease/retainCount/
-</span><span style="color:#75715e">//   _tryRetain/_isDeallocating/retainWeakReference/allowsWeakReference
-</span><span style="color:#75715e"></span><span style="color:#75715e">#define FAST_HAS_DEFAULT_RR     (1UL&lt;&lt;2)
-</span><span style="color:#75715e"></span><span style="color:#75715e">// data pointer
-</span><span style="color:#75715e"></span><span style="color:#75715e">#define FAST_DATA_MASK          0x00007ffffffffff8UL
-</span><span style="color:#75715e">#else
-</span><span style="color:#75715e"></span><span style="color:#75715e">// 不会落到该 case 下，跳过
-</span><span style="color:#75715e"></span><span style="color:#75715e">#endif
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">struct</span> class_data_bits_t {
-    <span style="color:#75715e">// Values are the FAST_ flags above.
-</span><span style="color:#75715e"></span>    uintptr_t bits;
+<span class="cp">#if !__LP64__
+</span><span class="cp"></span><span class="c1">// 非 64 位，跳过
+</span><span class="c1"></span><span class="cp">#elif 1
+</span><span class="cp"></span><span class="c1">// class is a Swift class from the pre-stable Swift ABI
+</span><span class="c1"></span><span class="cp">#define FAST_IS_SWIFT_LEGACY    (1UL&lt;&lt;0)
+</span><span class="cp"></span><span class="c1">// class is a Swift class from the stable Swift ABI
+</span><span class="c1"></span><span class="cp">#define FAST_IS_SWIFT_STABLE    (1UL&lt;&lt;1)
+</span><span class="cp"></span><span class="c1">// class or superclass has default retain/release/autorelease/retainCount/
+</span><span class="c1">//   _tryRetain/_isDeallocating/retainWeakReference/allowsWeakReference
+</span><span class="c1"></span><span class="cp">#define FAST_HAS_DEFAULT_RR     (1UL&lt;&lt;2)
+</span><span class="cp"></span><span class="c1">// data pointer
+</span><span class="c1"></span><span class="cp">#define FAST_DATA_MASK          0x00007ffffffffff8UL
+</span><span class="cp">#else
+</span><span class="cp"></span><span class="c1">// 不会落到该 case 下，跳过
+</span><span class="c1"></span><span class="cp">#endif
+</span><span class="cp"></span>
+<span class="k">struct</span> <span class="n">class_data_bits_t</span> <span class="p">{</span>
+    <span class="c1">// Values are the FAST_ flags above.
+</span><span class="c1"></span>    <span class="n">uintptr_t</span> <span class="n">bits</span><span class="p">;</span>
 
-    class_rw_t<span style="color:#f92672">*</span> <span style="color:#a6e22e">data</span>() {
-        <span style="color:#66d9ef">return</span> (class_rw_t <span style="color:#f92672">*</span>)(bits <span style="color:#f92672">&amp;</span> FAST_DATA_MASK);
-    }
+    <span class="n">class_rw_t</span><span class="o">*</span> <span class="nf">data</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">class_rw_t</span> <span class="o">*</span><span class="p">)(</span><span class="n">bits</span> <span class="o">&amp;</span> <span class="n">FAST_DATA_MASK</span><span class="p">);</span>
+    <span class="p">}</span>
 
-    <span style="color:#75715e">// ...
-</span><span style="color:#75715e"></span>}
+    <span class="c1">// ...
+</span><span class="c1"></span><span class="p">}</span>
 
-<span style="color:#75715e">// sys/_types/_uintptr_t.h
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span>           uintptr_t;
+<span class="c1">// sys/_types/_uintptr_t.h
+</span><span class="c1"></span><span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">long</span>           <span class="n">uintptr_t</span><span class="p">;</span>
 </code></pre></div><p>如上，<code>class_data_bits_t</code> 结构体中只有一个 <code>uintptr_t bits</code> 成员变量，其本质是 <code>unsigned long</code> 类型，占用 8 个字节，即 64 位。但其存储方式类似位域，将不同的数据存储在不同的位中（关于位域可详见《<a href="../bit_field_union_in_cpp/">C/C++ 中的位域与共用体</a>》一文）：</p>
 <table>
 <thead>
@@ -359,217 +319,217 @@ private:
 </table>
 <h3 id="class_rw_t">class_rw_t</h3>
 <p><code>class_rw_t</code> 指的是可读可写（Read-Write）表。该结构体中存储了指向 <code>class_ro_t</code> 只读表的指针、以及方法、属性、协议等信息：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// objc-runtime-new.h
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">// 可读可写表
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> class_rw_t {
-    <span style="color:#75715e">// Be warned that Symbolication knows the layout of this structure.
-</span><span style="color:#75715e"></span>    uint32_t flags;
-    uint32_t version;
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-runtime-new.h
+</span><span class="c1"></span>
+<span class="c1">// 可读可写表
+</span><span class="c1"></span><span class="k">struct</span> <span class="n">class_rw_t</span> <span class="p">{</span>
+    <span class="c1">// Be warned that Symbolication knows the layout of this structure.
+</span><span class="c1"></span>    <span class="n">uint32_t</span> <span class="n">flags</span><span class="p">;</span>
+    <span class="n">uint32_t</span> <span class="n">version</span><span class="p">;</span>
 
-    <span style="color:#75715e">// 只读表的指针（const：不可修改指针指向内存空间中的数据）
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> class_ro_t <span style="color:#f92672">*</span>ro;
+    <span class="c1">// 只读表的指针（const：不可修改指针指向内存空间中的数据）
+</span><span class="c1"></span>    <span class="k">const</span> <span class="n">class_ro_t</span> <span class="o">*</span><span class="n">ro</span><span class="p">;</span>
 
-    <span style="color:#75715e">// 方法、属性、协议信息
-</span><span style="color:#75715e"></span>    method_array_t methods;
-    property_array_t properties;
-    protocol_array_t protocols;
+    <span class="c1">// 方法、属性、协议信息
+</span><span class="c1"></span>    <span class="n">method_array_t</span> <span class="n">methods</span><span class="p">;</span>
+    <span class="n">property_array_t</span> <span class="n">properties</span><span class="p">;</span>
+    <span class="n">protocol_array_t</span> <span class="n">protocols</span><span class="p">;</span>
 
-    <span style="color:#75715e">// ...
-</span><span style="color:#75715e"></span>};
+    <span class="c1">// ...
+</span><span class="c1"></span><span class="p">};</span>
 </code></pre></div><p>其中 <code>method_array_t</code>、<code>property_array_t</code> 与 <code>protocol_array_t</code> 类型的结构几乎一致，这里以 <code>method_array_t</code> 为例：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// objc-runtime-new.h
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">// method_array_t 继承自 list_array_tt，其中 List 类型为 method_list_t，Element 类型为 method_t
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">method_array_t</span> <span style="color:#f92672">:</span>
-    <span style="color:#66d9ef">public</span> list_array_tt<span style="color:#f92672">&lt;</span>method_t, method_list_t<span style="color:#f92672">&gt;</span>
-{
-    <span style="color:#75715e">// ...
-</span><span style="color:#75715e"></span>};
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// objc-runtime-new.h
+</span><span class="c1"></span>
+<span class="c1">// method_array_t 继承自 list_array_tt，其中 List 类型为 method_list_t，Element 类型为 method_t
+</span><span class="c1"></span><span class="k">class</span> <span class="nc">method_array_t</span> <span class="o">:</span>
+    <span class="k">public</span> <span class="n">list_array_tt</span><span class="o">&lt;</span><span class="n">method_t</span><span class="p">,</span> <span class="n">method_list_t</span><span class="o">&gt;</span>
+<span class="p">{</span>
+    <span class="c1">// ...
+</span><span class="c1"></span><span class="p">};</span>
 
-<span style="color:#75715e">// list_array_tt 中定义了元素类型为 Element，列表为 List
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> Element, <span style="color:#66d9ef">typename</span> List<span style="color:#f92672">&gt;</span>
-<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">list_array_tt</span> {
-    <span style="color:#75715e">// ...
-</span><span style="color:#75715e"></span>};
+<span class="c1">// list_array_tt 中定义了元素类型为 Element，列表为 List
+</span><span class="c1"></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">Element</span><span class="p">,</span> <span class="k">typename</span> <span class="n">List</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">list_array_tt</span> <span class="p">{</span>
+    <span class="c1">// ...
+</span><span class="c1"></span><span class="p">};</span>
 
-<span style="color:#75715e">// method_t 即是 Obj-C 中方法的结构（详见下文）
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">method_t</span> {
-    SEL name;
-    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>types;
-    MethodListIMP imp;
+<span class="c1">// method_t 即是 Obj-C 中方法的结构（详见下文）
+</span><span class="c1"></span><span class="k">struct</span> <span class="nc">method_t</span> <span class="p">{</span>
+    <span class="n">SEL</span> <span class="n">name</span><span class="p">;</span>
+    <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">types</span><span class="p">;</span>
+    <span class="n">MethodListIMP</span> <span class="n">imp</span><span class="p">;</span>
 
-    <span style="color:#75715e">// ...
-</span><span style="color:#75715e"></span>};
+    <span class="c1">// ...
+</span><span class="c1"></span><span class="p">};</span>
 
-<span style="color:#75715e">// method_list_t 继承自 entsize_list_tt，其中 List 类型为 method_list_t，Element 类型为 method_t
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">method_list_t</span> <span style="color:#f92672">:</span> entsize_list_tt<span style="color:#f92672">&lt;</span>method_t, method_list_t, <span style="color:#ae81ff">0x3</span><span style="color:#f92672">&gt;</span> {
-    <span style="color:#75715e">// ...
-</span><span style="color:#75715e"></span>};
+<span class="c1">// method_list_t 继承自 entsize_list_tt，其中 List 类型为 method_list_t，Element 类型为 method_t
+</span><span class="c1"></span><span class="k">struct</span> <span class="nc">method_list_t</span> <span class="o">:</span> <span class="n">entsize_list_tt</span><span class="o">&lt;</span><span class="n">method_t</span><span class="p">,</span> <span class="n">method_list_t</span><span class="p">,</span> <span class="mh">0x3</span><span class="o">&gt;</span> <span class="p">{</span>
+    <span class="c1">// ...
+</span><span class="c1"></span><span class="p">};</span>
 
-<span style="color:#75715e">// entsize_list_tt 是非脆弱（Non-fragile）结构体数组的一般实现
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> Element, <span style="color:#66d9ef">typename</span> List, <span style="color:#66d9ef">uint32_t</span> FlagMask<span style="color:#f92672">&gt;</span>
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">entsize_list_tt</span> {
-    <span style="color:#75715e">// ...
-</span><span style="color:#75715e"></span>};
+<span class="c1">// entsize_list_tt 是非脆弱（Non-fragile）结构体数组的一般实现
+</span><span class="c1"></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">Element</span><span class="p">,</span> <span class="k">typename</span> <span class="n">List</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="n">FlagMask</span><span class="o">&gt;</span>
+<span class="k">struct</span> <span class="nc">entsize_list_tt</span> <span class="p">{</span>
+    <span class="c1">// ...
+</span><span class="c1"></span><span class="p">};</span>
 </code></pre></div><p>由于 Obj-C 中的 <code>Class</code> 是一个不透明类型，但我们可以尝试一下将类对象的原始结构桥接到其中，首先需要将以下我整理好的内容放在 <code>.h</code> 引入，需要注意的是引入的实现文件需要支持 C++，即以 <code>.mm</code> 结尾：</p>
 <details>
 <summary>-> 点击此处即可查看完整内容 <-</summary>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">//
-</span><span style="color:#75715e">//  class_details.h
-</span><span style="color:#75715e">//  Powered by kingcos.me
-</span><span style="color:#75715e">//
-</span><span style="color:#75715e">//  Created by kingcos on 2019/8/31.
-</span><span style="color:#75715e">//  Copyright © 2019 kingcos. All rights reserved.
-</span><span style="color:#75715e">//
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">#ifndef class_details_h
-</span><span style="color:#75715e">#define class_details_h
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">#define FAST_DATA_MASK          0x00007ffffffffff8UL
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_objc_class</span> <span style="color:#f92672">*</span>V_Class;
-<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span> v_uintptr_t;
-<span style="color:#66d9ef">typedef</span> v_uintptr_t v_cache_key_t;
-<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">uint32_t</span> v_mask_t;
-<span style="color:#66d9ef">typedef</span> v_uintptr_t v_protocol_ref_t;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">//
+</span><span class="c1">//  class_details.h
+</span><span class="c1">//  Powered by kingcos.me
+</span><span class="c1">//
+</span><span class="c1">//  Created by kingcos on 2019/8/31.
+</span><span class="c1">//  Copyright © 2019 kingcos. All rights reserved.
+</span><span class="c1">//
+</span><span class="c1"></span>
+<span class="cp">#ifndef class_details_h
+</span><span class="cp">#define class_details_h
+</span><span class="cp"></span>
+<span class="cp">#define FAST_DATA_MASK          0x00007ffffffffff8UL
+</span><span class="cp"></span>
+<span class="k">typedef</span> <span class="k">struct</span> <span class="nc">v_objc_class</span> <span class="o">*</span><span class="n">V_Class</span><span class="p">;</span>
+<span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">v_uintptr_t</span><span class="p">;</span>
+<span class="k">typedef</span> <span class="n">v_uintptr_t</span> <span class="n">v_cache_key_t</span><span class="p">;</span>
+<span class="k">typedef</span> <span class="kt">uint32_t</span> <span class="n">v_mask_t</span><span class="p">;</span>
+<span class="k">typedef</span> <span class="n">v_uintptr_t</span> <span class="n">v_protocol_ref_t</span><span class="p">;</span>
 
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_bucket_t</span> {
-    IMP _imp;
-    v_cache_key_t _key;
-};
+<span class="k">struct</span> <span class="nc">v_bucket_t</span> <span class="p">{</span>
+    <span class="n">IMP</span> <span class="n">_imp</span><span class="p">;</span>
+    <span class="n">v_cache_key_t</span> <span class="n">_key</span><span class="p">;</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_cache_t</span> {
-    <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_bucket_t</span> <span style="color:#f92672">*</span>_buckets;
-    v_mask_t _mask;
-    v_mask_t _occupied;
-};
+<span class="k">struct</span> <span class="nc">v_cache_t</span> <span class="p">{</span>
+    <span class="k">struct</span> <span class="nc">v_bucket_t</span> <span class="o">*</span><span class="n">_buckets</span><span class="p">;</span>
+    <span class="n">v_mask_t</span> <span class="n">_mask</span><span class="p">;</span>
+    <span class="n">v_mask_t</span> <span class="n">_occupied</span><span class="p">;</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">union</span> <span style="color:#a6e22e">v_isa_t</span> {
-    V_Class cls;
-    v_uintptr_t bits;
-};
+<span class="k">union</span> <span class="nc">v_isa_t</span> <span class="p">{</span>
+    <span class="n">V_Class</span> <span class="n">cls</span><span class="p">;</span>
+    <span class="n">v_uintptr_t</span> <span class="n">bits</span><span class="p">;</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_objc_object</span> {
-    v_isa_t isa;
-};
+<span class="k">struct</span> <span class="nc">v_objc_object</span> <span class="p">{</span>
+    <span class="n">v_isa_t</span> <span class="n">isa</span><span class="p">;</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> Element, <span style="color:#66d9ef">typename</span> List, <span style="color:#66d9ef">uint32_t</span> FlagMask<span style="color:#f92672">&gt;</span>
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_entsize_list_tt</span> {
-    <span style="color:#66d9ef">uint32_t</span> entsizeAndFlags;
-    <span style="color:#66d9ef">uint32_t</span> count;
-    Element first;
-};
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">Element</span><span class="p">,</span> <span class="k">typename</span> <span class="n">List</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="n">FlagMask</span><span class="o">&gt;</span>
+<span class="k">struct</span> <span class="nc">v_entsize_list_tt</span> <span class="p">{</span>
+    <span class="kt">uint32_t</span> <span class="n">entsizeAndFlags</span><span class="p">;</span>
+    <span class="kt">uint32_t</span> <span class="n">count</span><span class="p">;</span>
+    <span class="n">Element</span> <span class="n">first</span><span class="p">;</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_method_t</span> {
-    SEL name;
-    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>types;
-    IMP imp;
-};
+<span class="k">struct</span> <span class="nc">v_method_t</span> <span class="p">{</span>
+    <span class="n">SEL</span> <span class="n">name</span><span class="p">;</span>
+    <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">types</span><span class="p">;</span>
+    <span class="n">IMP</span> <span class="n">imp</span><span class="p">;</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_method_list_t</span> <span style="color:#f92672">:</span> v_entsize_list_tt<span style="color:#f92672">&lt;</span>v_method_t, v_method_list_t, <span style="color:#ae81ff">0x3</span><span style="color:#f92672">&gt;</span> {
-};
+<span class="k">struct</span> <span class="nc">v_method_list_t</span> <span class="o">:</span> <span class="n">v_entsize_list_tt</span><span class="o">&lt;</span><span class="n">v_method_t</span><span class="p">,</span> <span class="n">v_method_list_t</span><span class="p">,</span> <span class="mh">0x3</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_protocol_list_t</span> {
-    uintptr_t count;
-};
+<span class="k">struct</span> <span class="nc">v_protocol_list_t</span> <span class="p">{</span>
+    <span class="n">uintptr_t</span> <span class="n">count</span><span class="p">;</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_ivar_t</span> {
-    <span style="color:#66d9ef">int32_t</span> <span style="color:#f92672">*</span>offset;
-    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>name;
-    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>type;
-    <span style="color:#75715e">// alignment is sometimes -1; use alignment() instead
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">uint32_t</span> alignment_raw;
-    <span style="color:#66d9ef">uint32_t</span> size;
-};
+<span class="k">struct</span> <span class="nc">v_ivar_t</span> <span class="p">{</span>
+    <span class="kt">int32_t</span> <span class="o">*</span><span class="n">offset</span><span class="p">;</span>
+    <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+    <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">type</span><span class="p">;</span>
+    <span class="c1">// alignment is sometimes -1; use alignment() instead
+</span><span class="c1"></span>    <span class="kt">uint32_t</span> <span class="n">alignment_raw</span><span class="p">;</span>
+    <span class="kt">uint32_t</span> <span class="n">size</span><span class="p">;</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_ivar_list_t</span> <span style="color:#f92672">:</span> v_entsize_list_tt<span style="color:#f92672">&lt;</span>v_ivar_t, v_ivar_list_t, <span style="color:#ae81ff">0</span><span style="color:#f92672">&gt;</span> {
-};
+<span class="k">struct</span> <span class="nc">v_ivar_list_t</span> <span class="o">:</span> <span class="n">v_entsize_list_tt</span><span class="o">&lt;</span><span class="n">v_ivar_t</span><span class="p">,</span> <span class="n">v_ivar_list_t</span><span class="p">,</span> <span class="mi">0</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_property_t</span> {
-    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>name;
-    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>attributes;
-};
+<span class="k">struct</span> <span class="nc">v_property_t</span> <span class="p">{</span>
+    <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+    <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">attributes</span><span class="p">;</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_property_list_t</span> <span style="color:#f92672">:</span> v_entsize_list_tt<span style="color:#f92672">&lt;</span>v_property_t, v_property_list_t, <span style="color:#ae81ff">0</span><span style="color:#f92672">&gt;</span> {
-};
+<span class="k">struct</span> <span class="nc">v_property_list_t</span> <span class="o">:</span> <span class="n">v_entsize_list_tt</span><span class="o">&lt;</span><span class="n">v_property_t</span><span class="p">,</span> <span class="n">v_property_list_t</span><span class="p">,</span> <span class="mi">0</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_class_ro_t</span> {
-    <span style="color:#66d9ef">uint32_t</span> flags;
-    <span style="color:#66d9ef">uint32_t</span> instanceStart;
-    <span style="color:#66d9ef">uint32_t</span> instanceSize;
-    <span style="color:#66d9ef">uint32_t</span> reserved;
+<span class="k">struct</span> <span class="nc">v_class_ro_t</span> <span class="p">{</span>
+    <span class="kt">uint32_t</span> <span class="n">flags</span><span class="p">;</span>
+    <span class="kt">uint32_t</span> <span class="n">instanceStart</span><span class="p">;</span>
+    <span class="kt">uint32_t</span> <span class="n">instanceSize</span><span class="p">;</span>
+    <span class="kt">uint32_t</span> <span class="n">reserved</span><span class="p">;</span>
 
-    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">uint8_t</span> <span style="color:#f92672">*</span> ivarLayout;
+    <span class="k">const</span> <span class="kt">uint8_t</span> <span class="o">*</span> <span class="n">ivarLayout</span><span class="p">;</span>
 
-    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> name;
-    v_method_list_t <span style="color:#f92672">*</span> baseMethodList;
-    v_protocol_list_t<span style="color:#f92672">***</span> <span style="color:#f92672">*</span> baseProtocols;
-    <span style="color:#66d9ef">const</span> v_ivar_list_t <span style="color:#f92672">*</span> ivars;
+    <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">name</span><span class="p">;</span>
+    <span class="n">v_method_list_t</span> <span class="o">*</span> <span class="n">baseMethodList</span><span class="p">;</span>
+    <span class="n">v_protocol_list_t</span><span class="o">***</span> <span class="o">*</span> <span class="n">baseProtocols</span><span class="p">;</span>
+    <span class="k">const</span> <span class="n">v_ivar_list_t</span> <span class="o">*</span> <span class="n">ivars</span><span class="p">;</span>
 
-    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">uint8_t</span> <span style="color:#f92672">*</span> weakIvarLayout;
-    v_property_list_t <span style="color:#f92672">*</span>baseProperties;
-};
+    <span class="k">const</span> <span class="kt">uint8_t</span> <span class="o">*</span> <span class="n">weakIvarLayout</span><span class="p">;</span>
+    <span class="n">v_property_list_t</span> <span class="o">*</span><span class="n">baseProperties</span><span class="p">;</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> Element, <span style="color:#66d9ef">typename</span> List<span style="color:#f92672">&gt;</span>
-<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">v_list_array_tt</span> {
-    <span style="color:#66d9ef">union</span> {
-        List<span style="color:#f92672">*</span> list;
-        v_uintptr_t arrayAndFlag;
-    };
-};
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">Element</span><span class="p">,</span> <span class="k">typename</span> <span class="n">List</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">v_list_array_tt</span> <span class="p">{</span>
+    <span class="k">union</span> <span class="p">{</span>
+        <span class="n">List</span><span class="o">*</span> <span class="n">list</span><span class="p">;</span>
+        <span class="n">v_uintptr_t</span> <span class="n">arrayAndFlag</span><span class="p">;</span>
+    <span class="p">};</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">v_method_array_t</span> <span style="color:#f92672">:</span>
-<span style="color:#66d9ef">public</span> v_list_array_tt<span style="color:#f92672">&lt;</span>v_method_t, v_method_list_t<span style="color:#f92672">&gt;</span>
-{
-};
+<span class="k">class</span> <span class="nc">v_method_array_t</span> <span class="o">:</span>
+<span class="k">public</span> <span class="n">v_list_array_tt</span><span class="o">&lt;</span><span class="n">v_method_t</span><span class="p">,</span> <span class="n">v_method_list_t</span><span class="o">&gt;</span>
+<span class="p">{</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">v_property_array_t</span> <span style="color:#f92672">:</span>
-<span style="color:#66d9ef">public</span> v_list_array_tt<span style="color:#f92672">&lt;</span>v_property_t, v_property_list_t<span style="color:#f92672">&gt;</span>
-{
-};
+<span class="k">class</span> <span class="nc">v_property_array_t</span> <span class="o">:</span>
+<span class="k">public</span> <span class="n">v_list_array_tt</span><span class="o">&lt;</span><span class="n">v_property_t</span><span class="p">,</span> <span class="n">v_property_list_t</span><span class="o">&gt;</span>
+<span class="p">{</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">v_protocol_array_t</span> <span style="color:#f92672">:</span>
-<span style="color:#66d9ef">public</span> v_list_array_tt<span style="color:#f92672">&lt;</span>v_protocol_ref_t, v_protocol_list_t<span style="color:#f92672">&gt;</span>
-{
-};
+<span class="k">class</span> <span class="nc">v_protocol_array_t</span> <span class="o">:</span>
+<span class="k">public</span> <span class="n">v_list_array_tt</span><span class="o">&lt;</span><span class="n">v_protocol_ref_t</span><span class="p">,</span> <span class="n">v_protocol_list_t</span><span class="o">&gt;</span>
+<span class="p">{</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_class_rw_t</span> {
-    <span style="color:#66d9ef">uint32_t</span> flags;
-    <span style="color:#66d9ef">uint32_t</span> version;
+<span class="k">struct</span> <span class="nc">v_class_rw_t</span> <span class="p">{</span>
+    <span class="kt">uint32_t</span> <span class="n">flags</span><span class="p">;</span>
+    <span class="kt">uint32_t</span> <span class="n">version</span><span class="p">;</span>
 
-    <span style="color:#66d9ef">const</span> v_class_ro_t <span style="color:#f92672">*</span>ro;
+    <span class="k">const</span> <span class="n">v_class_ro_t</span> <span class="o">*</span><span class="n">ro</span><span class="p">;</span>
 
-    v_method_array_t methods;
-    v_property_array_t properties;
-    v_protocol_array_t protocols;
-};
+    <span class="n">v_method_array_t</span> <span class="n">methods</span><span class="p">;</span>
+    <span class="n">v_property_array_t</span> <span class="n">properties</span><span class="p">;</span>
+    <span class="n">v_protocol_array_t</span> <span class="n">protocols</span><span class="p">;</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_class_data_bits_t</span> {
-    v_uintptr_t bits;
+<span class="k">struct</span> <span class="nc">v_class_data_bits_t</span> <span class="p">{</span>
+    <span class="n">v_uintptr_t</span> <span class="n">bits</span><span class="p">;</span>
 
-    v_class_rw_t<span style="color:#f92672">*</span> <span style="color:#a6e22e">data</span>() {
-        <span style="color:#66d9ef">return</span> (v_class_rw_t <span style="color:#f92672">*</span>)(bits <span style="color:#f92672">&amp;</span> FAST_DATA_MASK);
-    }
-};
+    <span class="n">v_class_rw_t</span><span class="o">*</span> <span class="nf">data</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">v_class_rw_t</span> <span class="o">*</span><span class="p">)(</span><span class="n">bits</span> <span class="o">&amp;</span> <span class="n">FAST_DATA_MASK</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">};</span>
 
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">v_objc_class</span> <span style="color:#f92672">:</span> v_objc_object {
-    V_Class superclass;
-    v_cache_t cache;
-    v_class_data_bits_t bits;
+<span class="k">struct</span> <span class="nc">v_objc_class</span> <span class="o">:</span> <span class="n">v_objc_object</span> <span class="p">{</span>
+    <span class="n">V_Class</span> <span class="n">superclass</span><span class="p">;</span>
+    <span class="n">v_cache_t</span> <span class="n">cache</span><span class="p">;</span>
+    <span class="n">v_class_data_bits_t</span> <span class="n">bits</span><span class="p">;</span>
 
-    v_class_rw_t <span style="color:#f92672">*</span><span style="color:#a6e22e">data</span>() {
-        <span style="color:#66d9ef">return</span> bits.data();
-    }
-};
+    <span class="n">v_class_rw_t</span> <span class="o">*</span><span class="nf">data</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">bits</span><span class="p">.</span><span class="n">data</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">};</span>
 
-<span style="color:#75715e">#endif </span><span style="color:#75715e">/* class_details_h */</span><span style="color:#75715e">
+<span class="cp">#endif </span><span class="cm">/* class_details_h */</span><span class="cp">
 </span></code></pre></div></details>
 <p>我们仍以 <code>Computer</code> 类为例，将类或元类对象转换为其真实结构时，我们就能看到其中的细节了：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// main.mm
-</span><span style="color:#75715e"></span>
-V_Class cptClassObject <span style="color:#f92672">=</span> (<span style="color:#66d9ef">__bridge</span> V_Class)[Computer <span style="color:#66d9ef">class</span>];
-v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#f92672">=</span> cptClassObject<span style="color:#f92672">-&gt;</span>data();
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// main.mm
+</span><span class="c1"></span>
+<span class="n">V_Class</span> <span class="n">cptClassObject</span> <span class="o">=</span> <span class="p">(</span><span class="k">__bridge</span> <span class="n">V_Class</span><span class="p">)[</span><span class="n">Computer</span> <span class="k">class</span><span class="p">];</span>
+<span class="n">v_class_rw_t</span> <span class="o">*</span><span class="n">cptRWTable</span> <span class="o">=</span> <span class="n">cptClassObject</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">();</span>
 </code></pre></div><p><img src="/img/2019/objects_in_obj-c/4.png" alt="4"></p>
 <blockquote>
 <p>有心的同学可能会发现，这里的方法列表个数显示为 5，根据上面的 Obj-C 源码，应当是 <code>model</code> 属性自动生成的 getter &amp; setter，以及 <code>print:</code> 和 <code>arch</code>，那么怎么会多一个呢？其实这是由于定义属性，增加了一个名为 <code>.cxx_destruct</code> 的方法，关于此本文不再涉及，考虑放置在 <code>dealloc</code> 相关的文章中。</p>
@@ -582,247 +542,247 @@ v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#
 </ol>
 <h3 id="class_ro_t">class_ro_t</h3>
 <p><code>class_ro_t</code> 存在于 <code>class_rw_t</code> 中，是只读（Read-Only）表：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// objc-runtime-new.h
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">// 只读表
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">class_ro_t</span> {
-    <span style="color:#75715e">// 标志位
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">uint32_t</span> flags;
-    <span style="color:#66d9ef">uint32_t</span> instanceStart;
-    <span style="color:#75715e">// 实例大小
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">uint32_t</span> instanceSize;
-<span style="color:#75715e">#ifdef __LP64__
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">uint32_t</span> reserved;
-<span style="color:#75715e">#endif
-</span><span style="color:#75715e"></span>
-    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">uint8_t</span> <span style="color:#f92672">*</span> ivarLayout;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// objc-runtime-new.h
+</span><span class="c1"></span>
+<span class="c1">// 只读表
+</span><span class="c1"></span><span class="k">struct</span> <span class="nc">class_ro_t</span> <span class="p">{</span>
+    <span class="c1">// 标志位
+</span><span class="c1"></span>    <span class="kt">uint32_t</span> <span class="n">flags</span><span class="p">;</span>
+    <span class="kt">uint32_t</span> <span class="n">instanceStart</span><span class="p">;</span>
+    <span class="c1">// 实例大小
+</span><span class="c1"></span>    <span class="kt">uint32_t</span> <span class="n">instanceSize</span><span class="p">;</span>
+<span class="cp">#ifdef __LP64__
+</span><span class="cp"></span>    <span class="kt">uint32_t</span> <span class="n">reserved</span><span class="p">;</span>
+<span class="cp">#endif
+</span><span class="cp"></span>
+    <span class="k">const</span> <span class="kt">uint8_t</span> <span class="o">*</span> <span class="n">ivarLayout</span><span class="p">;</span>
 
-    <span style="color:#75715e">// 类名
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> name;
-    method_list_t <span style="color:#f92672">*</span> baseMethodList;
-    protocol_list_t <span style="color:#f92672">*</span> baseProtocols;
-    <span style="color:#75715e">// 成员变量
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> ivar_list_t <span style="color:#f92672">*</span> ivars;
+    <span class="c1">// 类名
+</span><span class="c1"></span>    <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">name</span><span class="p">;</span>
+    <span class="n">method_list_t</span> <span class="o">*</span> <span class="n">baseMethodList</span><span class="p">;</span>
+    <span class="n">protocol_list_t</span> <span class="o">*</span> <span class="n">baseProtocols</span><span class="p">;</span>
+    <span class="c1">// 成员变量
+</span><span class="c1"></span>    <span class="k">const</span> <span class="n">ivar_list_t</span> <span class="o">*</span> <span class="n">ivars</span><span class="p">;</span>
 
-    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">uint8_t</span> <span style="color:#f92672">*</span> weakIvarLayout;
-    property_list_t <span style="color:#f92672">*</span>baseProperties;
+    <span class="k">const</span> <span class="kt">uint8_t</span> <span class="o">*</span> <span class="n">weakIvarLayout</span><span class="p">;</span>
+    <span class="n">property_list_t</span> <span class="o">*</span><span class="n">baseProperties</span><span class="p">;</span>
 
-    method_list_t <span style="color:#f92672">*</span><span style="color:#a6e22e">baseMethods</span>() <span style="color:#66d9ef">const</span> {
-        <span style="color:#66d9ef">return</span> baseMethodList;
-    }
-};
+    <span class="n">method_list_t</span> <span class="o">*</span><span class="nf">baseMethods</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">baseMethodList</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span>
 </code></pre></div><p>而与 <code>class_rw_t</code> 不同的是，<code>class_ro_t</code> 中的方法、属性、成员变量分别直接继承自 <code>method_list_t</code>、<code>ivar_list_t</code> 和 <code>property_list_t</code>， 少了一维。这是因为只读表只存储编译时（包括类本身和分类中）确定的内容，在运行时将不会再次附加其它的数据。</p>
 <p>为了证明上述结论，我们再简单了解一下类在首次初始化中所执行的 <code>realizeClass</code> 方法（注意，<code>realizeClass</code> 存在于 obj4-750，而在 Xcode 11.1 和 obj4-756.2 及之后该函数已被更名为 <code>realizeClassWithoutSwift</code> 且有部分差异，但由于主体部分未改变且变更不影响如下分析暂时略过）：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// objc-runtime-new.h
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">// 类是未实现的 Future 类（关于 Future 类目前网上资料较少，Runtime 中有 objc_getFutureClass API，官方文档意为用作与 CoreFoundation 中类型无缝桥接（Toll-Free Bridging），比如 __NSCFArray 等，但该方法并未暴露在外界，即不允许开发者去调用）
-</span><span style="color:#75715e">// class is unrealized future class - must never be set by compiler
-</span><span style="color:#75715e"></span><span style="color:#75715e">#define RO_FUTURE             (1&lt;&lt;30)
-</span><span style="color:#75715e"></span><span style="color:#75715e">// 类已实化
-</span><span style="color:#75715e">// class is realized - must never be set by compiler
-</span><span style="color:#75715e"></span><span style="color:#75715e">#define RO_REALIZED           (1&lt;&lt;31)
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">// class_t-&gt;data is class_rw_t, not class_ro_t
-</span><span style="color:#75715e"></span><span style="color:#75715e">#define RW_REALIZED           (1&lt;&lt;31)
-</span><span style="color:#75715e"></span><span style="color:#75715e">// class is unresolved future class
-</span><span style="color:#75715e"></span><span style="color:#75715e">#define RW_FUTURE             (1&lt;&lt;30)
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">// objc-runtime-new.mm
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">/***********************************************************************
-</span><span style="color:#75715e">* realizeClass
-</span><span style="color:#75715e">* Performs first-time initialization on class cls,
-</span><span style="color:#75715e">* 在类上执行首次初始化，
-</span><span style="color:#75715e">* including allocating its read-write data.
-</span><span style="color:#75715e">* 包括分配读写数据。
-</span><span style="color:#75715e">* Returns the real class structure for the class.
-</span><span style="color:#75715e">* 返回类的真实类结构。
-</span><span style="color:#75715e">* Locking: runtimeLock must be write-locked by the caller
-</span><span style="color:#75715e">**********************************************************************/</span>
-<span style="color:#66d9ef">static</span> Class <span style="color:#a6e22e">realizeClass</span>(Class cls)
-{
-    runtimeLock.assertLocked();
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// objc-runtime-new.h
+</span><span class="c1"></span>
+<span class="c1">// 类是未实现的 Future 类（关于 Future 类目前网上资料较少，Runtime 中有 objc_getFutureClass API，官方文档意为用作与 CoreFoundation 中类型无缝桥接（Toll-Free Bridging），比如 __NSCFArray 等，但该方法并未暴露在外界，即不允许开发者去调用）
+</span><span class="c1">// class is unrealized future class - must never be set by compiler
+</span><span class="c1"></span><span class="cp">#define RO_FUTURE             (1&lt;&lt;30)
+</span><span class="cp"></span><span class="c1">// 类已实化
+</span><span class="c1">// class is realized - must never be set by compiler
+</span><span class="c1"></span><span class="cp">#define RO_REALIZED           (1&lt;&lt;31)
+</span><span class="cp"></span>
+<span class="c1">// class_t-&gt;data is class_rw_t, not class_ro_t
+</span><span class="c1"></span><span class="cp">#define RW_REALIZED           (1&lt;&lt;31)
+</span><span class="cp"></span><span class="c1">// class is unresolved future class
+</span><span class="c1"></span><span class="cp">#define RW_FUTURE             (1&lt;&lt;30)
+</span><span class="cp"></span>
+<span class="c1">// objc-runtime-new.mm
+</span><span class="c1"></span>
+<span class="cm">/***********************************************************************
+</span><span class="cm">* realizeClass
+</span><span class="cm">* Performs first-time initialization on class cls,
+</span><span class="cm">* 在类上执行首次初始化，
+</span><span class="cm">* including allocating its read-write data.
+</span><span class="cm">* 包括分配读写数据。
+</span><span class="cm">* Returns the real class structure for the class.
+</span><span class="cm">* 返回类的真实类结构。
+</span><span class="cm">* Locking: runtimeLock must be write-locked by the caller
+</span><span class="cm">**********************************************************************/</span>
+<span class="k">static</span> <span class="n">Class</span> <span class="nf">realizeClass</span><span class="p">(</span><span class="n">Class</span> <span class="n">cls</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">runtimeLock</span><span class="p">.</span><span class="n">assertLocked</span><span class="p">();</span>
 
-    <span style="color:#75715e">// 只读表指针
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> class_ro_t <span style="color:#f92672">*</span>ro;
-    <span style="color:#75715e">// 可读可写表指针
-</span><span style="color:#75715e"></span>    class_rw_t <span style="color:#f92672">*</span>rw;
-    Class supercls;
-    Class metacls;
-    <span style="color:#66d9ef">bool</span> isMeta;
+    <span class="c1">// 只读表指针
+</span><span class="c1"></span>    <span class="k">const</span> <span class="n">class_ro_t</span> <span class="o">*</span><span class="n">ro</span><span class="p">;</span>
+    <span class="c1">// 可读可写表指针
+</span><span class="c1"></span>    <span class="n">class_rw_t</span> <span class="o">*</span><span class="n">rw</span><span class="p">;</span>
+    <span class="n">Class</span> <span class="n">supercls</span><span class="p">;</span>
+    <span class="n">Class</span> <span class="n">metacls</span><span class="p">;</span>
+    <span class="kt">bool</span> <span class="n">isMeta</span><span class="p">;</span>
 
-    <span style="color:#75715e">// 若为空，则返回
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>cls) <span style="color:#66d9ef">return</span> nil;
-    <span style="color:#75715e">// 若已经实化，则返回
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (cls<span style="color:#f92672">-&gt;</span>isRealized()) <span style="color:#66d9ef">return</span> cls;
-    assert(cls <span style="color:#f92672">==</span> remapClass(cls));
+    <span class="c1">// 若为空，则返回
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">cls</span><span class="p">)</span> <span class="k">return</span> <span class="n">nil</span><span class="p">;</span>
+    <span class="c1">// 若已经实化，则返回
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">isRealized</span><span class="p">())</span> <span class="k">return</span> <span class="n">cls</span><span class="p">;</span>
+    <span class="n">assert</span><span class="p">(</span><span class="n">cls</span> <span class="o">==</span> <span class="n">remapClass</span><span class="p">(</span><span class="n">cls</span><span class="p">));</span>
 
-    <span style="color:#75715e">// fixme verify class is not in an un-dlopened part of the shared cache?
-</span><span style="color:#75715e"></span>
-    <span style="color:#75715e">// 实化前，cls-&gt;data() 返回指向只读表的指针，因此可以强转
-</span><span style="color:#75715e"></span>    ro <span style="color:#f92672">=</span> (<span style="color:#66d9ef">const</span> class_ro_t <span style="color:#f92672">*</span>)cls<span style="color:#f92672">-&gt;</span>data();
-    <span style="color:#75715e">// 判断是否为未来的类（即 RO_FUTURE 标志着读写数据是否已经被分配）
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 可读可写表和只读表的首个成员均为 flags 且 RO_FUTURE 与 RW_FUTURE 实际值相同
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (ro<span style="color:#f92672">-&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_FUTURE) {
-        <span style="color:#75715e">// This was a future class. rw data is already allocated.
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 将数据赋值给可读可写表
-</span><span style="color:#75715e"></span>        rw <span style="color:#f92672">=</span> cls<span style="color:#f92672">-&gt;</span>data();
-        <span style="color:#75715e">// 将可读可写表中的只读表赋值给只读表
-</span><span style="color:#75715e"></span>        ro <span style="color:#f92672">=</span> cls<span style="color:#f92672">-&gt;</span>data()<span style="color:#f92672">-&gt;</span>ro;
-        <span style="color:#75715e">// 更新标记位
-</span><span style="color:#75715e"></span>        cls<span style="color:#f92672">-&gt;</span>changeInfo(RW_REALIZED<span style="color:#f92672">|</span>RW_REALIZING, RW_FUTURE);
-    } <span style="color:#66d9ef">else</span> {
-        <span style="color:#75715e">// 通常为该逻辑
-</span><span style="color:#75715e"></span>
-        <span style="color:#75715e">// Normal class. Allocate writeable class data.
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 普通类，分配可写入类数据
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 分配空间
-</span><span style="color:#75715e"></span>        rw <span style="color:#f92672">=</span> (class_rw_t <span style="color:#f92672">*</span>)calloc(<span style="color:#66d9ef">sizeof</span>(class_rw_t), <span style="color:#ae81ff">1</span>);
-        <span style="color:#75715e">// 将可读可写表中的只读表指针指向只读表指针
-</span><span style="color:#75715e"></span>        rw<span style="color:#f92672">-&gt;</span>ro <span style="color:#f92672">=</span> ro;
-        <span style="color:#75715e">// 更新标记位，实化且正在实化
-</span><span style="color:#75715e"></span>        rw<span style="color:#f92672">-&gt;</span>flags <span style="color:#f92672">=</span> RW_REALIZED<span style="color:#f92672">|</span>RW_REALIZING;
-        <span style="color:#75715e">// 将可读可写表写回类中
-</span><span style="color:#75715e"></span>        cls<span style="color:#f92672">-&gt;</span>setData(rw);
-    }
+    <span class="c1">// fixme verify class is not in an un-dlopened part of the shared cache?
+</span><span class="c1"></span>
+    <span class="c1">// 实化前，cls-&gt;data() 返回指向只读表的指针，因此可以强转
+</span><span class="c1"></span>    <span class="n">ro</span> <span class="o">=</span> <span class="p">(</span><span class="k">const</span> <span class="n">class_ro_t</span> <span class="o">*</span><span class="p">)</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">();</span>
+    <span class="c1">// 判断是否为未来的类（即 RO_FUTURE 标志着读写数据是否已经被分配）
+</span><span class="c1"></span>    <span class="c1">// 可读可写表和只读表的首个成员均为 flags 且 RO_FUTURE 与 RW_FUTURE 实际值相同
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">ro</span><span class="o">-&gt;</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">RO_FUTURE</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// This was a future class. rw data is already allocated.
+</span><span class="c1"></span>        <span class="c1">// 将数据赋值给可读可写表
+</span><span class="c1"></span>        <span class="n">rw</span> <span class="o">=</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">();</span>
+        <span class="c1">// 将可读可写表中的只读表赋值给只读表
+</span><span class="c1"></span>        <span class="n">ro</span> <span class="o">=</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">ro</span><span class="p">;</span>
+        <span class="c1">// 更新标记位
+</span><span class="c1"></span>        <span class="n">cls</span><span class="o">-&gt;</span><span class="n">changeInfo</span><span class="p">(</span><span class="n">RW_REALIZED</span><span class="o">|</span><span class="n">RW_REALIZING</span><span class="p">,</span> <span class="n">RW_FUTURE</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="c1">// 通常为该逻辑
+</span><span class="c1"></span>
+        <span class="c1">// Normal class. Allocate writeable class data.
+</span><span class="c1"></span>        <span class="c1">// 普通类，分配可写入类数据
+</span><span class="c1"></span>        <span class="c1">// 分配空间
+</span><span class="c1"></span>        <span class="n">rw</span> <span class="o">=</span> <span class="p">(</span><span class="n">class_rw_t</span> <span class="o">*</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">class_rw_t</span><span class="p">),</span> <span class="mi">1</span><span class="p">);</span>
+        <span class="c1">// 将可读可写表中的只读表指针指向只读表指针
+</span><span class="c1"></span>        <span class="n">rw</span><span class="o">-&gt;</span><span class="n">ro</span> <span class="o">=</span> <span class="n">ro</span><span class="p">;</span>
+        <span class="c1">// 更新标记位，实化且正在实化
+</span><span class="c1"></span>        <span class="n">rw</span><span class="o">-&gt;</span><span class="n">flags</span> <span class="o">=</span> <span class="n">RW_REALIZED</span><span class="o">|</span><span class="n">RW_REALIZING</span><span class="p">;</span>
+        <span class="c1">// 将可读可写表写回类中
+</span><span class="c1"></span>        <span class="n">cls</span><span class="o">-&gt;</span><span class="n">setData</span><span class="p">(</span><span class="n">rw</span><span class="p">);</span>
+    <span class="p">}</span>
 
-    <span style="color:#75715e">// ---
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 以下内容与 class_rw_t 相关性不大，仅供参考
-</span><span style="color:#75715e"></span>
-    <span style="color:#75715e">// 是否为元类
-</span><span style="color:#75715e"></span>    isMeta <span style="color:#f92672">=</span> ro<span style="color:#f92672">-&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_META;
+    <span class="c1">// ---
+</span><span class="c1"></span>    <span class="c1">// 以下内容与 class_rw_t 相关性不大，仅供参考
+</span><span class="c1"></span>
+    <span class="c1">// 是否为元类
+</span><span class="c1"></span>    <span class="n">isMeta</span> <span class="o">=</span> <span class="n">ro</span><span class="o">-&gt;</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">RO_META</span><span class="p">;</span>
 
-    rw<span style="color:#f92672">-&gt;</span>version <span style="color:#f92672">=</span> isMeta <span style="color:#f92672">?</span> <span style="color:#ae81ff">7</span> <span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>;  <span style="color:#75715e">// old runtime went up to 6
-</span><span style="color:#75715e"></span>
-    <span style="color:#75715e">// Choose an index for this class.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 设置类的索引
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Sets cls-&gt;instancesRequireRawIsa if indexes no more indexes are available
-</span><span style="color:#75715e"></span>    cls<span style="color:#f92672">-&gt;</span>chooseClassArrayIndex();
+    <span class="n">rw</span><span class="o">-&gt;</span><span class="n">version</span> <span class="o">=</span> <span class="n">isMeta</span> <span class="o">?</span> <span class="mi">7</span> <span class="o">:</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// old runtime went up to 6
+</span><span class="c1"></span>
+    <span class="c1">// Choose an index for this class.
+</span><span class="c1"></span>    <span class="c1">// 设置类的索引
+</span><span class="c1"></span>    <span class="c1">// Sets cls-&gt;instancesRequireRawIsa if indexes no more indexes are available
+</span><span class="c1"></span>    <span class="n">cls</span><span class="o">-&gt;</span><span class="n">chooseClassArrayIndex</span><span class="p">();</span>
 
-    <span style="color:#75715e">// 打印 Debug 信息
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (PrintConnecting) {
-        _objc_inform(<span style="color:#e6db74">&#34;CLASS: realizing class &#39;%s&#39;%s %p %p #%u&#34;</span>,
-                     cls<span style="color:#f92672">-&gt;</span>nameForLogging(), isMeta <span style="color:#f92672">?</span> <span style="color:#e6db74">&#34; (meta)&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;&#34;</span>,
-                     (<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)cls, ro, cls<span style="color:#f92672">-&gt;</span>classArrayIndex());
-    }
+    <span class="c1">// 打印 Debug 信息
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">PrintConnecting</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">_objc_inform</span><span class="p">(</span><span class="s">&#34;CLASS: realizing class &#39;%s&#39;%s %p %p #%u&#34;</span><span class="p">,</span>
+                     <span class="n">cls</span><span class="o">-&gt;</span><span class="n">nameForLogging</span><span class="p">(),</span> <span class="n">isMeta</span> <span class="o">?</span> <span class="s">&#34; (meta)&#34;</span> <span class="o">:</span> <span class="s">&#34;&#34;</span><span class="p">,</span>
+                     <span class="p">(</span><span class="kt">void</span><span class="o">*</span><span class="p">)</span><span class="n">cls</span><span class="p">,</span> <span class="n">ro</span><span class="p">,</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">classArrayIndex</span><span class="p">());</span>
+    <span class="p">}</span>
 
-    <span style="color:#75715e">// 先实化父类，再实化类 / 元类，最后实化类本身
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Realize superclass and metaclass, if they aren&#39;t already.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// This needs to be done after RW_REALIZED is set above, for root classes.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// This needs to be done after class index is chosen, for root metaclasses.
-</span><span style="color:#75715e"></span>    supercls <span style="color:#f92672">=</span> realizeClass(remapClass(cls<span style="color:#f92672">-&gt;</span>superclass));
-    metacls <span style="color:#f92672">=</span> realizeClass(remapClass(cls<span style="color:#f92672">-&gt;</span>ISA()));
+    <span class="c1">// 先实化父类，再实化类 / 元类，最后实化类本身
+</span><span class="c1"></span>    <span class="c1">// Realize superclass and metaclass, if they aren&#39;t already.
+</span><span class="c1"></span>    <span class="c1">// This needs to be done after RW_REALIZED is set above, for root classes.
+</span><span class="c1"></span>    <span class="c1">// This needs to be done after class index is chosen, for root metaclasses.
+</span><span class="c1"></span>    <span class="n">supercls</span> <span class="o">=</span> <span class="n">realizeClass</span><span class="p">(</span><span class="n">remapClass</span><span class="p">(</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">superclass</span><span class="p">));</span>
+    <span class="n">metacls</span> <span class="o">=</span> <span class="n">realizeClass</span><span class="p">(</span><span class="n">remapClass</span><span class="p">(</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">ISA</span><span class="p">()));</span>
 
-<span style="color:#75715e">#if SUPPORT_NONPOINTER_ISA
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 通常为该逻辑
-</span><span style="color:#75715e"></span>
-    <span style="color:#75715e">// Disable non-pointer isa for some classes and/or platforms.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Set instancesRequireRawIsa.
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">bool</span> instancesRequireRawIsa <span style="color:#f92672">=</span> cls<span style="color:#f92672">-&gt;</span>instancesRequireRawIsa();
-    <span style="color:#66d9ef">bool</span> rawIsaIsInherited <span style="color:#f92672">=</span> false;
-    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">bool</span> hackedDispatch <span style="color:#f92672">=</span> false;
+<span class="cp">#if SUPPORT_NONPOINTER_ISA
+</span><span class="cp"></span>    <span class="c1">// 通常为该逻辑
+</span><span class="c1"></span>
+    <span class="c1">// Disable non-pointer isa for some classes and/or platforms.
+</span><span class="c1"></span>    <span class="c1">// Set instancesRequireRawIsa.
+</span><span class="c1"></span>    <span class="kt">bool</span> <span class="n">instancesRequireRawIsa</span> <span class="o">=</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">instancesRequireRawIsa</span><span class="p">();</span>
+    <span class="kt">bool</span> <span class="n">rawIsaIsInherited</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="k">static</span> <span class="kt">bool</span> <span class="n">hackedDispatch</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
 
-    <span style="color:#66d9ef">if</span> (DisableNonpointerIsa) {
-        <span style="color:#75715e">// Non-pointer isa disabled by environment or app SDK version
-</span><span style="color:#75715e"></span>        instancesRequireRawIsa <span style="color:#f92672">=</span> true;
-    }
-    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>hackedDispatch  <span style="color:#f92672">&amp;&amp;</span>  <span style="color:#f92672">!</span>(ro<span style="color:#f92672">-&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_META)  <span style="color:#f92672">&amp;&amp;</span>
-             <span style="color:#ae81ff">0</span> <span style="color:#f92672">==</span> strcmp(ro<span style="color:#f92672">-&gt;</span>name, <span style="color:#e6db74">&#34;OS_object&#34;</span>))
-    {
-        <span style="color:#75715e">// hack for libdispatch et al - isa also acts as vtable pointer
-</span><span style="color:#75715e"></span>        hackedDispatch <span style="color:#f92672">=</span> true;
-        instancesRequireRawIsa <span style="color:#f92672">=</span> true;
-    }
-    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (supercls  <span style="color:#f92672">&amp;&amp;</span>  supercls<span style="color:#f92672">-&gt;</span>superclass  <span style="color:#f92672">&amp;&amp;</span>
-             supercls<span style="color:#f92672">-&gt;</span>instancesRequireRawIsa())
-    {
-        <span style="color:#75715e">// This is also propagated by addSubclass()
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// but nonpointer isa setup needs it earlier.
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// Special case: instancesRequireRawIsa does not propagate
-</span><span style="color:#75715e"></span>        <span style="color:#75715e">// from root class to root metaclass
-</span><span style="color:#75715e"></span>        instancesRequireRawIsa <span style="color:#f92672">=</span> true;
-        rawIsaIsInherited <span style="color:#f92672">=</span> true;
-    }
+    <span class="k">if</span> <span class="p">(</span><span class="n">DisableNonpointerIsa</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Non-pointer isa disabled by environment or app SDK version
+</span><span class="c1"></span>        <span class="n">instancesRequireRawIsa</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">hackedDispatch</span>  <span class="o">&amp;&amp;</span>  <span class="o">!</span><span class="p">(</span><span class="n">ro</span><span class="o">-&gt;</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">RO_META</span><span class="p">)</span>  <span class="o">&amp;&amp;</span>
+             <span class="mi">0</span> <span class="o">==</span> <span class="n">strcmp</span><span class="p">(</span><span class="n">ro</span><span class="o">-&gt;</span><span class="n">name</span><span class="p">,</span> <span class="s">&#34;OS_object&#34;</span><span class="p">))</span>
+    <span class="p">{</span>
+        <span class="c1">// hack for libdispatch et al - isa also acts as vtable pointer
+</span><span class="c1"></span>        <span class="n">hackedDispatch</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+        <span class="n">instancesRequireRawIsa</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">supercls</span>  <span class="o">&amp;&amp;</span>  <span class="n">supercls</span><span class="o">-&gt;</span><span class="n">superclass</span>  <span class="o">&amp;&amp;</span>
+             <span class="n">supercls</span><span class="o">-&gt;</span><span class="n">instancesRequireRawIsa</span><span class="p">())</span>
+    <span class="p">{</span>
+        <span class="c1">// This is also propagated by addSubclass()
+</span><span class="c1"></span>        <span class="c1">// but nonpointer isa setup needs it earlier.
+</span><span class="c1"></span>        <span class="c1">// Special case: instancesRequireRawIsa does not propagate
+</span><span class="c1"></span>        <span class="c1">// from root class to root metaclass
+</span><span class="c1"></span>        <span class="n">instancesRequireRawIsa</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+        <span class="n">rawIsaIsInherited</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
 
-    <span style="color:#66d9ef">if</span> (instancesRequireRawIsa) {
-        cls<span style="color:#f92672">-&gt;</span>setInstancesRequireRawIsa(rawIsaIsInherited);
-    }
-<span style="color:#75715e">// SUPPORT_NONPOINTER_ISA
-</span><span style="color:#75715e"></span><span style="color:#75715e">#endif
-</span><span style="color:#75715e"></span>
-    <span style="color:#75715e">// Update superclass and metaclass in case of remapping
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 在重新映射的情况下更新超类和元类
-</span><span style="color:#75715e"></span>    cls<span style="color:#f92672">-&gt;</span>superclass <span style="color:#f92672">=</span> supercls;
-    cls<span style="color:#f92672">-&gt;</span>initClassIsa(metacls);
+    <span class="k">if</span> <span class="p">(</span><span class="n">instancesRequireRawIsa</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">cls</span><span class="o">-&gt;</span><span class="n">setInstancesRequireRawIsa</span><span class="p">(</span><span class="n">rawIsaIsInherited</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="c1">// SUPPORT_NONPOINTER_ISA
+</span><span class="c1"></span><span class="cp">#endif
+</span><span class="cp"></span>
+    <span class="c1">// Update superclass and metaclass in case of remapping
+</span><span class="c1"></span>    <span class="c1">// 在重新映射的情况下更新超类和元类
+</span><span class="c1"></span>    <span class="n">cls</span><span class="o">-&gt;</span><span class="n">superclass</span> <span class="o">=</span> <span class="n">supercls</span><span class="p">;</span>
+    <span class="n">cls</span><span class="o">-&gt;</span><span class="n">initClassIsa</span><span class="p">(</span><span class="n">metacls</span><span class="p">);</span>
 
-    <span style="color:#75715e">// Reconcile instance variable offsets / layout.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// This may reallocate class_ro_t, updating our ro variable.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 如果是父类，且非元类，调整实例变量，可能会重新分配 class_ro_t 并更新 ro 变量
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (supercls  <span style="color:#f92672">&amp;&amp;</span>  <span style="color:#f92672">!</span>isMeta) reconcileInstanceVariables(cls, supercls, ro);
+    <span class="c1">// Reconcile instance variable offsets / layout.
+</span><span class="c1"></span>    <span class="c1">// This may reallocate class_ro_t, updating our ro variable.
+</span><span class="c1"></span>    <span class="c1">// 如果是父类，且非元类，调整实例变量，可能会重新分配 class_ro_t 并更新 ro 变量
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">supercls</span>  <span class="o">&amp;&amp;</span>  <span class="o">!</span><span class="n">isMeta</span><span class="p">)</span> <span class="n">reconcileInstanceVariables</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">supercls</span><span class="p">,</span> <span class="n">ro</span><span class="p">);</span>
 
-    <span style="color:#75715e">// Set fastInstanceSize if it wasn&#39;t set already.
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 设置实例大小
-</span><span style="color:#75715e"></span>    cls<span style="color:#f92672">-&gt;</span>setInstanceSize(ro<span style="color:#f92672">-&gt;</span>instanceSize);
+    <span class="c1">// Set fastInstanceSize if it wasn&#39;t set already.
+</span><span class="c1"></span>    <span class="c1">// 设置实例大小
+</span><span class="c1"></span>    <span class="n">cls</span><span class="o">-&gt;</span><span class="n">setInstanceSize</span><span class="p">(</span><span class="n">ro</span><span class="o">-&gt;</span><span class="n">instanceSize</span><span class="p">);</span>
 
-    <span style="color:#75715e">// Copy some flags from ro to rw
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (ro<span style="color:#f92672">-&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_HAS_CXX_STRUCTORS) {
-        cls<span style="color:#f92672">-&gt;</span>setHasCxxDtor();
-        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span> (ro<span style="color:#f92672">-&gt;</span>flags <span style="color:#f92672">&amp;</span> RO_HAS_CXX_DTOR_ONLY)) {
-            cls<span style="color:#f92672">-&gt;</span>setHasCxxCtor();
-        }
-    }
+    <span class="c1">// Copy some flags from ro to rw
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">ro</span><span class="o">-&gt;</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">RO_HAS_CXX_STRUCTORS</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">cls</span><span class="o">-&gt;</span><span class="n">setHasCxxDtor</span><span class="p">();</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span> <span class="p">(</span><span class="n">ro</span><span class="o">-&gt;</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">RO_HAS_CXX_DTOR_ONLY</span><span class="p">))</span> <span class="p">{</span>
+            <span class="n">cls</span><span class="o">-&gt;</span><span class="n">setHasCxxCtor</span><span class="p">();</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
 
-    <span style="color:#75715e">// 设置子类 / 基类
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Connect this class to its superclass&#39;s subclass lists
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (supercls) {
-        addSubclass(supercls, cls);
-    } <span style="color:#66d9ef">else</span> {
-        addRootClass(cls);
-    }
+    <span class="c1">// 设置子类 / 基类
+</span><span class="c1"></span>    <span class="c1">// Connect this class to its superclass&#39;s subclass lists
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">supercls</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">addSubclass</span><span class="p">(</span><span class="n">supercls</span><span class="p">,</span> <span class="n">cls</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="n">addRootClass</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
+    <span class="p">}</span>
 
-    <span style="color:#75715e">// Attach categories
-</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 真正去连接分类
-</span><span style="color:#75715e"></span>    methodizeClass(cls);
+    <span class="c1">// Attach categories
+</span><span class="c1"></span>    <span class="c1">// 真正去连接分类
+</span><span class="c1"></span>    <span class="n">methodizeClass</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
 
-    <span style="color:#66d9ef">return</span> cls;
-}
+    <span class="k">return</span> <span class="n">cls</span><span class="p">;</span>
+<span class="p">}</span>
 
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">objc_class</span> <span style="color:#f92672">:</span> objc_object {
-    <span style="color:#75715e">// 判断类是否实化
-</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">isRealized</span>() {
-        <span style="color:#66d9ef">return</span> data()<span style="color:#f92672">-&gt;</span>flags <span style="color:#f92672">&amp;</span> RW_REALIZED;
-    }
-}
+<span class="k">struct</span> <span class="nc">objc_class</span> <span class="o">:</span> <span class="n">objc_object</span> <span class="p">{</span>
+    <span class="c1">// 判断类是否实化
+</span><span class="c1"></span>    <span class="kt">bool</span> <span class="nf">isRealized</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">data</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">RW_REALIZED</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><h3 id="method_t">method_t</h3>
 <p><code>method_t</code> 是 Obj-C 中方法的本质类型：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// objc.h
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">/// An opaque type that represents a method selector.
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">objc_selector</span> <span style="color:#f92672">*</span>SEL;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// objc.h
+</span><span class="c1"></span>
+<span class="c1">/// An opaque type that represents a method selector.
+</span><span class="c1"></span><span class="k">typedef</span> <span class="k">struct</span> <span class="nc">objc_selector</span> <span class="o">*</span><span class="n">SEL</span><span class="p">;</span>
 
-<span style="color:#75715e">// objc-ptrauth.h
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">#if __has_feature(ptrauth_calls)
-</span><span style="color:#75715e"></span><span style="color:#75715e">// Method lists use process-independent signature for compatibility.
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">using</span> MethodListIMP <span style="color:#f92672">=</span> IMP __ptrauth_objc_method_list_imp;
-<span style="color:#75715e">#else
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">using</span> MethodListIMP <span style="color:#f92672">=</span> IMP;
-<span style="color:#75715e">#endif
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">method_t</span> {
-    SEL name;
-    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>types;
-    MethodListIMP imp;
+<span class="c1">// objc-ptrauth.h
+</span><span class="c1"></span>
+<span class="cp">#if __has_feature(ptrauth_calls)
+</span><span class="cp"></span><span class="c1">// Method lists use process-independent signature for compatibility.
+</span><span class="c1"></span><span class="k">using</span> <span class="n">MethodListIMP</span> <span class="o">=</span> <span class="n">IMP</span> <span class="n">__ptrauth_objc_method_list_imp</span><span class="p">;</span>
+<span class="cp">#else
+</span><span class="cp"></span><span class="k">using</span> <span class="n">MethodListIMP</span> <span class="o">=</span> <span class="n">IMP</span><span class="p">;</span>
+<span class="cp">#endif
+</span><span class="cp"></span>
+<span class="k">struct</span> <span class="nc">method_t</span> <span class="p">{</span>
+    <span class="n">SEL</span> <span class="n">name</span><span class="p">;</span>
+    <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">types</span><span class="p">;</span>
+    <span class="n">MethodListIMP</span> <span class="n">imp</span><span class="p">;</span>
 
-    <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">SortBySELAddress</span> <span style="color:#f92672">:</span>
-        <span style="color:#66d9ef">public</span> std<span style="color:#f92672">::</span>binary_function<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">const</span> method_t<span style="color:#f92672">&amp;</span>,
-                                    <span style="color:#66d9ef">const</span> method_t<span style="color:#f92672">&amp;</span>, <span style="color:#66d9ef">bool</span><span style="color:#f92672">&gt;</span>
-    {
-        <span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">operator</span>() (<span style="color:#66d9ef">const</span> method_t<span style="color:#f92672">&amp;</span> lhs,
-                         <span style="color:#66d9ef">const</span> method_t<span style="color:#f92672">&amp;</span> rhs)
-        { <span style="color:#66d9ef">return</span> lhs.name <span style="color:#f92672">&lt;</span> rhs.name; }
-    };
-};
+    <span class="k">struct</span> <span class="nc">SortBySELAddress</span> <span class="o">:</span>
+        <span class="k">public</span> <span class="n">std</span><span class="o">::</span><span class="n">binary_function</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">method_t</span><span class="o">&amp;</span><span class="p">,</span>
+                                    <span class="k">const</span> <span class="n">method_t</span><span class="o">&amp;</span><span class="p">,</span> <span class="kt">bool</span><span class="o">&gt;</span>
+    <span class="p">{</span>
+        <span class="kt">bool</span> <span class="nf">operator</span><span class="p">()</span> <span class="p">(</span><span class="k">const</span> <span class="n">method_t</span><span class="o">&amp;</span> <span class="n">lhs</span><span class="p">,</span>
+                         <span class="k">const</span> <span class="n">method_t</span><span class="o">&amp;</span> <span class="n">rhs</span><span class="p">)</span>
+        <span class="p">{</span> <span class="k">return</span> <span class="n">lhs</span><span class="p">.</span><span class="n">name</span> <span class="o">&lt;</span> <span class="n">rhs</span><span class="p">.</span><span class="n">name</span><span class="p">;</span> <span class="p">}</span>
+    <span class="p">};</span>
+<span class="p">};</span>
 </code></pre></div><p><code>method_t</code> 中存储了方法的名称、类型和 <code>IMP</code>：</p>
 <table>
 <thead>
@@ -849,16 +809,16 @@ v_class_rw_t <span style="color:#f92672">*</span>cptRWTable <span style="color:#
 <h2 id="元类对象">元类对象</h2>
 <p>元类对象和类对象一样，都是 <code>Class</code> 类型，但元类对象只可以通过 Runtime 的 <code>object_getClass</code> API 传入类对象，获取到元类对象。需要注意的是 <code>[[Computer class] class]</code> 或 <code>[[cpt class] class]</code> 都只能返回类对象。</p>
 <p>对于 <code>object_getClass</code>，如果参数是实例对象，返回类对象；如果参数是类对象，返回元类对象；如果参数是元类对象，返回 NSObject（基类）的元类对象。<code>class_isMetaClass</code> 可以用来检查 <code>Class</code> 是否为元类对象。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">VClass cptMetaVClass <span style="color:#f92672">=</span> (<span style="color:#66d9ef">__bridge</span> VClass)object_getClass([Computer <span style="color:#66d9ef">class</span>]);
-class_rw_t <span style="color:#f92672">*</span>rwt <span style="color:#f92672">=</span> cptMetaVClass<span style="color:#f92672">-&gt;</span>data();
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">VClass</span> <span class="n">cptMetaVClass</span> <span class="o">=</span> <span class="p">(</span><span class="k">__bridge</span> <span class="n">VClass</span><span class="p">)</span><span class="n">object_getClass</span><span class="p">([</span><span class="n">Computer</span> <span class="k">class</span><span class="p">]);</span>
+<span class="n">class_rw_t</span> <span class="o">*</span><span class="n">rwt</span> <span class="o">=</span> <span class="n">cptMetaVClass</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">();</span>
 
-<span style="color:#75715e">// LLDB:
-</span><span style="color:#75715e">// Printing description of rwt-&gt;methods-&gt;first:
-</span><span style="color:#75715e">// (method_t) first = {
-</span><span style="color:#75715e">//     name = &#34;arch&#34;
-</span><span style="color:#75715e">//     types = 0x0000000100000f86 &#34;@16@0:8&#34;
-</span><span style="color:#75715e">//     imp = 0x0000000100000d40 (DemoOC`::+[Computer arch]() at main.mm:52)
-</span><span style="color:#75715e">// }
+<span class="c1">// LLDB:
+</span><span class="c1">// Printing description of rwt-&gt;methods-&gt;first:
+</span><span class="c1">// (method_t) first = {
+</span><span class="c1">//     name = &#34;arch&#34;
+</span><span class="c1">//     types = 0x0000000100000f86 &#34;@16@0:8&#34;
+</span><span class="c1">//     imp = 0x0000000100000d40 (DemoOC`::+[Computer arch]() at main.mm:52)
+</span><span class="c1">// }
 </span></code></pre></div><p>元类对象中除了存储 <code>isa</code> 和 <code>superclass</code> 指针，还存储了类方法。其存放位置和类对象存放实例方法的存放位置（方法列表）一致。</p>
 <h2 id="superclass">superclass</h2>
 <p><img src="/img/2019/objects_in_obj-c/3.png" alt="3"></p>
@@ -867,49 +827,49 @@ class_rw_t <span style="color:#f92672">*</span>rwt <span style="color:#f92672">=
 <h3 id="isa--superclass">isa &amp; superclass</h3>
 <p><code>isa</code> 将实例对象与类对象、元类对象连接起来；<code>superclass</code> 将子类、父类、基类连接起来。</p>
 <p>当向一个实例发送实例方法的消息时（也可称调用实例方法，但因为 Obj-C 是消息结构的语言，方法调用并不严谨），该实例对象会通过 <code>isa</code> 找到其类对象，因为实例方法存储在类对象中；如果该类的类对象中并没有存储该实例方法，其类对象将使用 <code>superclass</code> 找到其父类的类对象，并在其中查找实例方法；直到在 <code>NSObject</code> 基类的类对象也无法找到时，<code>superclass</code> 将指向 <code>nil</code> 停止查找，抛出异常：<code>unrecognized selector sent to instance</code>（注意，我们这里仅讨论消息传递，暂时忽略消息转发）。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span>
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">run</span>;
-<span style="color:#66d9ef">@end</span>
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">run</span><span class="p">;</span>
+<span class="k">@end</span>
 
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
-<span style="color:#66d9ef">@end</span>
+<span class="k">@implementation</span> <span class="nc">Computer</span>
+<span class="k">@end</span>
 
-<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Mac</span> : <span style="color:#a6e22e">Computer</span>
-<span style="color:#66d9ef">@end</span>
+<span class="k">@interface</span> <span class="nc">Mac</span> : <span class="nc">Computer</span>
+<span class="k">@end</span>
 
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Mac</span>
-<span style="color:#75715e">// - (void)run {
-</span><span style="color:#75715e">//     NSLog(@&#34;RUN&#34;);
-</span><span style="color:#75715e">// }
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">@end</span>
+<span class="k">@implementation</span> <span class="nc">Mac</span>
+<span class="c1">// - (void)run {
+</span><span class="c1">//     NSLog(@&#34;RUN&#34;);
+</span><span class="c1">// }
+</span><span class="c1"></span><span class="k">@end</span>
 
-<span style="color:#75715e">// &#39;-[Mac run]: unrecognized selector sent to instance 0x10330f6c0&#39;
-</span><span style="color:#75715e"></span>[[[Mac alloc] init] run];
+<span class="c1">// &#39;-[Mac run]: unrecognized selector sent to instance 0x10330f6c0&#39;
+</span><span class="c1"></span><span class="p">[[[</span><span class="n">Mac</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">]</span> <span class="n">run</span><span class="p">];</span>
 </code></pre></div><p>当向一个类（的类对象）发送类方法的消息时，不会经过实例对象；类对象会通过其 <code>isa</code> 指针找到其元类对象，因为类方法存储在元类对象中；如果该类的元类对象中并没有存储该类方法，其元类对象将使用 <code>superclass</code> 找到其父类的元类对象，并在其中查找类方法；直到查找到 <code>NSObject</code> 基类的元类对象还没有该类方法时，<code>NSObject</code> 元类对象的 <code>superclass</code> 将指回 <code>NSObject</code> 类对象中，在其存储的实例方法列表中查找，若此时还没有找到将停止查找，并抛出异常：<code>unrecognized selector sent to instance</code>，因为 <code>NSObject</code> 类对象的 <code>superclass</code> 将指向 <code>nil</code>。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">NSObject</span> (Extension)
-<span style="color:#66d9ef">@end</span>
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">NSObject</span> <span class="nl">(Extension)</span>
+<span class="k">@end</span>
 
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">NSObject</span> (Extension)
-- (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">run</span> {
-    NSLog(<span style="color:#e6db74">@&#34;RUN&#34;</span>);
-}
-<span style="color:#66d9ef">@end</span>
+<span class="k">@implementation</span> <span class="nc">NSObject</span> <span class="nl">(Extension)</span>
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">run</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;RUN&#34;</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="k">@end</span>
 
-<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Computer</span> : <span style="color:#a6e22e">NSObject</span>
-+ (<span style="color:#66d9ef">void</span>)<span style="color:#a6e22e">run</span>;
-<span style="color:#66d9ef">@end</span>
+<span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+<span class="p">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">run</span><span class="p">;</span>
+<span class="k">@end</span>
 
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Computer</span>
-<span style="color:#66d9ef">@end</span>
+<span class="k">@implementation</span> <span class="nc">Computer</span>
+<span class="k">@end</span>
 
-<span style="color:#66d9ef">@interface</span> <span style="color:#a6e22e">Mac</span> : <span style="color:#a6e22e">Computer</span>
-<span style="color:#66d9ef">@end</span>
+<span class="k">@interface</span> <span class="nc">Mac</span> : <span class="nc">Computer</span>
+<span class="k">@end</span>
 
-<span style="color:#66d9ef">@implementation</span> <span style="color:#a6e22e">Mac</span>
-<span style="color:#66d9ef">@end</span>
+<span class="k">@implementation</span> <span class="nc">Mac</span>
+<span class="k">@end</span>
 
-<span style="color:#75715e">// OUTPUT:
-</span><span style="color:#75715e">// RUN
+<span class="c1">// OUTPUT:
+</span><span class="c1">// RUN
 </span></code></pre></div><p>通过上一点，其实我们可以知道在 Obj-C 中，方法是通过消息传递的，而传递的消息其实就是方法名的 <code>SEL</code>，因此这也是严谨意义上 Obj-C 不支持重载（Overload）的原因（但支持参数个数不同的重载），具体可详见《<a href="../override_and_overload_in_obj-c/">Obj-C 中的重载与重写</a>》一文。</p>
 <h2 id="reference">Reference</h2>
 <ul>
@@ -918,143 +878,120 @@ class_rw_t <span style="color:#f92672">*</span>rwt <span style="color:#f92672">=
 <li><a href="../objc_msgsend/">浅尝 objc_msgSend - kingcos</a></li>
 <li><a href="https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html">Type Encodings - Objective-C Runtime Programming Guide</a></li>
 </ul>
-
-    </div>
-    
-      <div class="pagination">
-        <div class="pagination__title">
-          <span class="pagination__title-h">Read other posts</span>
-          <hr />
-        </div>
-        <div class="pagination__buttons">
-          
-            <span class="button previous">
-              <a href="/posts/2019/summary_of_2019/">
-                <span class="button__icon">←</span>
-                <span class="button__text">「2019 · 结」</span>
-              </a>
-            </span>
-          
-          
-            <span class="button next">
-              <a href="/posts/2019/multithreading_techs_in_ios-1/">
-                <span class="button__text">iOS 多线程技术实践之 pthreads（一）</span>
-                <span class="button__icon">→</span>
-              </a>
-            </span>
-          
-        </div>
-      </div>
-    
-
-    
-
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-<table style="border: 0;">
-  <tr>
-  <td style="border: 0; width: 30%;">
-    <img src='/img/about/1.jpg'>
-  </td>
-  <td style="border: 0;">
-    <ins class="adsbygoogle"
-     style="display:block"
-     data-ad-client="ca-pub-9925978992661955"
-     data-ad-slot="3213735320"
-     data-ad-format="auto"
-     data-full-width-responsive="true"></ins>
-  </td>
-  </tr>
-</table>
-
-
-
-<script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
-</script>
-
-
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://kingcos.me/tags/focus/">Focus</a>
+                                    
+                                    <a href="https://kingcos.me/tags/ios/">iOS</a>
+                                    
+                                    <a href="https://kingcos.me/tags/obj-c/">Obj-C</a>
+                                    
+                                    <a href="https://kingcos.me/tags//">★</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                <div class="doc_comments"><div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
     
     
-    <div>
-      <div id="github-comment">
-      </div>
-
-      <script type="text/javascript">
-        function getUtterances(isDark) {
-          var utterances = document.createElement('script');
-          utterances.type = 'text/javascript';
-          utterances.async = true;
-          utterances.setAttribute('issue-term', "pathname")
-          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
-          utterances.setAttribute('label', "comments")
-          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
-          utterances.crossorigin = 'anonymous';
-          utterances.src = 'https://utteranc.es/client.js';
-
-          return utterances
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
         }
-
-        var themeToggle = document.querySelector(".theme-toggle")
-        themeToggle.addEventListener("click", function () {
-          var getTheme = window.localStorage && window.localStorage.getItem("theme")
-          var divNode = document.getElementById('github-comment')
-          while(divNode.hasChildNodes()) {
-            divNode.removeChild(divNode.firstChild);
-          }
-          
-          
-          
-
-          
-          
-          
-          
-          
-          
-          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
-        })
-
-        var getTheme = window.localStorage && window.localStorage.getItem("theme")
-        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
-      </script>
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "kingcos" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div>
+                
+            </div>
+        </div>
     </div>
-    
-
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://kingcos.me">Powered by kingcos with love.</a>
     </div>
 
-      </div>
-
-      
-        <footer class="footer">
-  <div class="footer__inner">
-    
-      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
-    
-  </div>
+    <div class="footer_slogan">
+        <span>❤️</span>
+    </div>
 </footer>
+    <script src="https://kingcos.me/js/jquery-3.5.1.min.js"></script>
+<link href="https://kingcos.me/css/fancybox.min.css" rel="stylesheet">
+<script src="https://kingcos.me/js/fancybox.min.js"></script>
+<script src="https://kingcos.me/js/zozo.js"></script>
 
-<script src="/assets/main.js"></script>
-<script src="/assets/prism.js"></script>
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
 
 
 
-      
-    </div>
-
-    
-      
 <script type="application/javascript">
 var doNotTrack = false;
 if (!doNotTrack) {
-	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
 	ga('create', 'UA-138311951-1', 'auto');
 	
 	ga('send', 'pageview');
 }
 </script>
-    
-  </body>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+
 </html>

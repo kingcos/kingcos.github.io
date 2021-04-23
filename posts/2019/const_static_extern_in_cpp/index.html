@@ -1,153 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
+<html lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="kingcos" />
+	
+	
+	
+	<title>C/C&#43;&#43; 中的 const、static &amp; extern ｜ 萌面大道</title>
+	
     
-      <title>C/C&#43;&#43; 中的 const、static &amp; extern :: iBlog</title>
     
-    <meta http-equiv="content-type" content="text/html; charset=utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Env     2019-07-23 首次提交 clang&#43;&#43;、macOS 10.14.4    Preface const、static &amp;amp; extern 是 C/C&#43;&#43; 中的关键字，而在 iOS 开发中的 Obj-C/C&#43;&#43; 又是 C/C&#43;&#43; 的超集，那么本篇就简单梳理一下这些关键字的作用。
-const 基础类型 int a = 0; a = 10; 对于基础类型，其在内存中存储的即是该类型的变量本身，经过 const 修饰后，此处的变量不可变，即常量。const 的位置并不会影响其作用，更为推荐的写法应当是编译器提示的 const &amp;lt;TYPE&amp;gt;。
-以下是在 C/C&#43;&#43; 中的用例，由于 Obj-C/C&#43;&#43; 分别是 C/C&#43;&#43; 的超集，对于 C/C&#43;&#43; 的基础类型，其在 Obj-C/C&#43;&#43; 中的表现是一致的：
-const int b = 0; // error: cannot assign to variable &amp;#39;b&amp;#39; with const-qualified type &amp;#39;const int&amp;#39; // b = 10;  int const c = 0; // c = 10; 对于 Obj-C 中特有的基础类型，const 也与修饰 C/C&#43;&#43; 中基础类型的行为一致："/>
-<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
-<meta name="robots" content="noodp"/>
-<link rel="canonical" href="/posts/2019/const_static_extern_in_cpp/" />
+    <meta name="description" content="`const`、`static` & `extern` 是 C/C&#43;&#43; 中的关键字，而在 iOS 开发中的 Obj-C/C&#43;&#43; 又是 C/C&#43;&#43; 的超集，本篇就简单梳理以下这些关键字的作用。" />
+    
 
+    
+    
+    <meta name="keywords" content="Hugo, theme, zozo" />
+    
 
+	
+    
+    <link rel="shortcut icon" href="https://kingcos.me/images/favicon.png" />
 
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.mecss/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/highlight.css" />
 
-
-<link rel="stylesheet" href="/assets/style.css">
-
-
-<link rel="stylesheet" href="/style.css">
-
-
-<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
-<link rel="shortcut icon" href="/img/favicon.png">
-
-
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="C/C&#43;&#43; 中的 const、static &amp; extern"/>
-<meta name="twitter:description" content="`const`、`static` &amp; `extern` 是 C/C&#43;&#43; 中的关键字，而在 iOS 开发中的 Obj-C/C&#43;&#43; 又是 C/C&#43;&#43; 的超集，本篇就简单梳理以下这些关键字的作用。"/>
-
-
-
-<meta property="og:title" content="C/C&#43;&#43; 中的 const、static &amp; extern" />
-<meta property="og:description" content="`const`、`static` &amp; `extern` 是 C/C&#43;&#43; 中的关键字，而在 iOS 开发中的 Obj-C/C&#43;&#43; 又是 C/C&#43;&#43; 的超集，本篇就简单梳理以下这些关键字的作用。" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="/posts/2019/const_static_extern_in_cpp/" /><meta property="article:section" content="posts" />
-<meta property="article:published_time" content="2019-07-23T00:00:00&#43;00:00" />
-<meta property="article:modified_time" content="2019-07-23T00:00:00&#43;00:00" /><meta property="og:site_name" content="iBlog" />
-
-
-
-
+    
+    
+</head>
 
 <script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
 
-  </head>
-  <body class="">
-    <div class="container">
-      <header class="header">
-  <span class="header__inner">
-    <a href="/" class="logo" style="text-decoration: none;">
-  
-    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
-  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
-</svg>
-</span>
-    <span class="logo__text">kingcos.me</span>
-    <span class="logo__cursor"></span>
-  
-</a>
 
-    <span class="header__right">
-      
-        <nav class="menu">
-  <ul class="menu__inner menu__inner--desktop">
-    
-      
-        
-          <li><a href="/about">About</a></li>
-        
-      
-        
-          <li><a href="/read">Read</a></li>
-        
-      
-      
-    
-  </ul>
-
-  <ul class="menu__inner menu__inner--mobile">
-    
-      
-        <li><a href="/about">About</a></li>
-      
-    
-      
-        <li><a href="/read">Read</a></li>
-      
-    
-  </ul>
-</nav>
-
-        <span class="menu-trigger">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M0 0h24v24H0z" fill="none"/>
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-          </svg>
-        </span>
-      
-      <span class="theme-toggle">
-        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
-  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
-  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
-</svg>
-
-      </span>
-    </span>
-  </span>
-</header>
-
-
-      <div class="content">
-        
-  <div class="post">
-    <h2 class="post-title"><a href="/posts/2019/const_static_extern_in_cpp/">C/C++ 中的 const、static &amp; extern</a></h2>
-    <div class="post-meta">
-      
-        <span class="post-date">
-            2019-07-23
-        </span>
-      
-      
-      
-        <span class="post-read-time">— 6 min read</span>
-      
+<body>
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/posts/">Archive</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/about/">About</a>
+            </li>
+            
+        </ul>
     </div>
-
-    
-      <span class="post-tags">
-        
-          #<a href="/tags/focus/">Focus</a>&nbsp;
-        
-          #<a href="/tags/obj-c/">Obj-C</a>&nbsp;
-        
-          #<a href="/tags/c/c&#43;&#43;/">C/C&#43;&#43;</a>&nbsp;
-        
-          #<a href="/tags//">★</a>&nbsp;
-        
-      </span>
-    
-
-    
-
-    <div class="post-content">
-      <table>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            <h1>
+                <a href="https://kingcos.me">
+                    <span>萌面大道</span>
+                </a>
+            </h1>
+        </div>
+        <div class="description">
+            <p class="sub_title">kingcos | Focus</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/kingcos" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://www.instagram.com/kingcos_v/" title="instagram" target="_blank"><i class="ri-instagram-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/kingcos_v" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/u/1798410923" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                <a href="https://kingcos.me/index.xml" type="application/rss+xml" title="rss" target="_blank"><i
+                        class="ri-rss-fill"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/2019/const_static_extern_in_cpp/'>C/C&#43;&#43; 中的 const、static &amp; extern</a></h2>
+                        <span class="date">2019.07.23</span>
+                    </div>
+                    <div class="post_content markdown"><table>
 <thead>
 <tr>
 <th style="text-align:center">Date</th>
@@ -168,402 +128,379 @@ const int b = 0; // error: cannot assign to variable &amp;#39;b&amp;#39; with co
 <p><code>const</code>、<code>static</code> &amp; <code>extern</code> 是 C/C++ 中的关键字，而在 iOS 开发中的 Obj-C/C++ 又是 C/C++ 的超集，那么本篇就简单梳理一下这些关键字的作用。</p>
 <h2 id="const">const</h2>
 <h3 id="基础类型">基础类型</h3>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> a <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
-a <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="kt">int</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="n">a</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
 </code></pre></div><p>对于基础类型，其在内存中存储的即是该类型的变量本身，经过 <code>const</code> 修饰后，此处的变量不可变，即常量。<code>const</code> 的位置并不会影响其作用，更为推荐的写法应当是编译器提示的 <code>const &lt;TYPE&gt;</code>。</p>
 <p>以下是在 C/C++ 中的用例，由于 Obj-C/C++ 分别是 C/C++ 的超集，对于 C/C++ 的基础类型，其在 Obj-C/C++ 中的表现是一致的：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> b <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
-<span style="color:#75715e">// error: cannot assign to variable &#39;b&#39; with const-qualified type &#39;const int&#39;
-</span><span style="color:#75715e">// b = 10;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">int</span> <span style="color:#66d9ef">const</span> c <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
-<span style="color:#75715e">// c = 10;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">const</span> <span class="kt">int</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="c1">// error: cannot assign to variable &#39;b&#39; with const-qualified type &#39;const int&#39;
+</span><span class="c1">// b = 10;
+</span><span class="c1"></span>
+<span class="kt">int</span> <span class="k">const</span> <span class="n">c</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="c1">// c = 10;
 </span></code></pre></div><p>对于 Obj-C 中特有的基础类型，<code>const</code> 也与修饰 C/C++ 中基础类型的行为一致：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#66d9ef">BOOL</span> a <span style="color:#f92672">=</span> YES;
-a <span style="color:#f92672">=</span> NO;
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="kt">BOOL</span> <span class="n">a</span> <span class="o">=</span> <span class="nb">YES</span><span class="p">;</span>
+<span class="n">a</span> <span class="o">=</span> <span class="nb">NO</span><span class="p">;</span>
 
-<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">BOOL</span> b <span style="color:#f92672">=</span> YES;
-<span style="color:#75715e">// Cannot assign to variable &#39;b&#39; with const-qualified type &#39;const BOOL&#39; (aka &#39;const signed char&#39;)
-</span><span style="color:#75715e">// b = NO;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">BOOL</span> <span style="color:#66d9ef">const</span> c <span style="color:#f92672">=</span> YES;
-<span style="color:#75715e">// c = NO;
+<span class="k">const</span> <span class="kt">BOOL</span> <span class="n">b</span> <span class="o">=</span> <span class="nb">YES</span><span class="p">;</span>
+<span class="c1">// Cannot assign to variable &#39;b&#39; with const-qualified type &#39;const BOOL&#39; (aka &#39;const signed char&#39;)
+</span><span class="c1">// b = NO;
+</span><span class="c1"></span>
+<span class="kt">BOOL</span> <span class="k">const</span> <span class="n">c</span> <span class="o">=</span> <span class="nb">YES</span><span class="p">;</span>
+<span class="c1">// c = NO;
 </span></code></pre></div><h3 id="数组类型">数组类型</h3>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> a[] <span style="color:#f92672">=</span> {<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>};
-a[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="kt">int</span> <span class="n">a</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">};</span>
+<span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
 </code></pre></div><p>对于数组类型，即使用连续的一段内存来容纳同一类型元素的容器。当在 C/C++ 中使用 <code>const</code> 修饰基础类型的数组时，其中的内容将不能再改变：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> <span style="color:#66d9ef">const</span> b[] <span style="color:#f92672">=</span> {<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>};
-<span style="color:#75715e">// error: read-only variable is not assignable
-</span><span style="color:#75715e">// b[0] = 1;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> c[] <span style="color:#f92672">=</span> {<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>};
-<span style="color:#75715e">// c[0] = 1;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="kt">int</span> <span class="k">const</span> <span class="n">b</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">};</span>
+<span class="c1">// error: read-only variable is not assignable
+</span><span class="c1">// b[0] = 1;
+</span><span class="c1"></span>
+<span class="k">const</span> <span class="kt">int</span> <span class="n">c</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">};</span>
+<span class="c1">// c[0] = 1;
 </span></code></pre></div><p>对于 Obj-C，在 C 语言之上添加了面向对象的部分，其需要存储自身定义的对象类型的容器类，所以数组等集合（注：这里的集合并非特指 Set，而是指 Collection，下略）类型被单独拎出来独立为 <code>NSArray</code>、<code>NSSet</code> 等类型，且默认即作为不可变版本，并在使用时需结合指针。需要注意的是，这里的不可变仅针对内部元素（即变量内部地址指向的值），对于指针本身（数组的首地址）是可变的。可变版本 <code>NSMutableArray</code> 等则可以修改内部元素和指针本身。</p>
 <p>由于 Obj-C 自带可变和不可变版本的集合类型，<code>const</code> 的作用其实就显得有些多余，这里的 <code>const</code> 将类似针对指针类型的行为（关于指针详见下文）。当 <code>const</code> 位于 <code>NSArray</code> 或 <code>NSMutableArray</code> 之前或之后时均没有作用：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">NSArray <span style="color:#f92672">*</span>a <span style="color:#f92672">=</span> <span style="color:#ae81ff">@[</span><span style="color:#ae81ff">@1</span>, <span style="color:#ae81ff">@2</span>, <span style="color:#ae81ff">@3</span><span style="color:#ae81ff">]</span>;
-<span style="color:#75715e">// Expected method to write array element not found on object of type &#39;NSArray *&#39;
-</span><span style="color:#75715e">// a[0] = @0;
-</span><span style="color:#75715e"></span>a <span style="color:#f92672">=</span> <span style="color:#ae81ff">@[</span><span style="color:#ae81ff">@3</span>, <span style="color:#ae81ff">@2</span>, <span style="color:#ae81ff">@1</span><span style="color:#ae81ff">]</span>;
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">NSArray</span> <span class="o">*</span><span class="n">a</span> <span class="o">=</span> <span class="l">@[</span><span class="mi">@1</span><span class="p">,</span> <span class="mi">@2</span><span class="p">,</span> <span class="mi">@3</span><span class="l">]</span><span class="p">;</span>
+<span class="c1">// Expected method to write array element not found on object of type &#39;NSArray *&#39;
+</span><span class="c1">// a[0] = @0;
+</span><span class="c1"></span><span class="n">a</span> <span class="o">=</span> <span class="l">@[</span><span class="mi">@3</span><span class="p">,</span> <span class="mi">@2</span><span class="p">,</span> <span class="mi">@1</span><span class="l">]</span><span class="p">;</span>
 
-<span style="color:#66d9ef">const</span> NSArray <span style="color:#f92672">*</span>b <span style="color:#f92672">=</span> <span style="color:#ae81ff">@[</span><span style="color:#ae81ff">@1</span>, <span style="color:#ae81ff">@2</span>, <span style="color:#ae81ff">@3</span><span style="color:#ae81ff">]</span>;
-<span style="color:#75715e">// b[0] = @0;
-</span><span style="color:#75715e"></span>b <span style="color:#f92672">=</span> <span style="color:#ae81ff">@[</span><span style="color:#ae81ff">@3</span>, <span style="color:#ae81ff">@2</span>, <span style="color:#ae81ff">@1</span><span style="color:#ae81ff">]</span>;
+<span class="k">const</span> <span class="n">NSArray</span> <span class="o">*</span><span class="n">b</span> <span class="o">=</span> <span class="l">@[</span><span class="mi">@1</span><span class="p">,</span> <span class="mi">@2</span><span class="p">,</span> <span class="mi">@3</span><span class="l">]</span><span class="p">;</span>
+<span class="c1">// b[0] = @0;
+</span><span class="c1"></span><span class="n">b</span> <span class="o">=</span> <span class="l">@[</span><span class="mi">@3</span><span class="p">,</span> <span class="mi">@2</span><span class="p">,</span> <span class="mi">@1</span><span class="l">]</span><span class="p">;</span>
 
-NSArray <span style="color:#66d9ef">const</span> <span style="color:#f92672">*</span>c <span style="color:#f92672">=</span> <span style="color:#ae81ff">@[</span><span style="color:#ae81ff">@1</span>, <span style="color:#ae81ff">@2</span>, <span style="color:#ae81ff">@3</span><span style="color:#ae81ff">]</span>;
-<span style="color:#75715e">// c[0] = @0;
-</span><span style="color:#75715e"></span>c <span style="color:#f92672">=</span> <span style="color:#ae81ff">@[</span><span style="color:#ae81ff">@3</span>, <span style="color:#ae81ff">@2</span>, <span style="color:#ae81ff">@1</span><span style="color:#ae81ff">]</span>;
+<span class="n">NSArray</span> <span class="k">const</span> <span class="o">*</span><span class="n">c</span> <span class="o">=</span> <span class="l">@[</span><span class="mi">@1</span><span class="p">,</span> <span class="mi">@2</span><span class="p">,</span> <span class="mi">@3</span><span class="l">]</span><span class="p">;</span>
+<span class="c1">// c[0] = @0;
+</span><span class="c1"></span><span class="n">c</span> <span class="o">=</span> <span class="l">@[</span><span class="mi">@3</span><span class="p">,</span> <span class="mi">@2</span><span class="p">,</span> <span class="mi">@1</span><span class="l">]</span><span class="p">;</span>
 
-NSArray <span style="color:#f92672">*</span> <span style="color:#66d9ef">const</span> d <span style="color:#f92672">=</span> <span style="color:#ae81ff">@[</span><span style="color:#ae81ff">@1</span>, <span style="color:#ae81ff">@2</span>, <span style="color:#ae81ff">@3</span><span style="color:#ae81ff">]</span>;
-<span style="color:#75715e">// d[0] = @0;
-</span><span style="color:#75715e">// Cannot assign to variable &#39;d&#39; with const-qualified type &#39;NSArray *const __strong&#39;
-</span><span style="color:#75715e">// d = @[@3, @2, @1];
+<span class="n">NSArray</span> <span class="o">*</span> <span class="k">const</span> <span class="n">d</span> <span class="o">=</span> <span class="l">@[</span><span class="mi">@1</span><span class="p">,</span> <span class="mi">@2</span><span class="p">,</span> <span class="mi">@3</span><span class="l">]</span><span class="p">;</span>
+<span class="c1">// d[0] = @0;
+</span><span class="c1">// Cannot assign to variable &#39;d&#39; with const-qualified type &#39;NSArray *const __strong&#39;
+</span><span class="c1">// d = @[@3, @2, @1];
 </span></code></pre></div><p>当 <code>const</code> 位于 <code>NSArray *</code> 或 <code>NSMutableArray *</code> 之后时，将使得指针内部存储的内存地址不可被改变，它们也就无法被指向新的 <code>NSArray</code> 或 <code>NSMutableArray</code> 对象了。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec">NSMutableArray <span style="color:#f92672">*</span>e <span style="color:#f92672">=</span> [a mutableCopy];
-e[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">@0</span>;
-e <span style="color:#f92672">=</span> [b mutableCopy];
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">NSMutableArray</span> <span class="o">*</span><span class="n">e</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="n">mutableCopy</span><span class="p">];</span>
+<span class="n">e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">@0</span><span class="p">;</span>
+<span class="n">e</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span> <span class="n">mutableCopy</span><span class="p">];</span>
 
-<span style="color:#66d9ef">const</span> NSMutableArray <span style="color:#f92672">*</span>f <span style="color:#f92672">=</span> [a mutableCopy];
-f[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">@0</span>;
-f <span style="color:#f92672">=</span> [b mutableCopy];
+<span class="k">const</span> <span class="n">NSMutableArray</span> <span class="o">*</span><span class="n">f</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="n">mutableCopy</span><span class="p">];</span>
+<span class="n">f</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">@0</span><span class="p">;</span>
+<span class="n">f</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span> <span class="n">mutableCopy</span><span class="p">];</span>
 
-NSMutableArray <span style="color:#66d9ef">const</span> <span style="color:#f92672">*</span>g <span style="color:#f92672">=</span> [a mutableCopy];
-g[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">@0</span>;
-g <span style="color:#f92672">=</span> [b mutableCopy];
+<span class="n">NSMutableArray</span> <span class="k">const</span> <span class="o">*</span><span class="n">g</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="n">mutableCopy</span><span class="p">];</span>
+<span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">@0</span><span class="p">;</span>
+<span class="n">g</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span> <span class="n">mutableCopy</span><span class="p">];</span>
 
-NSMutableArray <span style="color:#f92672">*</span> <span style="color:#66d9ef">const</span> h <span style="color:#f92672">=</span> [a mutableCopy];
-h[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">@0</span>;
-<span style="color:#75715e">// Cannot assign to variable &#39;h&#39; with const-qualified type &#39;NSMutableArray *const __strong&#39;
-</span><span style="color:#75715e">// h = [b mutableCopy];
+<span class="n">NSMutableArray</span> <span class="o">*</span> <span class="k">const</span> <span class="n">h</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="n">mutableCopy</span><span class="p">];</span>
+<span class="n">h</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">@0</span><span class="p">;</span>
+<span class="c1">// Cannot assign to variable &#39;h&#39; with const-qualified type &#39;NSMutableArray *const __strong&#39;
+</span><span class="c1">// h = [b mutableCopy];
 </span></code></pre></div><h3 id="指向基础类型的指针">指向基础类型的指针</h3>
 <p>在上一节中，我们已经接触了 Obj-C 中的 <code>NSArray</code> 的指针类型 <code>NSArray *</code>，但为了更加清晰，我们将重新先从指向基础类型的指针开始。</p>
 <p>物理上的内存会被操作系统映射为一连串的内存地址，我们假设一段内存从 <code>0x0000</code> 开始，正如下图中一连串的小方格，每个小方格代表一个字节大小的内存。当我们声明一个基础类型的变量时，将为其分配一段内存空间来存储其中的值。比如 <code>int a = 10;</code>，会分配 4 个字节长度的内存，<code>10</code> 将以二进制的形式存储在这段内存中。需要注意的是 iOS 默认的小端（Little End）模式会在低地址存储高位字节，例如下图中的橙色部分，即 <code>10100000</code>。</p>
 <p>指针，是指存储内存地址的一种数据类型，内存地址是由编译器来决定的，因此指针的大小由编译器决定。在 64 位 <code>clang++</code> 编译器中，内存地址的长度为 8 个字节，因此无论 <code>int *</code>、<code>double *</code> 还是 <code>char *</code> 类型的指针其大小均为 8 个字节。比如 <code>int *b = &amp;a;</code>，<code>&amp;</code> 在 C/C++ 中是取地址的符号，即我们将 <code>a</code> 变量的内存地址存储在 <code>b</code> 中，如下图绿色的部分。因此 <code>b</code> 的值就是 <code>0x00000000</code>，而 <code>*b</code> 取内容才为 <code>10</code>。这时我们就能发现，对于指针类型，其一共有两个部分，一个是变量本身直接存储的内存地址，另一个则是位于该内存地址处的值。</p>
 <p><img src="/img/2019/const_static_extern_in_cpp/1.png" alt="1"></p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> foo <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
-<span style="color:#66d9ef">int</span> bar <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="kt">int</span> <span class="n">foo</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="kt">int</span> <span class="n">bar</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
 
-<span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>c <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>foo;
-c <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>bar;
-<span style="color:#f92672">*</span>c <span style="color:#f92672">=</span> foo;
+<span class="kt">int</span> <span class="o">*</span><span class="n">c</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">foo</span><span class="p">;</span>
+<span class="n">c</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">bar</span><span class="p">;</span>
+<span class="o">*</span><span class="n">c</span> <span class="o">=</span> <span class="n">foo</span><span class="p">;</span>
 </code></pre></div><p>那么，当指针遇上 <code>const</code>，哪一部分将不可变呢？当 <code>const</code> 修饰指针中内存地址对应变量的类型时，即在表达式最左边或在 <code>*</code> 左边时，其内部存储的内存地址所对应的值为常量，不可被改变，但我们仍能够通过直接改变指针存储的变量地址而间接改变其值：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>d <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>foo;
-d <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>bar;
-<span style="color:#75715e">// error: read-only variable is not assignable
-</span><span style="color:#75715e">// *d = foo;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">int</span> <span style="color:#66d9ef">const</span> <span style="color:#f92672">*</span>e <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>foo;
-e <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>bar;
-<span style="color:#75715e">// *e = foo;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">const</span> <span class="kt">int</span> <span class="o">*</span><span class="n">d</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">foo</span><span class="p">;</span>
+<span class="n">d</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">bar</span><span class="p">;</span>
+<span class="c1">// error: read-only variable is not assignable
+</span><span class="c1">// *d = foo;
+</span><span class="c1"></span>
+<span class="kt">int</span> <span class="k">const</span> <span class="o">*</span><span class="n">e</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">foo</span><span class="p">;</span>
+<span class="n">e</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">bar</span><span class="p">;</span>
+<span class="c1">// *e = foo;
 </span></code></pre></div><p>当 <code>const</code> 位于表达式中 <code>*</code> 右边时，其内部存储的内存地址将无法被改变，但该内存地址所对应的值却可以被改变：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">const</span> f <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>foo;
-<span style="color:#75715e">// error: cannot assign to variable &#39;f&#39; with const-qualified type &#39;int *const&#39;
-</span><span style="color:#75715e">// f = &amp;bar;
-</span><span style="color:#75715e"></span><span style="color:#f92672">*</span>f <span style="color:#f92672">=</span> foo;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="kt">int</span> <span class="o">*</span><span class="k">const</span> <span class="n">f</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">foo</span><span class="p">;</span>
+<span class="c1">// error: cannot assign to variable &#39;f&#39; with const-qualified type &#39;int *const&#39;
+</span><span class="c1">// f = &amp;bar;
+</span><span class="c1"></span><span class="o">*</span><span class="n">f</span> <span class="o">=</span> <span class="n">foo</span><span class="p">;</span>
 </code></pre></div><p>当我们既不希望改变指针中存储的内存地址，也不希望改变该内存地址所对应的值时，就需要同时限定两处，使用两个 <code>const</code> 来达到这种效果：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">const</span> g <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>foo;
-<span style="color:#75715e">// error: cannot assign to variable &#39;g&#39; with const-qualified type &#39;const int *const&#39;
-</span><span style="color:#75715e">// g = &amp;bar;
-</span><span style="color:#75715e">// error: read-only variable is not assignable
-</span><span style="color:#75715e">// *g = foo;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">const</span> <span class="kt">int</span> <span class="o">*</span><span class="k">const</span> <span class="n">g</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">foo</span><span class="p">;</span>
+<span class="c1">// error: cannot assign to variable &#39;g&#39; with const-qualified type &#39;const int *const&#39;
+</span><span class="c1">// g = &amp;bar;
+</span><span class="c1">// error: read-only variable is not assignable
+</span><span class="c1">// *g = foo;
 </span></code></pre></div><p>由于 Obj-C/C++ 中的基础类型本质仍然是 C/C++ 中的基础类型，「指向基础类型的指针」将不针对 Obj-C/C++ 举例。</p>
 <h3 id="指向对象类型的指针">指向对象类型的指针</h3>
 <p>如果我们已经很好地理解了上一节「指向基础类型的指针」，那么对于指向对象类型的指针也将水到渠成。指向对象类型的指针的本质仍然是指针，因此其内部仍存储的是内存地址，大小也与 <code>int *</code> 一样都是 8 个字节。与指向基础类型的指针不同的是，其内部存储的内存地址对应值是对象类型。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Foo</span>
-{
-<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
-    <span style="color:#66d9ef">double</span> bar;
-    <span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>baz;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">class</span> <span class="nc">Foo</span>
+<span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+    <span class="kt">double</span> <span class="n">bar</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="o">*</span><span class="n">baz</span><span class="p">;</span>
 
-    Foo(<span style="color:#66d9ef">double</span> _bar, <span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>_baz)
-    {
-        bar <span style="color:#f92672">=</span> _bar;
-        baz <span style="color:#f92672">=</span> _baz;
-    }
-};
+    <span class="n">Foo</span><span class="p">(</span><span class="kt">double</span> <span class="n">_bar</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">_baz</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">bar</span> <span class="o">=</span> <span class="n">_bar</span><span class="p">;</span>
+        <span class="n">baz</span> <span class="o">=</span> <span class="n">_baz</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">};</span>
 </code></pre></div><p>当我们在 C++ 中创建对象时（C++ 中引入了 <code>class</code> 类与对象的概念），<code>new</code> 将申请内存空间，<code>SomeClass()</code> 构造方法将初始化，最终返回对象的首地址，保存在表达式左边的变量中，这也就是为什么这里我们不再需要 <code>&amp;</code> 来取地址。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> a <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
-<span style="color:#66d9ef">int</span> b <span style="color:#f92672">=</span> <span style="color:#ae81ff">5</span>;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="kt">int</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="kt">int</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
 
-Foo <span style="color:#f92672">*</span>foo1 <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Foo(<span style="color:#ae81ff">0.0</span>, <span style="color:#f92672">&amp;</span>a);
-foo1<span style="color:#f92672">-&gt;</span>bar <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.5</span>;
-cout <span style="color:#f92672">&lt;&lt;</span> foo1<span style="color:#f92672">-&gt;</span>bar <span style="color:#f92672">&lt;&lt;</span> endl;    <span style="color:#75715e">// 0.5
-</span><span style="color:#75715e"></span>cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">*</span>foo1<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">&lt;&lt;</span> endl;  <span style="color:#75715e">// 1
-</span><span style="color:#75715e"></span>
-a <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>;
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">*</span>foo1<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">&lt;&lt;</span> endl;  <span style="color:#75715e">// 10
-</span><span style="color:#75715e"></span>
-foo1<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>b;
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">*</span>foo1<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">&lt;&lt;</span> endl;  <span style="color:#75715e">// 5
-</span><span style="color:#75715e"></span>
-<span style="color:#f92672">*</span> foo1<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">=</span> <span style="color:#ae81ff">100</span>;
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">*</span>foo1<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">&lt;&lt;</span> endl;  <span style="color:#75715e">// 100
-</span><span style="color:#75715e"></span>
-foo1 <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Foo(<span style="color:#ae81ff">1.5</span>, <span style="color:#f92672">&amp;</span>a);
-cout <span style="color:#f92672">&lt;&lt;</span> foo1<span style="color:#f92672">-&gt;</span>bar <span style="color:#f92672">&lt;&lt;</span> endl;    <span style="color:#75715e">// 1.5
-</span><span style="color:#75715e"></span>cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">*</span>foo1<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">&lt;&lt;</span> endl;  <span style="color:#75715e">// 10
+<span class="n">Foo</span> <span class="o">*</span><span class="n">foo1</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Foo</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">a</span><span class="p">);</span>
+<span class="n">foo1</span><span class="o">-&gt;</span><span class="n">bar</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">foo1</span><span class="o">-&gt;</span><span class="n">bar</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>    <span class="c1">// 0.5
+</span><span class="c1"></span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">foo1</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>  <span class="c1">// 1
+</span><span class="c1"></span>
+<span class="n">a</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">foo1</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>  <span class="c1">// 10
+</span><span class="c1"></span>
+<span class="n">foo1</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">b</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">foo1</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>  <span class="c1">// 5
+</span><span class="c1"></span>
+<span class="o">*</span> <span class="n">foo1</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">foo1</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>  <span class="c1">// 100
+</span><span class="c1"></span>
+<span class="n">foo1</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Foo</span><span class="p">(</span><span class="mf">1.5</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">a</span><span class="p">);</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">foo1</span><span class="o">-&gt;</span><span class="n">bar</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>    <span class="c1">// 1.5
+</span><span class="c1"></span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">foo1</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>  <span class="c1">// 10
 </span></code></pre></div><p>而当指向对象类型的指针遇到 <code>const</code> 时，就和指向基础类型的指针很类似了。当 <code>const</code> 在表达式最左边或在 <code>*</code> 左边时，对象中的基础类型的值将不可改变，指针类型存储的地址值也将不可改变（类似于 <code>const int *baz</code>）。但此时我们仍可以通过 <code>new</code> 创建新的对象（首地址）或者将其它已创建好的对象（首地址）赋值给变量：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">const</span> Foo <span style="color:#f92672">*</span>foo2 <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Foo(<span style="color:#ae81ff">0.0</span>, <span style="color:#f92672">&amp;</span>a);
-<span style="color:#75715e">// error: cannot assign to variable &#39;foo2&#39; with const-qualified type &#39;const Foo *&#39;
-</span><span style="color:#75715e">// foo2-&gt;bar = 0.5;
-</span><span style="color:#75715e"></span>cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">*</span>foo2<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">&lt;&lt;</span> endl;  <span style="color:#75715e">// 1
-</span><span style="color:#75715e"></span>a <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>;
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">*</span>foo2<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">&lt;&lt;</span> endl;  <span style="color:#75715e">// 10
-</span><span style="color:#75715e">// error: cannot assign to variable &#39;foo2&#39; with const-qualified type &#39;const Foo *&#39;
-</span><span style="color:#75715e">// foo2-&gt;baz = &amp;b;
-</span><span style="color:#75715e"></span><span style="color:#f92672">*</span> foo2<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">=</span> <span style="color:#ae81ff">100</span>;
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">*</span>foo2<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">&lt;&lt;</span> endl;  <span style="color:#75715e">// 100
-</span><span style="color:#75715e"></span>
-foo2 <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Foo(<span style="color:#ae81ff">1.5</span>, <span style="color:#f92672">&amp;</span>a);
-cout <span style="color:#f92672">&lt;&lt;</span> foo2<span style="color:#f92672">-&gt;</span>bar <span style="color:#f92672">&lt;&lt;</span> endl;    <span style="color:#75715e">// 1.5
-</span><span style="color:#75715e"></span>cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">*</span>foo2<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">&lt;&lt;</span> endl;  <span style="color:#75715e">// 100
-</span><span style="color:#75715e"></span>
-foo2 <span style="color:#f92672">=</span> foo1;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">const</span> <span class="n">Foo</span> <span class="o">*</span><span class="n">foo2</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Foo</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">a</span><span class="p">);</span>
+<span class="c1">// error: cannot assign to variable &#39;foo2&#39; with const-qualified type &#39;const Foo *&#39;
+</span><span class="c1">// foo2-&gt;bar = 0.5;
+</span><span class="c1"></span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">foo2</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>  <span class="c1">// 1
+</span><span class="c1"></span><span class="n">a</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">foo2</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>  <span class="c1">// 10
+</span><span class="c1">// error: cannot assign to variable &#39;foo2&#39; with const-qualified type &#39;const Foo *&#39;
+</span><span class="c1">// foo2-&gt;baz = &amp;b;
+</span><span class="c1"></span><span class="o">*</span> <span class="n">foo2</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">foo2</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>  <span class="c1">// 100
+</span><span class="c1"></span>
+<span class="n">foo2</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Foo</span><span class="p">(</span><span class="mf">1.5</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">a</span><span class="p">);</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">foo2</span><span class="o">-&gt;</span><span class="n">bar</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>    <span class="c1">// 1.5
+</span><span class="c1"></span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">foo2</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>  <span class="c1">// 100
+</span><span class="c1"></span>
+<span class="n">foo2</span> <span class="o">=</span> <span class="n">foo1</span><span class="p">;</span>
 </code></pre></div><p>当 <code>const</code> 位于表达式中 <code>*</code> 右边时，其内部存储的内存地址将无法被改变，但该内存地址所对应的值却可以被改变：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">Foo <span style="color:#f92672">*</span> <span style="color:#66d9ef">const</span> foo3 <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Foo(<span style="color:#ae81ff">0.0</span>, <span style="color:#f92672">&amp;</span>a);
-foo3<span style="color:#f92672">-&gt;</span>bar <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.5</span>;
-cout <span style="color:#f92672">&lt;&lt;</span> foo3<span style="color:#f92672">-&gt;</span>bar <span style="color:#f92672">&lt;&lt;</span> endl;    <span style="color:#75715e">// 0.5
-</span><span style="color:#75715e"></span>cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">*</span>foo3<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">&lt;&lt;</span> endl;  <span style="color:#75715e">// 1
-</span><span style="color:#75715e"></span>a <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>;
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">*</span>foo3<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">&lt;&lt;</span> endl;  <span style="color:#75715e">// 10
-</span><span style="color:#75715e"></span>foo3<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>b;
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">*</span>foo3<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">&lt;&lt;</span> endl;  <span style="color:#75715e">// 5
-</span><span style="color:#75715e"></span><span style="color:#f92672">*</span> foo3<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">=</span> <span style="color:#ae81ff">100</span>;
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">*</span>foo3<span style="color:#f92672">-&gt;</span>baz <span style="color:#f92672">&lt;&lt;</span> endl;  <span style="color:#75715e">// 100
-</span><span style="color:#75715e"></span>
-<span style="color:#75715e">// error: cannot assign to variable &#39;foo3&#39; with const-qualified type &#39;Foo *const&#39;
-</span><span style="color:#75715e">// foo3 = new Foo(1.5, &amp;a);
-</span><span style="color:#75715e">// foo3 = foo1;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="n">Foo</span> <span class="o">*</span> <span class="k">const</span> <span class="n">foo3</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Foo</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">a</span><span class="p">);</span>
+<span class="n">foo3</span><span class="o">-&gt;</span><span class="n">bar</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">foo3</span><span class="o">-&gt;</span><span class="n">bar</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>    <span class="c1">// 0.5
+</span><span class="c1"></span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">foo3</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>  <span class="c1">// 1
+</span><span class="c1"></span><span class="n">a</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">foo3</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>  <span class="c1">// 10
+</span><span class="c1"></span><span class="n">foo3</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">b</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">foo3</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>  <span class="c1">// 5
+</span><span class="c1"></span><span class="o">*</span> <span class="n">foo3</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">foo3</span><span class="o">-&gt;</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>  <span class="c1">// 100
+</span><span class="c1"></span>
+<span class="c1">// error: cannot assign to variable &#39;foo3&#39; with const-qualified type &#39;Foo *const&#39;
+</span><span class="c1">// foo3 = new Foo(1.5, &amp;a);
+</span><span class="c1">// foo3 = foo1;
 </span></code></pre></div><h3 id="指向指针的指针">指向指针的指针</h3>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> foo <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
-<span style="color:#66d9ef">int</span> foo2 <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>;
-<span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>bar <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>foo;
-<span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>bar2 <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>foo2;
-<span style="color:#66d9ef">int</span> <span style="color:#f92672">**</span>baz <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>bar;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="kt">int</span> <span class="n">foo</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="kt">int</span> <span class="n">foo2</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+<span class="kt">int</span> <span class="o">*</span><span class="n">bar</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">foo</span><span class="p">;</span>
+<span class="kt">int</span> <span class="o">*</span><span class="n">bar2</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">foo2</span><span class="p">;</span>
+<span class="kt">int</span> <span class="o">**</span><span class="n">baz</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">bar</span><span class="p">;</span>
 
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">**</span>baz <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 0
-</span><span style="color:#75715e"></span>baz <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>bar2;
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">**</span>baz <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 10
-</span><span style="color:#75715e"></span><span style="color:#f92672">*</span>baz <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>foo2;
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">**</span>baz <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 10
-</span><span style="color:#75715e"></span><span style="color:#f92672">**</span>baz <span style="color:#f92672">=</span> foo2;
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">**</span>baz <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 10
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">**</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span> <span class="c1">// 0
+</span><span class="c1"></span><span class="n">baz</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">bar2</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">**</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span> <span class="c1">// 10
+</span><span class="c1"></span><span class="o">*</span><span class="n">baz</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">foo2</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">**</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span> <span class="c1">// 10
+</span><span class="c1"></span><span class="o">**</span><span class="n">baz</span> <span class="o">=</span> <span class="n">foo2</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">**</span><span class="n">baz</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span> <span class="c1">// 10
 </span></code></pre></div><p>在了解了简单的指针之后，我们再进一步，了解一下「指向指针的指针（也称二维指针）」。指向指针的指针也是指针，因此其中保存的也是内存地址，需要注意的是该内存地址指向的内存空间存储的值仍然是一个内存地址，最终这个内存地址指向的是一个值。</p>
 <p>当 <code>const</code> 位于表达式中的 <code>int</code> 之前或之后时，表示最终指向的 <code>int</code> 值不应被改变，需要注意的是 <code>int **</code> 将无法赋值给 <code>const int **</code>，因为后者的类型限定更加严格：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> <span style="color:#f92672">**</span>baz2;
-<span style="color:#75715e">// error: assigning to &#39;const int **&#39; from incompatible type &#39;int **&#39;
-</span><span style="color:#75715e">// baz2 = &amp;bar;
-</span><span style="color:#75715e"></span>
-<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> foo3 <span style="color:#f92672">=</span> <span style="color:#ae81ff">100</span>;
-<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>bar3 <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>foo3;
-<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> <span style="color:#f92672">**</span>baz3 <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>bar3;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">const</span> <span class="kt">int</span> <span class="o">**</span><span class="n">baz2</span><span class="p">;</span>
+<span class="c1">// error: assigning to &#39;const int **&#39; from incompatible type &#39;int **&#39;
+</span><span class="c1">// baz2 = &amp;bar;
+</span><span class="c1"></span>
+<span class="k">const</span> <span class="kt">int</span> <span class="n">foo3</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+<span class="k">const</span> <span class="kt">int</span> <span class="o">*</span><span class="n">bar3</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">foo3</span><span class="p">;</span>
+<span class="k">const</span> <span class="kt">int</span> <span class="o">**</span><span class="n">baz3</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">bar3</span><span class="p">;</span>
 </code></pre></div><p>当 <code>const</code> 位于表达式第一个 <code>*</code> 之后时，表示第一维指针 <code>*baz4</code> 的值（即 <code>foo</code> 的地址）将无法改变，但我们仍然可以改变第二维指针 <code>baz4</code> 的值（即 <code>bar</code> 的地址）或者 <code>foo</code> 中的值：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">const</span> <span style="color:#f92672">*</span>baz4 <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>bar;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="kt">int</span> <span class="o">*</span><span class="k">const</span> <span class="o">*</span><span class="n">baz4</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">bar</span><span class="p">;</span>
 
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">**</span>baz4 <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 0
-</span><span style="color:#75715e"></span>baz4 <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>bar2;
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">**</span>baz4 <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 10
-</span><span style="color:#75715e">// error: read-only variable is not assignable
-</span><span style="color:#75715e">// *baz4 = &amp;foo2;
-</span><span style="color:#75715e"></span><span style="color:#f92672">**</span>baz4 <span style="color:#f92672">=</span> foo2;
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">**</span>baz4 <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 10
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">**</span><span class="n">baz4</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span> <span class="c1">// 0
+</span><span class="c1"></span><span class="n">baz4</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">bar2</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">**</span><span class="n">baz4</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span> <span class="c1">// 10
+</span><span class="c1">// error: read-only variable is not assignable
+</span><span class="c1">// *baz4 = &amp;foo2;
+</span><span class="c1"></span><span class="o">**</span><span class="n">baz4</span> <span class="o">=</span> <span class="n">foo2</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">**</span><span class="n">baz4</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span> <span class="c1">// 10
 </span></code></pre></div><p>当 <code>const</code> 位于表达式第二个 <code>*</code> 之后时，表示第二维指针 <code>baz5</code> 的值（即 <code>bar</code> 的地址）将无法改变，但我们仍然可以改变第一维指针 <code>*baz5</code> 的值（即 <code>foo</code> 的地址）或者 <code>foo</code> 中的值：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> <span style="color:#f92672">**</span><span style="color:#66d9ef">const</span> baz5 <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>bar;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="kt">int</span> <span class="o">**</span><span class="k">const</span> <span class="n">baz5</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">bar</span><span class="p">;</span>
 
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">**</span>baz5 <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 0
-</span><span style="color:#75715e">// error: cannot assign to variable &#39;baz5&#39; with const-qualified type &#39;int **const&#39;
-</span><span style="color:#75715e">// baz5 = &amp;bar2;
-</span><span style="color:#75715e"></span><span style="color:#f92672">*</span>baz5 <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>foo2;
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">**</span>baz5 <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 0
-</span><span style="color:#75715e"></span><span style="color:#f92672">**</span>baz5 <span style="color:#f92672">=</span> foo2;
-cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#f92672">**</span>baz5 <span style="color:#f92672">&lt;&lt;</span> endl; <span style="color:#75715e">// 0
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">**</span><span class="n">baz5</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span> <span class="c1">// 0
+</span><span class="c1">// error: cannot assign to variable &#39;baz5&#39; with const-qualified type &#39;int **const&#39;
+</span><span class="c1">// baz5 = &amp;bar2;
+</span><span class="c1"></span><span class="o">*</span><span class="n">baz5</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">foo2</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">**</span><span class="n">baz5</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span> <span class="c1">// 0
+</span><span class="c1"></span><span class="o">**</span><span class="n">baz5</span> <span class="o">=</span> <span class="n">foo2</span><span class="p">;</span>
+<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="o">**</span><span class="n">baz5</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span> <span class="c1">// 0
 </span></code></pre></div><p>有了上面几个不同位置的 <code>const</code> 我们就可以组合多个 <code>const</code> 来满足我们的需求。</p>
 <h2 id="static">static</h2>
 <p>与 <code>const</code> 约束变量是否可变不同，<code>static</code> 主要是对变量生命周期和作用域的控制，将存储在内存的静态区。</p>
 <p>当我们定义一个全局变量，其默认将存储在全局区，作为一个全局符号暴露给外界；而此时如果使用 <code>static</code> 修饰，那么其将只能在当前文件内使用，且其生命周期将持续到程序结束：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> foo <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
-<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">int</span> bar <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="kt">int</span> <span class="n">foo</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="k">static</span> <span class="kt">int</span> <span class="n">bar</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
 
-<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">baz</span>()
-{
-    foo <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>;
-    bar <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>;
-}
+<span class="kt">void</span> <span class="nf">baz</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">foo</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+    <span class="n">bar</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+<span class="p">}</span>
 
-<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>()
-{
-    baz();
-    printf(<span style="color:#e6db74">&#34;%d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, foo); <span style="color:#75715e">// 2
-</span><span style="color:#75715e"></span>    printf(<span style="color:#e6db74">&#34;%d&#34;</span>, bar);   <span style="color:#75715e">// 2
-</span><span style="color:#75715e"></span>
-    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
-}
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">baz</span><span class="p">();</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;%d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">foo</span><span class="p">);</span> <span class="c1">// 2
+</span><span class="c1"></span>    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;%d&#34;</span><span class="p">,</span> <span class="n">bar</span><span class="p">);</span>   <span class="c1">// 2
+</span><span class="c1"></span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
 </code></pre></div><p>如何可以证明呢？我们可以使用 <code>nm -gC &lt;OBJECT_FILE&gt;</code> 查看目标文件中的全局符号，其中只有 <code>foo</code> 而没有 <code>bar</code>：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">➜  ~ nm -gC a.out
+<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">➜  ~ nm -gC a.out
 
-0000000100000f20 T baz<span style="color:#f92672">()</span>
-<span style="color:#ae81ff">0000000100000000</span> T __mh_execute_header
-<span style="color:#ae81ff">0000000100001018</span> D _foo
+0000000100000f20 T baz<span class="o">()</span>
+<span class="m">0000000100000000</span> T __mh_execute_header
+<span class="m">0000000100001018</span> D _foo
 0000000100000f40 T _main
                  U _printf
                  U dyld_stub_binder
 </code></pre></div><p>在 Obj-C 中，我们通常将无需暴露给外界的全局变量使用 <code>static</code> 修饰并放置在相应的实现（.m）文件中，阻止了外界访问也避免了全局符号的冲突。</p>
 <h2 id="extern">extern</h2>
 <p>在软件工程中，我们几乎很少会只使用到一个源文件，而编译通常是针对每个文件进行单独编译为目标文件，并在链接阶段进行链接，最终成为可执行文件。因此在一个文件中需要使用到其他文件中变量时，我们需要使用 <code>extern</code> 来告知编译器在全局符号表中存在该符号，允许编译通过。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-objectivec" data-lang="objectivec"><span style="color:#75715e">// A.m
-</span><span style="color:#75715e"></span>NSString <span style="color:#f92672">*</span><span style="color:#66d9ef">const</span> Foo <span style="color:#f92672">=</span> <span style="color:#e6db74">@&#34;Foo&#34;</span>;
+<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// A.m
+</span><span class="c1"></span><span class="n">NSString</span> <span class="o">*</span><span class="k">const</span> <span class="n">Foo</span> <span class="o">=</span> <span class="s">@&#34;Foo&#34;</span><span class="p">;</span>
 
-<span style="color:#75715e">// main.m
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">extern</span> NSString <span style="color:#66d9ef">const</span> <span style="color:#f92672">*</span> Foo;
+<span class="c1">// main.m
+</span><span class="c1"></span><span class="k">extern</span> <span class="n">NSString</span> <span class="k">const</span> <span class="o">*</span> <span class="n">Foo</span><span class="p">;</span>
 
-<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> argv[]) {
-    <span style="color:#66d9ef">@autoreleasepool</span> {
-        NSLog(<span style="color:#e6db74">@&#34;%@&#34;</span>, Foo); <span style="color:#75715e">// Foo
-</span><span style="color:#75715e"></span>    }
-}
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+    <span class="k">@autoreleasepool</span> <span class="p">{</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="n">Foo</span><span class="p">);</span> <span class="c1">// Foo
+</span><span class="c1"></span>    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><p>而如果我们使用了实际不存在但 <code>extern</code> 的变量，将会在编译时出现错误：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">Undefined symbols <span style="color:#66d9ef">for</span> architecture x86_64:
-  <span style="color:#e6db74">&#34;_Foo&#34;</span>, referenced from:
+<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">Undefined symbols <span class="k">for</span> architecture x86_64:
+  <span class="s2">&#34;_Foo&#34;</span>, referenced from:
       _main in main.o
-ld: symbol<span style="color:#f92672">(</span>s<span style="color:#f92672">)</span> not found <span style="color:#66d9ef">for</span> architecture x86_64
-clang: error: linker command failed with exit code <span style="color:#ae81ff">1</span> <span style="color:#f92672">(</span>use -v to see invocation<span style="color:#f92672">)</span>
+ld: symbol<span class="o">(</span>s<span class="o">)</span> not found <span class="k">for</span> architecture x86_64
+clang: error: linker <span class="nb">command</span> failed with <span class="nb">exit</span> code <span class="m">1</span> <span class="o">(</span>use -v to see invocation<span class="o">)</span>
 </code></pre></div><p>在 Obj-C 中，我们通常将常量声明在实现（.m）文件中，在对应的头（.h）文件中 <code>extern</code>，其他文件需要访问这些常量时，即可通过引入该头文件即可。</p>
-
-    </div>
-    
-      <div class="pagination">
-        <div class="pagination__title">
-          <span class="pagination__title-h">Read other posts</span>
-          <hr />
-        </div>
-        <div class="pagination__buttons">
-          
-            <span class="button previous">
-              <a href="/posts/2019/link_map_file_in_xcode/">
-                <span class="button__icon">←</span>
-                <span class="button__text">Xcode 中的 Link Map 文件</span>
-              </a>
-            </span>
-          
-          
-            <span class="button next">
-              <a href="/posts/2019/0230-flatten-optional-try_zh/">
-                <span class="button__text">[译] 摊平由「try?」造成的嵌套可选</span>
-                <span class="button__icon">→</span>
-              </a>
-            </span>
-          
-        </div>
-      </div>
-    
-
-    
-
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-<table style="border: 0;">
-  <tr>
-  <td style="border: 0; width: 30%;">
-    <img src='/img/about/1.jpg'>
-  </td>
-  <td style="border: 0;">
-    <ins class="adsbygoogle"
-     style="display:block"
-     data-ad-client="ca-pub-9925978992661955"
-     data-ad-slot="3213735320"
-     data-ad-format="auto"
-     data-full-width-responsive="true"></ins>
-  </td>
-  </tr>
-</table>
-
-
-
-<script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
-</script>
-
-
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://kingcos.me/tags/focus/">Focus</a>
+                                    
+                                    <a href="https://kingcos.me/tags/obj-c/">Obj-C</a>
+                                    
+                                    <a href="https://kingcos.me/tags/c/c&#43;&#43;/">C/C&#43;&#43;</a>
+                                    
+                                    <a href="https://kingcos.me/tags//">★</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                <div class="doc_comments"><div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
     
     
-    <div>
-      <div id="github-comment">
-      </div>
-
-      <script type="text/javascript">
-        function getUtterances(isDark) {
-          var utterances = document.createElement('script');
-          utterances.type = 'text/javascript';
-          utterances.async = true;
-          utterances.setAttribute('issue-term', "pathname")
-          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
-          utterances.setAttribute('label', "comments")
-          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
-          utterances.crossorigin = 'anonymous';
-          utterances.src = 'https://utteranc.es/client.js';
-
-          return utterances
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
         }
-
-        var themeToggle = document.querySelector(".theme-toggle")
-        themeToggle.addEventListener("click", function () {
-          var getTheme = window.localStorage && window.localStorage.getItem("theme")
-          var divNode = document.getElementById('github-comment')
-          while(divNode.hasChildNodes()) {
-            divNode.removeChild(divNode.firstChild);
-          }
-          
-          
-          
-
-          
-          
-          
-          
-          
-          
-          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
-        })
-
-        var getTheme = window.localStorage && window.localStorage.getItem("theme")
-        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
-      </script>
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "kingcos" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div>
+                
+            </div>
+        </div>
     </div>
-    
-
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://kingcos.me">Powered by kingcos with love.</a>
     </div>
 
-      </div>
-
-      
-        <footer class="footer">
-  <div class="footer__inner">
-    
-      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
-    
-  </div>
+    <div class="footer_slogan">
+        <span>❤️</span>
+    </div>
 </footer>
+    <script src="https://kingcos.me/js/jquery-3.5.1.min.js"></script>
+<link href="https://kingcos.me/css/fancybox.min.css" rel="stylesheet">
+<script src="https://kingcos.me/js/fancybox.min.js"></script>
+<script src="https://kingcos.me/js/zozo.js"></script>
 
-<script src="/assets/main.js"></script>
-<script src="/assets/prism.js"></script>
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
 
 
 
-      
-    </div>
-
-    
-      
 <script type="application/javascript">
 var doNotTrack = false;
 if (!doNotTrack) {
-	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
 	ga('create', 'UA-138311951-1', 'auto');
 	
 	ga('send', 'pageview');
 }
 </script>
-    
-  </body>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+
 </html>

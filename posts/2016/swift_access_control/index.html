@@ -1,152 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
+<html lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="kingcos" />
+	
+	
+	
+	<title>Swift 拾遗 - 访问控制 ｜ 萌面大道</title>
+	
     
-      <title>Swift 拾遗 - 访问控制 :: iBlog</title>
     
-    <meta http-equiv="content-type" content="text/html; charset=utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Access Control in Swift 3.0
-  Info: macOS 10.12.1 Beta 4 Xcode 8.1 Beta 3 Swift 3.0  前言 学习过 Java 等面向对象语言的同学对访问控制一定不陌生，Swift 3 相较于之前的版本，新加了两个关于访问控制修饰符，open 和 fileprivate。因此，是时候总结一下这四个关键字的基本用法，因为暂未涉及到复杂的访问控制，故为浅谈。
-另外，由于 Apple.com 的所有文档均无权翻译，所以取消之前的翻译，转为自己的理解和代码，权当给自己做个笔记。
-Demo 访问控制修饰符的限制性 高-&amp;gt;低 排序为下：
-open &amp;gt; public &amp;gt; internal(默认) &amp;gt; fileprivate &amp;gt; private
-访问控制的使用原则：不允许将实体定义在限制性更强的实体内。所以，以下代码均为错误用法，并注明了错误信息：
-class Cat: NSObject { var name: String? } public var cat = Cat() // Error: Variable cannot be declared public because its type &amp;#39;Cat&amp;#39; uses an internal type // public 变量不能为 internal，fileprivate，private 类型 public func testAccessControl(_ cat: Cat) { return cat } // Error: Function cannot be declared public because its parameter uses an internal type // 函数或方法的访问限制级别不能高于其参数类型 public func testAccessControl() -&amp;gt; Cat { return Cat() } // Error: Function cannot be declared public because its result uses an internal type // 函数或方法的访问限制级别不能高于其返回值类型 open &amp;amp; public open 是 Swift 3 新增的访问控制符，相较于 public 更加开放。open 和 public 都是可以跨 Module 访问的，但 open 修饰的类可以继承，修饰的方法可以重写（此时，open 需同时修饰该方法以及所在类），而 public 不可以。"/>
-<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
-<meta name="robots" content="noodp"/>
-<link rel="canonical" href="/posts/2016/swift_access_control/" />
+    <meta name="description" content="《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。今天我们将一起简单探究 Swift 中的访问控制。" />
+    
 
+    
+    
+    <meta name="keywords" content="Hugo, theme, zozo" />
+    
 
+	
+    
+    <link rel="shortcut icon" href="https://kingcos.me/images/favicon.png" />
 
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.mecss/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/highlight.css" />
 
-
-<link rel="stylesheet" href="/assets/style.css">
-
-
-<link rel="stylesheet" href="/style.css">
-
-
-<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
-<link rel="shortcut icon" href="/img/favicon.png">
-
-
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Swift 拾遗 - 访问控制"/>
-<meta name="twitter:description" content="《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。今天我们将一起简单探究 Swift 中的访问控制。"/>
-
-
-
-<meta property="og:title" content="Swift 拾遗 - 访问控制" />
-<meta property="og:description" content="《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。今天我们将一起简单探究 Swift 中的访问控制。" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="/posts/2016/swift_access_control/" /><meta property="article:section" content="posts" />
-<meta property="article:published_time" content="2016-10-20T00:00:00&#43;00:00" />
-<meta property="article:modified_time" content="2016-10-20T00:00:00&#43;00:00" /><meta property="og:site_name" content="iBlog" />
-
-
-
-
+    
+    
+</head>
 
 <script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
 
-  </head>
-  <body class="">
-    <div class="container">
-      <header class="header">
-  <span class="header__inner">
-    <a href="/" class="logo" style="text-decoration: none;">
-  
-    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
-  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
-</svg>
-</span>
-    <span class="logo__text">kingcos.me</span>
-    <span class="logo__cursor"></span>
-  
-</a>
 
-    <span class="header__right">
-      
-        <nav class="menu">
-  <ul class="menu__inner menu__inner--desktop">
-    
-      
-        
-          <li><a href="/about">About</a></li>
-        
-      
-        
-          <li><a href="/read">Read</a></li>
-        
-      
-      
-    
-  </ul>
-
-  <ul class="menu__inner menu__inner--mobile">
-    
-      
-        <li><a href="/about">About</a></li>
-      
-    
-      
-        <li><a href="/read">Read</a></li>
-      
-    
-  </ul>
-</nav>
-
-        <span class="menu-trigger">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M0 0h24v24H0z" fill="none"/>
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-          </svg>
-        </span>
-      
-      <span class="theme-toggle">
-        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
-  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
-  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
-</svg>
-
-      </span>
-    </span>
-  </span>
-</header>
-
-
-      <div class="content">
-        
-  <div class="post">
-    <h2 class="post-title"><a href="/posts/2016/swift_access_control/">Swift 拾遗 - 访问控制</a></h2>
-    <div class="post-meta">
-      
-        <span class="post-date">
-            2016-10-20
-        </span>
-      
-      
-      
-        <span class="post-read-time">— 3 min read</span>
-      
+<body>
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/posts/">Archive</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/about/">About</a>
+            </li>
+            
+        </ul>
     </div>
-
-    
-      <span class="post-tags">
-        
-          #<a href="/tags/swift/">Swift</a>&nbsp;
-        
-          #<a href="/tags/swift-%E6%8B%BE%E9%81%97/">Swift 拾遗</a>&nbsp;
-        
-      </span>
-    
-
-    
-
-    <div class="post-content">
-      <blockquote>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            <h1>
+                <a href="https://kingcos.me">
+                    <span>萌面大道</span>
+                </a>
+            </h1>
+        </div>
+        <div class="description">
+            <p class="sub_title">kingcos | Focus</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/kingcos" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://www.instagram.com/kingcos_v/" title="instagram" target="_blank"><i class="ri-instagram-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/kingcos_v" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/u/1798410923" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                <a href="https://kingcos.me/index.xml" type="application/rss+xml" title="rss" target="_blank"><i
+                        class="ri-rss-fill"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/2016/swift_access_control/'>Swift 拾遗 - 访问控制</a></h2>
+                        <span class="date">2016.10.20</span>
+                    </div>
+                    <div class="post_content markdown"><blockquote>
 <p>Access Control in Swift 3.0</p>
 </blockquote>
 <ul>
@@ -162,179 +123,179 @@ class Cat: NSObject { var name: String? } public var cat = Cat() // Error: Varia
 <p>访问控制修饰符的限制性 <strong>高-&gt;低</strong> 排序为下：</p>
 <p><code>open</code> &gt; <code>public</code> &gt; <code>internal</code>(默认) &gt; <code>fileprivate</code> &gt; <code>private</code></p>
 <p>访问控制的使用原则：<strong>不允许将实体定义在限制性更强的实体内</strong>。所以，以下代码均为错误用法，并注明了错误信息：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Cat</span>: NSObject {
-    <span style="color:#66d9ef">var</span> name: String?
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">Cat</span><span class="p">:</span> <span class="n">NSObject</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nv">name</span><span class="p">:</span> <span class="nb">String</span><span class="p">?</span>
+<span class="p">}</span>
 
-<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">var</span> cat = Cat()
-<span style="color:#75715e">// Error: Variable cannot be declared public because its type &#39;Cat&#39; uses an internal type</span>
-<span style="color:#75715e">// public 变量不能为 internal，fileprivate，private 类型</span>
+<span class="kd">public</span> <span class="kd">var</span> <span class="nv">cat</span> <span class="p">=</span> <span class="n">Cat</span><span class="p">()</span>
+<span class="c1">// Error: Variable cannot be declared public because its type &#39;Cat&#39; uses an internal type</span>
+<span class="c1">// public 变量不能为 internal，fileprivate，private 类型</span>
 
-<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">testAccessControl</span>(<span style="color:#66d9ef">_</span> cat: Cat) {
-    <span style="color:#66d9ef">return</span> cat
-}
-<span style="color:#75715e">// Error: Function cannot be declared public because its parameter uses an internal type</span>
-<span style="color:#75715e">// 函数或方法的访问限制级别不能高于其参数类型</span>
+<span class="kd">public</span> <span class="kd">func</span> <span class="nf">testAccessControl</span><span class="p">(</span><span class="kc">_</span> <span class="n">cat</span><span class="p">:</span> <span class="n">Cat</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">cat</span>
+<span class="p">}</span>
+<span class="c1">// Error: Function cannot be declared public because its parameter uses an internal type</span>
+<span class="c1">// 函数或方法的访问限制级别不能高于其参数类型</span>
 
-<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">testAccessControl</span>() -&gt; Cat {
-    <span style="color:#66d9ef">return</span> Cat()
-}
-<span style="color:#75715e">// Error: Function cannot be declared public because its result uses an internal type</span>
-<span style="color:#75715e">// 函数或方法的访问限制级别不能高于其返回值类型</span>
+<span class="kd">public</span> <span class="kd">func</span> <span class="nf">testAccessControl</span><span class="p">()</span> <span class="p">-&gt;</span> <span class="n">Cat</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">Cat</span><span class="p">()</span>
+<span class="p">}</span>
+<span class="c1">// Error: Function cannot be declared public because its result uses an internal type</span>
+<span class="c1">// 函数或方法的访问限制级别不能高于其返回值类型</span>
 </code></pre></div><h3 id="open--public"><code>open</code> &amp; <code>public</code></h3>
 <p><code>open</code> 是 Swift 3 新增的访问控制符，相较于 <code>public</code> 更加开放。<code>open</code> 和 <code>public</code> 都是可以跨 Module 访问的，但 <code>open</code> 修饰的类可以继承，修饰的方法可以重写（此时，<code>open</code> 需同时修饰该方法以及所在类），而 <code>public</code> 不可以。</p>
 <p>至于 <code>public final</code> 与 <code>public</code>，前者在任何地方均不可重写，而后者可在本 Module 内重写。</p>
 <h4 id="demo-1">Demo</h4>
 <p>ModuleA: Person.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// open 修饰的类可以为其他 Module 所访问和继承</span>
-open <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Person</span>: NSObject {
-    <span style="color:#75715e">// 属性：</span>
-    <span style="color:#75715e">// 子类可访问，不可重写</span>
-    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">var</span> note = <span style="color:#e6db74">&#34;maimieng.com&#34;</span>
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// open 修饰的类可以为其他 Module 所访问和继承</span>
+<span class="n">open</span> <span class="kd">class</span> <span class="nc">Person</span><span class="p">:</span> <span class="n">NSObject</span> <span class="p">{</span>
+    <span class="c1">// 属性：</span>
+    <span class="c1">// 子类可访问，不可重写</span>
+    <span class="kd">public</span> <span class="kd">var</span> <span class="nv">note</span> <span class="p">=</span> <span class="s">&#34;maimieng.com&#34;</span>
     
-    <span style="color:#75715e">// 方法：</span>
-    <span style="color:#75715e">// 子类可访问，可重写</span>
-    open <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">work</span>() {
-        print(<span style="color:#e6db74">&#34;Work&#34;</span>)
-    }
+    <span class="c1">// 方法：</span>
+    <span class="c1">// 子类可访问，可重写</span>
+    <span class="n">open</span> <span class="kd">func</span> <span class="nf">work</span><span class="p">()</span> <span class="p">{</span>
+        <span class="bp">print</span><span class="p">(</span><span class="s">&#34;Work&#34;</span><span class="p">)</span>
+    <span class="p">}</span>
     
-    <span style="color:#75715e">// 子类可访问，不可重写</span>
-    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">eat</span>() {
-        print(<span style="color:#e6db74">&#34;Eat it&#34;</span>)
-    }
+    <span class="c1">// 子类可访问，不可重写</span>
+    <span class="kd">public</span> <span class="kd">func</span> <span class="nf">eat</span><span class="p">()</span> <span class="p">{</span>
+        <span class="bp">print</span><span class="p">(</span><span class="s">&#34;Eat it&#34;</span><span class="p">)</span>
+    <span class="p">}</span>
     
-    <span style="color:#75715e">// 子类可访问，不可重写</span>
-    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">final</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">walk</span>() {
-        print(<span style="color:#e6db74">&#34;Take a walk&#34;</span>)
-    }
-}
+    <span class="c1">// 子类可访问，不可重写</span>
+    <span class="kd">public</span> <span class="kr">final</span> <span class="kd">func</span> <span class="nf">walk</span><span class="p">()</span> <span class="p">{</span>
+        <span class="bp">print</span><span class="p">(</span><span class="s">&#34;Take a walk&#34;</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><p>ModuleB: Programmer.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">ModuleA</span>
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">import</span> <span class="nc">ModuleA</span>
 
-<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Programmer</span>: Person {
-    <span style="color:#75715e">// 只可重写 open 方法</span>
-    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">work</span>() {
-        <span style="color:#75715e">// 可访问父类 public 和 public final 方法</span>
-        eat()
-        walk()
+<span class="kd">class</span> <span class="nc">Programmer</span><span class="p">:</span> <span class="n">Person</span> <span class="p">{</span>
+    <span class="c1">// 只可重写 open 方法</span>
+    <span class="kr">override</span> <span class="kd">func</span> <span class="nf">work</span><span class="p">()</span> <span class="p">{</span>
+        <span class="c1">// 可访问父类 public 和 public final 方法</span>
+        <span class="n">eat</span><span class="p">()</span>
+        <span class="n">walk</span><span class="p">()</span>
         
-        print(<span style="color:#e6db74">&#34;Writing </span><span style="color:#ae81ff">\\</span><span style="color:#e6db74">(note)&#34;</span>)
-    }
-}
+        <span class="bp">print</span><span class="p">(</span><span class="s">&#34;Writing </span><span class="se">\\</span><span class="s">(note)&#34;</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><h4 id="错误信息汇总">错误信息汇总</h4>
 <h5 id="重写父类-public-方法">重写父类 public 方法</h5>
 <p>ModuleA: Person.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift">open <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Person</span>: NSObject {
-    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">eat</span>() {
-        print(<span style="color:#e6db74">&#34;Eat it&#34;</span>)
-    }
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="n">open</span> <span class="kd">class</span> <span class="nc">Person</span><span class="p">:</span> <span class="n">NSObject</span> <span class="p">{</span>
+    <span class="kd">public</span> <span class="kd">func</span> <span class="nf">eat</span><span class="p">()</span> <span class="p">{</span>
+        <span class="bp">print</span><span class="p">(</span><span class="s">&#34;Eat it&#34;</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><p>ModuleB: Programmer.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">ModuleA</span>
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">import</span> <span class="nc">ModuleA</span>
 
-<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Programmer</span>: Person {
-    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">eat</span>() {
-        print(<span style="color:#e6db74">&#34;Hamburger!!&#34;</span>)
-    }
-}
+<span class="kd">class</span> <span class="nc">Programmer</span><span class="p">:</span> <span class="n">Person</span> <span class="p">{</span>
+    <span class="kr">override</span> <span class="kd">func</span> <span class="nf">eat</span><span class="p">()</span> <span class="p">{</span>
+        <span class="bp">print</span><span class="p">(</span><span class="s">&#34;Hamburger!!&#34;</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><p><strong>Overriding non-open instance method outside of its defining module</strong></p>
 <hr>
 <h5 id="重写父类-public-属性">重写父类 public 属性</h5>
 <p>ModuleA: Person.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift">open <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Person</span>: NSObject {
-    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">var</span> note = <span style="color:#e6db74">&#34;maimieng.com&#34;</span>
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="n">open</span> <span class="kd">class</span> <span class="nc">Person</span><span class="p">:</span> <span class="n">NSObject</span> <span class="p">{</span>
+    <span class="kd">public</span> <span class="kd">var</span> <span class="nv">note</span> <span class="p">=</span> <span class="s">&#34;maimieng.com&#34;</span>
+<span class="p">}</span>
 </code></pre></div><p>ModuleB: Programmer.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">ModuleA</span>
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">import</span> <span class="nc">ModuleA</span>
 
-<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Programmer</span>: Person {
-    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">var</span> note: String {
-        <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;v1024.cn&#34;</span>
-    }
-}
+<span class="kd">class</span> <span class="nc">Programmer</span><span class="p">:</span> <span class="n">Person</span> <span class="p">{</span>
+    <span class="kr">override</span> <span class="kd">var</span> <span class="nv">note</span><span class="p">:</span> <span class="nb">String</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s">&#34;v1024.cn&#34;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><hr>
 <p><strong>Overriding non-open var outside of its defining module</strong></p>
 <h5 id="重写-public-父类">重写 public 父类</h5>
 <p>ModuleA: Animal.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Animal</span>: NSObject {}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Animal</span><span class="p">:</span> <span class="n">NSObject</span> <span class="p">{}</span>
 </code></pre></div><p>ModuleB: Programmer.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">ModuleA</span>
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">import</span> <span class="nc">ModuleA</span>
 
-<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Dog</span>: Animal {}
+<span class="kd">class</span> <span class="nc">Dog</span><span class="p">:</span> <span class="n">Animal</span> <span class="p">{}</span>
 </code></pre></div><p><strong>Cannot inherit from non-open class &lsquo;Animal&rsquo; outside of its defining module</strong></p>
 <h3 id="internal"><code>internal</code></h3>
 <p><code>internal</code> 是 Swift 中默认／缺省的访问控制级别。网上对于其他修饰符的解释有很多，而 <code>internal</code> 却很少。<code>internal</code> 对自身 Module 开放所有源文件，而对外界源代码屏蔽。</p>
 <h4 id="demo-2">Demo</h4>
 <p>ModuleA: Person.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Person</span>: NSObject {
-    <span style="color:#66d9ef">var</span> name = <span style="color:#e6db74">&#34;Person Name&#34;</span>
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">Person</span><span class="p">:</span> <span class="n">NSObject</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nv">name</span> <span class="p">=</span> <span class="s">&#34;Person Name&#34;</span>
+<span class="p">}</span>
 </code></pre></div><p>ModuleA: Designer.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Designer</span>: Person {
-    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">test</span>() {
-        print(<span style="color:#e6db74">&#34;test internal&#34;</span>)
-    }
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">Designer</span><span class="p">:</span> <span class="n">Person</span> <span class="p">{</span>
+    <span class="kd">func</span> <span class="nf">test</span><span class="p">()</span> <span class="p">{</span>
+        <span class="bp">print</span><span class="p">(</span><span class="s">&#34;test internal&#34;</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><h4 id="错误信息汇总-1">错误信息汇总</h4>
 <p>在 ModuleB 访问 ModuleA</p>
 <p>ModuleA: Person.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Person</span>: NSObject {
-    <span style="color:#66d9ef">var</span> name = <span style="color:#e6db74">&#34;Person Name&#34;</span>
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">Person</span><span class="p">:</span> <span class="n">NSObject</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nv">name</span> <span class="p">=</span> <span class="s">&#34;Person Name&#34;</span>
+<span class="p">}</span>
 </code></pre></div><p>ModuleB: Programmer.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">ModuleA</span>
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">import</span> <span class="nc">ModuleA</span>
 
-<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Programmer</span>: Person {}
+<span class="kd">class</span> <span class="nc">Programmer</span><span class="p">:</span> <span class="n">Person</span> <span class="p">{}</span>
 </code></pre></div><p><strong>Use of undeclared type &lsquo;Person&rsquo;</strong></p>
 <h3 id="fileprivate--private"><code>fileprivate</code> &amp; <code>private</code></h3>
 <p>Swift 3 新增的另一个访问修饰符是 <code>fileprivate</code>。</p>
 <h4 id="demo-3">Demo</h4>
 <p>main.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Animal</span>: NSObject {
-    <span style="color:#75715e">// 默认／缺省 internal</span>
-    <span style="color:#66d9ef">var</span> name: String?
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">Animal</span><span class="p">:</span> <span class="n">NSObject</span> <span class="p">{</span>
+    <span class="c1">// 默认／缺省 internal</span>
+    <span class="kd">var</span> <span class="nv">name</span><span class="p">:</span> <span class="nb">String</span><span class="p">?</span>
     
-    <span style="color:#75715e">// private 仅可在本类中访问</span>
-    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">var</span> privateProp = <span style="color:#e6db74">&#34;Private Property&#34;</span>
-    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">privateMethod</span>() {}
+    <span class="c1">// private 仅可在本类中访问</span>
+    <span class="kd">private</span> <span class="kd">var</span> <span class="nv">privateProp</span> <span class="p">=</span> <span class="s">&#34;Private Property&#34;</span>
+    <span class="kd">private</span> <span class="kd">func</span> <span class="nf">privateMethod</span><span class="p">()</span> <span class="p">{}</span>
     
-    <span style="color:#75715e">// fileprivate 可在当前文件内所有类访问</span>
-    fileprivate <span style="color:#66d9ef">var</span> filePrivateProp = <span style="color:#e6db74">&#34;File Private Property&#34;</span>
-    fileprivate <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">filePrivateMethod</span>() {}
-}
+    <span class="c1">// fileprivate 可在当前文件内所有类访问</span>
+    <span class="n">fileprivate</span> <span class="kd">var</span> <span class="nv">filePrivateProp</span> <span class="p">=</span> <span class="s">&#34;File Private Property&#34;</span>
+    <span class="n">fileprivate</span> <span class="kd">func</span> <span class="nf">filePrivateMethod</span><span class="p">()</span> <span class="p">{}</span>
+<span class="p">}</span>
 
-<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Cat</span>: Animal {
-    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">test</span>() {
-        filePrivateMethod()
-        print(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\\</span><span style="color:#e6db74">(filePrivateProp)&#34;</span>)
-    }
+<span class="kd">class</span> <span class="nc">Cat</span><span class="p">:</span> <span class="n">Animal</span> <span class="p">{</span>
+    <span class="kd">func</span> <span class="nf">test</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">filePrivateMethod</span><span class="p">()</span>
+        <span class="bp">print</span><span class="p">(</span><span class="s">&#34;</span><span class="se">\\</span><span class="s">(filePrivateProp)&#34;</span><span class="p">)</span>
+    <span class="p">}</span>
     
-    fileprivate <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">filePrivateMethod</span>() {}
-}
+    <span class="n">fileprivate</span> <span class="kr">override</span> <span class="kd">func</span> <span class="nf">filePrivateMethod</span><span class="p">()</span> <span class="p">{}</span>
+<span class="p">}</span>
 </code></pre></div><h4 id="错误信息汇总-2">错误信息汇总</h4>
 <h5 id="子类访问父类-private-成员">子类访问父类 private 成员</h5>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Animal</span>: NSObject {
-    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">privateMethod</span>() {}
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">Animal</span><span class="p">:</span> <span class="n">NSObject</span> <span class="p">{</span>
+    <span class="kd">private</span> <span class="kd">func</span> <span class="nf">privateMethod</span><span class="p">()</span> <span class="p">{}</span>
+<span class="p">}</span>
 
-<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Cat</span>: Animal {
-    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">test</span>() {
-        privateMethod()
-    }
-}
+<span class="kd">class</span> <span class="nc">Cat</span><span class="p">:</span> <span class="n">Animal</span> <span class="p">{</span>
+    <span class="kd">func</span> <span class="nf">test</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">privateMethod</span><span class="p">()</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><p><strong>&lsquo;privateMethod&rsquo; is inaccessible due to &lsquo;private&rsquo; protection level</strong></p>
 <hr>
 <h5 id="其他文件的子类访问-fileprivate-成员">其他文件的子类访问 fileprivate 成员</h5>
 <p>main.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Animal</span>: NSObject {
-    fileprivate <span style="color:#66d9ef">var</span> filePrivateProp = <span style="color:#e6db74">&#34;File Private Property&#34;</span>
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">Animal</span><span class="p">:</span> <span class="n">NSObject</span> <span class="p">{</span>
+    <span class="n">fileprivate</span> <span class="kd">var</span> <span class="nv">filePrivateProp</span> <span class="p">=</span> <span class="s">&#34;File Private Property&#34;</span>
+<span class="p">}</span>
 </code></pre></div><p>Cat.swift</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Cat</span>: Animal {
-    <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">test</span>() {
-        print(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\\</span><span style="color:#e6db74">(filePrivateProp)&#34;</span>)
-    }
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">Cat</span><span class="p">:</span> <span class="n">Animal</span> <span class="p">{</span>
+    <span class="kd">func</span> <span class="nf">test</span><span class="p">()</span> <span class="p">{</span>
+        <span class="bp">print</span><span class="p">(</span><span class="s">&#34;</span><span class="se">\\</span><span class="s">(filePrivateProp)&#34;</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><p><strong>&lsquo;filePrivateProp&rsquo; is inaccessible due to &lsquo;fileprivate&rsquo; protection level</strong></p>
 <h2 id="总结">总结</h2>
 <p>在 Swift 3 中新增的访问控制修饰符，使得 Swift 的访问控制更加灵活。使用不同的访问修饰符，可以使得程序耦合性降低，对外界屏蔽内部的实现细节。但是，Objective-C 是一门允许动态处理的语言，<code>private</code> 只是所谓的私有，而不是真正的私有，通过 KVC 还是可以获取到内部的细节，而 Swift 由于性能的考虑，默认关闭了动态处理，下一篇谈谈 Swift 中的 KVC &amp; KVO。</p>
@@ -343,143 +304,116 @@ open <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Person
 <li><a href="https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/AccessControl.html">Access Control</a></li>
 <li><a href="https://maimieng.com/2016/24/">在 iOS 项目中新建 Module</a></li>
 </ul>
-
-    </div>
-    
-      <div class="pagination">
-        <div class="pagination__title">
-          <span class="pagination__title-h">Read other posts</span>
-          <hr />
-        </div>
-        <div class="pagination__buttons">
-          
-            <span class="button previous">
-              <a href="/posts/2017/swift_selector/">
-                <span class="button__icon">←</span>
-                <span class="button__text">Swift 中的 Selector</span>
-              </a>
-            </span>
-          
-          
-            <span class="button next">
-              <a href="/posts/2015/depr_gitgithub-notes/">
-                <span class="button__text">Git/GitHub－Note</span>
-                <span class="button__icon">→</span>
-              </a>
-            </span>
-          
-        </div>
-      </div>
-    
-
-    
-
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-<table style="border: 0;">
-  <tr>
-  <td style="border: 0; width: 30%;">
-    <img src='/img/about/1.jpg'>
-  </td>
-  <td style="border: 0;">
-    <ins class="adsbygoogle"
-     style="display:block"
-     data-ad-client="ca-pub-9925978992661955"
-     data-ad-slot="3213735320"
-     data-ad-format="auto"
-     data-full-width-responsive="true"></ins>
-  </td>
-  </tr>
-</table>
-
-
-
-<script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
-</script>
-
-
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://kingcos.me/tags/swift/">Swift</a>
+                                    
+                                    <a href="https://kingcos.me/tags/swift-%E6%8B%BE%E9%81%97/">Swift 拾遗</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                <div class="doc_comments"><div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
     
     
-    <div>
-      <div id="github-comment">
-      </div>
-
-      <script type="text/javascript">
-        function getUtterances(isDark) {
-          var utterances = document.createElement('script');
-          utterances.type = 'text/javascript';
-          utterances.async = true;
-          utterances.setAttribute('issue-term', "pathname")
-          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
-          utterances.setAttribute('label', "comments")
-          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
-          utterances.crossorigin = 'anonymous';
-          utterances.src = 'https://utteranc.es/client.js';
-
-          return utterances
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
         }
-
-        var themeToggle = document.querySelector(".theme-toggle")
-        themeToggle.addEventListener("click", function () {
-          var getTheme = window.localStorage && window.localStorage.getItem("theme")
-          var divNode = document.getElementById('github-comment')
-          while(divNode.hasChildNodes()) {
-            divNode.removeChild(divNode.firstChild);
-          }
-          
-          
-          
-
-          
-          
-          
-          
-          
-          
-          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
-        })
-
-        var getTheme = window.localStorage && window.localStorage.getItem("theme")
-        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
-      </script>
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "kingcos" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div>
+                
+            </div>
+        </div>
     </div>
-    
-
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://kingcos.me">Powered by kingcos with love.</a>
     </div>
 
-      </div>
-
-      
-        <footer class="footer">
-  <div class="footer__inner">
-    
-      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
-    
-  </div>
+    <div class="footer_slogan">
+        <span>❤️</span>
+    </div>
 </footer>
+    <script src="https://kingcos.me/js/jquery-3.5.1.min.js"></script>
+<link href="https://kingcos.me/css/fancybox.min.css" rel="stylesheet">
+<script src="https://kingcos.me/js/fancybox.min.js"></script>
+<script src="https://kingcos.me/js/zozo.js"></script>
 
-<script src="/assets/main.js"></script>
-<script src="/assets/prism.js"></script>
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
 
 
 
-      
-    </div>
-
-    
-      
 <script type="application/javascript">
 var doNotTrack = false;
 if (!doNotTrack) {
-	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
 	ga('create', 'UA-138311951-1', 'auto');
 	
 	ga('send', 'pageview');
 }
 </script>
-    
-  </body>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+
 </html>

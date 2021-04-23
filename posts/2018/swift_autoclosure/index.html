@@ -1,150 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
+<html lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="kingcos" />
+	
+	
+	
+	<title>Swift 中的 @autoclosure ｜ 萌面大道</title>
+	
     
-      <title>Swift 中的 @autoclosure :: iBlog</title>
     
-    <meta http-equiv="content-type" content="text/html; charset=utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="description" content="Date Notes Swift Xcode Source Code     2020-08-23 完善排版与表述 5.1 11.3 -   2018-04-05 更新并明确源代码所用版本 4.1 9.3 Swift 4.1 Release   2018-01-13 首次提交 4.0.3 9.2 -    Preface Swift 中的闭包（Closure）十分类似于 Obj-C 中的 Block，但不仅写法更加简洁，也带来了许多新的特性。@autoclosure 即自动闭包属于类型属性（Type Attribute）的一种，意味着其可以对类型作出一些限定，那么本文就来简单介绍一下。
-How 自动闭包 @autoclosure 名称中即明确了这是一种自动闭包，即可以让返回该参数类型变量自动转换为闭包。但其只可以修饰无参闭包 () -&amp;gt; T，否则将会报错：error: argument type of @autoclosure parameter must be &#39;()&#39;。
-func logIfTrue(_ predicate: () -&amp;gt; Bool) { if predicate() { print(#function) } } // logIfTrue(predicate: () -&amp;gt; Bool) logIfTrue { 1 &amp;lt; 2 } func logIfTrueWithAutoclosure(_ predicate: @autoclosure () -&amp;gt; Bool) { if predicate() { print(#function) } } // logIfTrueWithAutoclosure(predicate: Bool) logIfTrueWithAutoclosure(1 &amp;lt; 2) // OUTPUT: // logIfTrue // logIfTrueWithAutoclosure 延迟调用 在 Swift 中，由于函数是第一类型，我们可以声明变量为函数类型："/>
-<meta name="keywords" content="kingcos.me,maimieng.comios,swift,objective-c,obj-c,objc,oc,geek,python,ruby,golang,go,apple,mac"/>
-<meta name="robots" content="noodp"/>
-<link rel="canonical" href="/posts/2018/swift_autoclosure/" />
+    <meta name="description" content="Swift 中的闭包（Closure）十分类似于 Obj-C 中的 Block，但不仅写法更加简洁，也带来了许多新的特性。@autoclosure 即自动闭包属于类型属性（Type Attribute）的一种，意味着其可以对类型作出一些限定，那么本文就来简单介绍一下。" />
+    
 
+    
+    
+    <meta name="keywords" content="Hugo, theme, zozo" />
+    
 
+	
+    
+    <link rel="shortcut icon" href="https://kingcos.me/images/favicon.png" />
 
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.mecss/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/highlight.css" />
 
-
-<link rel="stylesheet" href="/assets/style.css">
-
-
-<link rel="stylesheet" href="/style.css">
-
-
-<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/apple-touch-icon-144-precomposed.png">
-<link rel="shortcut icon" href="/img/favicon.png">
-
-
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Swift 中的 @autoclosure"/>
-<meta name="twitter:description" content="Swift 中的闭包（Closure）十分类似于 Obj-C 中的 Block，但不仅写法更加简洁，也带来了许多新的特性。`@autoclosure` 即自动闭包属于类型属性（Type Attribute）的一种，意味着其可以对类型作出一些限定，那么本文就来简单介绍一下。"/>
-
-
-
-<meta property="og:title" content="Swift 中的 @autoclosure" />
-<meta property="og:description" content="Swift 中的闭包（Closure）十分类似于 Obj-C 中的 Block，但不仅写法更加简洁，也带来了许多新的特性。`@autoclosure` 即自动闭包属于类型属性（Type Attribute）的一种，意味着其可以对类型作出一些限定，那么本文就来简单介绍一下。" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="/posts/2018/swift_autoclosure/" /><meta property="article:section" content="posts" />
-<meta property="article:published_time" content="2020-08-23T00:00:00&#43;00:00" />
-<meta property="article:modified_time" content="2020-08-23T00:00:00&#43;00:00" /><meta property="og:site_name" content="iBlog" />
-
-
-
-
+    
+    
+</head>
 
 <script data-ad-client="ca-pub-9925978992661955" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
 
-  </head>
-  <body class="">
-    <div class="container">
-      <header class="header">
-  <span class="header__inner">
-    <a href="/" class="logo" style="text-decoration: none;">
-  
-    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
-  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
-</svg>
-</span>
-    <span class="logo__text">kingcos.me</span>
-    <span class="logo__cursor"></span>
-  
-</a>
 
-    <span class="header__right">
-      
-        <nav class="menu">
-  <ul class="menu__inner menu__inner--desktop">
-    
-      
-        
-          <li><a href="/about">About</a></li>
-        
-      
-        
-          <li><a href="/read">Read</a></li>
-        
-      
-      
-    
-  </ul>
-
-  <ul class="menu__inner menu__inner--mobile">
-    
-      
-        <li><a href="/about">About</a></li>
-      
-    
-      
-        <li><a href="/read">Read</a></li>
-      
-    
-  </ul>
-</nav>
-
-        <span class="menu-trigger">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M0 0h24v24H0z" fill="none"/>
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-          </svg>
-        </span>
-      
-      <span class="theme-toggle">
-        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
-  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
-  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
-</svg>
-
-      </span>
-    </span>
-  </span>
-</header>
-
-
-      <div class="content">
-        
-  <div class="post">
-    <h2 class="post-title"><a href="/posts/2018/swift_autoclosure/">Swift 中的 @autoclosure</a></h2>
-    <div class="post-meta">
-      
-        <span class="post-date">
-            2020-08-23
-        </span>
-      
-      
-      
-        <span class="post-read-time">— 6 min read</span>
-      
+<body>
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/posts/">Archive</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/about/">About</a>
+            </li>
+            
+        </ul>
     </div>
-
-    
-      <span class="post-tags">
-        
-          #<a href="/tags/focus/">Focus</a>&nbsp;
-        
-          #<a href="/tags/ios/">iOS</a>&nbsp;
-        
-          #<a href="/tags/swift/">Swift</a>&nbsp;
-        
-      </span>
-    
-
-    
-
-    <div class="post-content">
-      <table>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            <h1>
+                <a href="https://kingcos.me">
+                    <span>萌面大道</span>
+                </a>
+            </h1>
+        </div>
+        <div class="description">
+            <p class="sub_title">kingcos | Focus</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/kingcos" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://www.instagram.com/kingcos_v/" title="instagram" target="_blank"><i class="ri-instagram-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/kingcos_v" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/u/1798410923" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                <a href="https://kingcos.me/index.xml" type="application/rss+xml" title="rss" target="_blank"><i
+                        class="ri-rss-fill"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/2018/swift_autoclosure/'>Swift 中的 @autoclosure</a></h2>
+                        <span class="date">2020.08.23</span>
+                    </div>
+                    <div class="post_content markdown"><table>
 <thead>
 <tr>
 <th style="text-align:center">Date</th>
@@ -184,101 +147,101 @@ func logIfTrue(_ predicate: () -&amp;gt; Bool) { if predicate() { print(#functio
 <h2 id="how">How</h2>
 <h3 id="自动闭包">自动闭包</h3>
 <p><code>@autoclosure</code> 名称中即明确了这是一种自动闭包，即可以让返回该参数类型变量自动转换为闭包。但其只可以修饰无参闭包 <code>() -&gt; T</code>，否则将会报错：<code>error: argument type of @autoclosure parameter must be '()'</code>。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">logIfTrue</span>(<span style="color:#66d9ef">_</span> predicate: () -&gt; Bool) {
-    <span style="color:#66d9ef">if</span> predicate() {
-        print(<span style="color:#66d9ef">#function</span>)
-    }
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">func</span> <span class="nf">logIfTrue</span><span class="p">(</span><span class="kc">_</span> <span class="n">predicate</span><span class="p">:</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">Bool</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="n">predicate</span><span class="p">()</span> <span class="p">{</span>
+        <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// logIfTrue(predicate: () -&gt; Bool)</span>
-logIfTrue { <span style="color:#ae81ff">1</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">2</span> }
+<span class="c1">// logIfTrue(predicate: () -&gt; Bool)</span>
+<span class="n">logIfTrue</span> <span class="p">{</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="p">}</span>
 
-<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">logIfTrueWithAutoclosure</span>(<span style="color:#66d9ef">_</span> predicate: <span style="color:#66d9ef">@autoclosure</span> () -&gt; Bool) {
-    <span style="color:#66d9ef">if</span> predicate() {
-        print(<span style="color:#66d9ef">#function</span>)
-    }
-}
+<span class="kd">func</span> <span class="nf">logIfTrueWithAutoclosure</span><span class="p">(</span><span class="kc">_</span> <span class="n">predicate</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">Bool</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="n">predicate</span><span class="p">()</span> <span class="p">{</span>
+        <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// logIfTrueWithAutoclosure(predicate: Bool)</span>
-logIfTrueWithAutoclosure(<span style="color:#ae81ff">1</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">2</span>)
+<span class="c1">// logIfTrueWithAutoclosure(predicate: Bool)</span>
+<span class="n">logIfTrueWithAutoclosure</span><span class="p">(</span><span class="mi">1</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span>
 
-<span style="color:#75715e">// OUTPUT:</span>
-<span style="color:#75715e">// logIfTrue</span>
-<span style="color:#75715e">// logIfTrueWithAutoclosure</span>
+<span class="c1">// OUTPUT:</span>
+<span class="c1">// logIfTrue</span>
+<span class="c1">// logIfTrueWithAutoclosure</span>
 </code></pre></div><h3 id="延迟调用">延迟调用</h3>
 <p>在 Swift 中，由于函数是第一类型，我们可以声明变量为函数类型：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">var</span> array = [<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">5</span>]
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">var</span> <span class="nv">array</span> <span class="p">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
 
-array.removeLast()
-print(array.count) <span style="color:#75715e">// 4</span>
+<span class="n">array</span><span class="p">.</span><span class="bp">removeLast</span><span class="p">()</span>
+<span class="bp">print</span><span class="p">(</span><span class="n">array</span><span class="p">.</span><span class="bp">count</span><span class="p">)</span> <span class="c1">// 4</span>
 
-<span style="color:#66d9ef">var</span> closureVar = { array.removeLast() }
-print(array.count) <span style="color:#75715e">// 4</span>
+<span class="kd">var</span> <span class="nv">closureVar</span> <span class="p">=</span> <span class="p">{</span> <span class="n">array</span><span class="p">.</span><span class="bp">removeLast</span><span class="p">()</span> <span class="p">}</span>
+<span class="bp">print</span><span class="p">(</span><span class="n">array</span><span class="p">.</span><span class="bp">count</span><span class="p">)</span> <span class="c1">// 4</span>
 
-<span style="color:#66d9ef">_</span> = closureVar()
-print(array.count) <span style="color:#75715e">// 3</span>
+<span class="kc">_</span> <span class="p">=</span> <span class="n">closureVar</span><span class="p">()</span>
+<span class="bp">print</span><span class="p">(</span><span class="n">array</span><span class="p">.</span><span class="bp">count</span><span class="p">)</span> <span class="c1">// 3</span>
 </code></pre></div><p>此时声明所使用的函数并不会被调用，只有当它们加上 <code>()</code> 真正被调用时，才会执行。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">returnBiggerThanZero</span>(<span style="color:#66d9ef">_</span> val1: Int, <span style="color:#66d9ef">_</span> val2: Int) -&gt; Int {
-    <span style="color:#66d9ef">return</span> val1 <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span> ? val1 : val2
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">func</span> <span class="nf">returnBiggerThanZero</span><span class="p">(</span><span class="kc">_</span> <span class="n">val1</span><span class="p">:</span> <span class="nb">Int</span><span class="p">,</span> <span class="kc">_</span> <span class="n">val2</span><span class="p">:</span> <span class="nb">Int</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="nb">Int</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">val1</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">?</span> <span class="n">val1</span> <span class="p">:</span> <span class="n">val2</span>
+<span class="p">}</span>
 
-print(returnBiggerThanZero(<span style="color:#ae81ff">10</span>, {
-    print(<span style="color:#e6db74">&#34;Run - 1&#34;</span>)
-    <span style="color:#66d9ef">return</span> (<span style="color:#ae81ff">0.</span>.&lt;<span style="color:#ae81ff">10</span>).reduce(<span style="color:#ae81ff">0</span>, <span style="color:#f92672">+</span>)
-}()))
+<span class="bp">print</span><span class="p">(</span><span class="n">returnBiggerThanZero</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="p">{</span>
+    <span class="bp">print</span><span class="p">(</span><span class="s">&#34;Run - 1&#34;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="mf">0.</span><span class="p">.&lt;</span><span class="mi">10</span><span class="p">).</span><span class="bp">reduce</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">+</span><span class="p">)</span>
+<span class="p">}()))</span>
 
-<span style="color:#75715e">// OUTPUT:</span>
-<span style="color:#75715e">// Run - 1</span>
-<span style="color:#75715e">// 10</span>
+<span class="c1">// OUTPUT:</span>
+<span class="c1">// Run - 1</span>
+<span class="c1">// 10</span>
 </code></pre></div><p>比如我们声明一个 <code>returnBiggerThanZero(_ val1: Int, _ val2: Int) -&gt; Int</code> 的函数，当 <code>val1</code> 大于 <code>0</code> 时，我们传递闭包返回值作为的参数完全没有必要执行，那么此时就可以将第二个参数声明为闭包类型，从而避免没有必要的闭包执行：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">returnBiggerThanZero</span>(<span style="color:#66d9ef">_</span> val1: Int, <span style="color:#66d9ef">_</span> val2: () -&gt; Int) -&gt; Int {
-    <span style="color:#66d9ef">return</span> val1 <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span> ? val1 : val2()
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">func</span> <span class="nf">returnBiggerThanZero</span><span class="p">(</span><span class="kc">_</span> <span class="n">val1</span><span class="p">:</span> <span class="nb">Int</span><span class="p">,</span> <span class="kc">_</span> <span class="n">val2</span><span class="p">:</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">Int</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="nb">Int</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">val1</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">?</span> <span class="n">val1</span> <span class="p">:</span> <span class="n">val2</span><span class="p">()</span>
+<span class="p">}</span>
 
-print(returnBiggerThanZero(<span style="color:#ae81ff">10</span>, {
-    print(<span style="color:#e6db74">&#34;Run - 1&#34;</span>)
-    <span style="color:#66d9ef">return</span> (<span style="color:#ae81ff">0.</span>.&lt;<span style="color:#ae81ff">10</span>).reduce(<span style="color:#ae81ff">0</span>, <span style="color:#f92672">+</span>)
-}))
+<span class="bp">print</span><span class="p">(</span><span class="n">returnBiggerThanZero</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="p">{</span>
+    <span class="bp">print</span><span class="p">(</span><span class="s">&#34;Run - 1&#34;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="mf">0.</span><span class="p">.&lt;</span><span class="mi">10</span><span class="p">).</span><span class="bp">reduce</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">+</span><span class="p">)</span>
+<span class="p">}))</span>
 
-print(returnBiggerThanZero(<span style="color:#f92672">-</span><span style="color:#ae81ff">10</span>, { <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span> }))
+<span class="bp">print</span><span class="p">(</span><span class="n">returnBiggerThanZero</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="p">{</span> <span class="o">-</span><span class="mi">1</span> <span class="p">}))</span>
 
-<span style="color:#75715e">// OUTPUT:</span>
-<span style="color:#75715e">// 10</span>
-<span style="color:#75715e">// -1</span>
+<span class="c1">// OUTPUT:</span>
+<span class="c1">// 10</span>
+<span class="c1">// -1</span>
 </code></pre></div><p>这时如果只是传递一个变量，则需要包装在闭包中，如上面的 <code>{ -1 }</code>，但又会显得很冗余，那么我们可以使用 <code>@autoclosure</code> 修饰该参数，即：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">returnBiggerThanZero</span>(<span style="color:#66d9ef">_</span> val1: Int, <span style="color:#66d9ef">_</span> val2: <span style="color:#66d9ef">@autoclosure</span> () -&gt; Int) -&gt; Int {
-    <span style="color:#66d9ef">return</span> val1 <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span> ? val1 : val2()
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">func</span> <span class="nf">returnBiggerThanZero</span><span class="p">(</span><span class="kc">_</span> <span class="n">val1</span><span class="p">:</span> <span class="nb">Int</span><span class="p">,</span> <span class="kc">_</span> <span class="n">val2</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">Int</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="nb">Int</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">val1</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">?</span> <span class="n">val1</span> <span class="p">:</span> <span class="n">val2</span><span class="p">()</span>
+<span class="p">}</span>
 
-print(returnBiggerThanZero(<span style="color:#ae81ff">10</span>, {
-    print(<span style="color:#e6db74">&#34;Run - 2&#34;</span>)
-    <span style="color:#66d9ef">return</span> (<span style="color:#ae81ff">0.</span>.&lt;<span style="color:#ae81ff">10</span>).reduce(<span style="color:#ae81ff">0</span>, <span style="color:#f92672">+</span>)
-}()))
-print(returnBiggerThanZero(<span style="color:#ae81ff">10</span>, (<span style="color:#ae81ff">0.</span>.&lt;<span style="color:#ae81ff">10</span>).reduce(<span style="color:#ae81ff">0</span>, <span style="color:#f92672">+</span>)))
-print(returnBiggerThanZero(<span style="color:#f92672">-</span><span style="color:#ae81ff">10</span>, <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>))
+<span class="bp">print</span><span class="p">(</span><span class="n">returnBiggerThanZero</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="p">{</span>
+    <span class="bp">print</span><span class="p">(</span><span class="s">&#34;Run - 2&#34;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="mf">0.</span><span class="p">.&lt;</span><span class="mi">10</span><span class="p">).</span><span class="bp">reduce</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">+</span><span class="p">)</span>
+<span class="p">}()))</span>
+<span class="bp">print</span><span class="p">(</span><span class="n">returnBiggerThanZero</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.</span><span class="p">.&lt;</span><span class="mi">10</span><span class="p">).</span><span class="bp">reduce</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">+</span><span class="p">)))</span>
+<span class="bp">print</span><span class="p">(</span><span class="n">returnBiggerThanZero</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
 
-<span style="color:#75715e">// OUTPUT:</span>
-<span style="color:#75715e">// 10</span>
-<span style="color:#75715e">// 10</span>
-<span style="color:#75715e">// -1</span>
+<span class="c1">// OUTPUT:</span>
+<span class="c1">// 10</span>
+<span class="c1">// 10</span>
+<span class="c1">// -1</span>
 </code></pre></div><p>这样我们传递参数时，既支持了延迟调用，也避免了闭包类型的冗余。</p>
 <h3 id="escaping">@escaping</h3>
 <p>当闭包的真正执行时机可能要在其所在函数返回之后时，通常使用 <code>@escaping</code>，可以用于处理一些耗时操作的回调。而 <code>@autoclosure</code> 与 <code>@escaping</code> 是可以同时使用的，且放置顺序可以颠倒：</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">doWith</span>(<span style="color:#66d9ef">_</span> completion: () -&gt; Void) {
-    completion()
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">func</span> <span class="nf">doWith</span><span class="p">(</span><span class="kc">_</span> <span class="n">completion</span><span class="p">:</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">Void</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">completion</span><span class="p">()</span>
+<span class="p">}</span>
 
-<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">doWithAutoclosureAndEscaping</span>(<span style="color:#66d9ef">_</span> escaper: <span style="color:#66d9ef">@autoclosure</span> @escaping () -&gt; Void) {
-    doWith {
-        escaper()
-    }
-}
+<span class="kd">func</span> <span class="nf">doWithAutoclosureAndEscaping</span><span class="p">(</span><span class="kc">_</span> <span class="n">escaper</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">@</span><span class="n">escaping</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">Void</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">doWith</span> <span class="p">{</span>
+        <span class="n">escaper</span><span class="p">()</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">doWithEscapingAndAutoclosure</span>(<span style="color:#66d9ef">_</span> escaper: @escaping <span style="color:#66d9ef">@autoclosure</span> () -&gt; Void) {
-    doWith {
-        escaper()
-    }
-}
+<span class="kd">func</span> <span class="nf">doWithEscapingAndAutoclosure</span><span class="p">(</span><span class="kc">_</span> <span class="n">escaper</span><span class="p">:</span> <span class="p">@</span><span class="n">escaping</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">Void</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">doWith</span> <span class="p">{</span>
+        <span class="n">escaper</span><span class="p">()</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><h2 id="source-code">Source Code</h2>
 <h3 id="test-cases">Test Cases</h3>
 <blockquote>
@@ -290,204 +253,204 @@ print(returnBiggerThanZero(<span style="color:#f92672">-</span><span style="colo
 <p>$SWIFT_SOURCE_CODE_PATH/stdlib/public/core/</p>
 </blockquote>
 <h4 id="短路short-circuit运算符">短路（Short Circuit）运算符</h4>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// Bool.swift</span>
-<span style="color:#66d9ef">extension</span> <span style="color:#a6e22e">Bool</span> {
-  @_inlineable <span style="color:#75715e">// FIXME(sil-serialize-all)</span>
-  @_transparent
-  @inline(__always)
-  <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">func</span> <span style="color:#f92672">&amp;&amp;</span> (lhs: Bool, rhs: <span style="color:#66d9ef">@autoclosure</span> () <span style="color:#66d9ef">throws</span> -&gt; Bool) <span style="color:#66d9ef">rethrows</span>
-      -&gt; Bool {
-    <span style="color:#66d9ef">return</span> lhs ? <span style="color:#66d9ef">try</span> rhs() : <span style="color:#66d9ef">false</span>
-  }
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// Bool.swift</span>
+<span class="kd">extension</span> <span class="nc">Bool</span> <span class="p">{</span>
+  <span class="p">@</span><span class="n">_inlineable</span> <span class="c1">// FIXME(sil-serialize-all)</span>
+  <span class="p">@</span><span class="n">_transparent</span>
+  <span class="p">@</span><span class="n">inline</span><span class="p">(</span><span class="n">__always</span><span class="p">)</span>
+  <span class="kd">public</span> <span class="kd">static</span> <span class="kd">func</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">lhs</span><span class="p">:</span> <span class="nb">Bool</span><span class="p">,</span> <span class="n">rhs</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="kr">throws</span> <span class="p">-&gt;</span> <span class="nb">Bool</span><span class="p">)</span> <span class="kr">rethrows</span>
+      <span class="p">-&gt;</span> <span class="nb">Bool</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">lhs</span> <span class="p">?</span> <span class="k">try</span> <span class="n">rhs</span><span class="p">()</span> <span class="p">:</span> <span class="kc">false</span>
+  <span class="p">}</span>
 
-  @_inlineable <span style="color:#75715e">// FIXME(sil-serialize-all)</span>
-  @_transparent
-  @inline(__always)
-  <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">func</span> <span style="color:#f92672">||</span> (lhs: Bool, rhs: <span style="color:#66d9ef">@autoclosure</span> () <span style="color:#66d9ef">throws</span> -&gt; Bool) <span style="color:#66d9ef">rethrows</span>
-      -&gt; Bool {
-    <span style="color:#66d9ef">return</span> lhs ? <span style="color:#66d9ef">true</span> : <span style="color:#66d9ef">try</span> rhs()
-  }
-}
+  <span class="p">@</span><span class="n">_inlineable</span> <span class="c1">// FIXME(sil-serialize-all)</span>
+  <span class="p">@</span><span class="n">_transparent</span>
+  <span class="p">@</span><span class="n">inline</span><span class="p">(</span><span class="n">__always</span><span class="p">)</span>
+  <span class="kd">public</span> <span class="kd">static</span> <span class="kd">func</span> <span class="o">||</span> <span class="p">(</span><span class="n">lhs</span><span class="p">:</span> <span class="nb">Bool</span><span class="p">,</span> <span class="n">rhs</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="kr">throws</span> <span class="p">-&gt;</span> <span class="nb">Bool</span><span class="p">)</span> <span class="kr">rethrows</span>
+      <span class="p">-&gt;</span> <span class="nb">Bool</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">lhs</span> <span class="p">?</span> <span class="kc">true</span> <span class="p">:</span> <span class="k">try</span> <span class="n">rhs</span><span class="p">()</span>
+  <span class="p">}</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// Optional.swift</span>
-@_inlineable <span style="color:#75715e">// FIXME(sil-serialize-all)</span>
-@_transparent
-<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> ?? &lt;T&gt;(<span style="color:#66d9ef">optional</span>: T?, defaultValue: <span style="color:#66d9ef">@autoclosure</span> () <span style="color:#66d9ef">throws</span> -&gt; T)
-    <span style="color:#66d9ef">rethrows</span> -&gt; T {
-  <span style="color:#66d9ef">switch</span> <span style="color:#66d9ef">optional</span> {
-  <span style="color:#66d9ef">case</span> .some(<span style="color:#66d9ef">let</span> value):
-    <span style="color:#66d9ef">return</span> value
-  <span style="color:#66d9ef">case</span> .<span style="color:#66d9ef">none</span>:
-    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">try</span> defaultValue()
-  }
-}
+<span class="c1">// Optional.swift</span>
+<span class="p">@</span><span class="n">_inlineable</span> <span class="c1">// FIXME(sil-serialize-all)</span>
+<span class="p">@</span><span class="n">_transparent</span>
+<span class="kd">public</span> <span class="kd">func</span> <span class="p">??</span> <span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;(</span><span class="kr">optional</span><span class="p">:</span> <span class="n">T</span><span class="p">?,</span> <span class="n">defaultValue</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="kr">throws</span> <span class="p">-&gt;</span> <span class="n">T</span><span class="p">)</span>
+    <span class="kr">rethrows</span> <span class="p">-&gt;</span> <span class="n">T</span> <span class="p">{</span>
+  <span class="k">switch</span> <span class="kr">optional</span> <span class="p">{</span>
+  <span class="k">case</span> <span class="p">.</span><span class="n">some</span><span class="p">(</span><span class="kd">let</span> <span class="nv">value</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">value</span>
+  <span class="k">case</span> <span class="p">.</span><span class="kr">none</span><span class="p">:</span>
+    <span class="k">return</span> <span class="k">try</span> <span class="n">defaultValue</span><span class="p">()</span>
+  <span class="p">}</span>
+<span class="p">}</span>
 
-@_inlineable <span style="color:#75715e">// FIXME(sil-serialize-all)</span>
-@_transparent
-<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> ?? &lt;T&gt;(<span style="color:#66d9ef">optional</span>: T?, defaultValue: <span style="color:#66d9ef">@autoclosure</span> () <span style="color:#66d9ef">throws</span> -&gt; T?)
-    <span style="color:#66d9ef">rethrows</span> -&gt; T? {
-  <span style="color:#66d9ef">switch</span> <span style="color:#66d9ef">optional</span> {
-  <span style="color:#66d9ef">case</span> .some(<span style="color:#66d9ef">let</span> value):
-    <span style="color:#66d9ef">return</span> value
-  <span style="color:#66d9ef">case</span> .<span style="color:#66d9ef">none</span>:
-    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">try</span> defaultValue()
-  }
-}
+<span class="p">@</span><span class="n">_inlineable</span> <span class="c1">// FIXME(sil-serialize-all)</span>
+<span class="p">@</span><span class="n">_transparent</span>
+<span class="kd">public</span> <span class="kd">func</span> <span class="p">??</span> <span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;(</span><span class="kr">optional</span><span class="p">:</span> <span class="n">T</span><span class="p">?,</span> <span class="n">defaultValue</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="kr">throws</span> <span class="p">-&gt;</span> <span class="n">T</span><span class="p">?)</span>
+    <span class="kr">rethrows</span> <span class="p">-&gt;</span> <span class="n">T</span><span class="p">?</span> <span class="p">{</span>
+  <span class="k">switch</span> <span class="kr">optional</span> <span class="p">{</span>
+  <span class="k">case</span> <span class="p">.</span><span class="n">some</span><span class="p">(</span><span class="kd">let</span> <span class="nv">value</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">value</span>
+  <span class="k">case</span> <span class="p">.</span><span class="kr">none</span><span class="p">:</span>
+    <span class="k">return</span> <span class="k">try</span> <span class="n">defaultValue</span><span class="p">()</span>
+  <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div><p>Swift 中的 <code>&amp;&amp;</code>、<code>||</code> 以及 <code>??</code> 属于短路运算符，即当表达式左边的结果已经可以决定整个运算符的返回值时（运算符的本质也是函数），右边便没有必要运算。利用了 <code>@autoclosure</code> 使得运算符右边可以为闭包，再凭借延迟调用特性保证了「短路」。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#66d9ef">var</span> flag = <span style="color:#ae81ff">0</span>
-<span style="color:#66d9ef">var</span> age: Int? = <span style="color:#66d9ef">nil</span>
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">var</span> <span class="nv">flag</span> <span class="p">=</span> <span class="mi">0</span>
+<span class="kd">var</span> <span class="nv">age</span><span class="p">:</span> <span class="nb">Int</span><span class="p">?</span> <span class="p">=</span> <span class="kc">nil</span>
 
-<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">getAgeA</span>() -&gt; Int? {
-    flag <span style="color:#f92672">+=</span> <span style="color:#ae81ff">10</span>
-    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">20</span>
-}
+<span class="kd">func</span> <span class="nf">getAgeA</span><span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">Int</span><span class="p">?</span> <span class="p">{</span>
+    <span class="n">flag</span> <span class="o">+=</span> <span class="mi">10</span>
+    <span class="k">return</span> <span class="mi">20</span>
+<span class="p">}</span>
 
-<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">getAgeB</span>() -&gt; Int? {
-    flag <span style="color:#f92672">+=</span> <span style="color:#ae81ff">100</span>
-    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
-}
+<span class="kd">func</span> <span class="nf">getAgeB</span><span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">Int</span><span class="p">?</span> <span class="p">{</span>
+    <span class="n">flag</span> <span class="o">+=</span> <span class="mi">100</span>
+    <span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
 
-age ?? getAgeA() ?? getAgeB()
-print(flag)
+<span class="n">age</span> <span class="p">??</span> <span class="n">getAgeA</span><span class="p">()</span> <span class="p">??</span> <span class="n">getAgeB</span><span class="p">()</span>
+<span class="bp">print</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span>
 
-<span style="color:#75715e">// OUTPUT:</span>
-<span style="color:#75715e">// 10</span>
+<span class="c1">// OUTPUT:</span>
+<span class="c1">// 10</span>
 </code></pre></div><h4 id="断言assert">断言（Assert）</h4>
 <p>断言相关的方法将某些参数设置为闭包类型，并标注了 <code>@autoclosure</code>，一是可以直接将闭包直接作为参数；二是当 Release 模式时，Closure 没有必要执行，即可节省开销（XCTest 和 Dispatch 中的部分方法同理）。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-swift" data-lang="swift"><span style="color:#75715e">// AssertCommon.swift</span>
-@_inlineable <span style="color:#75715e">// FIXME(sil-serialize-all)</span>
-<span style="color:#66d9ef">public</span> <span style="color:#75715e">// COMPILER_INTRINSIC</span>
-<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">_undefined</span>&lt;T&gt;(
-  <span style="color:#66d9ef">_</span> message: <span style="color:#66d9ef">@autoclosure</span> () -&gt; String = String(),
-  file: StaticString = <span style="color:#66d9ef">#file</span>, line: UInt = <span style="color:#66d9ef">#line</span>
-) -&gt; T {
-  _assertionFailure(<span style="color:#e6db74">&#34;Fatal error&#34;</span>, message(), file: file, line: line, flags: <span style="color:#ae81ff">0</span>)
-}
+<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// AssertCommon.swift</span>
+<span class="p">@</span><span class="n">_inlineable</span> <span class="c1">// FIXME(sil-serialize-all)</span>
+<span class="kd">public</span> <span class="c1">// COMPILER_INTRINSIC</span>
+<span class="kd">func</span> <span class="nf">_undefined</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;(</span>
+  <span class="kc">_</span> <span class="n">message</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">String</span> <span class="p">=</span> <span class="nb">String</span><span class="p">(),</span>
+  <span class="n">file</span><span class="p">:</span> <span class="nb">StaticString</span> <span class="p">=</span> <span class="kc">#file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">UInt</span> <span class="p">=</span> <span class="kc">#line</span>
+<span class="p">)</span> <span class="p">-&gt;</span> <span class="n">T</span> <span class="p">{</span>
+  <span class="n">_assertionFailure</span><span class="p">(</span><span class="s">&#34;Fatal error&#34;</span><span class="p">,</span> <span class="n">message</span><span class="p">(),</span> <span class="n">file</span><span class="p">:</span> <span class="n">file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="n">line</span><span class="p">,</span> <span class="n">flags</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+<span class="p">}</span>
 
-<span style="color:#75715e">// Assert.swift</span>
-@_inlineable <span style="color:#75715e">// FIXME(sil-serialize-all)</span>
-@_transparent
-<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">assert</span>(
-  <span style="color:#66d9ef">_</span> condition: <span style="color:#66d9ef">@autoclosure</span> () -&gt; Bool,
-  <span style="color:#66d9ef">_</span> message: <span style="color:#66d9ef">@autoclosure</span> () -&gt; String = String(),
-  file: StaticString = <span style="color:#66d9ef">#file</span>, line: UInt = <span style="color:#66d9ef">#line</span>
-) {
-  <span style="color:#75715e">// Only assert in debug mode.</span>
-  <span style="color:#75715e">// 在 Debug 模式且条件不成立，断言失败</span>
-  <span style="color:#66d9ef">if</span> _isDebugAssertConfiguration() {
-    <span style="color:#66d9ef">if</span> <span style="color:#f92672">!</span>_branchHint(condition(), expected: <span style="color:#66d9ef">true</span>) {
-      _assertionFailure(<span style="color:#e6db74">&#34;Assertion failed&#34;</span>, message(), file: file, line: line,
-        flags: _fatalErrorFlags())
-    }
-  }
-}
+<span class="c1">// Assert.swift</span>
+<span class="p">@</span><span class="n">_inlineable</span> <span class="c1">// FIXME(sil-serialize-all)</span>
+<span class="p">@</span><span class="n">_transparent</span>
+<span class="kd">public</span> <span class="kd">func</span> <span class="nf">assert</span><span class="p">(</span>
+  <span class="kc">_</span> <span class="n">condition</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">Bool</span><span class="p">,</span>
+  <span class="kc">_</span> <span class="n">message</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">String</span> <span class="p">=</span> <span class="nb">String</span><span class="p">(),</span>
+  <span class="n">file</span><span class="p">:</span> <span class="nb">StaticString</span> <span class="p">=</span> <span class="kc">#file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">UInt</span> <span class="p">=</span> <span class="kc">#line</span>
+<span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// Only assert in debug mode.</span>
+  <span class="c1">// 在 Debug 模式且条件不成立，断言失败</span>
+  <span class="k">if</span> <span class="n">_isDebugAssertConfiguration</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="o">!</span><span class="n">_branchHint</span><span class="p">(</span><span class="n">condition</span><span class="p">(),</span> <span class="n">expected</span><span class="p">:</span> <span class="kc">true</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">_assertionFailure</span><span class="p">(</span><span class="s">&#34;Assertion failed&#34;</span><span class="p">,</span> <span class="n">message</span><span class="p">(),</span> <span class="n">file</span><span class="p">:</span> <span class="n">file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="n">line</span><span class="p">,</span>
+        <span class="n">flags</span><span class="p">:</span> <span class="n">_fatalErrorFlags</span><span class="p">())</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
 
-@_inlineable <span style="color:#75715e">// FIXME(sil-serialize-all)</span>
-@_transparent
-<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">precondition</span>(
-  <span style="color:#66d9ef">_</span> condition: <span style="color:#66d9ef">@autoclosure</span> () -&gt; Bool,
-  <span style="color:#66d9ef">_</span> message: <span style="color:#66d9ef">@autoclosure</span> () -&gt; String = String(),
-  file: StaticString = <span style="color:#66d9ef">#file</span>, line: UInt = <span style="color:#66d9ef">#line</span>
-) {
-  <span style="color:#75715e">// Only check in debug and release mode.  In release mode just trap.</span>
-  <span style="color:#66d9ef">if</span> _isDebugAssertConfiguration() {
-    <span style="color:#66d9ef">if</span> <span style="color:#f92672">!</span>_branchHint(condition(), expected: <span style="color:#66d9ef">true</span>) {
-      _assertionFailure(<span style="color:#e6db74">&#34;Precondition failed&#34;</span>, message(), file: file, line: line,
-        flags: _fatalErrorFlags())
-    }
-  } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> _isReleaseAssertConfiguration() {
-    <span style="color:#66d9ef">let</span> error = <span style="color:#f92672">!</span>condition()
-    Builtin.condfail(error._value)
-  }
-}
+<span class="p">@</span><span class="n">_inlineable</span> <span class="c1">// FIXME(sil-serialize-all)</span>
+<span class="p">@</span><span class="n">_transparent</span>
+<span class="kd">public</span> <span class="kd">func</span> <span class="nf">precondition</span><span class="p">(</span>
+  <span class="kc">_</span> <span class="n">condition</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">Bool</span><span class="p">,</span>
+  <span class="kc">_</span> <span class="n">message</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">String</span> <span class="p">=</span> <span class="nb">String</span><span class="p">(),</span>
+  <span class="n">file</span><span class="p">:</span> <span class="nb">StaticString</span> <span class="p">=</span> <span class="kc">#file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">UInt</span> <span class="p">=</span> <span class="kc">#line</span>
+<span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// Only check in debug and release mode.  In release mode just trap.</span>
+  <span class="k">if</span> <span class="n">_isDebugAssertConfiguration</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="o">!</span><span class="n">_branchHint</span><span class="p">(</span><span class="n">condition</span><span class="p">(),</span> <span class="n">expected</span><span class="p">:</span> <span class="kc">true</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">_assertionFailure</span><span class="p">(</span><span class="s">&#34;Precondition failed&#34;</span><span class="p">,</span> <span class="n">message</span><span class="p">(),</span> <span class="n">file</span><span class="p">:</span> <span class="n">file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="n">line</span><span class="p">,</span>
+        <span class="n">flags</span><span class="p">:</span> <span class="n">_fatalErrorFlags</span><span class="p">())</span>
+    <span class="p">}</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="n">_isReleaseAssertConfiguration</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">let</span> <span class="nv">error</span> <span class="p">=</span> <span class="o">!</span><span class="n">condition</span><span class="p">()</span>
+    <span class="n">Builtin</span><span class="p">.</span><span class="n">condfail</span><span class="p">(</span><span class="n">error</span><span class="p">.</span><span class="n">_value</span><span class="p">)</span>
+  <span class="p">}</span>
+<span class="p">}</span>
 
-@_inlineable <span style="color:#75715e">// FIXME(sil-serialize-all)</span>
-@inline(__always)
-<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">assertionFailure</span>(
-  <span style="color:#66d9ef">_</span> message: <span style="color:#66d9ef">@autoclosure</span> () -&gt; String = String(),
-  file: StaticString = <span style="color:#66d9ef">#file</span>, line: UInt = <span style="color:#66d9ef">#line</span>
-) {
-  <span style="color:#66d9ef">if</span> _isDebugAssertConfiguration() {
-    _assertionFailure(<span style="color:#e6db74">&#34;Fatal error&#34;</span>, message(), file: file, line: line,
-      flags: _fatalErrorFlags())
-  }
-  <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> _isFastAssertConfiguration() {
-    _conditionallyUnreachable()
-  }
-}
+<span class="p">@</span><span class="n">_inlineable</span> <span class="c1">// FIXME(sil-serialize-all)</span>
+<span class="p">@</span><span class="n">inline</span><span class="p">(</span><span class="n">__always</span><span class="p">)</span>
+<span class="kd">public</span> <span class="kd">func</span> <span class="nf">assertionFailure</span><span class="p">(</span>
+  <span class="kc">_</span> <span class="n">message</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">String</span> <span class="p">=</span> <span class="nb">String</span><span class="p">(),</span>
+  <span class="n">file</span><span class="p">:</span> <span class="nb">StaticString</span> <span class="p">=</span> <span class="kc">#file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">UInt</span> <span class="p">=</span> <span class="kc">#line</span>
+<span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="n">_isDebugAssertConfiguration</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">_assertionFailure</span><span class="p">(</span><span class="s">&#34;Fatal error&#34;</span><span class="p">,</span> <span class="n">message</span><span class="p">(),</span> <span class="n">file</span><span class="p">:</span> <span class="n">file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="n">line</span><span class="p">,</span>
+      <span class="n">flags</span><span class="p">:</span> <span class="n">_fatalErrorFlags</span><span class="p">())</span>
+  <span class="p">}</span>
+  <span class="k">else</span> <span class="k">if</span> <span class="n">_isFastAssertConfiguration</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">_conditionallyUnreachable</span><span class="p">()</span>
+  <span class="p">}</span>
+<span class="p">}</span>
 
-@_inlineable <span style="color:#75715e">// FIXME(sil-serialize-all)</span>
-@_transparent
-<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">preconditionFailure</span>(
-  <span style="color:#66d9ef">_</span> message: <span style="color:#66d9ef">@autoclosure</span> () -&gt; String = String(),
-  file: StaticString = <span style="color:#66d9ef">#file</span>, line: UInt = <span style="color:#66d9ef">#line</span>
-) -&gt; Never {
-  <span style="color:#75715e">// Only check in debug and release mode.  In release mode just trap.</span>
-  <span style="color:#66d9ef">if</span> _isDebugAssertConfiguration() {
-    _assertionFailure(<span style="color:#e6db74">&#34;Fatal error&#34;</span>, message(), file: file, line: line,
-      flags: _fatalErrorFlags())
-  } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> _isReleaseAssertConfiguration() {
-    Builtin.int_trap()
-  }
-  _conditionallyUnreachable()
-}
+<span class="p">@</span><span class="n">_inlineable</span> <span class="c1">// FIXME(sil-serialize-all)</span>
+<span class="p">@</span><span class="n">_transparent</span>
+<span class="kd">public</span> <span class="kd">func</span> <span class="nf">preconditionFailure</span><span class="p">(</span>
+  <span class="kc">_</span> <span class="n">message</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">String</span> <span class="p">=</span> <span class="nb">String</span><span class="p">(),</span>
+  <span class="n">file</span><span class="p">:</span> <span class="nb">StaticString</span> <span class="p">=</span> <span class="kc">#file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">UInt</span> <span class="p">=</span> <span class="kc">#line</span>
+<span class="p">)</span> <span class="p">-&gt;</span> <span class="n">Never</span> <span class="p">{</span>
+  <span class="c1">// Only check in debug and release mode.  In release mode just trap.</span>
+  <span class="k">if</span> <span class="n">_isDebugAssertConfiguration</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">_assertionFailure</span><span class="p">(</span><span class="s">&#34;Fatal error&#34;</span><span class="p">,</span> <span class="n">message</span><span class="p">(),</span> <span class="n">file</span><span class="p">:</span> <span class="n">file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="n">line</span><span class="p">,</span>
+      <span class="n">flags</span><span class="p">:</span> <span class="n">_fatalErrorFlags</span><span class="p">())</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="n">_isReleaseAssertConfiguration</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">Builtin</span><span class="p">.</span><span class="n">int_trap</span><span class="p">()</span>
+  <span class="p">}</span>
+  <span class="n">_conditionallyUnreachable</span><span class="p">()</span>
+<span class="p">}</span>
 
-@_inlineable <span style="color:#75715e">// FIXME(sil-serialize-all)</span>
-@_transparent
-<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">fatalError</span>(
-  <span style="color:#66d9ef">_</span> message: <span style="color:#66d9ef">@autoclosure</span> () -&gt; String = String(),
-  file: StaticString = <span style="color:#66d9ef">#file</span>, line: UInt = <span style="color:#66d9ef">#line</span>
-) -&gt; Never {
-  _assertionFailure(<span style="color:#e6db74">&#34;Fatal error&#34;</span>, message(), file: file, line: line,
-    flags: _fatalErrorFlags())
-}
+<span class="p">@</span><span class="n">_inlineable</span> <span class="c1">// FIXME(sil-serialize-all)</span>
+<span class="p">@</span><span class="n">_transparent</span>
+<span class="kd">public</span> <span class="kd">func</span> <span class="nf">fatalError</span><span class="p">(</span>
+  <span class="kc">_</span> <span class="n">message</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">String</span> <span class="p">=</span> <span class="nb">String</span><span class="p">(),</span>
+  <span class="n">file</span><span class="p">:</span> <span class="nb">StaticString</span> <span class="p">=</span> <span class="kc">#file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">UInt</span> <span class="p">=</span> <span class="kc">#line</span>
+<span class="p">)</span> <span class="p">-&gt;</span> <span class="n">Never</span> <span class="p">{</span>
+  <span class="n">_assertionFailure</span><span class="p">(</span><span class="s">&#34;Fatal error&#34;</span><span class="p">,</span> <span class="n">message</span><span class="p">(),</span> <span class="n">file</span><span class="p">:</span> <span class="n">file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="n">line</span><span class="p">,</span>
+    <span class="n">flags</span><span class="p">:</span> <span class="n">_fatalErrorFlags</span><span class="p">())</span>
+<span class="p">}</span>
 
-@_inlineable <span style="color:#75715e">// FIXME(sil-serialize-all)</span>
-@_transparent
-<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">_precondition</span>(
-  <span style="color:#66d9ef">_</span> condition: <span style="color:#66d9ef">@autoclosure</span> () -&gt; Bool, <span style="color:#66d9ef">_</span> message: StaticString = StaticString(),
-  file: StaticString = <span style="color:#66d9ef">#file</span>, line: UInt = <span style="color:#66d9ef">#line</span>
-) {
-  <span style="color:#75715e">// Only check in debug and release mode. In release mode just trap.</span>
-  <span style="color:#66d9ef">if</span> _isDebugAssertConfiguration() {
-    <span style="color:#66d9ef">if</span> <span style="color:#f92672">!</span>_branchHint(condition(), expected: <span style="color:#66d9ef">true</span>) {
-      _fatalErrorMessage(<span style="color:#e6db74">&#34;Fatal error&#34;</span>, message, file: file, line: line,
-        flags: _fatalErrorFlags())
-    }
-  } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> _isReleaseAssertConfiguration() {
-    <span style="color:#66d9ef">let</span> error = <span style="color:#f92672">!</span>condition()
-    Builtin.condfail(error._value)
-  }
-}
+<span class="p">@</span><span class="n">_inlineable</span> <span class="c1">// FIXME(sil-serialize-all)</span>
+<span class="p">@</span><span class="n">_transparent</span>
+<span class="kd">public</span> <span class="kd">func</span> <span class="nf">_precondition</span><span class="p">(</span>
+  <span class="kc">_</span> <span class="n">condition</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">Bool</span><span class="p">,</span> <span class="kc">_</span> <span class="n">message</span><span class="p">:</span> <span class="nb">StaticString</span> <span class="p">=</span> <span class="nb">StaticString</span><span class="p">(),</span>
+  <span class="n">file</span><span class="p">:</span> <span class="nb">StaticString</span> <span class="p">=</span> <span class="kc">#file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">UInt</span> <span class="p">=</span> <span class="kc">#line</span>
+<span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// Only check in debug and release mode. In release mode just trap.</span>
+  <span class="k">if</span> <span class="n">_isDebugAssertConfiguration</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="o">!</span><span class="n">_branchHint</span><span class="p">(</span><span class="n">condition</span><span class="p">(),</span> <span class="n">expected</span><span class="p">:</span> <span class="kc">true</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">_fatalErrorMessage</span><span class="p">(</span><span class="s">&#34;Fatal error&#34;</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="n">file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="n">line</span><span class="p">,</span>
+        <span class="n">flags</span><span class="p">:</span> <span class="n">_fatalErrorFlags</span><span class="p">())</span>
+    <span class="p">}</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="n">_isReleaseAssertConfiguration</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">let</span> <span class="nv">error</span> <span class="p">=</span> <span class="o">!</span><span class="n">condition</span><span class="p">()</span>
+    <span class="n">Builtin</span><span class="p">.</span><span class="n">condfail</span><span class="p">(</span><span class="n">error</span><span class="p">.</span><span class="n">_value</span><span class="p">)</span>
+  <span class="p">}</span>
+<span class="p">}</span>
 
-@_inlineable <span style="color:#75715e">// FIXME(sil-serialize-all)</span>
-@_transparent
-<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">_debugPrecondition</span>(
-  <span style="color:#66d9ef">_</span> condition: <span style="color:#66d9ef">@autoclosure</span> () -&gt; Bool, <span style="color:#66d9ef">_</span> message: StaticString = StaticString(),
-  file: StaticString = <span style="color:#66d9ef">#file</span>, line: UInt = <span style="color:#66d9ef">#line</span>
-) {
-  <span style="color:#75715e">// Only check in debug mode.</span>
-  <span style="color:#66d9ef">if</span> _isDebugAssertConfiguration() {
-    <span style="color:#66d9ef">if</span> <span style="color:#f92672">!</span>_branchHint(condition(), expected: <span style="color:#66d9ef">true</span>) {
-      _fatalErrorMessage(<span style="color:#e6db74">&#34;Fatal error&#34;</span>, message, file: file, line: line,
-        flags: _fatalErrorFlags())
-    }
-  }
-}
+<span class="p">@</span><span class="n">_inlineable</span> <span class="c1">// FIXME(sil-serialize-all)</span>
+<span class="p">@</span><span class="n">_transparent</span>
+<span class="kd">public</span> <span class="kd">func</span> <span class="nf">_debugPrecondition</span><span class="p">(</span>
+  <span class="kc">_</span> <span class="n">condition</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">Bool</span><span class="p">,</span> <span class="kc">_</span> <span class="n">message</span><span class="p">:</span> <span class="nb">StaticString</span> <span class="p">=</span> <span class="nb">StaticString</span><span class="p">(),</span>
+  <span class="n">file</span><span class="p">:</span> <span class="nb">StaticString</span> <span class="p">=</span> <span class="kc">#file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">UInt</span> <span class="p">=</span> <span class="kc">#line</span>
+<span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// Only check in debug mode.</span>
+  <span class="k">if</span> <span class="n">_isDebugAssertConfiguration</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="o">!</span><span class="n">_branchHint</span><span class="p">(</span><span class="n">condition</span><span class="p">(),</span> <span class="n">expected</span><span class="p">:</span> <span class="kc">true</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">_fatalErrorMessage</span><span class="p">(</span><span class="s">&#34;Fatal error&#34;</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="n">file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="n">line</span><span class="p">,</span>
+        <span class="n">flags</span><span class="p">:</span> <span class="n">_fatalErrorFlags</span><span class="p">())</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
 
-@_inlineable <span style="color:#75715e">// FIXME(sil-serialize-all)</span>
-@_transparent
-<span style="color:#66d9ef">public</span> <span style="color:#66d9ef">func</span> <span style="color:#a6e22e">_sanityCheck</span>(
-  <span style="color:#66d9ef">_</span> condition: <span style="color:#66d9ef">@autoclosure</span> () -&gt; Bool, <span style="color:#66d9ef">_</span> message: StaticString = StaticString(),
-  file: StaticString = <span style="color:#66d9ef">#file</span>, line: UInt = <span style="color:#66d9ef">#line</span>
-) {
-<span style="color:#75715e">#if</span> <span style="color:#75715e">INTERNAL_CHECKS_ENABLED</span>
-  <span style="color:#66d9ef">if</span> <span style="color:#f92672">!</span>_branchHint(condition(), expected: <span style="color:#66d9ef">true</span>) {
-    _fatalErrorMessage(<span style="color:#e6db74">&#34;Fatal error&#34;</span>, message, file: file, line: line,
-      flags: _fatalErrorFlags())
-  }
-<span style="color:#75715e">#endif</span>
-}
+<span class="p">@</span><span class="n">_inlineable</span> <span class="c1">// FIXME(sil-serialize-all)</span>
+<span class="p">@</span><span class="n">_transparent</span>
+<span class="kd">public</span> <span class="kd">func</span> <span class="nf">_sanityCheck</span><span class="p">(</span>
+  <span class="kc">_</span> <span class="n">condition</span><span class="p">:</span> <span class="kr">@autoclosure</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">Bool</span><span class="p">,</span> <span class="kc">_</span> <span class="n">message</span><span class="p">:</span> <span class="nb">StaticString</span> <span class="p">=</span> <span class="nb">StaticString</span><span class="p">(),</span>
+  <span class="n">file</span><span class="p">:</span> <span class="nb">StaticString</span> <span class="p">=</span> <span class="kc">#file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">UInt</span> <span class="p">=</span> <span class="kc">#line</span>
+<span class="p">)</span> <span class="p">{</span>
+<span class="cp">#if</span> <span class="cp">INTERNAL_CHECKS_ENABLED</span>
+  <span class="k">if</span> <span class="o">!</span><span class="n">_branchHint</span><span class="p">(</span><span class="n">condition</span><span class="p">(),</span> <span class="n">expected</span><span class="p">:</span> <span class="kc">true</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">_fatalErrorMessage</span><span class="p">(</span><span class="s">&#34;Fatal error&#34;</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="n">file</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="n">line</span><span class="p">,</span>
+      <span class="n">flags</span><span class="p">:</span> <span class="n">_fatalErrorFlags</span><span class="p">())</span>
+  <span class="p">}</span>
+<span class="cp">#endif</span>
+<span class="p">}</span>
 </code></pre></div><h2 id="summary">Summary</h2>
 <blockquote>
 <p>It’s common to <em>call</em> functions that take autoclosures, but it’s not common to <em>implement</em> that kind of function.</p>
@@ -518,143 +481,118 @@ print(flag)
 <li><a href="https://cs.stackexchange.com/questions/57116/what-is-a-compiler-intrinsic-function">what is a compiler intrinsic function?</a></li>
 <li><a href="http://swifter.tips/autoclosure/">@AUTOCLOSURE 和 ??</a></li>
 </ul>
-
-    </div>
-    
-      <div class="pagination">
-        <div class="pagination__title">
-          <span class="pagination__title-h">Read other posts</span>
-          <hr />
-        </div>
-        <div class="pagination__buttons">
-          
-            <span class="button previous">
-              <a href="/posts/2016/swift_properties/">
-                <span class="button__icon">←</span>
-                <span class="button__text">Swift 拾遗 - 属性</span>
-              </a>
-            </span>
-          
-          
-            <span class="button next">
-              <a href="/posts/2020/swift_closure/">
-                <span class="button__text">Swift 拾遗 - 闭包</span>
-                <span class="button__icon">→</span>
-              </a>
-            </span>
-          
-        </div>
-      </div>
-    
-
-    
-
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-<table style="border: 0;">
-  <tr>
-  <td style="border: 0; width: 30%;">
-    <img src='/img/about/1.jpg'>
-  </td>
-  <td style="border: 0;">
-    <ins class="adsbygoogle"
-     style="display:block"
-     data-ad-client="ca-pub-9925978992661955"
-     data-ad-slot="3213735320"
-     data-ad-format="auto"
-     data-full-width-responsive="true"></ins>
-  </td>
-  </tr>
-</table>
-
-
-
-<script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
-</script>
-
-
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://kingcos.me/tags/focus/">Focus</a>
+                                    
+                                    <a href="https://kingcos.me/tags/ios/">iOS</a>
+                                    
+                                    <a href="https://kingcos.me/tags/swift/">Swift</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                <div class="doc_comments"><div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
     
     
-    <div>
-      <div id="github-comment">
-      </div>
-
-      <script type="text/javascript">
-        function getUtterances(isDark) {
-          var utterances = document.createElement('script');
-          utterances.type = 'text/javascript';
-          utterances.async = true;
-          utterances.setAttribute('issue-term', "pathname")
-          utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
-          utterances.setAttribute('label', "comments")
-          isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
-          utterances.crossorigin = 'anonymous';
-          utterances.src = 'https://utteranc.es/client.js';
-
-          return utterances
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
         }
-
-        var themeToggle = document.querySelector(".theme-toggle")
-        themeToggle.addEventListener("click", function () {
-          var getTheme = window.localStorage && window.localStorage.getItem("theme")
-          var divNode = document.getElementById('github-comment')
-          while(divNode.hasChildNodes()) {
-            divNode.removeChild(divNode.firstChild);
-          }
-          
-          
-          
-
-          
-          
-          
-          
-          
-          
-          document.getElementById('github-comment').appendChild(getUtterances(getTheme !== "dark"))
-        })
-
-        var getTheme = window.localStorage && window.localStorage.getItem("theme")
-        document.getElementById('github-comment').appendChild(getUtterances(getTheme === "dark"))
-      </script>
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "kingcos" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div>
+                
+            </div>
+        </div>
     </div>
-    
-
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://kingcos.me">Powered by kingcos with love.</a>
     </div>
 
-      </div>
-
-      
-        <footer class="footer">
-  <div class="footer__inner">
-    
-      <div class="copyright copyright--user">All rights reserved by kingcos.me</div>
-    
-  </div>
+    <div class="footer_slogan">
+        <span>❤️</span>
+    </div>
 </footer>
+    <script src="https://kingcos.me/js/jquery-3.5.1.min.js"></script>
+<link href="https://kingcos.me/css/fancybox.min.css" rel="stylesheet">
+<script src="https://kingcos.me/js/fancybox.min.js"></script>
+<script src="https://kingcos.me/js/zozo.js"></script>
 
-<script src="/assets/main.js"></script>
-<script src="/assets/prism.js"></script>
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
 
 
 
-      
-    </div>
-
-    
-      
 <script type="application/javascript">
 var doNotTrack = false;
 if (!doNotTrack) {
-	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
 	ga('create', 'UA-138311951-1', 'auto');
 	
 	ga('send', 'pageview');
 }
 </script>
-    
-  </body>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+
 </html>
