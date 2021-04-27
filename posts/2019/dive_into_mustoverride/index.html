@@ -256,13 +256,13 @@ body {
 </tr>
 <tr>
 <td style="text-align:center">2020-01-05</td>
-<td style="text-align:center">增加 Extension 一节</td>
+<td style="text-align:center">增加 <a href="#extension">Extension</a> 一节</td>
 <td style="text-align:center">-</td>
 <td style="text-align:center">-</td>
 </tr>
 <tr>
 <td style="text-align:center">2021-04-26</td>
-<td style="text-align:center"></td>
+<td style="text-align:center">增加 <code>__attribute__((used))</code> 部分内容</td>
 <td style="text-align:center">-</td>
 <td style="text-align:center">-</td>
 </tr>
@@ -355,14 +355,15 @@ body {
 </span></code></pre></div><p>以上定义了我们前面示例中所用到的 <code>SUBCLASS_MUST_OVERRIDE</code> 宏，即 <code>__attribute__((used, section(&quot;__DATA,MustOverride&quot;))) static const char *__must_override_entry__ = __func__</code>，下面我们来仔细分析下这条指令。</p>
 <h4 id="__attribute__">__attribute__</h4>
 <p><code>__attribute__</code> 是一个用于 GCC 或兼容 GCC 的编译器指令，可以让开发者对编译器的一些属性进行设置，使得编译器能够支持更多的错误检查或高级优化等操作。正如其名，<code>__attribute__</code> 即属性，其根据修饰对象的不同分为函数属性、变量属性、类型属性等。当多个属性同时使用时，可以通过 <code>__attribute__ ((attribute-list))</code> 语法嵌套使用。</p>
-<p>目前 Xcode 使用 <code>clang</code> 编译器来编译 C/C++/Obj-C/Obj-C++ 代码，而 <code>clang</code> 也支持了 <code>__attribute__</code> 语法，甚至还有一小部分的特有属性，关于这些特有属性可详见《<a href="http://releases.llvm.org/9.0.0/tools/clang/docs/AttributeReference.html">Attributes in Clang</a>》一文。而这里的 <code>__attribute__((used, section(&quot;__DATA,MustOverride&quot;)))</code> 同时使用了 <code>used</code> 和 <code>section</code> 这两个常见的变量属性，我们可以在 GNU 官方文档中查到两者的内容：</p>
+<p>目前 Xcode 使用 <code>clang</code> 编译器来编译 C/C++/Obj-C/Obj-C++ 代码，而 <code>clang</code> 也支持了 <code>__attribute__</code> 语法，甚至还有一小部分的特有属性，关于这些特有属性可详见《<a href="http://releases.llvm.org/9.0.0/tools/clang/docs/AttributeReference.html">Attributes in Clang</a>》一文。而这里的 <code>__attribute__((used, section(&quot;__DATA,MustOverride&quot;)))</code> 同时使用了 <code>used</code> 和 <code>section</code> 这两个常见的变量属性，我们可以在 GNU 官方文档中查到两者的内。</p>
+<p>先来看看 <code>used</code> 变量属性：</p>
 <blockquote>
 <p><code>used</code></p>
 <p>This attribute, attached to a variable with static storage, means that the variable must be emitted even if it appears that the variable is not referenced.</p>
 <p>When applied to a static data member of a C++ class template, the attribute also means that the member is instantiated if the class itself is instantiated.</p>
 <p>—— <a href="https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html">6.34.1 Common Variable Attributes, GNU</a></p>
 </blockquote>
-<p>在我的《<a href="https://kingcos.me/posts/2019/const_static_extern_in_cpp/">C/C++ 中的 const、static &amp; extern</a>》一文中，曾经提过<strong>静态变量只在其编译单元内可见，最终编译产物中的外部符号中并不会存在静态变量的符号</strong>，而其实如果编译单元内根本没有使用到某一静态变量，编译器默认会提示警告并将该静态变量进行优化：</p>
+<p>在我的《<a href="https://kingcos.me/posts/2019/const_static_extern_in_cpp/">C/C++ 中的 const、static &amp; extern</a>》一文中，曾经提过<strong>静态变量只在其编译单元内可见，最终编译产物中的外部符号中并不会存在静态变量的符号</strong>，而其实如果编译单元内根本没有使用到某一静态变量，编译器默认会提示警告并将该静态变量进行优化（即不存在于目标文件与可执行文件中）：</p>
 <div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp"></span>
 <span class="c1">// WARNING: Unused variable &#39;var1&#39;
@@ -374,10 +375,18 @@ body {
 </span><span class="c1"></span>    <span class="p">}</span>
     <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
-</code></pre></div><p>比如此时的 <code>var1</code> 仅声明并定义，但并没有代码使用到，我们可以通过 <code>nm PATH/TO/MustOverrideDemo | grep var</code> 命令发现可执行文件确实不存在该静态变量的符号。而如果我们真正使用到了该变量，此时可执行文件中将会含有该符号：</p>
+</code></pre></div><p>如上，此时的静态变量 <code>var1</code> 仅声明并定义，但并没有代码使用到，我们可以通过 <code>nm PATH/TO/MustOverrideDemo | grep var</code> 命令发现可执行文件确实不存在该静态变量的符号：</p>
+<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">➜  MustOverride nm PATH/TO/MustOverrideDemo
+<span class="m">0000000100008010</span> d __dyld_private
+<span class="m">0000000100000000</span> T __mh_execute_header
+0000000100003f50 T _main
+                 U _objc_autoreleasePoolPop
+                 U _objc_autoreleasePoolPush
+                 U dyld_stub_binder
+</code></pre></div><p>而如果我们打开注释，真正使用到了该变量，此时可执行文件中将会含有该符号：</p>
 <div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">➜  MustOverride nm PATH/TO/MustOverrideDemo <span class="p">|</span> grep var
-00000001000036e8 d _var1
-</code></pre></div><p>而 <code>__attribute__((used))</code> 变量属性正是可以<strong>将编译器对于未使用的静态变量的优化关闭</strong>：</p>
+<span class="m">0000000100008020</span> d _var1
+</code></pre></div><p>而 <code>__attribute__((used))</code> 变量属性能够控制<strong>关闭编译器对于未使用的静态变量的优化</strong>：</p>
 <div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp"></span>
 <span class="k">static</span> <span class="kt">char</span> <span class="o">*</span><span class="n">var1</span> <span class="o">=</span> <span class="s">&#34;kingcos.me&#34;</span><span class="p">;</span>
@@ -396,6 +405,10 @@ body {
 </span><span class="c1">// 00000001000036d8 d _var2
 </span><span class="c1">// 00000001000036e0 d _var3
 </span></code></pre></div><p>因此 <code>__attribute__((used)) static const char *__must_override_entry__ = __func__</code> 即声明一个静态常量 <code>__must_override_entry__</code> 为 <code>__func__</code>（编译器的预定义符，即函数名），并保证其不会被编译器优化。</p>
+<blockquote class="book-hint warning">
+    需要注意的是，<code>__attribute__((used))</code> 并非是<strong>万能</strong>的，当静态变量定义在<strong>未</strong>含有主函数的实现文件中，且该实现文件中未含有其他<strong>非</strong>静态符号时，即使使用 <code>__attribute__((used))</code> 也无济于事：
+</blockquote>
+<p>接下来是 <code>section</code> 变量属性：</p>
 <blockquote>
 <p><code>section (&quot;section-name&quot;)</code></p>
 <p>Normally, the compiler places the objects it generates in sections like <code>data</code> and <code>bss</code>. Sometimes, however, you need additional sections, or you need certain particular variables to appear in special sections, for example to map to special hardware. The section attribute specifies that a variable (or function) lives in a particular section. For example, this small program uses several specific section names:</p>
@@ -801,13 +814,13 @@ https://github.com/Alamofire/AlamofireImage/pull/387/files
  -->
 <h2 id="reference">Reference</h2>
 <ul>
-<li><a href="../const_static_extern_in_cpp/">C/C++ 中的 const、static &amp; extern - kingcos</a></li>
-<li><a href="../+load_in_ios/">iOS 中的 +load 方法 - kingcos</a></li>
+<li><a href="https://kingcos.me/posts/2019/const_static_extern_in_cpp/">C/C++ 中的 const、static &amp; extern - kingcos</a></li>
+<li><a href="https://kingcos.me/posts/2019/+load_in_ios/">iOS 中的 +load 方法 - kingcos</a></li>
 <li><a href="https://github.com/nicklockwood/MustOverride">MustOverride</a> - <a href="https://github.com/nicklockwood">nicklockwood</a></li>
+<li><a href="http://releases.llvm.org/9.0.0/tools/clang/docs/AttributeReference.html">Attributes in Clang - LLVM</a></li>
 <li><a href="https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html">6.34.1 Common Variable Attributes - GNU</a></li>
 <li><a href="https://nshipster.com/__attribute__/"><code>__attribute__</code> - NSHipster</a></li>
 <li><a href="https://gcc.gnu.org/onlinedocs/gcc/Attribute-Syntax.html">Attribute Syntax - GNU</a></li>
-<li><a href="http://releases.llvm.org/9.0.0/tools/clang/docs/AttributeReference.html">Attributes in Clang - LLVM</a></li>
 <li><a href="https://blog.sunnyxx.com/2016/05/14/clang-attributes/">Clang Attributes 黑魔法小记 - sunnyxx</a></li>
 <li><a href="https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/dladdr.3.html">dladdr - iOS Manual Pages</a></li>
 <li><a href="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0491c/Caccache.html"><code>__attribute__((section(&quot;name&quot;))) variable attribute</code> - ARM</a></li>
