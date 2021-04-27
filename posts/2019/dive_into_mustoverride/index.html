@@ -406,7 +406,11 @@ body {
 </span><span class="c1">// 00000001000036e0 d _var3
 </span></code></pre></div><p>因此 <code>__attribute__((used)) static const char *__must_override_entry__ = __func__</code> 即声明一个静态常量 <code>__must_override_entry__</code> 为 <code>__func__</code>（编译器的预定义符，即函数名），并保证其不会被编译器优化。</p>
 <blockquote class="book-hint warning">
-    需要注意的是，<code>__attribute__((used))</code> 并非是<strong>万能</strong>的，当静态变量定义在<strong>未</strong>含有主函数的实现文件中，且该实现文件中未含有其他<strong>非</strong>静态符号时，即使使用 <code>__attribute__((used))</code> 也无济于事：
+    <p>需要注意的是，<code>__attribute__((used))</code> 是作用于<strong>编译器</strong>的指令，而无关<strong>链接器</strong>，因此当链接器采取优化时，即使使用该指令也无济于事。例如在静态库的实现文件中我们定义了未使用到的符号并使用 <code>__attribute__((used))</code> 修饰，且该实现文件内部不存在其他符号（例如变量、常量、函数等）或存在的符号也均未被外界使用时，此时链接器将直接舍弃该实现文件的编译产物 —— 目标文件，因此最终链接而成的<strong>可执行文件</strong>中将不包含所有该实现文件中定义的符号，除非我们使用 <code>-all_load</code> 作为「<a href="https://kingcos.me/posts/2019/+load_in_ios/#other-linker-flags">Other Linker Flags</a>」，即加载所有静态库符号：</p>
+<blockquote>
+<p><strong>-all_load</strong>   Loads all members of static archive libraries.</p>
+</blockquote>
+
 </blockquote>
 <p>接下来是 <code>section</code> 变量属性：</p>
 <blockquote>
