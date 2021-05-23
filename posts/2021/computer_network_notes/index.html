@@ -411,7 +411,7 @@ round-trip min/avg/max/stddev <span class="o">=</span> 8.581/82.532/175.668/69.5
 <li>IP 地址，全称 Internet Protocol Address，互联网上的每一个主机都有一个 IP 地址。</li>
 <li>IP 地址分为两个版本，IPv4 与 IPv6；IPv4 使用 32 位（4 字节）地址，地址空间共计 2<sup>32</sup> 个地址；IPv4 使用 128 位（16 字节）地址，地址空间共计 2<sup>128</sup> 个地址；未明确情况下，本文提及 IP 默认为 IPv4 内容。</li>
 <li>IP 地址由两部分组成，网络标识（网络 ID）、主机标识（主机 ID），可以通过子网掩码（Subnet Mask）得知网络 ID、主机 ID。</li>
-<li>同一网段的计算机，网络 ID 相同；<code>主机所在网段 = IP 地址 &amp; 子网掩码</code>。</li>
+<li>同一网段的计算机，网络 ID 相同；<code>主机所在网段 = IP 地址 &amp; 子网掩码</code>（规律：按位和 <code>1</code> 与，则保持原值，和 <code>0</code> 与则为 <code>0</code>）。</li>
 <li>计算机之间通信时，会先判断目标主机和自己是否在同一网段（⚠️：使用<strong>自身</strong>的子网掩码计算）：若位于同一网段：不需要由路由器进行转发；若位于不同网段，交由路由器（网关）进行转发。</li>
 </ul>
 <p>以我的 MacBook 的 IP 地址与子网掩码为例，计算如下：</p>
@@ -485,8 +485,541 @@ round-trip min/avg/max/stddev <span class="o">=</span> 8.581/82.532/175.668/69.5
 <h3 id="子网掩码">子网掩码</h3>
 <ul>
 <li>CIDR，全称 Classless Inter-Domain Routing，译为无类别域间路由。</li>
-<li>子网掩码的 CIDR 表示方法：<code>192.168.199.200/24</code>，子网掩码前 24 位为 1，即 <code>255.255.255.0</code>。</li>
+<li>子网掩码的 CIDR 表示方法：<code>192.168.199.200/24</code>，表示该 IP 地址的子网掩码前 24 位为 1，即 <code>255.255.255.0</code>。</li>
 </ul>
+<h4 id="子网划分">子网划分</h4>
+<ul>
+<li>目的：避免浪费 IP 地址资源。</li>
+<li>原理：借用主机位作为子网位，划分出多个子网。</li>
+<li><strong>等长</strong>子网划分（Fixed Length Subnet Mask）：每个子网的可用 IP 地址数量<strong>相同</strong>。</li>
+</ul>
+
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>等长子网划分举例</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <div class="book-tabs"><input type="radio" class="toggle" name="tabs-FLSM" id="tabs-FLSM-0" checked="checked" />
+  <label for="tabs-FLSM-0">等长 · C 类一分为二</label>
+  <div class="book-tabs-content markdown-inner"><p>将 192.168.0.0/24（C 类地址）划分为 2 个等长子网</p>
+<ul>
+<li>规律：如果一个子网是原来的 <code>1/2</code>，子网掩码往后移 1 位。</li>
+</ul>
+<div class="highlight"><pre class="chroma"><code class="language-fallback" data-lang="fallback">借用主机位作为子网位 → 网络 ID 往后移 → 子网掩码往后移：
+<p>原   始  1100 0000.1010 1000.0000 0000.____ ____
+网络 ID        192.      168.        0.        0
+↓
+子 网 1  1100 0000.1010 1000.0000 0000.0___ ____
+网络 ID        192.      168.        0.        0
+子 网 2  1100 0000.1010 1000.0000 0000.1___ ____
+网络 ID        192.      168.        0.      128
+↓↓↓
+原始子    1111 1111.1111 1111.1111 1111.0000 0000
+网掩码          255.      255.      255.        0
+↓
+新的子    1111 1111.1111 1111.1111 1111.1000 0000
+网掩码          255.      255.      255.      128
+</code></pre></div><table></p>
+<thead>
+<tr>
+<th style="text-align:center">CIDR</th>
+<th style="text-align:center">子网掩码</th>
+<th style="text-align:center">最大可容纳主机数</th>
+<th style="text-align:center">主机范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">192.168.0.0/24（原始）</td>
+<td style="text-align:center">255.255.255.0</td>
+<td style="text-align:center">254（2<sup>8</sup> - 2）</td>
+<td style="text-align:center">192.168.0.1 ~ 192.168.0.254</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.0/25（子网 1）</td>
+<td style="text-align:center">255.255.255.128</td>
+<td style="text-align:center">126（2<sup>7</sup> - 2）</td>
+<td style="text-align:center">192.168.0.1 ~ 192.168.0.126</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.128/25（子网 2）</td>
+<td style="text-align:center">255.255.255.128</td>
+<td style="text-align:center">126（2<sup>7</sup> - 2）</td>
+<td style="text-align:center">192.168.0.129 ~ 192.168.0.254</td>
+</tr>
+</tbody>
+</table>
+</div><input type="radio" class="toggle" name="tabs-FLSM" id="tabs-FLSM-1"  />
+  <label for="tabs-FLSM-1">一分为四</label>
+  <div class="book-tabs-content markdown-inner"><p>将 192.168.0.0/24（C 类地址）划分为 4 个等长子网</p>
+<ul>
+<li>规律：如果一个子网是原来的 <code>1/2 * 1/2 = 1/4</code>，子网掩码往后移 2 位。</li>
+</ul>
+<div class="highlight"><pre class="chroma"><code class="language-fallback" data-lang="fallback">借用主机位作为子网位 → 网络 ID 往后移 → 子网掩码往后移：
+<p>原   始  1100 0000.1010 1000.0000 0000.____ ____
+网络 ID        192.      168.        0.        0
+↓
+子 网 1  1100 0000.1010 1000.0000 0000.00__ ____
+网络 ID        192.      168.        0.        0
+子 网 2  1100 0000.1010 1000.0000 0000.01__ ____
+网络 ID        192.      168.        0.       64
+子 网 3  1100 0000.1010 1000.0000 0000.10__ ____
+网络 ID        192.      168.        0.      128
+子 网 4  1100 0000.1010 1000.0000 0000.11__ ____
+网络 ID        192.      168.        0.      192
+↓↓↓
+原始子   1111 1111.1111 1111.1111 1111.0000 0000
+网掩码         255.      255.      255.        0
+↓
+新的子   1111 1111.1111 1111.1111 1111.1100 0000
+网掩码         255.      255.      255.      192
+</code></pre></div><table></p>
+<thead>
+<tr>
+<th style="text-align:center">CIDR</th>
+<th style="text-align:center">子网掩码</th>
+<th style="text-align:center">最大可容纳主机数</th>
+<th style="text-align:center">主机范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">192.168.0.0/24（原始）</td>
+<td style="text-align:center">255.255.255.0</td>
+<td style="text-align:center">254（2<sup>8</sup> - 2）</td>
+<td style="text-align:center">192.168.0.1 ~ 192.168.0.254</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.0/26（子网 1）</td>
+<td style="text-align:center">255.255.255.192</td>
+<td style="text-align:center">62（2<sup>6</sup> - 2）</td>
+<td style="text-align:center">192.168.0.1 ~ 192.168.0.62</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.64/26（子网 2）</td>
+<td style="text-align:center">255.255.255.192</td>
+<td style="text-align:center">62（2<sup>6</sup> - 2）</td>
+<td style="text-align:center">192.168.0.65 ~ 192.168.0.126</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.128/26（子网 3）</td>
+<td style="text-align:center">255.255.255.192</td>
+<td style="text-align:center">62（2<sup>6</sup> - 2）</td>
+<td style="text-align:center">192.168.0.129 ~ 192.168.0.190</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.192/26（子网 4）</td>
+<td style="text-align:center">255.255.255.192</td>
+<td style="text-align:center">62（2<sup>6</sup> - 2）</td>
+<td style="text-align:center">192.168.0.193 ~ 192.168.0.254</td>
+</tr>
+</tbody>
+</table>
+</div><input type="radio" class="toggle" name="tabs-FLSM" id="tabs-FLSM-2"  />
+  <label for="tabs-FLSM-2">一分为八</label>
+  <div class="book-tabs-content markdown-inner"><p>将 192.168.0.0/24（C 类地址）划分为 8 个等长子网</p>
+<ul>
+<li>规律：如果一个子网是原来的 <code>1/2 * 1/2 * 1/2 = 1/8</code>，子网掩码往后移 3 位。</li>
+</ul>
+<div class="highlight"><pre class="chroma"><code class="language-fallback" data-lang="fallback">借用主机位作为子网位 → 网络 ID 往后移 → 子网掩码往后移：
+<p>原   始  1100 0000.1010 1000.0000 0000.____ ____
+网络 ID        192.      168.        0.        0
+↓
+子 网 1  1100 0000.1010 1000.0000 0000.000_ ____
+网络 ID        192.      168.        0.        0
+子 网 2  1100 0000.1010 1000.0000 0000.001_ ____
+网络 ID        192.      168.        0.       32
+子 网 3  1100 0000.1010 1000.0000 0000.010_ ____
+网络 ID        192.      168.        0.       64
+子 网 4  1100 0000.1010 1000.0000 0000.011_ ____
+网络 ID        192.      168.        0.       96
+子 网 5  1100 0000.1010 1000.0000 0000.100_ ____
+网络 ID        192.      168.        0.      128
+子 网 6  1100 0000.1010 1000.0000 0000.101_ ____
+网络 ID        192.      168.        0.      160
+子 网 7  1100 0000.1010 1000.0000 0000.110_ ____
+网络 ID        192.      168.        0.      192
+子 网 8  1100 0000.1010 1000.0000 0000.111_ ____
+网络 ID        192.      168.        0.      224
+↓↓↓
+原始子   1111 1111.1111 1111.1111 1111.0000 0000
+网掩码         255.      255.      255.        0
+↓
+新的子   1111 1111.1111 1111.1111 1111.1110 0000
+网掩码         255.      255.      255.      224
+</code></pre></div><table></p>
+<thead>
+<tr>
+<th style="text-align:center">CIDR</th>
+<th style="text-align:center">子网掩码</th>
+<th style="text-align:center">最大可容纳主机数</th>
+<th style="text-align:center">主机范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">192.168.0.0/24（原始）</td>
+<td style="text-align:center">255.255.255.0</td>
+<td style="text-align:center">254（2<sup>8</sup> - 2）</td>
+<td style="text-align:center">192.168.0.1 ~ 192.168.0.254</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.0/27（子网 1）</td>
+<td style="text-align:center">255.255.255.224</td>
+<td style="text-align:center">30（2<sup>5</sup> - 2）</td>
+<td style="text-align:center">192.168.0.1 ~ 192.168.0.30</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.32/27（子网 2）</td>
+<td style="text-align:center">255.255.255.224</td>
+<td style="text-align:center">30（2<sup>5</sup> - 2）</td>
+<td style="text-align:center">192.168.0.33 ~ 192.168.0.62</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.64/27（子网 3）</td>
+<td style="text-align:center">255.255.255.224</td>
+<td style="text-align:center">30（2<sup>5</sup> - 2）</td>
+<td style="text-align:center">192.168.0.65 ~ 192.168.0.94</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.96/27（子网 4）</td>
+<td style="text-align:center">255.255.255.224</td>
+<td style="text-align:center">30（2<sup>5</sup> - 2）</td>
+<td style="text-align:center">192.168.0.97 ~ 192.168.0.126</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.128/27（子网 5）</td>
+<td style="text-align:center">255.255.255.224</td>
+<td style="text-align:center">30（2<sup>5</sup> - 2）</td>
+<td style="text-align:center">192.168.0.129 ~ 192.168.0.158</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.160/27（子网 6）</td>
+<td style="text-align:center">255.255.255.224</td>
+<td style="text-align:center">30（2<sup>5</sup> - 2）</td>
+<td style="text-align:center">192.168.0.161 ~ 192.168.0.190</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.192/27（子网 7）</td>
+<td style="text-align:center">255.255.255.224</td>
+<td style="text-align:center">30（2<sup>5</sup> - 2）</td>
+<td style="text-align:center">192.168.0.193 ~ 192.168.0.222</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.224/27（子网 8）</td>
+<td style="text-align:center">255.255.255.224</td>
+<td style="text-align:center">30（2<sup>5</sup> - 2）</td>
+<td style="text-align:center">192.168.0.225 ~ 192.168.0.254</td>
+</tr>
+</tbody>
+</table>
+</div><input type="radio" class="toggle" name="tabs-FLSM" id="tabs-FLSM-3"  />
+  <label for="tabs-FLSM-3">B 类一分为二</label>
+  <div class="book-tabs-content markdown-inner"><p>将 131.107.0.0/16（B 类地址）划分为 2 个等长子网</p>
+<ul>
+<li>规律：如果一个子网是原来的 <code>1/2</code>，子网掩码往后移 1 位。</li>
+</ul>
+<div class="highlight"><pre class="chroma"><code class="language-fallback" data-lang="fallback">借用主机位作为子网位 → 网络 ID 往后移 → 子网掩码往后移：
+<p>原   始  1000 0011.0110 1011.____ ____.____ ____
+网络 ID        131.      107.        0.        0
+↓
+子 网 1  1000 0011.0110 1011.0___ ____.____ ____
+网络 ID        131.      107.        0.        0
+子 网 2  1000 0011.0110 1011.1___ ____.____ ____
+网络 ID        131.      107.      128.        0
+↓↓↓
+原始子   1111 1111.1111 1111.0000 0000.0000 0000
+网掩码         255.      255.        0.        0
+↓
+新的子   1111 1111.1111 1111.1000 0000.0000 0000
+网掩码         255.      255.      128.        0
+</code></pre></div><table></p>
+<thead>
+<tr>
+<th style="text-align:center">CIDR</th>
+<th style="text-align:center">子网掩码</th>
+<th style="text-align:center">最大可容纳主机数</th>
+<th style="text-align:center">主机范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">131.107.0.0/16（原始）</td>
+<td style="text-align:center">255.255.0.0</td>
+<td style="text-align:center">2<sup>16</sup> - 2</td>
+<td style="text-align:center">131.107.0.1 ~ 131.107.255.254</td>
+</tr>
+<tr>
+<td style="text-align:center">131.107.0.0/17（子网 1）</td>
+<td style="text-align:center">255.255.128.0</td>
+<td style="text-align:center">2<sup>15</sup> - 2</td>
+<td style="text-align:center">131.107.0.1 ~ 131.107.127.254</td>
+</tr>
+<tr>
+<td style="text-align:center">131.107.128.0/17（子网 2）</td>
+<td style="text-align:center">255.255.128.0</td>
+<td style="text-align:center">2<sup>15</sup> - 2</td>
+<td style="text-align:center">131.107.128.1 ~ 131.107.255.254</td>
+</tr>
+</tbody>
+</table>
+</div><input type="radio" class="toggle" name="tabs-FLSM" id="tabs-FLSM-4"  />
+  <label for="tabs-FLSM-4">A 类一分为二</label>
+  <div class="book-tabs-content markdown-inner"><p>将 42.0.0.0/8（A 类地址）划分为 2 个等长子网</p>
+<ul>
+<li>规律：如果一个子网是原来的 <code>1/2</code>，子网掩码往后移 1 位。</li>
+</ul>
+<div class="highlight"><pre class="chroma"><code class="language-fallback" data-lang="fallback">借用主机位作为子网位 → 网络 ID 往后移 → 子网掩码往后移：
+<p>原   始  0010 1010.____ ____.____ ____.____ ____
+网络 ID         42.        0.        0.        0
+↓
+子 网 1  0010 1010.0___ ____.____ ____.____ ____
+网络 ID         42.        0.        0.        0
+子 网 2  0010 1010.1___ ____.____ ____.____ ____
+网络 ID         42.      128.        0.        0
+↓↓↓
+原始子   1111 1111.0000 0000.0000 0000.0000 0000
+网掩码         255.        0.        0.        0
+↓
+新的子   1111 1111.1000 0000.0000 0000.0000 0000
+网掩码         255.      128.        0.        0
+</code></pre></div><table></p>
+<thead>
+<tr>
+<th style="text-align:center">CIDR</th>
+<th style="text-align:center">子网掩码</th>
+<th style="text-align:center">最大可容纳主机数</th>
+<th style="text-align:center">主机范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">42.0.0.0/8（原始）</td>
+<td style="text-align:center">255.0.0.0</td>
+<td style="text-align:center">2<sup>24</sup> - 2）</td>
+<td style="text-align:center">42.0.0.1 ~ 42.255.255.254</td>
+</tr>
+<tr>
+<td style="text-align:center">42.0.0.0/9（子网 1）</td>
+<td style="text-align:center">255.128.0.0</td>
+<td style="text-align:center">2<sup>23</sup> - 2）</td>
+<td style="text-align:center">42.0.0.1 ~ 42.127.255.254</td>
+</tr>
+<tr>
+<td style="text-align:center">42.128.0.0/9（子网 2）</td>
+<td style="text-align:center">255.128.0.0</td>
+<td style="text-align:center">2<sup>23</sup> - 2）</td>
+<td style="text-align:center">42.128.0.1 ~ 42.255.255.254</td>
+</tr>
+</tbody>
+</table>
+</div></div>
+
+    </div>
+  </label>
+</div>
+
+<ul>
+<li><strong>变长</strong>子网划分（Variable Length Subnet Mask）：每个子网的可用 IP 地址数量<strong>不同</strong>，子网掩码也不同。</li>
+<li>规律：若子网段地址范围是原网段的 <code>(1/2)^n</code>，那么该子网的子网掩码在原网段的子网掩码上增加 <code>n</code> 个 <code>1</code>（二进制）。</li>
+</ul>
+
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>变长子网划分举例</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <p>将 192.168.0.0/24（C 类地址）划分为多个变长子网（非唯一）</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">CIDR</th>
+<th style="text-align:center">子网掩码</th>
+<th style="text-align:center">最大可容纳主机数</th>
+<th style="text-align:center">主机范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">192.168.0.0/24（原始）</td>
+<td style="text-align:center">255.255.255.0</td>
+<td style="text-align:center">2<sup>8</sup> - 2</td>
+<td style="text-align:center">192.168.0.1 ~ 192.168.0.254</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.0/25（子网 1）</td>
+<td style="text-align:center">255.255.255.128</td>
+<td style="text-align:center">2<sup>7</sup> - 2</td>
+<td style="text-align:center">192.168.0.1 ~ 192.168.0.126</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.128/26（子网 2）</td>
+<td style="text-align:center">255.255.255.192</td>
+<td style="text-align:center">2<sup>6</sup> - 2</td>
+<td style="text-align:center">192.168.0.129 ~ 192.168.0.190</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.192/27（子网 3）</td>
+<td style="text-align:center">255.255.255.224</td>
+<td style="text-align:center">2<sup>5</sup> - 2</td>
+<td style="text-align:center">192.168.0.193 ~ 192.168.0.222</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.224/28（子网 4）</td>
+<td style="text-align:center">255.255.255.240</td>
+<td style="text-align:center">2<sup>4</sup> - 2</td>
+<td style="text-align:center">192.168.0.225 ~ 192.168.0.238</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.240/29（子网 5）</td>
+<td style="text-align:center">255.255.255.248</td>
+<td style="text-align:center">2<sup>3</sup> - 2</td>
+<td style="text-align:center">192.168.0.241 ~ 192.168.0.246</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.248/30（子网 6）</td>
+<td style="text-align:center">255.255.255.252</td>
+<td style="text-align:center">2<sup>2</sup> - 2</td>
+<td style="text-align:center">192.168.0.249 ~ 192.168.0.250</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.252/30（子网 7）</td>
+<td style="text-align:center">255.255.255.252</td>
+<td style="text-align:center">2<sup>2</sup> - 2</td>
+<td style="text-align:center">192.168.0.253 ~ 192.168.0.254</td>
+</tr>
+</tbody>
+</table>
+
+    </div>
+  </label>
+</div>
+
+<h4 id="合并网段">合并网段</h4>
+<ul>
+<li>与子网划分相反，合并网段指将多个<strong>连续</strong>网段合并为一个网段，合并后的网段称作超网（Supernetting）。</li>
+<li>判断子网还是超网：根据 IP 地址的分类，若其子网掩码位数比默认多，则为子网，反之超网（eg. <code>25.100.0.0/16</code> 是 A 类子网）。</li>
+<li>规律：当 <code>2^k=n (k&gt;=1)</code>，子网掩码左移动 <code>k</code> 位可以合并 <code>n</code> 个网段。</li>
+</ul>
+
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>合并网段举例</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <div class="book-tabs"><input type="radio" class="toggle" name="tabs-Supernetting" id="tabs-Supernetting-0" checked="checked" />
+  <label for="tabs-Supernetting-0">合二为一</label>
+  <div class="book-tabs-content markdown-inner"><p>将 192.168.0.0/24 与 192.168.1.0/24 两个网段合并</p>
+<div class="highlight"><pre class="chroma"><code class="language-fallback" data-lang="fallback">网络位让位主机位 → 网络 ID 往前移 → 子网掩码往前移：
+<p>192.168.0.0  1100 0000.1010 1000.0000 0000.0000 0000
+192.168.1.0  1100 0000.1010 1000.0000 0001.0000 0000
+↓
+原始子   1111 1111.1111 1111.1111 1111.0000 0000
+网掩码         255.      255.      255.        0
+↓
+新的子   1111 1111.1111 1111.1111 1110.0000 0000
+网掩码         255.      255.      254.        0
+</code></pre></div><table></p>
+<thead>
+<tr>
+<th style="text-align:center">CIDR</th>
+<th style="text-align:center">子网掩码</th>
+<th style="text-align:center">最大可容纳主机数</th>
+<th style="text-align:center">主机范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">192.168.0.0/24（原始 1）</td>
+<td style="text-align:center">255.255.255.0</td>
+<td style="text-align:center">2<sup>8</sup> - 2</td>
+<td style="text-align:center">192.168.0.1 ~ 192.168.0.254</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.1.0/24（原始 2）</td>
+<td style="text-align:center">255.255.255.0</td>
+<td style="text-align:center">2<sup>8</sup> - 2</td>
+<td style="text-align:center">192.168.1.1 ~ 192.168.1.254</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.0/23（超网）</td>
+<td style="text-align:center">255.255.254.0</td>
+<td style="text-align:center">2<sup>9</sup> - 2</td>
+<td style="text-align:center">192.168.0.1 ~ 192.168.1.254</td>
+</tr>
+</tbody>
+</table>
+</div><input type="radio" class="toggle" name="tabs-Supernetting" id="tabs-Supernetting-1"  />
+  <label for="tabs-Supernetting-1">合四为一</label>
+  <div class="book-tabs-content markdown-inner"><p>将 192.168.0.0/24、192.168.1.0/24、192.168.2.0/24、192.168.3.0/24 四个网段合</p>
+<div class="highlight"><pre class="chroma"><code class="language-fallback" data-lang="fallback">网络位让位主机位 → 网络 ID 往前移 → 子网掩码往前移：
+<p>192.168.0.0  1100 0000.1010 1000.0000 0000.0000 0000
+192.168.1.0  1100 0000.1010 1000.0000 0001.0000 0000
+192.168.2.0  1100 0000.1010 1000.0000 0010.0000 0000
+192.168.3.0  1100 0000.1010 1000.0000 0011.0000 0000
+↓
+原始子         1111 1111.1111 1111.1111 1111.0000 0000
+网掩码              255.      255.      255.        0
+↓
+新的子        1111 1111.1111 1111.1111 1100.0000 0000
+网掩码              255.      255.      252.        0
+</code></pre></div><table></p>
+<thead>
+<tr>
+<th style="text-align:center">CIDR</th>
+<th style="text-align:center">子网掩码</th>
+<th style="text-align:center">最大可容纳主机数</th>
+<th style="text-align:center">主机范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">192.168.0.0/24（原始 1）</td>
+<td style="text-align:center">255.255.255.0</td>
+<td style="text-align:center">2<sup>8</sup> - 2</td>
+<td style="text-align:center">192.168.0.1 ~ 192.168.0.254</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.1.0/24（原始 2）</td>
+<td style="text-align:center">255.255.255.0</td>
+<td style="text-align:center">2<sup>8</sup> - 2</td>
+<td style="text-align:center">192.168.1.1 ~ 192.168.1.254</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.2.0/24（原始 3）</td>
+<td style="text-align:center">255.255.255.0</td>
+<td style="text-align:center">2<sup>8</sup> - 2</td>
+<td style="text-align:center">192.168.2.1 ~ 192.168.2.254</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.3.0/24（原始 4）</td>
+<td style="text-align:center">255.255.255.0</td>
+<td style="text-align:center">2<sup>8</sup> - 2</td>
+<td style="text-align:center">192.168.3.1 ~ 192.168.3.254</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.0.0/22（超网）</td>
+<td style="text-align:center">255.255.252.0</td>
+<td style="text-align:center">2<sup>10</sup> - 2</td>
+<td style="text-align:center">192.168.0.1 ~ 192.168.3.254</td>
+</tr>
+</tbody>
+</table>
+</div></div>
+
+    </div>
+  </label>
+</div>
+
 <h2 id="参考模型">参考模型</h2>
 <p><img src="/img/2021/computer_network/1.svg" alt="1"></p>
 <h3 id="reference-5">Reference</h3>
