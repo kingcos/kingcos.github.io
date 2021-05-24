@@ -12,7 +12,7 @@
 	
     
     
-    <meta name="description" content="使用可空性（Nullability）标志或标志一块区域，以控制将 Objective-C 声明导入 Swift 中的方式。" />
+    <meta name="description" content="翻译自《[Designating Nullability in Objective-C APIs](https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/designating_nullability_in_objective-c_apis)》" />
     
 
     
@@ -231,19 +231,13 @@ body {
 </thead>
 <tbody>
 <tr>
-<td style="text-align:center">Apple Inc.</td>
+<td style="text-align:center"><a href="https://developer.apple.com">Apple Developer</a></td>
 <td style="text-align:center"><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/designating_nullability_in_objective-c_apis">Designating Nullability in Objective-C APIs</a></td>
 </tr>
 </tbody>
 </table>
+<br>
 <p>使用可空性（Nullability）标志或标志一块区域，以控制将 Objective-C 声明导入 Swift 中的方式。</p>
-<ul>
-<li><strong>框架：</strong>
-<ul>
-<li>Swift 标准库</li>
-</ul>
-</li>
-</ul>
 <hr>
 <h2 id="概览">概览</h2>
 <p>在 Objective-C 中，常用可以为空的指针来和对象的引用打交道，这（个空）就是 Objective-C 中的 <code>nil</code>。在 Swift 中，所有值——包括对象实例——都被确保为非空（Non-null）。取而代之，表示一个可能丢失的值可以将其包裹在可选（Optional）类型中。当我们需要表示一个值的丢失，可以使用 <code>nil</code> 值。</p>
@@ -253,7 +247,8 @@ body {
 <span class="p">-</span> <span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">nameForItem:</span><span class="p">(</span><span class="n">MyListItem</span> <span class="o">*</span><span class="p">)</span><span class="nv">item</span><span class="p">;</span>
 <span class="k">@property</span> <span class="p">(</span><span class="k">copy</span><span class="p">)</span> <span class="n">NSArray</span><span class="o">&lt;</span><span class="n">MyListItem</span> <span class="o">*&gt;</span> <span class="o">*</span><span class="n">allItems</span><span class="p">;</span>
 <span class="k">@end</span>
-</code></pre></div><p>Swift 导入了每个对象实例的参数、返回值、以及作为隐式包裹可选的属性（译者注：隐式包裹即 <code>Type!</code>，表示该值被保证为非 nil，即可在后续使用时省略 <code>?</code> 解包，但当该值为 nil 却没有使用可选解包时，程序将发生崩溃，该点也在另外一篇文章内有提及，有需要的读者可以参考文末 Reference 部分）。</p>
+</code></pre></div><p>Swift 导入了每个对象实例的参数、返回值、以及作为隐式包裹可选的属性（译者注：隐式包裹即 <code>Type!</code>，表示该值被保证为非 <code>nil</code>，即可在后续使用时省略 <code>?</code> 解包，但当该值为 <code>nil</code> 却没有使用可选解包时，程序将发生崩溃，另可详见《<a href="https://kingcos.me/posts/2019/obj-c_swift_bridge_tips/">Objective-C 与 Swift 桥接中的坑
+</a>》一文）。</p>
 <div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">MyList</span><span class="p">:</span> <span class="n">NSObject</span> <span class="p">{</span>
     <span class="kd">func</span> <span class="nf">item</span><span class="p">(</span><span class="n">withName</span> <span class="n">name</span><span class="p">:</span> <span class="nb">String</span><span class="p">!)</span> <span class="p">-&gt;</span> <span class="n">MyListItem</span><span class="p">!</span>
     <span class="kd">func</span> <span class="nf">name</span><span class="p">(</span><span class="k">for</span> <span class="n">item</span><span class="p">:</span> <span class="n">MyListItem</span><span class="p">!)</span> <span class="p">-&gt;</span> <span class="nb">String</span><span class="p">!</span>
@@ -281,9 +276,6 @@ body {
 <span class="p">}</span>
 </code></pre></div><p><code>nullable</code> 和 <code>nonnull</code> 标志是 <code>_Nullable</code> 和 <code>_Nonnull</code> 的简化版。当对指针类型使用 <code>const</code> 关键字时，我们可以在绝大多数上下文中使用它们。复杂的指针类型，比如 <code>id *</code> 必须明确标示所使用的标志。举个例子，一个指向可空对象引用的不可空的指针，声明为 <code>_Nullable id * _Nonnull</code>。</p>
 <h2 id="标示区域不可空">标示区域不可空</h2>
-<blockquote>
-<p>（译者注：原标题为 Annototate Regions as Nonnullable，但英文中并无 Annototate 一词，结合上下文此处应该是 Annotate 的笔误，特此注明。）</p>
-</blockquote>
 <p>通过标示整个区域为可空性检查可以简化标示 Objective-C 代码的过程。标记 <code>NS_ASSUME_NONNULL_BEGIN</code> 和 <code>NS_ASSUME_NONNULL_END</code> 之间区域内的代码，只需要标示可空类型的声明。未标记声明的部分将被当作是非空的。</p>
 <p>将 <code>MyList</code> 声明标记为可空性检查降低了所需要的标志数量。Swift 将以与上一节相同的方式导入该类型。</p>
 <div class="highlight"><pre class="chroma"><code class="language-objc" data-lang="objc"><span class="n">NS_ASSUME_NONNULL_BEGIN</span>
@@ -298,15 +290,15 @@ body {
 </code></pre></div><p>注意，尽管在检查区域内，但<code>typedef</code> 的类型不会被假定为非空，因为它们内在并非是可空的。</p>
 <h2 id="参阅">参阅</h2>
 <h3 id="定制-objective-c-api">定制 Objective-C API</h3>
-<h3 id="为-swift-重命名-objective-c-apihttpsdeveloperapplecomdocumentationswiftobjective-c_and_c_code_customizationrenaming_objective-c_apis_for_swift"><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/renaming_objective-c_apis_for_swift">为 Swift 重命名 Objective-C API</a></h3>
+<h5 id="为-swift-重命名-objective-c-apihttpsdeveloperapplecomdocumentationswiftobjective-c_and_c_code_customizationrenaming_objective-c_apis_for_swift"><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/renaming_objective-c_apis_for_swift">为 Swift 重命名 Objective-C API</a></h5>
 <p>使用 <code>NS_SWIFT_NAME</code> 宏为 Swift 定制 API 名称。</p>
-<h3 id="为-swift-改进-objective-c-声明httpsdeveloperapplecomdocumentationswiftobjective-c_and_c_code_customizationimproving_objective-c_api_declarations_for_swift"><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/improving_objective-c_api_declarations_for_swift">为 Swift 改进 Objective-C 声明</a></h3>
+<h5 id="为-swift-改进-objective-c-声明httpsdeveloperapplecomdocumentationswiftobjective-c_and_c_code_customizationimproving_objective-c_api_declarations_for_swift"><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/improving_objective-c_api_declarations_for_swift">为 Swift 改进 Objective-C 声明</a></h5>
 <p>使用 <code>NS_REFINED_FOR_SWIFT</code> 宏以改变 API 是如何导入 Swift 中的。</p>
-<h3 id="组合相关的-objective-c-常量httpsdeveloperapplecomdocumentationswiftobjective-c_and_c_code_customizationgrouping_related_objective-c_constants"><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/grouping_related_objective-c_constants">组合相关的 Objective-C 常量</a></h3>
+<h5 id="组合相关的-objective-c-常量httpsdeveloperapplecomdocumentationswiftobjective-c_and_c_code_customizationgrouping_related_objective-c_constants"><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/grouping_related_objective-c_constants">组合相关的 Objective-C 常量</a></h5>
 <p>在 Objective-C 类型中添加宏以在 Swift 中组合他们的值。</p>
-<h3 id="在-objective-c-中标记-api-可用性httpsdeveloperapplecomdocumentationswiftobjective-c_and_c_code_customizationmarking_api_availability_in_objective-c"><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/marking_api_availability_in_objective-c">在 Objective-C 中标记 API 可用性</a></h3>
+<h5 id="在-objective-c-中标记-api-可用性httpsdeveloperapplecomdocumentationswiftobjective-c_and_c_code_customizationmarking_api_availability_in_objective-c"><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/marking_api_availability_in_objective-c">在 Objective-C 中标记 API 可用性</a></h5>
 <p>使用宏以表示 Objective-C API 的可用性。</p>
-<h3 id="让-objective-c-api-在-swift-中不可用httpsdeveloperapplecomdocumentationswiftobjective-c_and_c_code_customizationmaking_objective-c_apis_unavailable_in_swift"><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/making_objective-c_apis_unavailable_in_swift">让 Objective-C API 在 Swift 中不可用</a></h3>
+<h5 id="让-objective-c-api-在-swift-中不可用httpsdeveloperapplecomdocumentationswiftobjective-c_and_c_code_customizationmaking_objective-c_apis_unavailable_in_swift"><a href="https://developer.apple.com/documentation/swift/objective-c_and_c_code_customization/making_objective-c_apis_unavailable_in_swift">让 Objective-C API 在 Swift 中不可用</a></h5>
 <p>使用 <code>NS_SWIFT_UNAVAILABLE</code> 宏以在 Swift 中禁用 API。</p>
 <hr>
 <blockquote>
@@ -314,7 +306,7 @@ body {
 </blockquote>
 <ol>
 <li>API 即通用意义上的接口，不再翻译；</li>
-<li>由于 Null 和 Nil 含义类似，均为空，在本文中为表区分，将 Null 翻译为「空」，Nil 不作翻译，代码中不会进行任何翻译；</li>
+<li>由于 null 和 nil 含义类似，均为空，在本文中为表区分，将 null 翻译为「空」，nil 不作翻译，代码中不会进行任何翻译；</li>
 <li>由于英文语法规范，通常会有主语 You，我可能会在不改变核心意义的情况下，会忽略人称，在部分情况将其改为第一人称「我们」。</li>
 </ol>
 <h2 id="reference">Reference</h2>
