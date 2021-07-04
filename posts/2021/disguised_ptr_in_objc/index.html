@@ -284,7 +284,8 @@ body {
     <span class="p">}</span>
 
     <span class="k">static</span> <span class="n">T</span><span class="o">*</span> <span class="nf">undisguise</span><span class="p">(</span><span class="n">uintptr_t</span> <span class="n">val</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">T</span><span class="o">*</span><span class="p">)</span><span class="o">-</span><span class="n">val</span><span class="p">;</span>
+        <span class="c1">// 转换回指针指向的地址
+</span><span class="c1"></span>        <span class="k">return</span> <span class="p">(</span><span class="n">T</span><span class="o">*</span><span class="p">)</span><span class="o">-</span><span class="n">val</span><span class="p">;</span>
     <span class="p">}</span>
 
  <span class="nl">public</span><span class="p">:</span>
@@ -333,6 +334,13 @@ body {
 </span><span class="c1"></span>    <span class="c1">// 省略了指针运算符，因为我们目前没有在任何地方使用它们
 </span><span class="c1"></span><span class="p">};</span>
 
+<span class="c1">// fixme type id is weird and not identical to objc_object*
+</span><span class="c1"></span><span class="k">static</span> <span class="kr">inline</span> <span class="kt">bool</span> <span class="n">operator</span> <span class="o">==</span> <span class="p">(</span><span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">objc_object</span><span class="o">&gt;</span> <span class="n">lhs</span><span class="p">,</span> <span class="kt">id</span> <span class="n">rhs</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">lhs</span> <span class="o">==</span> <span class="p">(</span><span class="n">objc_object</span> <span class="o">*</span><span class="p">)</span><span class="n">rhs</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="k">static</span> <span class="kr">inline</span> <span class="kt">bool</span> <span class="n">operator</span> <span class="o">!=</span> <span class="p">(</span><span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">objc_object</span><span class="o">&gt;</span> <span class="n">lhs</span><span class="p">,</span> <span class="kt">id</span> <span class="n">rhs</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">lhs</span> <span class="o">!=</span> <span class="p">(</span><span class="n">objc_object</span> <span class="o">*</span><span class="p">)</span><span class="n">rhs</span><span class="p">;</span>
+<span class="p">}</span>
 </code></pre></div><h2 id="how">How</h2>
 <p><code>DisguisedPtr</code> 类型的作用正如其名称「Diguised Pointer」—— 即<strong>隐藏的指针</strong>，当我们将指针构造为该类型的对象时，将通过 <code>disguise</code> 静态函数首先将指针存储的内存地址本身强制转换为 <code>uintptr_t</code> 无符号整型的十进制数据，并取负达到隐藏的目的：</p>
 <div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// main.mm
