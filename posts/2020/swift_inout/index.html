@@ -240,7 +240,7 @@ body {
 <p>《Swift 拾遗》是一个关于 Swift 的新文章专辑，这个系列的文章将不会涉及基本语法的层面，而是尝试从底层「拾」起之前所忽视的内容。今天我们将一起简单探究修饰 Swift 中函数参数的 <code>inout</code> 关键字。</p>
 <h2 id="本质">本质</h2>
 <p>我们声明一个使用 <code>inout</code> 参数的函数，并在外界将变量 <code>&amp;</code> 按地址传入：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">var</span> <span class="nv">foo</span> <span class="p">=</span> <span class="mi">5</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">var</span> <span class="nv">foo</span> <span class="p">=</span> <span class="mi">5</span>
 
 <span class="kd">func</span> <span class="nf">inoutDemoFunc</span><span class="p">(</span><span class="kc">_</span> <span class="n">innerFoo</span><span class="p">:</span> <span class="kr">inout</span> <span class="nb">Int</span><span class="p">)</span> <span class="p">{</span>
     <span class="n">innerFoo</span> <span class="p">=</span> <span class="mi">9</span>
@@ -250,7 +250,7 @@ body {
 
 <span class="c1">// foo == 9</span>
 </code></pre></div><p>尝试将以上代码转换为汇编（Xcode Menu - Debug - Debug Workflow - Always Show Disassembly）：</p>
-<div class="highlight"><pre class="chroma"><code class="language-asm" data-lang="asm"><span class="c">; inout
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="c">; inout
 </span><span class="c"></span><span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
     <span class="err">0</span><span class="nf">x100001d60</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">pushq</span>  <span class="nv">%rbp</span>
     <span class="err">0</span><span class="nf">x100001d61</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
@@ -289,7 +289,7 @@ body {
     <span class="err">0</span><span class="nf">x100001dd8</span> <span class="err">&lt;+</span><span class="mi">24</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">retq</span>
 </code></pre></div><p>观察整个函数调用流程我们会发现，当使用 <code>inout</code> 时，将作为参数传入的变量的内存地址通过 <code>lea</code> 指令被放在 <code>%rdi</code> 中，传递到函数内部；在函数内部修改参数值时，实际修改的是 <code>%rdi</code> 中内存地址所对应的存储空间的实际值。这就验证了 <code>inout</code> 的本质是<strong>按引用</strong>传递。</p>
 <p>再来尝试一个无 <code>inout</code> 修饰参数的函数：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">var</span> <span class="nv">foo</span> <span class="p">=</span> <span class="mi">5</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">var</span> <span class="nv">foo</span> <span class="p">=</span> <span class="mi">5</span>
 
 <span class="kd">func</span> <span class="nf">demoFunc</span><span class="p">(</span><span class="kc">_</span> <span class="n">innerFoo</span><span class="p">:</span> <span class="nb">Int</span><span class="p">)</span> <span class="p">{</span>
     <span class="c1">// innerFoo 默认声明为 let</span>
@@ -301,7 +301,7 @@ body {
 
 <span class="c1">// foo == 5</span>
 </code></pre></div><p>同样将以上代码转换为汇编：</p>
-<div class="highlight"><pre class="chroma"><code class="language-asm" data-lang="asm"><span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
     <span class="err">0</span><span class="nf">x100001d50</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">pushq</span>  <span class="nv">%rbp</span>
     <span class="err">0</span><span class="nf">x100001d51</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
     <span class="err">0</span><span class="nf">x100001d54</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">subq</span>   <span class="no">$0x30</span><span class="p">,</span> <span class="nv">%rsp</span>

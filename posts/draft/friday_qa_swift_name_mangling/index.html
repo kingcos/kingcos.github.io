@@ -241,7 +241,7 @@ body {
 <p>许久没有参与到 Friday Q&amp;A 中，不过我带着全新主题的文章又回来了：Swift。在最近的几篇文章中，Mike 具体介绍了 Swift 的内部结构是什么样的，但他只是轻描淡写了当查看包含 Swift 的二进制文件时，链接器所看到的：被修饰的（Mangled）符号名。</p>
 <hr>
 <p>在 C 之类的编程语言中，任何给定的名称（<em>符号</em>）都只能对应一个函数或者一条数据，那么名字修饰（Name Mangling）就不是必需的。尽管如此，如果我们查看典型的纯 C 二进制文件的符号表，仍然能发现每个函数名中都有一个 <code>_</code>（下划线）作为前缀。举个例子：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">$ <span class="nb">echo</span> <span class="s1">&#39;int main() { return 0; }&#39;</span> <span class="p">|</span> xcrun clang -x c - -o ./test
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">$ <span class="nb">echo</span> <span class="s1">&#39;int main() { return 0; }&#39;</span> <span class="p">|</span> xcrun clang -x c - -o ./test
 $ xctest nm ./test <span class="c1"># 译者注：xctest 命令可能无法直接找到，也可直接使用 nm ./test</span>
 <span class="m">0000000100000000</span> T __mh_execute_header
 0000000100000f80 T _main
@@ -251,7 +251,7 @@ $
 <p>Obj-C 同样不会在符号名称间产生冲突；Obj-C 的方法实现总是形如 <code>-[class selector]</code>，而且 Obj-C 不允许在同一个类中重载具有不同类型签名的同一选择器（Selectors）。</p>
 <h2 id="好了让我们开始玩转名字修饰吧">好了，让我们开始玩转名字修饰吧！</h2>
 <p>如果在编程语言中只有简单的命名而没有提供任何更多的信息，会导致事情变得更加复杂。想一想这个 C++ 中的例子：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">$ cat <span class="p">|</span> xcrun clang -x c++ - -o <span class="nb">test</span> <span class="c1"># 译者注：输入完此行需要手动换行再粘贴下述语句</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">$ cat <span class="p">|</span> xcrun clang -x c++ - -o <span class="nb">test</span> <span class="c1"># 译者注：输入完此行需要手动换行再粘贴下述语句</span>
 int foo<span class="o">(</span>int a<span class="o">)</span> <span class="o">{</span> <span class="k">return</span> a * 2<span class="p">;</span> <span class="o">}</span>
 int foo<span class="o">(</span>double a<span class="o">)</span> <span class="o">{</span> <span class="k">return</span> a * 2.0<span class="p">;</span> <span class="o">}</span>
 int main<span class="o">()</span> <span class="o">{</span> <span class="k">return</span> foo<span class="o">(</span>1<span class="o">)</span> + foo<span class="o">(</span>1.0<span class="o">)</span><span class="p">;</span> <span class="o">}</span>
@@ -275,7 +275,7 @@ $ xcrun nm -a <span class="nb">test</span>
 <h2 id="非常有趣但作为一篇-swift-的文章我们花费了好久终于来到了">非常有趣，但作为一篇 Swift 的文章，我们花费了好久终于来到了！</h2>
 <p>Swift 的名字修饰与 C++ 有所不同。原则上讲，虽然 Swift 清晰地使用了一套基于 C++ 方案的编码，但在更成熟地类型系统中包含了更多信息，并表达概念。</p>
 <p>我们来看一个复杂的例子。思考以下过度设计且完全无用的 Swift 代码：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">$ xcrun swiftc -emit-library -o <span class="nb">test</span> -
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">$ xcrun swiftc -emit-library -o <span class="nb">test</span> -
 struct e <span class="o">{</span>
         enum f <span class="o">{</span>
                 <span class="k">case</span> G, H, I
@@ -297,7 +297,7 @@ $ xcrun nm -g <span class="nb">test</span>
 ...
 $
 </code></pre></div><p>译者注：由于本文发布时间较为久远，因此可使用以下实测过可以运行的代码来验证：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">$ xcrun swiftc -emit-library -o <span class="nb">test</span> -
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">$ xcrun swiftc -emit-library -o <span class="nb">test</span> -
 // 声明为 public 才可以在全局符号中看到
 public struct e <span class="o">{</span>
   public enum f <span class="o">{</span>

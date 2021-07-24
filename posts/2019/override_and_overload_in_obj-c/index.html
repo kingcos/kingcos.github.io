@@ -247,7 +247,7 @@ body {
 <p>函数重载 - 维基百科</p>
 </blockquote>
 <p>如维基百科所讲，简言之，重载（Overload）指在同一个类中，存在相同函数名但不同参数个数或不同参数类型或不同返回值的函数。但由于 Obj-C 是消息结构的语言，其意义上的方法调用实质上是消息传递。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
 
 <span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">run</span><span class="p">;</span>
 <span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">run:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">sth</span><span class="p">;</span>
@@ -274,7 +274,7 @@ body {
     <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </code></pre></div><p>我们定义一个继承自 <code>NSObject</code> 的 <code>Computer</code> 类，其拥有两个实例方法。尝试将上述代码翻译为 C++，<code>xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m -o main-64.cpp</code>。由于 Obj-C 是消息结构的语言，<code>objc_msgSend</code> 处便是其消息传递之处，我们可以发现原本的方法都被变成了字符串：<code>sel_registerName(&quot;alloc&quot;)</code>、<code>sel_registerName(&quot;init&quot;)</code>、<code>sel_registerName(&quot;run&quot;)</code> 和 <code>sel_registerName(&quot;run:&quot;)</code>。实际上这些字符串就是 Obj-C 方法的方法名，方法名忽略了参数名以及返回值，实例方法与类方法的区别也只是不同的消息接收对象。所以严格意义上讲，Obj-C 是不支持方法重载的，因为它不允许同名函数的存在。但如果按不同参数个数也属于方法重载来说，Obj-C 仅支持参数个数不同的重载，每个参数都将在方法名后多生成一个 <code>:</code> 从而可以区分。</p>
-<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
     <span class="cm">/* @autoreleasepool */</span> <span class="p">{</span> <span class="n">__AtAutoreleasePool</span> <span class="n">__autoreleasepool</span><span class="p">;</span> 
 
         <span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">((</span><span class="n">Computer</span> <span class="o">*</span><span class="p">(</span><span class="o">*</span><span class="p">)(</span><span class="n">id</span><span class="p">,</span> <span class="n">SEL</span><span class="p">))(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="n">objc_msgSend</span><span class="p">)((</span><span class="n">id</span><span class="p">)((</span><span class="n">Computer</span> <span class="o">*</span><span class="p">(</span><span class="o">*</span><span class="p">)(</span><span class="n">id</span><span class="p">,</span> <span class="n">SEL</span><span class="p">))(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="n">objc_msgSend</span><span class="p">)((</span><span class="n">id</span><span class="p">)</span><span class="n">objc_getClass</span><span class="p">(</span><span class="s">&#34;Computer&#34;</span><span class="p">),</span> <span class="n">sel_registerName</span><span class="p">(</span><span class="s">&#34;alloc&#34;</span><span class="p">)),</span> <span class="n">sel_registerName</span><span class="p">(</span><span class="s">&#34;init&#34;</span><span class="p">));</span>
@@ -291,7 +291,7 @@ body {
 <p>在面向对象编程中，方法重写是一种语言特性，它允许子类提供其父类或超类已经提供的特定方法实现。子类中的实现通过提供与父类中的方法相同的名称、相同的参数或签名以及相同的返回类型的方法来覆盖（替换）超类中的实现。执行方法的版本将由调用对象确定。如果父类对象调用该方法，则将执行父类中的版本，但如果使用子类对象调用该方法，则将执行子类中的版本。某些语言允许程序员阻止方法被覆盖。</p>
 <p>方法重写 - 维基百科</p>
 </blockquote>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Mac</span> : <span class="nc">Computer</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Mac</span> : <span class="nc">Computer</span>
 <span class="k">@end</span>
 
 <span class="k">@implementation</span> <span class="nc">Mac</span>
@@ -302,7 +302,7 @@ body {
 
 <span class="k">@end</span>
 </code></pre></div><p>完全不同于重载，重写（Override）是指在子类中重写父类的方法，且方法名、参数类型、参数个数、返回值类型等必须一致。Obj-C 是完全支持方法重写的：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
 <span class="p">[</span><span class="n">cpt</span> <span class="nl">run</span><span class="p">:</span><span class="s">@&#34;cpt_run&#34;</span><span class="p">];</span>
 <span class="n">Computer</span> <span class="o">*</span><span class="n">mac</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Mac</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
 <span class="p">[</span><span class="n">mac</span> <span class="nl">run</span><span class="p">:</span><span class="s">@&#34;mac_run&#34;</span><span class="p">];</span>

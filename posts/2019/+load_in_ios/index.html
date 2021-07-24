@@ -265,7 +265,7 @@ body {
 <p>在 iOS 开发中，我们经常会使用 +load 方法来做一些在 <code>main</code> 函数之前的操作，比如方法交换（Method Swizzle）等。那么本文就来简单了解下 iOS 中 +load 方法。</p>
 <h2 id="what">What</h2>
 <p>iOS 中的 +load 方法指的是 <code>NSObject</code> 中的 <code>+ (void)load</code> 类方法：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// NSObject.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// NSObject.h
 </span><span class="c1"></span><span class="k">@interface</span> <span class="nc">NSObject</span> <span class="o">&lt;</span><span class="n">NSObject</span><span class="o">&gt;</span> <span class="p">{</span>
 <span class="o">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">load</span><span class="p">;</span>
 <span class="p">}</span>
@@ -315,7 +315,7 @@ body {
 </blockquote>
 <h2 id="how">How</h2>
 <p>根据官方文档的描述，我们可以尝试定义一个继承自 <code>NSObject</code> 的 <code>Person</code> 类，并对其添加两个分类 <code>Life</code> 和 <code>Work</code>；再定义一个 <code>Student</code> 类继承自 <code>Person</code>，并对其添加 <code>School</code> 分类。在以上所有类和分类中，均实现 +load：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Person.m
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Person.m
 </span><span class="c1"></span><span class="cp">#import &#34;Person.h&#34;
 </span><span class="cp"></span>
 <span class="k">@implementation</span> <span class="nc">Person</span>
@@ -376,7 +376,7 @@ body {
 <p><img src="/img/2019/+load_in_ios/1.png" alt="1"></p>
 </blockquote>
 <p>为了证明上述结论，我们可以在 objc4 的源码中，从 Obj-C 运行时初始化的入口着手，即 <code>_objc_init</code>：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-os.mm
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-os.mm
 </span><span class="c1"></span><span class="cm">/***********************************************************************
 </span><span class="cm">* _objc_init
 </span><span class="cm">* Bootstrap initialization. Registers our image notifier with dyld.
@@ -954,7 +954,7 @@ body {
 <p><img src="/img/2019/+load_in_ios/2.png" alt="2"></p>
 <h3 id="imp-与-load">IMP 与 +load</h3>
 <p>按照我们之前在「iOS 中的 Category」一篇所提到的，当分类中定义了和主类中相同的方法，那么在调用时将选择最后被编译的分类中的实现。因为在运行时，分类中的方法最终将附加到主类或主类元类的方法列表中，最终将返回第一个找到的方法。那么为什么 +load 如此特殊呢？</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// add_class_to_loadable_list
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// add_class_to_loadable_list
 </span><span class="c1"></span><span class="n">loadable_classes</span><span class="p">[</span><span class="n">loadable_classes_used</span><span class="p">].</span><span class="n">cls</span> <span class="o">=</span> <span class="n">cls</span><span class="p">;</span>
 <span class="n">loadable_classes</span><span class="p">[</span><span class="n">loadable_classes_used</span><span class="p">].</span><span class="n">method</span> <span class="o">=</span> <span class="n">method</span><span class="p">;</span>
 
@@ -964,7 +964,7 @@ body {
 <span class="n">load_method_t</span> <span class="n">load_method</span> <span class="o">=</span> <span class="p">(</span><span class="n">load_method_t</span><span class="p">)</span><span class="n">classes</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">method</span><span class="p">;</span>
 <span class="p">(</span><span class="o">*</span><span class="n">load_method</span><span class="p">)(</span><span class="n">cls</span><span class="p">,</span> <span class="n">SEL_load</span><span class="p">);</span>
 </code></pre></div><p>我们知道，Obj-C 是一门消息机制语言，所谓方法调用是不严谨的，其本质是消息发送（Message Sending），即 <code>objc_msgSend</code>。当「调用」对象方法时，类对象接收到消息作出响应；当「调用」类方法时，元类对象接收到消息作出响应。而在 +load 最终的调用处只是 <code>(*load_method)(cls, SEL_load)</code>，并不存在消息的发送。我们在 <code>add_class_to_loadable_list</code> 中也可以看到，+load 方法本质是存储了方法指针（IMP）并直接调用，因此不会出现类似「覆盖」的情形，而且效率会更高。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &#34;Student.h&#34;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &#34;Student.h&#34;
 </span><span class="cp"></span>
 <span class="k">@implementation</span> <span class="nc">Student</span>
 <span class="p">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">load</span> <span class="p">{</span>
@@ -986,7 +986,7 @@ body {
 <p>在 objc4 的源码中提供了很多环境变量，方便我们 Debug 时输出一些内部源码的执行信息。<code>OBJC_PRINT_LOAD_METHODS</code> 即是 <code>+load</code> 相关的一个环境变量，将 <code>OBJC_PRINT_LOAD_METHODS</code> 在 Xcode 中设置为 <code>YES</code> 后，将会打印出很多 +load 方法执行时的信息。从下面的信息我们也可以得知，Obj-C 内也广泛使用了 +load，而因为我们自定义的类会在最晚被编译，因此也会在最晚去调用：</p>
 <details>
 <summary>-> 点击此处即可查看完整内容 <-</summary>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">objc</span><span class="p">[</span><span class="mi">63382</span><span class="p">]</span><span class="o">:</span> <span class="nl">LOAD</span><span class="p">:</span> <span class="k">class</span> <span class="err">&#39;</span><span class="n">NSObject</span><span class="err">&#39;</span> <span class="n">scheduled</span> <span class="k">for</span> <span class="o">+</span><span class="n">load</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">objc</span><span class="p">[</span><span class="mi">63382</span><span class="p">]</span><span class="o">:</span> <span class="nl">LOAD</span><span class="p">:</span> <span class="k">class</span> <span class="err">&#39;</span><span class="n">NSObject</span><span class="err">&#39;</span> <span class="n">scheduled</span> <span class="k">for</span> <span class="o">+</span><span class="n">load</span>
 <span class="n">objc</span><span class="p">[</span><span class="mi">63382</span><span class="p">]</span><span class="o">:</span> <span class="nl">LOAD</span><span class="p">:</span> <span class="k">class</span> <span class="err">&#39;</span><span class="n">OS_dispatch_queue</span><span class="err">&#39;</span> <span class="n">scheduled</span> <span class="k">for</span> <span class="o">+</span><span class="n">load</span>
 <span class="n">objc</span><span class="p">[</span><span class="mi">63382</span><span class="p">]</span><span class="o">:</span> <span class="nl">LOAD</span><span class="p">:</span> <span class="k">class</span> <span class="err">&#39;</span><span class="n">OS_dispatch_source</span><span class="err">&#39;</span> <span class="n">scheduled</span> <span class="k">for</span> <span class="o">+</span><span class="n">load</span>
 <span class="n">objc</span><span class="p">[</span><span class="mi">63382</span><span class="p">]</span><span class="o">:</span> <span class="nl">LOAD</span><span class="p">:</span> <span class="k">class</span> <span class="err">&#39;</span><span class="n">OS_dispatch_mach</span><span class="err">&#39;</span> <span class="n">scheduled</span> <span class="k">for</span> <span class="o">+</span><span class="n">load</span>
@@ -1191,7 +1191,7 @@ body {
 </code></pre></div></details>
 <h2 id="others">Others</h2>
 <h3 id="开销">开销</h3>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Fruit</span> : <span class="nc">NSObject</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Fruit</span> : <span class="nc">NSObject</span>
 
 <span class="k">@end</span>
 
@@ -1208,7 +1208,7 @@ body {
 </span><span class="c1">// 2019-04-20 19:23:41.434564+0800 Load_Obj-C_iOS_Demo[63358:15371945] ------
 </span></code></pre></div><p>通过上面的分析，我们了解了 +load 在运行时初始化加载镜像时就会被调用，使得可以有机会预先做很多事情。但正是因为其加载的时机非常靠前，如果在 +load 方法中做比较复杂且在主线程的操作，将会影响 app 启动时间，降低用户体验。我们可以尝试建立一个 iOS app，在 +load 中 <code>sleep(3)</code> 模拟做比较复杂的操作，此时每次 app 冷启动都将会有 3 秒以上的时间才能进入 app 主页的控制器，极大的影响了启动时间。</p>
 <p>我们可以使用 <code>DYLD_PRINT_STATISTICS_DETAILS</code> 环境变量来控制输出启动统计的相关信息，就可以在 <code>total time in initializers and ObjC +load</code> 中发现 <code>Load_Obj-C_iOS_Demo : 3.0 seconds (74.4%)</code> 占用了大部分时间。</p>
-<div class="highlight"><pre class="chroma"><code class="language-text" data-lang="text">  total time: 4.0 seconds (100.0%)
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text">  total time: 4.0 seconds (100.0%)
   total images loaded:  258 (0 from dyld shared cache)
   total segments mapped: 767, into 102430 pages with 7398 pages pre-fetched
   total images loading time: 397.50 milliseconds (9.8%)
@@ -1229,7 +1229,7 @@ body {
 </code></pre></div><h3 id="swift">Swift</h3>
 <p>与我们的老朋友 Obj-C 不同的是，Swift 是一门诞生即宣扬安全、快速、强壮的语言，因此其极大地削弱了 Runtime 这一概念，将大部分检查提前到编译时刻。因此 Swift 中普通的类无需继承自 <code>NSObject</code>，自然也不存在 +load。</p>
 <p>而当我们尝试在 Swift 5.x 中继承自 <code>NSObject</code> 来实现 +load 和 +initialize 时，却发现编译器现在已经不允许了：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">Foo</span><span class="p">:</span> <span class="n">NSObject</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">Foo</span><span class="p">:</span> <span class="n">NSObject</span> <span class="p">{</span>
     <span class="c1">// Method &#39;load()&#39; defines Objective-C class method &#39;load&#39;, which is not permitted by Swift</span>
     <span class="kd">static</span> <span class="kd">func</span> <span class="nf">load</span><span class="p">()</span> <span class="p">{}</span>
 
@@ -1238,7 +1238,7 @@ body {
 <span class="p">}</span>
 </code></pre></div><p>与以往不同，这次官方连变通方法也没有提供，看来确实不鼓励在 app 启动的 main 函数调用前做太多开销的事情。</p>
 <p>我们首先能想到的是使用 Obj-C 混编来定义分类并实现 +load 来达到类似的效果，然而官方已经料到了这一点：「Swift class extensions and categories on Swift classes are not allowed to have +load methods」，不过 +initialize 目前仍是允许的：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">SwiftFoo</span> <span class="nl">(SwiftInitialize)</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">SwiftFoo</span> <span class="nl">(SwiftInitialize)</span>
 <span class="k">@end</span>
 
 <span class="k">@implementation</span> <span class="nc">SwiftFoo</span> <span class="nl">(SwiftInitialize)</span>
@@ -1247,13 +1247,13 @@ body {
     <span class="c1">// 或者直接做一些处理
 </span><span class="c1"></span><span class="p">}</span>
 <span class="k">@end</span>
-</code></pre></div><div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">SwiftFoo</span><span class="p">:</span> <span class="n">NSObject</span> <span class="p">{</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">SwiftFoo</span><span class="p">:</span> <span class="n">NSObject</span> <span class="p">{</span>
     <span class="kr">@objc</span> <span class="kd">static</span> <span class="kd">func</span> <span class="nf">swiftInitialize</span><span class="p">()</span> <span class="p">{</span>
         <span class="c1">// Do sth like in +initialize...</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div><p>或者我们也可以根据「<a href="http://jordansmith.io/handling-the-deprecation-of-initialize/">Handling the Deprecation of initialize() - JORDAN SMITH</a>」一文中使用响应链并使用运行时兼容所有非 <code>NSObject</code> 类也可支持类似的效果：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">protocol</span> <span class="nc">SelfAware</span><span class="p">:</span> <span class="kd">class</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">protocol</span> <span class="nc">SelfAware</span><span class="p">:</span> <span class="kd">class</span> <span class="p">{</span>
     <span class="kd">static</span> <span class="kd">func</span> <span class="nf">awake</span><span class="p">()</span>
 <span class="p">}</span>
 

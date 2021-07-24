@@ -250,7 +250,7 @@ body {
 <p>在 iOS 中，经常与 +load 相提并论的一个方法便是 +initialize。从方法名来看，它的作用是进行初始化，但不同于平时使用的 <code>init</code>，+initialize 是一个类方法。那么它的本质到底是什么呢？</p>
 <p>为了更好地叙述 +initialize 的特点，本文部分描述尝试与 +load 方法对比，建议阅读本文前先阅读「iOS 中的 +load 方法」。</p>
 <h2 id="what">What</h2>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// NSObject.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// NSObject.h
 </span><span class="c1"></span><span class="k">@interface</span> <span class="nc">NSObject</span> <span class="o">&lt;</span><span class="n">NSObject</span><span class="o">&gt;</span> <span class="p">{</span>
 <span class="o">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">initialize</span><span class="p">;</span>
 <span class="p">}</span>
@@ -261,7 +261,7 @@ body {
 <p>The runtime sends the <code>initialize</code> message to classes in a thread-safe manner. That is, <code>initialize</code> is run by the first thread to send a message to a class, and any other thread that tries to send a message to that class will block until <code>initialize</code> completes.</p>
 <p>The superclass implementation may be called multiple times if subclasses do not implement <code>initialize</code>—the runtime will call the inherited implementation—or if subclasses explicitly call <code>[super initialize]</code>. If you want to protect yourself from being run multiple times, you can structure your implementation along these lines:</p>
 </blockquote>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">initialize</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">initialize</span> <span class="p">{</span>
   <span class="k">if</span> <span class="p">(</span><span class="nb">self</span> <span class="o">==</span> <span class="p">[</span><span class="n">ClassName</span> <span class="nb">self</span><span class="p">])</span> <span class="p">{</span>
     <span class="c1">// ... do the initialization ...
 </span><span class="c1"></span>  <span class="p">}</span>
@@ -276,7 +276,7 @@ body {
 <p>运行时以线程安全的方式发送 <code>initialize</code> 消息到类。即 <code>initialize</code> 由第一个线程运行来发送消息到一个类，并且其它任何尝试发送消息的线程都将会被阻塞，直到 <code>initialize</code> 完成。</p>
 <p>如果子类未实现 <code>initialize</code> 则父类的实现可能会被调用多次 —— 运行时将会调用继承（自父类）的实现 —— 或者如果子类明确调用 <code>[super initialize]</code>。如果不希望运行多次，可以参考如下实现：</p>
 </blockquote>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">initialize</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">initialize</span> <span class="p">{</span>
   <span class="k">if</span> <span class="p">(</span><span class="nb">self</span> <span class="o">==</span> <span class="p">[</span><span class="n">ClassName</span> <span class="nb">self</span><span class="p">])</span> <span class="p">{</span>
     <span class="c1">// ... do the initialization ...
 </span><span class="c1"></span>  <span class="p">}</span>
@@ -288,7 +288,7 @@ body {
 </blockquote>
 <h2 id="how">How</h2>
 <p>根据官方文档的描述，我们可以尝试定义一个继承自 <code>NSObject</code> 的 <code>Person</code> 类，并对其添加两个分类 <code>Life</code> 和 <code>Work</code>；再定义一个 <code>Student</code> 类继承自 <code>Person</code>，并对其添加 <code>School</code> 分类；最后定义一个 <code>Programmer</code> 类继承自 <code>Person</code>。在以上除了 <code>Programmer</code> 的类和分类中，均实现 +initialize：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Person.m
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Person.m
 </span><span class="c1"></span><span class="cp">#import &#34;Person.h&#34;
 </span><span class="cp"></span>
 <span class="k">@implementation</span> <span class="nc">Person</span>
@@ -342,7 +342,7 @@ body {
 <span class="c1">// OUTPUT:
 </span><span class="c1">// Hello, World!
 </span></code></pre></div><p>首先我们不更改 main.m，尝试运行程序，结果只输出了 <code>main</code> 函数 <code>Hello, World!</code>，因为 +initialize 并不像 +load 一样是在 <code>main</code> 函数前调用的，而没有输出的原因是这些类还没有收到一条消息。众所周知，Obj-C 中大部分方法调用的本质都是消息发送（Message Sending），<code>[SomeClass classMethod]</code> 是向 <code>SomeClass</code> 类对象发送 <code>classMethod</code> 消息；<code>[SomeObject instanceMethod]</code> 是向 <code>SomeObject</code> 实例对象发送 <code>instanceMethod</code> 方法；由于如果要调用对象方法，也必须要先进行 <code>alloc</code> 并 <code>init</code>（或者 <code>new</code>）才能创建完一个实例对象，因此可以认为类接收到的第一条消息永远是类方法。这次我们尝试向它们发送消息：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// main.m
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// main.m
 </span><span class="c1"></span><span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp"></span>
 <span class="cp">#import &#34;Person.h&#34;
@@ -374,7 +374,7 @@ body {
 <h2 id="why">Why</h2>
 <h4 id="实现原理">实现原理</h4>
 <p>上面我们先抛出了结论，那么该如何验证呢？Talk is cheap, show me the code:</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-class.mm
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-class.mm
 </span><span class="c1"></span><span class="cm">/***********************************************************************
 </span><span class="cm">* class_getClassMethod.  Return the class method for the specified
 </span><span class="cm">* class and selector.
@@ -734,7 +734,7 @@ body {
 <p>如上所述，一个类的 +initialize 方法并不能保证只会被调用一次，所以如果我们不希望多次调用，可以在 +initialize 方法中进行判断 <code>self == [ClassName self]</code>。</p>
 <h2 id="objc_print_initialize_methods">OBJC_PRINT_INITIALIZE_METHODS</h2>
 <p>为了便于 Debug 运行时的 +initialize 方法，将 <code>OBJC_PRINT_INITIALIZE_METHODS</code> 在 Xcode 中设置为 YES 后，可以打印出很多 + initialize 方法执行时的信息：</p>
-<div class="highlight"><pre class="chroma"><code class="language-text" data-lang="text">objc[23971]: INITIALIZE: thread 0x1000aa5c0: calling +[NSObject initialize]
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text">objc[23971]: INITIALIZE: thread 0x1000aa5c0: calling +[NSObject initialize]
 objc[23971]: INITIALIZE: thread 0x1000aa5c0: finished +[NSObject initialize]
 objc[23971]: INITIALIZE: thread 0x1000aa5c0: NSObject is fully +initialized
 objc[23971]: INITIALIZE: thread 0x1000aa5c0: calling +[OS_dispatch_data initialize]

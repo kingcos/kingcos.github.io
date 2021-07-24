@@ -248,7 +248,7 @@ body {
 <p>为了避免读者（和笔者）记混，这里简单说明下 <code>#define</code> 与 <code>typedef</code> 的异同：<code>#define A B</code> 意为将已存在的 <code>B</code> 定义为 <code>A</code>，<code>A</code> 与 <code>B</code> 等价；<code>typedef C D</code> 意为将已存在的 <code>C</code> 定义为 <code>D</code>，<code>C</code> 与 <code>D</code> 等价；后者通常用于类型定义。</p>
 </blockquote>
 <h2 id="_bool-与-bool">_Bool 与 bool</h2>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="c1">// iOS - stdbool.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="c1">// iOS - stdbool.h
 </span><span class="c1"></span>
 <span class="cm">/*===---- stdbool.h - Standard header for booleans -------------------------===
 </span><span class="cm"> *
@@ -311,7 +311,7 @@ body {
 <p>—— C99 §6.2.5.6</p>
 </blockquote>
 <p>关于 <code>_Bool</code> 的底层类型，C99 标准中没有直接明确说明，但根据 C99 §6.2.5.6 我们可以认为 <code>_Bool</code> 属于 <code>unsigned int</code>，但实际仍只占用一个字节：</p>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">printf</span><span class="p">(</span><span class="s">&#34;%lu</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">_Bool</span><span class="p">));</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="n">printf</span><span class="p">(</span><span class="s">&#34;%lu</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">_Bool</span><span class="p">));</span>
 <span class="n">printf</span><span class="p">(</span><span class="s">&#34;%lu</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">));</span>
 
 <span class="c1">// 1
@@ -319,7 +319,7 @@ body {
 </span></code></pre></div><p>在 <code>stdbool.h</code> 中，非 <code>__cplusplus</code> 情况（即未使用 C++ 编译器）下，<code>_Bool</code> 被宏定义为 <code>bool</code>，<code>1</code> 被宏定义为 <code>true</code>，<code>0</code> 被宏定义为 <code>false</code>。因此在引入 <code>stdbool.h</code> 的项目中，<code>bool</code> 就等同于 <code>_Bool</code>。不同于 C 语言，C++ 诞生即拥有原生的布尔类型 <code>bool</code>，其真值为 <code>true</code> 假值为 <code>false</code>。那么 Obj-C 中的 <code>bool</code> 又是什么呢？</p>
 <p>我们知道，Obj-C 是 C 语言的超集，因此其中的 <code>bool</code> 其实来自于 <code>stdbool.h</code> 头文件中对 <code>_Bool</code> 的宏定义。只是在 Obj-C 中，我们无需再手动引入该头文件，因为其已经间接被 <code>CoreFoundation.h</code> - <code>Foundation.h</code> 引入。</p>
 <p>而在 Obj-C++ 中，情况变得有些不同。按照 <code>stdbool.h</code> 中的定义，如果 <code>__cplusplus</code> 被定义了，则通常不再宏定义 <code>bool</code>、<code>true</code> 和 <code>false</code>，从而避免覆盖 C++ 中布尔类型 <code>bool</code>。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &#34;Foo.h&#34;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &#34;Foo.h&#34;
 </span><span class="cp"></span>
 <span class="k">@implementation</span> <span class="nc">Foo</span>
 
@@ -339,7 +339,7 @@ body {
 </blockquote>
 <h2 id="bool">BOOL</h2>
 <p><code>BOOL</code> 是 Obj-C 中的布尔类型，但其本质是来自于宏定义：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// usr/include - objc - objc.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// usr/include - objc - objc.h
 </span><span class="c1"></span>
 <span class="c1">/// Type to represent a boolean value.
 </span><span class="c1"></span>
@@ -378,7 +378,7 @@ body {
 </span><span class="cp">#define NO  ((BOOL)0)
 </span><span class="cp">#endif
 </span></code></pre></div><p>根据宏定义，当目标平台为 macOS、Mac Catalyst 或 32 位 iOS 时，<code>BOOL</code> 为 <code>signed char</code>；当目标平台为 64 位 iOS、tvOS、或 watchOS 时，<code>BOOL</code> 为 <code>bool</code>（即 <code>_Bool</code>）。因此在使用时，我们也要务必注意这些差异：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &#34;Foo.h&#34;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &#34;Foo.h&#34;
 </span><span class="cp"></span>
 <span class="k">@implementation</span> <span class="nc">Foo</span>
 
@@ -433,7 +433,7 @@ body {
 </span><span class="c1">// YES
 </span><span class="c1">// YES
 </span></code></pre></div><p><code>BOOL</code> 中对应的逻辑是 <code>YES</code> 为真，<code>NO</code> 为假，其本质分别即 <code>__objc_yes</code> 和 <code>__objc_no</code>：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// 摘自上文
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// 摘自上文
 </span><span class="c1"></span>
 <span class="c1">//...
 </span><span class="c1"></span>
@@ -452,7 +452,7 @@ body {
 </blockquote>
 <h2 id="__nscfboolean-与-cfboolean">__NSCFBoolean 与 CFBoolean</h2>
 <p>使用 <code>NSUserDefaults</code> 使得我们可以很容易持久化一些值，这里我们将 <code>BOOL</code> 的 <code>YES</code> 保存，并尝试取出：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">[[</span><span class="n">NSUserDefaults</span> <span class="n">standardUserDefaults</span><span class="p">]</span> <span class="nl">setBool</span><span class="p">:</span><span class="nb">YES</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@&#34;BOOL_YES&#34;</span><span class="p">];</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">[[</span><span class="n">NSUserDefaults</span> <span class="n">standardUserDefaults</span><span class="p">]</span> <span class="nl">setBool</span><span class="p">:</span><span class="nb">YES</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@&#34;BOOL_YES&#34;</span><span class="p">];</span>
 <span class="c1">// [[NSUserDefaults standardUserDefaults] setObject:@YES forKey:@&#34;BOOL_YES&#34;];
 </span><span class="c1">// [[NSUserDefaults standardUserDefaults] setObject:@(YES) forKey:@&#34;BOOL_YES&#34;];
 </span><span class="c1">// - (id)valueForKey:(NSString *)key;
@@ -470,7 +470,7 @@ body {
 <p>—— CFBoolean, Apple Documentation</p>
 </blockquote>
 <p><code>CFBoolean</code> 中真值为 <code>kCFBooleanTrue</code>，假值为 <code>kCFBooleanFalse</code>：</p>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="c1">// CoreFoundation - CFNumber.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="c1">// CoreFoundation - CFNumber.h
 </span><span class="c1"></span>
 <span class="k">typedef</span> <span class="k">const</span> <span class="k">struct</span> <span class="nf">CF_BRIDGED_TYPE</span><span class="p">(</span><span class="n">NSNumber</span><span class="p">)</span> <span class="n">__CFBoolean</span> <span class="o">*</span> <span class="n">CFBooleanRef</span><span class="p">;</span>
 
@@ -485,7 +485,7 @@ body {
 <span class="n">CF_EXPORT</span>
 <span class="n">Boolean</span> <span class="nf">CFBooleanGetValue</span><span class="p">(</span><span class="n">CFBooleanRef</span> <span class="n">boolean</span><span class="p">);</span>
 </code></pre></div><h2 id="boolean-与-boolean_t">Boolean 与 boolean_t</h2>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// usr/include - MacTypes.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// usr/include - MacTypes.h
 </span><span class="c1"></span>
 <span class="cm">/********************************************************************************
 </span><span class="cm">
@@ -499,7 +499,7 @@ body {
 </span><span class="cm">*********************************************************************************/</span>
 <span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">char</span>                   <span class="kt">Boolean</span><span class="p">;</span>
 </code></pre></div><p><code>Boolean</code> 在 Obj-C 中是一个并不常用的类型。根据头文件，其来源于 macOS 历史遗留，实际类型为 <code>unsigned char</code>。</p>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="c1">// usr/include - mach - i386 - boolean.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="c1">// usr/include - mach - i386 - boolean.h
 </span><span class="c1"></span>
 <span class="cm">/*
 </span><span class="cm"> *	File:	boolean.h
@@ -518,7 +518,7 @@ body {
 </span><span class="cp"></span>
 <span class="cp">#endif  </span><span class="cm">/* _MACH_I386_BOOLEAN_H_ */</span><span class="cp">
 </span></code></pre></div><p><code>boolean_t</code> 也不常用，根据头文件，当目标平台为 x86_64 架构时，其相当于 <code>unsigned int</code>，反之则为 <code>int</code>。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">printf</span><span class="p">(</span><span class="s">&#34;%lu</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">Boolean</span><span class="p">));</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">printf</span><span class="p">(</span><span class="s">&#34;%lu</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">Boolean</span><span class="p">));</span>
 <span class="n">printf</span><span class="p">(</span><span class="s">&#34;%lu</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">boolean_t</span><span class="p">));</span>
 
 <span class="c1">// 1
@@ -526,7 +526,7 @@ body {
 </span></code></pre></div><p><code>Boolean</code> 和 <code>boolean_t</code> 分别占用 1 个和 4 个字节（该大小不区分目标平台）。而在日常开发中，由于我们几乎很少会使用到这两个类型，故本文不再赘述。</p>
 <h2 id="dyld_bool">DYLD_BOOL</h2>
 <p><code>DYLD_BOOL</code> 在平时我们也不常用，其本质是来自于 <code>dyld.h</code> 中的一个枚举类型，其中 <code>TRUE</code> 为 <code>1</code>，<code>FALSE</code> 为 <code>0</code>：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// usr/include - mach-o - dyld.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// usr/include - mach-o - dyld.h
 </span><span class="c1"></span>
 <span class="cp">#ifndef ENUM_DYLD_BOOL
 </span><span class="cp">#define ENUM_DYLD_BOOL
@@ -541,7 +541,7 @@ body {
 <blockquote>
 <p><code>__auto_type</code></p>
 <p>在 Swift 中，我们已经习惯于编译器自动进行的类型推断。而 GCC 4.9 为 C 语言引入了 <code>__auto_type</code> 关键字，用处主要在于一些宏定义中能够实现「类型推断」，类似 C++ 中的 <code>auto</code>。LLVM 中也加入了该关键字。</p>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="cp">#if defined(__cplusplus)
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#if defined(__cplusplus)
 </span><span class="cp">#define let auto const
 </span><span class="cp">#else
 </span><span class="cp">#define let const __auto_type

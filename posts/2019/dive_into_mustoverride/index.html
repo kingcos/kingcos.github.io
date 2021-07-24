@@ -282,7 +282,7 @@ body {
 <p>这个库的使用非常简单，我们可以在需要子类必须重写的父类（或其分类）方法中放入 <code>SUBCLASS_MUST_OVERRIDE;</code> 宏即可：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -305,7 +305,7 @@ body {
 </span><span class="lnt">21
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-objc" data-lang="objc"><span class="c1">// Foo.m
+<pre tabindex="0" class="chroma"><code class="language-objc" data-lang="objc"><span class="c1">// Foo.m
 </span><span class="c1"></span>
 <span class="cp">#import &#34;Foo.h&#34;
 </span><span class="cp">#import &#34;MustOverride.h&#34;
@@ -329,13 +329,13 @@ body {
 </div>
 </div>
 <p>这样，即使 <code>Foo</code> 父类及 <code>SubFoo</code> 子类的方法没有被调用到，只要子类没有实现相应的方法，程序也会在<strong>启动时</strong>立刻崩溃，便于第一时间发现问题：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">*** Terminating app due to uncaught exception <span class="s1">&#39;NSInternalInconsistencyException&#39;</span>, reason: <span class="s1">&#39;2 method override errors:
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">*** Terminating app due to uncaught exception <span class="s1">&#39;NSInternalInconsistencyException&#39;</span>, reason: <span class="s1">&#39;2 method override errors:
 </span><span class="s1">SubFoo does not implement required method -fooExt
 </span><span class="s1">SubFoo does not implement required method -foo&#39;</span>
 </code></pre></div><h2 id="why">Why</h2>
 <h3 id="结构">结构</h3>
 <p>「MustOverride」库的结构很简单，只有以下两个文件以及不超过 200 行的代码，很容易着手：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">➜  MustOverride tree
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">➜  MustOverride tree
 .
 ├── MustOverride.h
 └── MustOverride.m
@@ -343,7 +343,7 @@ body {
 <span class="m">0</span> directories, <span class="m">2</span> files
 </code></pre></div><h3 id="mustoverrideh">MustOverride.h</h3>
 <p>我们先从 <code>MustOverride.h</code> 开始：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// MustOverride.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// MustOverride.h
 </span><span class="c1"></span>
 <span class="cm">/**
 </span><span class="cm"> * Include this macro inside any class or instance method that MUST be overridden
@@ -364,7 +364,7 @@ body {
 <p>—— <a href="https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html">6.34.1 Common Variable Attributes, GNU</a></p>
 </blockquote>
 <p>在我的《<a href="https://kingcos.me/posts/2019/const_static_extern_in_cpp/">C/C++ 中的 const、static &amp; extern</a>》一文中，曾经提过<strong>静态变量只在其编译单元内可见，最终编译产物中的外部符号中并不会存在静态变量的符号</strong>，而其实如果编译单元内根本没有使用到某一静态变量，编译器默认会提示警告并将该静态变量进行优化（即不存在于目标文件与可执行文件中）：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp"></span>
 <span class="c1">// WARNING: Unused variable &#39;var1&#39;
 </span><span class="c1"></span><span class="k">static</span> <span class="kt">char</span> <span class="o">*</span><span class="n">var1</span> <span class="o">=</span> <span class="s">&#34;kingcos.me&#34;</span><span class="p">;</span>
@@ -376,7 +376,7 @@ body {
     <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </code></pre></div><p>如上，此时的静态变量 <code>var1</code> 仅声明并定义，但并没有代码使用到，我们可以通过 <code>nm PATH/TO/MustOverrideDemo | grep var</code> 命令发现可执行文件确实不存在该静态变量的符号：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">➜  MustOverride nm PATH/TO/MustOverrideDemo
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">➜  MustOverride nm PATH/TO/MustOverrideDemo
 <span class="m">0000000100008010</span> d __dyld_private
 <span class="m">0000000100000000</span> T __mh_execute_header
 0000000100003f50 T _main
@@ -384,10 +384,10 @@ body {
                  U _objc_autoreleasePoolPush
                  U dyld_stub_binder
 </code></pre></div><p>而如果我们打开注释，真正使用到了该变量，此时可执行文件中将会含有该符号：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">➜  MustOverride nm PATH/TO/MustOverrideDemo <span class="p">|</span> grep var
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">➜  MustOverride nm PATH/TO/MustOverrideDemo <span class="p">|</span> grep var
 <span class="m">0000000100008020</span> d _var1
 </code></pre></div><p>而 <code>__attribute__((used))</code> 变量属性能够控制<strong>关闭编译器对于未使用的静态变量的优化</strong>：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp"></span>
 <span class="k">static</span> <span class="kt">char</span> <span class="o">*</span><span class="n">var1</span> <span class="o">=</span> <span class="s">&#34;kingcos.me&#34;</span><span class="p">;</span>
 <span class="n">__attribute__</span><span class="p">((</span><span class="n">used</span><span class="p">))</span> <span class="k">static</span> <span class="kt">char</span> <span class="o">*</span><span class="n">var2</span> <span class="o">=</span> <span class="s">&#34;kingcos.me&#34;</span><span class="p">;</span>
@@ -416,7 +416,7 @@ body {
 <blockquote>
 <p><code>section (&quot;section-name&quot;)</code></p>
 <p>Normally, the compiler places the objects it generates in sections like <code>data</code> and <code>bss</code>. Sometimes, however, you need additional sections, or you need certain particular variables to appear in special sections, for example to map to special hardware. The section attribute specifies that a variable (or function) lives in a particular section. For example, this small program uses several specific section names:</p>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">duart</span> <span class="n">a</span> <span class="nf">__attribute__</span> <span class="p">((</span><span class="n">section</span> <span class="p">(</span><span class="s">&#34;DUART_A&#34;</span><span class="p">)))</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span> <span class="p">};</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">duart</span> <span class="n">a</span> <span class="nf">__attribute__</span> <span class="p">((</span><span class="n">section</span> <span class="p">(</span><span class="s">&#34;DUART_A&#34;</span><span class="p">)))</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span> <span class="p">};</span>
 <span class="k">struct</span> <span class="n">duart</span> <span class="n">b</span> <span class="nf">__attribute__</span> <span class="p">((</span><span class="n">section</span> <span class="p">(</span><span class="s">&#34;DUART_B&#34;</span><span class="p">)))</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span> <span class="p">};</span>
 <span class="kt">char</span> <span class="n">stack</span><span class="p">[</span><span class="mi">10000</span><span class="p">]</span> <span class="n">__attribute__</span> <span class="p">((</span><span class="n">section</span> <span class="p">(</span><span class="s">&#34;STACK&#34;</span><span class="p">)))</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span> <span class="p">};</span>
 <span class="kt">int</span> <span class="n">init_data</span> <span class="nf">__attribute__</span> <span class="p">((</span><span class="n">section</span> <span class="p">(</span><span class="s">&#34;INITDATA&#34;</span><span class="p">)));</span>
@@ -439,7 +439,7 @@ body {
 <p>—— <a href="https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html">6.34.1 Common Variable Attributes, GNU</a></p>
 </blockquote>
 <p>编译器通常会将不同类型（注：此处的类型指非狭义的数据结构类型）的变量放置在可执行文件内不同但特定的区域中。对于 iOS/macOS 项目的可执行文件 Mach-O 即放置在不同的段（Segment）和节（Section）中，比如全局变量通常是在数据段中。而 <code>__attribute__((section(&quot;name&quot;)))</code> 使得开发者可以将特定的变量存储在自定义的段和节内：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">__attribute__</span><span class="p">((</span><span class="n">section</span><span class="p">(</span><span class="s">&#34;__DATA,kingcos.me&#34;</span><span class="p">)))</span> <span class="k">static</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">var4</span> <span class="o">=</span> <span class="s">&#34;kingcos.me&#34;</span><span class="p">;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">__attribute__</span><span class="p">((</span><span class="n">section</span><span class="p">(</span><span class="s">&#34;__DATA,kingcos.me&#34;</span><span class="p">)))</span> <span class="k">static</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">var4</span> <span class="o">=</span> <span class="s">&#34;kingcos.me&#34;</span><span class="p">;</span>
 <span class="n">__attribute__</span><span class="p">((</span><span class="n">section</span><span class="p">(</span><span class="s">&#34;__DATA,maimieng.com&#34;</span><span class="p">)))</span> <span class="k">static</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">var5</span> <span class="o">=</span> <span class="s">&#34;maimieng.com&#34;</span><span class="p">;</span>
 
 <span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
@@ -456,14 +456,14 @@ body {
 <h3 id="mustoverridem">MustOverride.m</h3>
 <p>那么将方法名独立存储在可执行文件的数据段 <code>MustOverride</code> 节有什么意义呢？这就需要从 <code>MustOverride.m</code> 开始着手。</p>
 <p><code>MustOverride.m</code> 中定义了 <code>MustOverride</code> 类，但其实目的只是为了使用到 <code>+load</code> 方法，使得程序启动时可以执行其它函数，是该库的入口；其中关于 <code>+load</code> 方法，可详见《<a href="../+load_in_ios/">iOS 中的 +load 方法</a>》一文。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// MustOverride.m
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// MustOverride.m
 </span><span class="c1"></span>
 <span class="p">+</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">load</span>
 <span class="p">{</span>
     <span class="n">CheckOverrides</span><span class="p">();</span>
 <span class="p">}</span>
 </code></pre></div><p>在 <code>MustOverride</code> 的 <code>+load</code> 方法中调用了 <code>CheckOverrides()</code> C 语言静态函数。不过在具体说明该入口函数之前，我们先来看下另外两个在 <code>CheckOverrides()</code> 中使用到的辅助函数：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// MustOverride.m
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// MustOverride.m
 </span><span class="c1"></span>
 <span class="c1">// 该类是否重写某个方法（该类是否实现某个方法）
 </span><span class="c1"></span><span class="k">static</span> <span class="kt">BOOL</span> <span class="nf">ClassOverridesMethod</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">,</span> <span class="kt">SEL</span> <span class="n">selector</span><span class="p">)</span>
@@ -529,7 +529,7 @@ body {
 </span><span class="c1"></span>    <span class="k">return</span> <span class="n">subclasses</span><span class="p">;</span>
 <span class="p">}</span>
 </code></pre></div><p><code>ClassOverridesMethod()</code> 与 <code>SubclassesOfClass()</code> 两个独立封装的辅助函数使得 <code>CheckOverrides()</code> 函数可以设计得不会过长且功能独立：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// MustOverride.m
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// MustOverride.m
 </span><span class="c1"></span>
 <span class="k">static</span> <span class="kt">void</span> <span class="nf">CheckOverrides</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
 <span class="p">{</span>
@@ -591,7 +591,7 @@ body {
 <span class="p">}</span>
 
 </code></pre></div><p><code>DL_info</code> 是定义在 <code>dlfcn.h</code> 中的结构体类型，由 <code>dladdr()</code> 函数填充：</p>
-<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// dlfcn.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// dlfcn.h
 </span><span class="c1"></span>
 <span class="cm">/*
 </span><span class="cm"> * Structure filled in by dladdr().
@@ -605,7 +605,7 @@ body {
 
 <span class="k">extern</span> <span class="kt">int</span> <span class="nf">dladdr</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">,</span> <span class="n">Dl_info</span> <span class="o">*</span><span class="p">);</span>
 </code></pre></div><p>而关于 <code>dladdr()</code> 函数我们可以在 Terminal 通过 <code>man dladdr</code> 查阅 Manual 手册（如下）。该函数将通过 <code>dyld</code>（动态链接器）查询传入地址所在的镜像信息，并将其填充至 <code>DL_info</code> 结构体，其中 <code>dli_fbase</code> 为镜像的基地址，即 Mach-O 头部（<code>mach_header</code>）。</p>
-<div class="highlight"><pre class="chroma"><code class="language-text" data-lang="text">DLADDR(3)                BSD Library Functions Manual                DLADDR(3)
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text">DLADDR(3)                BSD Library Functions Manual                DLADDR(3)
 
 NAME
      dladdr -- find the image containing a given address
@@ -667,7 +667,7 @@ BUGS
 
 BSD                           September 24, 2004                           BSD
 </code></pre></div><p>通过 <code>mach_header</code> 和具体的段和节信息，我们就可以读取到其中的内容，但这里需要注意的是，在不同架构的设备上，相应的函数和类型可能略有不同，我们这里以目前更为普及的 64 位系统为例：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// MustOverride.m
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// MustOverride.m
 </span><span class="c1"></span>
 <span class="cp">#ifdef __LP64__
 </span><span class="cp"></span><span class="k">typedef</span> <span class="n">uint64_t</span> <span class="n">MustOverrideValue</span><span class="p">;</span>
@@ -688,7 +688,7 @@ BSD                           September 24, 2004                           BSD
     <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">segname</span><span class="p">,</span>
     <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">sectname</span><span class="p">);</span>
 </code></pre></div><p>节信息存储在 <code>section_64</code> 结构体中，通过 <code>offset</code> 偏移和 <code>mach_header</code> 可以取出其中第一个内容；由于我们在节中存储的实际上是指向字符数组的指针，指针在内存中占用的空间是固定的，即可顺位继续取出后续的内容；节中内容的总长度则可以由 <code>size</code> 得出：</p>
-<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// mach-o/loader.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// mach-o/loader.h
 </span><span class="c1"></span>
 <span class="k">struct</span> <span class="nc">section_64</span> <span class="p">{</span> <span class="cm">/* for 64-bit architectures */</span>
 	<span class="kt">char</span>		<span class="n">sectname</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span>	<span class="cm">/* name of this section */</span>
@@ -709,7 +709,7 @@ BSD                           September 24, 2004                           BSD
 <p>经过以上的分析，我们可以发现「MustOverride」这个库其实并不复杂，但带给了我们一些思路。比如我们可以使用 <code>__attribute__</code> 在编译时刻写入 Mach-O 中一些内容，并在 app 启动或运行时读取，进而做一些操作。那么还有一些由此相关的扩展内容，我们一起来领略一下吧！</p>
 <h3 id="宏的拼接">宏的拼接</h3>
 <p>宏的拼接指我们可以将一个宏的多个部分进行拼接，进而达到整体使用它的效果。虽然我们可能很少用到宏的拼接，但这却带来不少的灵活性。比如如下我们将 <code>A</code>、<code>B</code> 和 <code>C</code> 通过 <code>##</code> 进行了拼接：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#define A &#34;aaa\n&#34;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#define A &#34;aaa\n&#34;
 </span><span class="cp">#define B &#34;bbb\n&#34;
 </span><span class="cp">#define C &#34;ccc\n&#34;
 </span><span class="cp"></span>
@@ -745,7 +745,7 @@ BSD                           September 24, 2004                           BSD
 </ul>
 <h3 id="计数宏">计数宏</h3>
 <p><code>__COUNTER__</code> 即计数宏，该宏会从 <code>0</code> 开始，每预编译一次便会自增 <code>1</code>：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#define COUNTER_MACRO printf(&#34;%d\n&#34;, __COUNTER__);
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#define COUNTER_MACRO printf(&#34;%d\n&#34;, __COUNTER__);
 </span><span class="cp"></span>
 <span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
     <span class="n">COUNTER_MACRO</span>
@@ -766,7 +766,7 @@ BSD                           September 24, 2004                           BSD
 </span></code></pre></div><p>由于 <code>__COUNTER__</code> 宏的自增性，我们可以用其来定义一些避免重复的命名。</p>
 <h3 id="汇编标签">汇编标签</h3>
 <p>汇编标签即 Asm Labels，我们可以通过 <code>asm</code> 或 <code>__asm__</code> 指定该标签来自定义函数、变量等类型的汇编符号：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// main.m
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// main.m
 </span><span class="c1"></span>
 <span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp"></span>
@@ -787,7 +787,7 @@ BSD                           September 24, 2004                           BSD
     <span class="n">demoFunc2</span><span class="p">();</span>
 <span class="p">}</span>
 </code></pre></div><p>我们可以使用 <code>nm</code> 命令来验证最终的可执行文件：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">➜  ~ nm PATH/TO/BINARY <span class="p">|</span> grep demo
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">➜  ~ nm PATH/TO/BINARY <span class="p">|</span> grep demo
 0000000100000db0 T _demoFunc2
 000000010000144c D _demoVar2
 

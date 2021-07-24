@@ -257,7 +257,7 @@ body {
 <h2 id="how">How</h2>
 <h3 id="类与分类category的属性">类与分类（Category）的属性</h3>
 <p>在类（Class）中定义一个属性（<code>@property</code>），默认会生成 getter &amp; setter，以及 <code>_</code> 开头的成员变量：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Person.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Person.h
 </span><span class="c1"></span><span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp"></span>
 <span class="n">NS_ASSUME_NONNULL_BEGIN</span>
@@ -283,12 +283,12 @@ body {
 </span><span class="c1">// (lldb) po person-&gt;_name
 </span><span class="c1">// kingcos
 </span></code></pre></div><p>而在「iOS 中的 Category」一文中，我们介绍了分类中也是可以添加属性的，因为分类的结构 <code>category_t</code> 中也有存储属性列表的指针：</p>
-<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">struct</span> <span class="nc">_category_t</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">struct</span> <span class="nc">_category_t</span> <span class="p">{</span>
     <span class="c1">// ...
 </span><span class="c1"></span>    <span class="k">const</span> <span class="k">struct</span> <span class="nc">_prop_list_t</span> <span class="o">*</span><span class="n">properties</span><span class="p">;</span>          <span class="c1">// 属性列表指针
 </span><span class="c1"></span><span class="p">};</span>
 </code></pre></div><p>我们也尝试为「Person+Life」分类添加一个属性并使用：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Person+Life.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Person+Life.h
 </span><span class="c1"></span><span class="k">@interface</span> <span class="nc">Person</span> <span class="nl">(Life)</span>
 <span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">)</span> <span class="n">NSString</span> <span class="o">*</span><span class="n">nickname</span><span class="p">;</span>
 <span class="k">@end</span>
@@ -313,7 +313,7 @@ body {
 </span></code></pre></div><p>然而我们发现程序在这里崩溃了，这是因为分类中虽然可以定义属性，但其只会为我们声明 getter &amp; setter，并不会创建实例变量，也不会实现 getter &amp; setter，因为分类的结构 <code>category_t</code> 中也确实没有存储成员变量的地方。那么这时我们使用关联对象就可以为分类「假装」添加成员变量。</p>
 <h3 id="关联对象的使用">关联对象的使用</h3>
 <p>由于关联对象是 Obj-C 运行时的特性之一，因此在使用相关 API 前需要引入 <code>#import &lt;objc/runtime.h&gt;</code>。其中与关联对象相关的函数主要为以下三个：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// runtime.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// runtime.h
 </span><span class="c1"></span><span class="n">objc_setAssociatedObject</span><span class="p">(</span><span class="kt">id</span> <span class="n">_Nonnull</span> <span class="n">object</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span> <span class="n">_Nonnull</span> <span class="n">key</span><span class="p">,</span>
                          <span class="kt">id</span> <span class="n">_Nullable</span> <span class="n">value</span><span class="p">,</span> <span class="n">objc_AssociationPolicy</span> <span class="n">policy</span><span class="p">)</span>
     <span class="n">OBJC_AVAILABLE</span><span class="p">(</span><span class="mf">10.6</span><span class="p">,</span> <span class="mf">3.1</span><span class="p">,</span> <span class="mf">9.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">);</span>
@@ -324,7 +324,7 @@ body {
 <span class="n">objc_removeAssociatedObjects</span><span class="p">(</span><span class="kt">id</span> <span class="n">_Nonnull</span> <span class="n">object</span><span class="p">)</span>
     <span class="n">OBJC_AVAILABLE</span><span class="p">(</span><span class="mf">10.6</span><span class="p">,</span> <span class="mf">3.1</span><span class="p">,</span> <span class="mf">9.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">);</span>
 </code></pre></div><p>这三个函数从名称也能认出其分别为设置关联对象、获取关联对象、以及移除关联对象；即我们可以在 setter 的实现中设置关联对象，在 getter 中获取关联对象，在不再需要时移除关联对象。尝试将上一节崩溃的程序使用关联对象进行改写：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Person+Life.m
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Person+Life.m
 </span><span class="c1"></span><span class="cp">#import &#34;Person+Life.h&#34;
 </span><span class="cp">#import &lt;objc/runtime.h&gt;
 </span><span class="cp"></span>
@@ -356,7 +356,7 @@ body {
 <p>第二个参数是标示存入的 <code>const void * _Nonnull key</code>，可以放入指向任何类型的指针。我们可以仿照「iOS 中的 KVO」中对于 <code>context</code> 的定义，将 <code>key</code> 设置为声明变量自身的内存地址，保证了唯一性，并加上 <code>static</code>，保证该变量仅在该 .m 中可以访问。但这样不太方便的是每次都需要额外定义，有更好的解决方案吗？我们其实可以将 getter 或者 setter 方法的地址作为 <code>key</code> 存入，这样就无需再去单独声明一个 <code>key</code> 且支持编译检查。再进一步，由于 Obj-C 中的方法都会有两个隐式参数 <code>self</code> 和 <code>_cmd</code> 分别代表当前对象和当前方法 <code>SEL</code>，后者在 getter 中就等同于的 <code>@selector(nickname)</code>，这样在 getter 中写法就更简单了：</p>
 </li>
 </ul>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@implementation</span> <span class="nc">Person</span> <span class="nl">(Life)</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@implementation</span> <span class="nc">Person</span> <span class="nl">(Life)</span>
 
 <span class="p">-</span> <span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">nickname</span> <span class="p">{</span>
     <span class="c1">// return objc_getAssociatedObject(self, @selector(nickname));
@@ -371,7 +371,7 @@ body {
 </code></pre></div><ul>
 <li>第三个参数是要关联上的值 <code>id _Nullable value</code>，注意其类型为 <code>id</code>，因此如果想要存入 <code>int</code> 等 C 语言中的类型时，需要先在 setter 中转换为 Obj-C 的对象类型，并在 getter 中再转回：</li>
 </ul>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@implementation</span> <span class="nc">Person</span> <span class="nl">(Life)</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@implementation</span> <span class="nc">Person</span> <span class="nl">(Life)</span>
 
 <span class="p">-</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="nf">age</span> <span class="p">{</span>
     <span class="k">return</span> <span class="p">[</span><span class="n">objc_getAssociatedObject</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="n">_cmd</span><span class="p">)</span> <span class="n">intValue</span><span class="p">];</span>
@@ -423,7 +423,7 @@ body {
 </table>
 <h2 id="why">Why</h2>
 <p>了解了关联对象是什么、怎么用，那么关联对象到底是如何实现的呢？我们先从 <code>objc_setAssociatedObject</code> 着手：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-runtime.mm
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-runtime.mm
 </span><span class="c1"></span><span class="kt">void</span> <span class="nf">objc_setAssociatedObject</span><span class="p">(</span><span class="kt">id</span> <span class="n">object</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">key</span><span class="p">,</span> <span class="kt">id</span> <span class="n">value</span><span class="p">,</span> <span class="n">objc_AssociationPolicy</span> <span class="n">policy</span><span class="p">)</span> <span class="p">{</span>
     <span class="c1">// ➡️ 内部实际调用 _object_set_associative_reference
 </span><span class="c1"></span>    <span class="n">_object_set_associative_reference</span><span class="p">(</span><span class="n">object</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">policy</span><span class="p">);</span>
@@ -503,7 +503,7 @@ body {
 </span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">old_association</span><span class="p">.</span><span class="n">hasValue</span><span class="p">())</span> <span class="n">ReleaseValue</span><span class="p">()(</span><span class="n">old_association</span><span class="p">);</span>
 <span class="p">}</span>
 </code></pre></div><p>在分析以上代码时，我们注意到了几个与关联对象紧密相关的类型：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-references.mm
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-references.mm
 </span><span class="c1"></span><span class="k">class</span> <span class="n">ObjcAssociation</span> <span class="p">{</span>
     <span class="c1">// 内存策略
 </span><span class="c1"></span>    <span class="n">uintptr_t</span> <span class="n">_policy</span><span class="p">;</span>
@@ -550,7 +550,7 @@ body {
 </code></pre></div><p>为了更加直观表述它们的关系，整理成图即：</p>
 <p><img src="/img/2019/Associated_Objects_in_iOS/1.png" alt="1"></p>
 <p>同理我们可以分析关联对象的其它两个方法：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// --- objc_getAssociatedObject ---
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// --- objc_getAssociatedObject ---
 </span><span class="c1"></span>
 <span class="c1">// objc-runtime.mm
 </span><span class="c1"></span><span class="kt">id</span> <span class="nf">objc_getAssociatedObject</span><span class="p">(</span><span class="kt">id</span> <span class="n">object</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">key</span><span class="p">)</span> <span class="p">{</span>

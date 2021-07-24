@@ -239,7 +239,7 @@ body {
 </tbody>
 </table>
 <h2 id="nsobject-实例对象的大小">NSObject 实例对象的大小</h2>
-<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// NSObject Obj-C -&gt; C NSObject_IMPL
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// NSObject Obj-C -&gt; C NSObject_IMPL
 </span><span class="c1"></span><span class="k">struct</span> <span class="nc">NSObject_IMPL</span> <span class="p">{</span>
 	<span class="n">Class</span> <span class="n">isa</span><span class="p">;</span>
 <span class="p">};</span>
@@ -247,14 +247,14 @@ body {
 <span class="c1">// 指向 objc_class 结构体的指针
 </span><span class="c1"></span><span class="k">typedef</span> <span class="k">struct</span> <span class="nc">objc_class</span> <span class="o">*</span><span class="n">Class</span><span class="p">;</span>
 </code></pre></div><p>将 Obj-C 源码通过 <code>clang -rewrite-objc</code> 翻译为 C++（其实大部分为 C），可以发现 Obj-C 中的 <code>NSObject</code> 类其实就是 C 中的 <code>NSObject_IMPL</code> 结构体，其中只有一个成员变量，即 <code>isa</code>。<code>isa</code> 的类型是 <code>Class</code>，本质是一个指向 <code>objc_class</code> 结构体的指针。在 64 位系统中，指针占用 8 个字节（Byte），即 <code>NSObject</code> 的实例对象大小应该为 8 个字节。我们也可以尝试用 C 语言中的 <code>sizeof()</code> 运算符来证明这一点：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">NSObject</span> <span class="o">*</span><span class="n">obj</span> <span class="o">=</span> <span class="p">[[</span><span class="n">NSObject</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">NSObject</span> <span class="o">*</span><span class="n">obj</span> <span class="o">=</span> <span class="p">[[</span><span class="n">NSObject</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
 <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%zd&#34;</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">NSObject</span> <span class="o">*</span><span class="p">));</span>
 <span class="c1">// 8
 </span></code></pre></div><p>但系统分配给 <code>NSObject</code> 实例对象的内存空间真的是 8 个字节吗？在 <code>NSObject</code> 对象初始化后，打个断点，运行程序。得到 <code>obj</code> 的内存地址，放在 Xcode Menu - Debug - Debug Workflow - View Memory - Address 中进行查看。1 个字节为 8 位（Bit），为了便于观察，通常会使用十六进制代表二进制，即使用 1 个十六进制表示 4 个二进制，则 2 个十六进制即代表 1 个字节。观察图中上方红框处，除了 <code>obj</code> 对象实际使用的 8 个字节，其后面还有 8 个空（<code>00</code>）字节。这 8 个字节是否也是系统分配给 <code>obj</code> 的呢？</p>
 <p><img src="/img/2019/nsobject_in_ios/1.png" alt=""></p>
 <h2 id="alloc">alloc</h2>
 <p>在 <code>[[NSObject alloc] init]</code> 中，<code>alloc</code> 是为了向系统申请内存空间。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// NSObject.mm
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// NSObject.mm
 </span><span class="c1"></span><span class="p">+</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">alloc</span> <span class="p">{</span>
     <span class="c1">// ➡️ 调用 _objc_rootAlloc
 </span><span class="c1"></span>    <span class="k">return</span> <span class="n">_objc_rootAlloc</span><span class="p">(</span><span class="nb">self</span><span class="p">);</span>
@@ -452,12 +452,12 @@ body {
 </span></code></pre></div><p>在 <code>word_align</code> 字长对齐的方法中，<code>WORD_MASK</code> 在 64 位下为无符号长整型（Unsigned Long）的 <code>7</code>，即二进制下为 <code>0b0111</code>，<code>~WORD_MASK</code> 即 <code>-0b1000</code>。将参数即实例大小加上 <code>WORD_MASK</code> 并对 <code>~WORD_MASK</code> 做按位与操作。保证了对齐后的大小均为 8 的倍数。而在 <code>instanceSize</code> 的后续步骤中，也注释表明了「CF 要求所有对象至少 16 字节」。所以到这里，我们可以认为 <code>NSObject</code> 的对象实际分配的空间为 16 字节。</p>
 <h2 id="class_getinstancesize">class_getInstanceSize</h2>
 <p><code>class_getInstanceSize</code> 是 Runtime 中的一个方法，可以获取传入实例类型的大小。</p>
-<div class="highlight"><pre class="chroma"><code class="language-fallback" data-lang="fallback">#import &lt;malloc/malloc.h&gt;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback">#import &lt;malloc/malloc.h&gt;
 
 NSLog(@&#34;%zd&#34;, class_getInstanceSize([NSObject class]));
 // 8
 </code></pre></div><p>为什么它的答案也是 8 呢？当我们看到其中的实现就一目了然了，<code>class_getInstanceSize</code> 本质也是调用了 <code>alignedInstanceSize</code> 方法，所以和上面的答案一致。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// runtime.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// runtime.h
 </span><span class="c1"></span><span class="cm">/**
 </span><span class="cm"> * Returns the size of instances of a class.
 </span><span class="cm"> *
@@ -478,17 +478,17 @@ NSLog(@&#34;%zd&#34;, class_getInstanceSize([NSObject class]));
 <span class="p">}</span>
 </code></pre></div><h2 id="malloc_size">malloc_size</h2>
 <p>那有什么办法可以获取对象真正分配的内存空间呢？答案是 <code>malloc_size</code>。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;malloc/malloc.h&gt;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;malloc/malloc.h&gt;
 </span><span class="cp"></span>
 <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%zd&#34;</span><span class="p">,</span> <span class="n">malloc_size</span><span class="p">((</span><span class="k">__bridge</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)[[</span><span class="n">NSObject</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">]));</span>
 <span class="c1">// 16
 </span></code></pre></div><p>因为 <code>malloc_size</code> 返回的是指针指向的内存地址大小，而 <code>class_getInstanceSize</code> 返回的则是类的实例的大小。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// malloc.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// malloc.h
 </span><span class="c1"></span><span class="k">extern</span> <span class="n">size_t</span> <span class="nf">malloc_size</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">);</span>
     <span class="cm">/* Returns size of given ptr */</span>
 </code></pre></div><h2 id="自定义类">自定义类</h2>
 <p>定义一个 <code>Computer</code> Obj-C 类，继承自 <code>NSObject</code>，拥有两个成员变量。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
     <span class="k">@public</span>
     <span class="kt">int</span> <span class="n">_memorySize</span><span class="p">;</span>
     <span class="kt">int</span> <span class="n">_diskSize</span><span class="p">;</span>
@@ -498,7 +498,7 @@ NSLog(@&#34;%zd&#34;, class_getInstanceSize([NSObject class]));
 <span class="k">@implementation</span> <span class="nc">Computer</span>
 <span class="k">@end</span>
 </code></pre></div><p>使用 clang 将其翻译为 C/C++ 代码，Obj-C 的类就变成了 C 语言中的结构体：</p>
-<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">struct</span> <span class="nc">NSObject_IMPL</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">struct</span> <span class="nc">NSObject_IMPL</span> <span class="p">{</span>
     <span class="n">Class</span> <span class="n">isa</span><span class="p">;</span>
 <span class="p">};</span>
 
@@ -508,7 +508,7 @@ NSLog(@&#34;%zd&#34;, class_getInstanceSize([NSObject class]));
     <span class="kt">int</span> <span class="n">_diskSize</span><span class="p">;</span>
 <span class="p">};</span>
 </code></pre></div><p>简单实践一下：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
 <span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_memorySize</span> <span class="o">=</span> <span class="mi">16</span><span class="p">;</span>
 <span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_diskSize</span> <span class="o">=</span> <span class="mi">512</span><span class="p">;</span>
 
@@ -517,7 +517,7 @@ NSLog(@&#34;%zd&#34;, class_getInstanceSize([NSObject class]));
 <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;cptStruct-&gt;_memorySize: %d, cptStruct-&gt;_diskSize: %d&#34;</span><span class="p">,</span> <span class="n">cptStruct</span><span class="o">-&gt;</span><span class="n">_memorySize</span><span class="p">,</span> <span class="n">cptStruct</span><span class="o">-&gt;</span><span class="n">_diskSize</span><span class="p">);</span>
 <span class="c1">// cptStruct-&gt;_memorySize: 16, cptStruct-&gt;_diskSize: 512
 </span></code></pre></div><h2 id="自定义类的实例对象大小">自定义类的实例对象大小</h2>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
     <span class="k">@public</span>
     <span class="kt">int</span> <span class="n">_memorySize</span><span class="p">;</span>
     <span class="kt">int</span> <span class="n">_diskSize</span><span class="p">;</span>
@@ -547,7 +547,7 @@ NSLog(@&#34;%zd&#34;, class_getInstanceSize([NSObject class]));
 <span class="k">@implementation</span> <span class="nc">MacPro</span>
 <span class="k">@end</span>
 </code></pre></div><p>定义以上几个类，<code>Computer</code> 继承自 <code>NSObject</code>，<code>Mac</code> 继承自 <code>Computer</code>，<code>MacPro</code> 继承自 <code>Mac</code>，尝试输出它们的实例以及实际分配的大小。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">NSObject</span> <span class="o">*</span><span class="n">myObj</span> <span class="o">=</span> <span class="p">[[</span><span class="n">NSObject</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">NSObject</span> <span class="o">*</span><span class="n">myObj</span> <span class="o">=</span> <span class="p">[[</span><span class="n">NSObject</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
 <span class="n">NSObject</span> <span class="o">*</span><span class="n">myCpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
 <span class="n">NSObject</span> <span class="o">*</span><span class="n">myMac</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Mac</span>      <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
 <span class="n">NSObject</span> <span class="o">*</span><span class="n">myPro</span> <span class="o">=</span> <span class="p">[[</span><span class="n">MacPro</span>   <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
@@ -582,11 +582,11 @@ NSLog(@&#34;%zd&#34;, class_getInstanceSize([NSObject class]));
 </span><span class="c1">// Program ended with exit code: 0
 </span></code></pre></div><p>比较让人困惑的是 <code>myMac</code> 的实例大小与实际分配大小。<code>Mac</code> 除了自己的一个成员变量，还有两个继承自父类 <code>Computer</code> 的成员变量，以及一个继承自基类 <code>NSObject</code> 的 <code>isa</code>。在 64 位操作系统上，共计占用 8+4+4+1=17 字节，经过字长对齐后即 24 字节，与 <code>class_getInstanceSize</code> 返回的结果一致。但为什么最终 <code>malloc_size</code> 却是 32 字节呢？</p>
 <p>因为在分配内存时，除了字长对齐，还存在另外的内存对齐。其将按照 16 的倍数进行对齐：</p>
-<div class="highlight"><pre class="chroma"><code class="language-fallback" data-lang="fallback">// nano_zone_common.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback">// nano_zone_common.h
 #define NANO_MAX_SIZE			256 /* Buckets sized {16, 32, 48, ..., 256} */
 </code></pre></div><h2 id="calloc">calloc</h2>
 <p>在 GNU 中的 glibc，也有类似 <code>NANO_MAX_SIZE</code> 的实现 <code>MALLOC_ALIGNMENT</code>，都是为了进行内存对齐。</p>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="c1">// sysdeps/generic/malloc-alignment.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="c1">// sysdeps/generic/malloc-alignment.h
 </span><span class="c1"></span><span class="cm">/* MALLOC_ALIGNMENT is the minimum alignment for malloc&#39;ed chunks.  It
 </span><span class="cm">   must be a power of two at least 2 * SIZE_SZ, even on machines for
 </span><span class="cm">   which smaller alignments would suffice. It may be defined as larger

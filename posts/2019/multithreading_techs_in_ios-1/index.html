@@ -282,7 +282,7 @@ body {
 <p>如上所述，pthreads 即 POSIX Threads，是一套跨平台的多线程 API，由 C 语言编写。在 Xcode 中，使用 <code>#import &lt;pthread.h&gt;</code> 即可引入 pthreads 相关的 API。但正是由于纯 C 的 API，使用起来不够友好，也需要手动管理线程的整个生命周期。</p>
 <h2 id="线程创建">线程创建</h2>
 <p>想要开辟一条新的线程来执行任务，我们首先要知道如何创建线程。</p>
-<div class="highlight"><pre class="chroma"><code class="language-text" data-lang="text">PTHREAD_CREATE(3)        BSD Library Functions Manual        PTHREAD_CREATE(3)
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text">PTHREAD_CREATE(3)        BSD Library Functions Manual        PTHREAD_CREATE(3)
 
 NAME
      pthread_create -- create a new thread
@@ -340,7 +340,7 @@ STANDARDS
 
 BSD                              April 4, 1996                             BSD
 </code></pre></div><p>pthreads 通过 <code>pthread_create</code> 函数来创建新的线程：</p>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="c1">// pthreads.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="c1">// pthreads.h
 </span><span class="c1"></span>
 <span class="cm">/* &lt;rdar://problem/25944576&gt; */</span>
 <span class="cp">#define _PTHREAD_SWIFT_IMPORTER_NULLABILITY_COMPAT \
@@ -364,7 +364,7 @@ BSD                              April 4, 1996                             BSD
 <p>以 Obj-C 中实际使用的 <code>pthread_create(pthread_t _Nullable *restrict _Nonnull, const pthread_attr_t *restrict _Nullable, void * _Nullable (* _Nonnull)(void * _Nullable), void *restrict _Nullable)</code> 声明为例，其中 <code>_Nullable</code> 和 <code>_Nonnull</code> 是 Obj-C 桥接 Swift 可选（Optional）类型时是否隐式或显式可选的标志；<code>__restrict</code> 是 C99 标准引入的关键字，类似于 <code>restrict</code>，可以用在指针声明处，使得编译器将只能通过该指针本身修改指向的内容，便于其优化。去掉这些不影响函数本身功能的标志，补全参数名即 <code>int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg)</code>。</p>
 <h3 id="pthread_t">pthread_t</h3>
 <p><code>pthread_create</code> 中的第一个参数是 <code>pthread_t *thread</code>，即指向 <code>pthread_t</code> 的指针。<code>pthread_t</code> 的本质是 <code>_opaque_pthread_t</code> 结构体，这里的 <code>opaque</code>（不透明）意味着外界通常无需关心其内部实现细节：</p>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="c1">// sys/_pthread/_pthread_t.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="c1">// sys/_pthread/_pthread_t.h
 </span><span class="c1"></span>
 <span class="k">typedef</span> <span class="n">__darwin_pthread_t</span> <span class="n">pthread_t</span><span class="p">;</span>
 
@@ -380,7 +380,7 @@ BSD                              April 4, 1996                             BSD
 </code></pre></div><p>我们可以将这个参数理解为线程的引用即可，当 <code>pthread_create</code> 成功创建好线程，传入的 <code>pthread_t</code> 地址即为一个新的线程。</p>
 <h3 id="pthread_attr_t">pthread_attr_t</h3>
 <p><code>pthread_create</code> 中的第二个参数是 <code>const pthread_attr_t *attr</code>，即指向 <code>pthread_attr_t</code> 的指针。 <code>pthread_attr_t</code> 的本质是 <code>_opaque_pthread_attr_t</code> 结构体，也是一个不透明类型：</p>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="c1">// sys/_pthread/_pthread_attr_t.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="c1">// sys/_pthread/_pthread_attr_t.h
 </span><span class="c1"></span>
 <span class="k">typedef</span> <span class="n">__darwin_pthread_attr_t</span> <span class="n">pthread_attr_t</span><span class="p">;</span>
 
@@ -393,7 +393,7 @@ BSD                              April 4, 1996                             BSD
 
 <span class="k">typedef</span> <span class="k">struct</span> <span class="n">_opaque_pthread_attr_t</span> <span class="n">__darwin_pthread_attr_t</span><span class="p">;</span>
 </code></pre></div><p><code>pthread_attr_t</code> 指的是线程属性，我们可以使用 <code>pthread_attr_init</code> 函数来初始化，以及使用 <code>pthread_attr_set</code> 开头的函数来进行设置：</p>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="c1">// 声明 pthread_attr_t
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="c1">// 声明 pthread_attr_t
 </span><span class="c1"></span><span class="n">pthread_attr_t</span> <span class="n">attr</span><span class="p">;</span>
 
 <span class="c1">// 初始化
@@ -419,7 +419,7 @@ BSD                              April 4, 1996                             BSD
 </code></pre></div><p>如果我们不太会去自定义这里的属性，可以将 <code>pthread_create</code> 中的该参数传 <code>NULL</code> 即可使用默认属性来创建线程。</p>
 <h3 id="pthread_create">pthread_create</h3>
 <p><code>pthread_create</code> 中的最后两个参数是 <code>void *(*start_routine) (void *)</code> 和 <code>void *arg</code>。<code>start_routine()</code> 是新线程运行时所执行的函数，<code>arg</code> 是传入 <code>start_routine()</code> 的唯一参数。当 <code>start_routine()</code> 执行终止或者线程被明确杀死，线程也将会终止；<code>pthread_create</code> 的返回值是 <code>int</code> 类型，当返回 <code>0</code> 时为成功，否则将返回错误码：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp">#import &lt;pthread.h&gt;
 </span><span class="cp"></span>
 <span class="kt">void</span> <span class="nf">runForThread_1</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
@@ -478,7 +478,7 @@ BSD                              April 4, 1996                             BSD
 </span><span class="c1">// thread_1 (0x70000799e000) is running.
 </span></code></pre></div><p>这里我们使用默认属性 <code>NULL</code> 即可创建通用化的线程；而如果使用已经销毁的线程属性 <code>pthread_attr_t</code> 来创建线程时，就会出现错误从而无法成功创建线程。</p>
 <p>需要注意的一点是，<code>pthread_create</code> 函数的第四个参数声明的类型是 <code>void *</code>，即可以指向任意类型的指针。但当我们直接传入 <code>int</code> 等类型的变量时，虽然执行没有问题，但编译器将总是有类似这样的警告 <code>Incompatible integer to pointer conversion passing 'int' to parameter of type 'void *'</code>：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp">#import &lt;pthread.h&gt;
 </span><span class="cp"></span>
 <span class="cp">#define N 5
@@ -510,7 +510,7 @@ BSD                              April 4, 1996                             BSD
 </span><span class="c1">// arg = 4
 </span><span class="c1">// arg = 0
 </span></code></pre></div><p>首先可以想到的是强制类型转换，即 <code>(void *)i</code> 即可将 <code>int</code> 类型的 <code>i</code> 转换为 <code>void *</code> 来满足需要。但由于 <code>int</code> 类型只占用 4 个字节，小于 <code>void *</code> 指针占用的 8 个字节，因此这里又有了新的警告 <code>Cast to 'void *' from smaller integer type 'int'</code>；另外一个可以想到的方法是将变量的地址即 <code>&amp;i</code> 传入，这正好符合此处对于类型的要求，因此警告可以消除，线程函数内部使用时也需要将参数进行取值操作：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp">#import &lt;pthread.h&gt;
 </span><span class="cp"></span>
 <span class="cp">#define N 5
@@ -543,7 +543,7 @@ BSD                              April 4, 1996                             BSD
 </span><span class="c1">// arg = 4
 </span></code></pre></div><p>但我们发现最后的输出似乎有些重复，这是因为传入地址是有隐患的，按地址传入会使得外界更改变量值时，线程内部使用的参数也会被同时改变。</p>
 <p>那么如何仍然使用按值传递又可以避免警告呢？其实只需要将 <code>int</code> 类型先转为 8 个字节长度的 <code>long</code> 或 <code>intptr_t</code> 类型，再转为 <code>void *</code> 即可：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp">#import &lt;pthread.h&gt;
 </span><span class="cp"></span>
 <span class="cp">#define N 5
@@ -614,12 +614,12 @@ BSD                              April 4, 1996                             BSD
 </tbody>
 </table>
 <p><code>pthread_create</code> 函数中，第一个参数 <code>pthread_t *thread</code> 在 Swift 中将被表示为 <code>UnsafeMutablePointer&lt;pthread_t&gt;</code>，第二个参数 <code>const pthread_attr_t *attr</code> 将被表示为 <code>UnsafePointer&lt;pthread_attr_t&gt;</code>，第三个参数 <code>void *(*start_routine) (void *)</code> 被表示为 <code>(UnsafeMutableRawPointer) -&gt; (UnsafeMutableRawPointer)</code>，以及最后一个参数 <code>void *arg</code> 将被表示为 <code>UnsafeMutableRawPointer</code>，这些参数再加上可空性对应的可选类型，最终形成了 Swift 中 <code>pthread_create</code> 函数的 API：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="p">@</span><span class="n">available</span><span class="p">(</span><span class="n">iOS</span> <span class="mf">2.0</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="p">@</span><span class="n">available</span><span class="p">(</span><span class="n">iOS</span> <span class="mf">2.0</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
 <span class="kd">public</span> <span class="kd">func</span> <span class="nf">pthread_create</span><span class="p">(</span><span class="kc">_</span><span class="p">:</span> <span class="nb">UnsafeMutablePointer</span><span class="p">&lt;</span><span class="n">pthread_t</span><span class="p">?</span><span class="o">&gt;!</span><span class="p">,</span> <span class="kc">_</span><span class="p">:</span> <span class="nb">UnsafePointer</span><span class="p">&lt;</span><span class="n">pthread_attr_t</span><span class="p">&gt;?,</span> <span class="kc">_</span><span class="p">:</span> <span class="p">@</span><span class="n">convention</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="p">(</span><span class="n">UnsafeMutableRawPointer</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">UnsafeMutableRawPointer</span><span class="p">?,</span> <span class="kc">_</span><span class="p">:</span> <span class="n">UnsafeMutableRawPointer</span><span class="p">?)</span> <span class="p">-&gt;</span> <span class="nb">Int32</span>
 <span class="c1">// _PTHREAD_SWIFT_IMPORTER_NULLABILITY_COMPAT</span>
 </code></pre></div><p>前两个参数我们在 Swift 中仍然可以使用 <code>&amp;</code> 来按地址传递，那么后两个参数 C 语言函数和参数该如何传递呢？</p>
 <p>为了兼容 Swift 中的各种类型，我们可以将值封装在一个支持泛型的 <code>Box</code> 类型中；并额外定义两个方法，一是 <code>encode</code>：将 Swift 中的值封装在 <code>UnsafeMutableRawPointer</code> 指针类型中，二是 <code>decode</code>：将 <code>UnsafeMutableRawPointer</code> 指针类型中真正的值取出。这两个方法需要成对使用：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">Box</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">Box</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;</span> <span class="p">{</span>
     <span class="kd">let</span> <span class="nv">value</span><span class="p">:</span> <span class="n">T</span>
 
     <span class="kd">init</span><span class="p">(</span><span class="kc">_</span> <span class="n">value</span><span class="p">:</span> <span class="n">T</span><span class="p">)</span> <span class="p">{</span>
@@ -637,7 +637,7 @@ BSD                              April 4, 1996                             BSD
     <span class="k">return</span> <span class="nb">Unmanaged</span><span class="p">.</span><span class="n">passRetained</span><span class="p">(</span><span class="n">Box</span><span class="p">(</span><span class="n">t</span><span class="p">)).</span><span class="n">toOpaque</span><span class="p">()</span>
 <span class="p">}</span>
 </code></pre></div><p>接下来的使用就十分类似 Obj-C 了：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 需声明 Swift 类外</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 需声明 Swift 类外</span>
 <span class="kd">func</span> <span class="nf">runForThread_1</span><span class="p">(</span><span class="kc">_</span> <span class="n">arg</span><span class="p">:</span> <span class="n">UnsafeMutableRawPointer</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">UnsafeMutableRawPointer</span><span class="p">?</span> <span class="p">{</span>
     <span class="bp">print</span><span class="p">(</span><span class="s">&#34;</span><span class="si">\(</span><span class="n">decode</span><span class="si">(</span><span class="n">arg</span><span class="si">)</span> <span class="k">as</span> <span class="nb">String</span><span class="si">)</span><span class="s"> (</span><span class="si">\(</span><span class="n">pthread_self</span><span class="si">())</span><span class="s">) is running.&#34;</span><span class="p">)</span>
 
@@ -683,7 +683,7 @@ BSD                              April 4, 1996                             BSD
 </code></pre></div><h2 id="线程执行">线程执行</h2>
 <p>在「线程创建」一节中，我们可以发现 <code>pthread_create</code> 函数不仅创建了新的线程，其也会执行线程函数，而不像某些 API 的创建与执行是分开的。</p>
 <p>其实当 <code>pthread_create</code> 函数返回 <code>0</code> 时，它只能保证线程被成功创建，但并不能保证线程可以得到立即执行。只有当新的线程获得了 CPU 的时间片（Timeslice），其才可以得到执行。而是否能够优先获得时间片，则取决于线程的优先级。线程默认属性的调度策略是 <code>SCHED_OTHER</code>，该策略下没有优先级选择，因此我们可以通过 <code>pthread_attr_setschedpolicy</code> 更改调度策略：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// pthread/pthread_impl.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// pthread/pthread_impl.h
 </span><span class="c1"></span>
 <span class="cm">/*
 </span><span class="cm"> * POSIX scheduling policies
@@ -698,7 +698,7 @@ BSD                              April 4, 1996                             BSD
 </code></pre></div><h2 id="线程同步">线程同步</h2>
 <h3 id="pthread_join">pthread_join</h3>
 <p>在上面代码示例中的 <code>main</code> 函数中，都在末尾会有这么一句 <code>sleep(1)</code>，作用是让当前线程休息 1 秒，这是为什么呢？我们可以尝试注释掉这一行 <code>sleep()</code> 函数的调用再运行一次：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp">#import &lt;pthread.h&gt;
 </span><span class="cp"></span>
 <span class="kt">void</span> <span class="nf">runForThread</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
@@ -723,7 +723,7 @@ BSD                              April 4, 1996                             BSD
 <span class="c1">// OUTPUT:
 </span><span class="c1">// (0x1000d2dc0) is running.
 </span></code></pre></div><p>此时将只有主线程的输出，而新创建的子线程 <code>thread</code> 却没有输出。这是因为主线程执行结束即程序结束， <code>thread</code> 子线程根本来不及去执行。所以 <code>sleep(1)</code> 目的是人为将主线程休眠 1 秒，等待子线程去执行，但这样硬核去休眠固定的时间并不是合理的操作。其实 pthreads 为我们提供了 <code>pthread_join</code> API 来阻塞当前线程，等待目标线程执行完毕后再继续执行当前线程：</p>
-<div class="highlight"><pre class="chroma"><code class="language-text" data-lang="text">PTHREAD_JOIN(3)          BSD Library Functions Manual          PTHREAD_JOIN(3)
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text">PTHREAD_JOIN(3)          BSD Library Functions Manual          PTHREAD_JOIN(3)
 
 NAME
      pthread_join -- wait for thread termination
@@ -771,13 +771,13 @@ STANDARDS
 
 BSD                              April 4, 1996                             BSD
 </code></pre></div><p><code>pthread_join</code> 函数在 Obj-C 下的声明如下，其中，第一个参数即等待的目标线程；第二个参数保存了线程函数的返回值；返回值是 <code>int</code> 类型，当返回 <code>0</code> 时为成功，否则将返回错误码：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// pthread.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// pthread.h
 </span><span class="c1"></span>
 <span class="n">__API_AVAILABLE</span><span class="p">(</span><span class="n">macos</span><span class="p">(</span><span class="mf">10.4</span><span class="p">),</span> <span class="n">ios</span><span class="p">(</span><span class="mf">2.0</span><span class="p">))</span>
 <span class="kt">int</span> <span class="n">pthread_join</span><span class="p">(</span><span class="n">pthread_t</span> <span class="p">,</span> <span class="kt">void</span> <span class="o">*</span> <span class="n">_Nullable</span> <span class="o">*</span> <span class="n">_Nullable</span><span class="p">)</span>
 		<span class="n">__DARWIN_ALIAS_C</span><span class="p">(</span><span class="n">pthread_join</span><span class="p">);</span>
 </code></pre></div><p>我们尝试使用 <code>pthread_join</code> 改写上面的代码示例：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp">#import &lt;pthread.h&gt;
 </span><span class="cp"></span>
 <span class="kt">void</span> <span class="nf">runForThread</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
@@ -806,7 +806,7 @@ BSD                              April 4, 1996                             BSD
 </span><span class="c1">// main thread exit.
 </span></code></pre></div><p>这次主线程将一直等待 <code>thread</code> 子线程执行结束后才继续执行，这种两个或多个线程协作执行，可以称之为线程同步。当然，<code>pthread_join</code> 只是线程同步的一种方式。</p>
 <p><code>pthread_join</code> 中仍需注意的一点是，其第二个参数类型是 <code>void **</code>，因此传入的应当是 <code>void *</code> 变量的地址：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp">#import &lt;pthread.h&gt;
 </span><span class="cp"></span>
 <span class="kt">void</span> <span class="o">*</span><span class="nf">runForThread</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
@@ -849,7 +849,7 @@ BSD                              April 4, 1996                             BSD
 </span><span class="c1">// thread result - 3.140000
 </span><span class="c1">// main thread exit.
 </span></code></pre></div><p>Swift 下的 <code>pthread_join</code> 用法基本一致：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">func</span> <span class="nf">runForThread</span><span class="p">(</span><span class="kc">_</span> <span class="n">arg</span><span class="p">:</span> <span class="n">UnsafeMutableRawPointer</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">UnsafeMutableRawPointer</span><span class="p">?</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">func</span> <span class="nf">runForThread</span><span class="p">(</span><span class="kc">_</span> <span class="n">arg</span><span class="p">:</span> <span class="n">UnsafeMutableRawPointer</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">UnsafeMutableRawPointer</span><span class="p">?</span> <span class="p">{</span>
     <span class="bp">print</span><span class="p">(</span><span class="s">&#34;</span><span class="si">\(</span><span class="n">decode</span><span class="si">(</span><span class="n">arg</span><span class="si">)</span> <span class="k">as</span> <span class="nb">String</span><span class="si">)</span><span class="s"> (</span><span class="si">\(</span><span class="n">pthread_self</span><span class="si">())</span><span class="s">) is running.&#34;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">encode</span><span class="p">(</span><span class="mf">3.14</span><span class="p">)</span>

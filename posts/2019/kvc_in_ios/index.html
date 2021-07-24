@@ -240,7 +240,7 @@ body {
 <p>KVC，即 Key-Value Coding，译作键值编码（下文简称 KVC）。当对象兼容 KVC 时，可以通过统一的 API 访问对象中某个键对应的属性值。Cocoa 中的许多功能都依赖 KVC，比如，KVO、Cocoa 绑定机制、Core Data、以及 AppleScript 等。本文将主要探讨 KVC 及其本质相关，关于其它的内容可参考文末的「Reference」。</p>
 <h2 id="basics">Basics</h2>
 <h3 id="how">How</h3>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp"></span>
 <span class="k">@interface</span> <span class="nc">Speaker</span> : <span class="nc">NSObject</span>
 <span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">)</span> <span class="kt">int</span> <span class="n">volume</span><span class="p">;</span>
@@ -305,7 +305,7 @@ body {
 <p>KVC 中的方法都定义在 NSObject 的 <code>NSKeyValueCoding</code> 分类（Category）中，所以所有基于 NSObject 类型的对象都是 KVC 兼容的。那么 KVC 是如何根据键或键路径来搜索匹配到属性的呢？</p>
 <h4 id="valueforkey">valueForKey</h4>
 <h5 id="getter">getter</h5>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
 <span class="k">@end</span>
 
 <span class="k">@implementation</span> <span class="nc">Computer</span>
@@ -339,7 +339,7 @@ body {
 </span><span class="c1">// -[Computer _name]
 </span></code></pre></div><p>当调用 <code>valueForKey</code> 方法时，首先会通过传入的 Key 按顺序寻找调用 <code>get&lt;Key&gt;</code>、<code>&lt;key&gt;</code>、<code>is&lt;Key&gt;</code>、<code>_&lt;key&gt;</code> getter <strong>方法</strong>，当前面的寻找到并返回后，即提前结束匹配，若该四个方法都没有实现，则进入下一阶段集合元素匹配。</p>
 <h5 id="集合匹配">集合匹配</h5>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
     <span class="k">@public</span>
     <span class="n">NSArray</span> <span class="o">*</span><span class="n">_namesArray</span><span class="p">;</span>
     <span class="n">NSSet</span> <span class="o">*</span><span class="n">_namesSet</span><span class="p">;</span>
@@ -434,7 +434,7 @@ body {
 <p>官方文档中提到在上述第 2 步中，如果对象实现了 <code>get&lt;Key&gt;:range:</code> 方法，代理对象也会在合适的时机调用该方法以达到更好的性能。但我在尝试中，在 <code>objectIn&lt;Key&gt;AtIndex:</code> 或 <code>&lt;key&gt;AtIndexes:</code> 中有被实现的方法时，即会在 <code>countOf&lt;Key&gt;</code> 方法被调用后，调用 <code>get&lt;Key&gt;:range:</code> 方法，但会发生崩溃：「Thread 1: EXC_BAD_ACCESS」。具体的原因尚未查明，欢迎大家指教。</p>
 </blockquote>
 <h4 id="成员变量匹配">成员变量匹配</h4>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
     <span class="k">@public</span>
     <span class="n">NSString</span> <span class="o">*</span><span class="n">_name</span><span class="p">;</span>
     <span class="n">NSString</span> <span class="o">*</span><span class="n">_isName</span><span class="p">;</span>
@@ -462,7 +462,7 @@ body {
 </span><span class="c1">// c
 </span><span class="c1">// d
 </span></code></pre></div><p>在成员变量匹配阶段首先判断 <code>accessInstanceVariablesDirectly</code> 方法的返回，即是否允许直接访问成员变量，默认返回 <code>YES</code>；当为 <code>YES</code> 时，将按顺序尝试直接访问 <code>_&lt;key&gt;</code>、<code>_is&lt;Key&gt;</code>、<code>&lt;key&gt;</code>、<code>is&lt;Key&gt;</code> 成员变量。当为 <code>NO</code> 或没有匹配到相应的成员变量时，将调用 <code>valueForUndefinedKey:</code> 方法，该方法默认实现为抛出「NSUnknownKeyException」异常，但子类可以重写该方法以提供更灵活的行为。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
 <span class="k">@end</span>
 
 <span class="k">@implementation</span> <span class="nc">Computer</span>
@@ -488,7 +488,7 @@ body {
 <p>KVC <code>valueForKey:</code> 方法的调用确实深究起来比较复杂，画成图表更容易理解些：</p>
 <p><img src="/img/2019/kvc_in_ios/1.png" alt=""></p>
 <h4 id="setvalueforkey">setValue:forKey:</h4>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
 <span class="k">@end</span>
 
 <span class="k">@implementation</span> <span class="nc">Computer</span>
@@ -510,7 +510,7 @@ body {
 </span><span class="c1">// -[Computer setName:] or -[Computer _setName:]
 </span><span class="c1">// a
 </span></code></pre></div><p>当调用 <code>setValue:forKey:</code> 方法时，会通过传入的 Key 按顺序寻找调用 <code>set&lt;Key&gt;</code>、<code>_set&lt;Key&gt;</code> 方法，当前面的寻找到并设置后，即提前返回。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
     <span class="k">@public</span>
     <span class="n">NSString</span> <span class="o">*</span><span class="n">_name</span><span class="p">;</span>
     <span class="n">NSString</span> <span class="o">*</span><span class="n">_isName</span><span class="p">;</span>
@@ -530,7 +530,7 @@ body {
 </span><span class="c1">// a
 </span><span class="c1">// a
 </span></code></pre></div><p>若这两个方法都没有实现，则会判断 <code>accessInstanceVariablesDirectly</code> 方法的返回，即是否允许直接访问成员变量，默认返回 YES；当为 YES 时，将按顺序尝试直接通过 <code>_&lt;key&gt;</code>、<code>_is&lt;Key&gt;</code>、<code>&lt;key&gt;</code>、<code>is&lt;Key&gt;</code> 成员变量设置值。当为 NO 或没有匹配到相应的成员变量时，将调用 <code>setValue:forUndefinedKey:</code> 方法，该方法默认实现为抛出「NSUnknownKeyException」异常，但子类可以重写该方法以提供更灵活的行为。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
 <span class="k">@end</span>
 
 <span class="k">@implementation</span> <span class="nc">Computer</span>
@@ -556,7 +556,7 @@ body {
 </span><span class="c1">// (null)
 </span></code></pre></div><h2 id="mutablevalueforkey">mutableValueForKey</h2>
 <h3 id="how-1">How</h3>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
 
 <span class="n">Speaker</span> <span class="o">*</span><span class="n">s1</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
 <span class="n">s1</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@1</span><span class="p">;</span>
@@ -582,7 +582,7 @@ body {
 </span><span class="c1">// )
 </span></code></pre></div><p>对于对象中的集合类型 <code>NSArray</code>、<code>NSSet</code>、<code>NSOrderedSet</code>，KVC 提供了比 <code>setValue:forKey:</code> 和 <code>valueForKey:</code> 更便捷高效的 <code>mutableArrayValueForKey:</code>、<code>mutableSetValueForKey</code>、<code>mutableOrderedSetValueForKey:</code> 以及对应的 <code>KeyPath</code> 方法。它们都会返回一个可变（Mutable）类型的代理对象，在该代理对象上的操作将影响真实的属性值。</p>
 <h3 id="why-1">Why</h3>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
 	<span class="k">@public</span>
 	<span class="n">NSMutableArray</span> <span class="o">*</span><span class="n">_speakers</span><span class="p">;</span>
 <span class="p">}</span>
@@ -641,7 +641,7 @@ body {
 </span><span class="c1">//     &#34;&lt;Speaker: 0x100705020&gt;&#34;
 </span><span class="c1">// )
 </span></code></pre></div><p>当调用 <code>mutableArrayValueForKey:</code> 会首先寻找 <code>insertObject:in&lt;key&gt;AtIndex:</code>（其内部本质为 NSMutableArray 的 <code>insertObject:atIndex:</code>）、<code>removeObjectFrom&lt;key&gt;AtIndex:</code>（其内部本质为 NSMutableArray 的 <code>removeObjectAtIndex:</code>）、<code>insertSpeakers:atIndexes:</code>（其内部本质为 NSMutableArray 的 <code>insertObjects:atIndexes:</code>）、<code>removeKeyAtIndexes:</code>（其内部本质为 NSMutableArray 的 <code>removeObjectsAtIndexes:</code>），判断这四个方法中是否有至少一个插入和一个移除方法被实现，如果有，将返回 NSMutableArray 类型的代理对象，并通过调用已实现的插入和移除方法对实际的数组进行操作。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@implementation</span> <span class="nc">Computer</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@implementation</span> <span class="nc">Computer</span>
 
 <span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">setSpeakers:</span><span class="p">(</span><span class="n">NSMutableArray</span> <span class="o">*</span><span class="p">)</span><span class="nv">speakers</span> <span class="p">{</span>
     <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
@@ -660,7 +660,7 @@ body {
 </span><span class="c1">//     &#34;&lt;Speaker: 0x100613260&gt;&#34;
 </span><span class="c1">// )
 </span></code></pre></div><p>如果上述四个方法不符合至少一个插入和一个移除方法被实现，将寻找 setter <code>setKey:</code> 方法实现，若存在该实现，代理对象将通过它设置值。但若这一阶段的效率将低于上一阶段，因为每次更新数据都需要创建新的一个数组对象。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
     <span class="k">@public</span>
     <span class="n">NSMutableArray</span> <span class="o">*</span><span class="n">_speakers</span><span class="p">;</span>
     <span class="n">NSMutableArray</span> <span class="o">*</span><span class="n">speakers</span><span class="p">;</span>
@@ -679,7 +679,7 @@ body {
 </span><span class="c1">//     &#34;&lt;Speaker: 0x100600bd0&gt;&#34;
 </span><span class="c1">// )
 </span></code></pre></div><p>若 setter 也不存在，将会判断 <code>accessInstanceVariablesDirectly</code> 方法的返回，即是否允许直接访问成员变量，默认返回 YES；当为 YES 时，代理对象将按顺序尝试直接通过 <code>_&lt;key&gt;</code>、<code>&lt;key&gt;</code> 成员变量设置值。当为 NO 或没有匹配到相应的成员变量时，官方文档称将调用 <code>setValue:forUndefinedKey:</code> 方法，该方法默认实现为抛出「NSUnknownKeyException」异常，但子类可以重写该方法以提供更灵活的行为。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
 <span class="k">@end</span>
 
 <span class="k">@implementation</span> <span class="nc">Computer</span>
@@ -761,7 +761,7 @@ body {
         <td>返回调用集合（Set）中所有集合（Set）中包含右键路径指定属性的对象数组（即值为 <code>nil</code> 时不会被包含进来，多个空对象也会被去重），并去重</td>
     </tr>
 </table>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Speaker</span> : <span class="nc">NSObject</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Speaker</span> : <span class="nc">NSObject</span>
 <span class="c1">// ⚠️ 注意：这里将 volume 改为 NSNumber * 类型，因为 int 时，属性将有默认值 0，不便于后续结果演示
 </span><span class="c1"></span><span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">)</span> <span class="n">NSNumber</span> <span class="o">*</span><span class="n">volume</span><span class="p">;</span>
 <span class="k">@end</span>
@@ -867,7 +867,7 @@ body {
 <ul>
 <li>标量值</li>
 </ul>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
     <span class="k">@public</span>
     <span class="kt">int</span> <span class="n">_diskSize</span><span class="p">;</span>
 <span class="p">}</span>
@@ -890,7 +890,7 @@ body {
 </span></code></pre></div><ul>
 <li>结构体</li>
 </ul>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
     <span class="n">NSSize</span> <span class="n">size</span><span class="p">;</span>
     <span class="kt">double</span> <span class="n">inch</span><span class="p">;</span>
 <span class="p">}</span> <span class="n">Screen</span><span class="p">;</span>
@@ -935,7 +935,7 @@ body {
 </span><span class="c1">// Screen size: 2560 * 1600
 </span><span class="c1">// Screen inch: 13.3
 </span></code></pre></div><h2 id="属性校验">属性校验</h2>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">static</span> <span class="n">NSString</span> <span class="o">*</span> <span class="k">const</span> <span class="n">kKVCValidateErrorDomain</span> <span class="o">=</span> <span class="s">@&#34;kKVCValidateErrorDomain&#34;</span><span class="p">;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">static</span> <span class="n">NSString</span> <span class="o">*</span> <span class="k">const</span> <span class="n">kKVCValidateErrorDomain</span> <span class="o">=</span> <span class="s">@&#34;kKVCValidateErrorDomain&#34;</span><span class="p">;</span>
 
 <span class="k">typedef</span> <span class="nf">NS_ENUM</span><span class="p">(</span><span class="n">NSUInteger</span><span class="p">,</span> <span class="n">KVCValidateError</span><span class="p">)</span> <span class="p">{</span>
     <span class="n">KVCValidateErrorNilValue</span>

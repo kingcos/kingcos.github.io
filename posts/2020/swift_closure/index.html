@@ -241,7 +241,7 @@ body {
 <h3 id="闭包捕获">闭包捕获</h3>
 <h4 id="局部变量">局部变量</h4>
 <p>我们将参数和返回值类型为 <code>Int</code> 的函数（也可称作闭包）<code>(Int) -&gt; Int</code> 易名为 <code>Closure</code>，并定义一个函数返回该闭包类型：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// main.swift</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// main.swift</span>
 
 <span class="kd">typealias</span> <span class="n">Closure</span> <span class="p">=</span> <span class="p">(</span><span class="nb">Int</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="nb">Int</span>
 
@@ -264,7 +264,7 @@ body {
 <span class="n">f</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="c1">// 13</span>
 <span class="n">f</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="c1">// 16</span>
 </code></pre></div><p>通过 <code>f(n)</code> 函数多次执行的结果，我们发现局部变量 <code>bar</code> 似乎在每次调用后并没有被销毁，原因其实是 <code>baz</code> 对 <code>bar</code> 进行了「捕获」，接下来我们将仔细研究这一过程。</p>
-<div class="highlight"><pre class="chroma"><code class="language-asm" data-lang="asm"><span class="nf">demo</span><span class="err">`</span><span class="no">foo</span><span class="p">():</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="nf">demo</span><span class="err">`</span><span class="no">foo</span><span class="p">():</span>
     <span class="err">0</span><span class="nf">x100000d70</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">pushq</span>  <span class="nv">%rbp</span>
     <span class="err">0</span><span class="nf">x100000d71</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
     <span class="err">0</span><span class="nf">x100000d74</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">subq</span>   <span class="no">$0x20</span><span class="p">,</span> <span class="nv">%rsp</span>
@@ -487,7 +487,7 @@ body {
 </code></pre></div><p>由以上汇编代码我们可以得出，当闭包内部使用了外部局部变量时，将自动分配堆空间进行捕获；在后续调用闭包时，将自动将创建堆空间地址作为第二个参数传递到闭包中并使用；因此即使局部变量所在的栈空间被回收，堆空间仍将保留一份。这里的堆空间布局类似于 <code>class</code> 类型实例变量的内存布局。</p>
 <p>另外需要注意的是，<code>swift_allocObject</code> 在 <code>foo</code> 中被调用，因此如果我们声明一个新变量例如 <code>var f2 = foo()</code>，将会创建另外一份新的堆空间，<code>f(1)</code> 与 <code>f2(1)</code> 的调用将产生隔离。</p>
 <p>那么当同时存在两个或多个函数时，局部变量将被分配一次还是多次堆空间呢？</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// main.swift</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// main.swift</span>
 
 <span class="kd">typealias</span> <span class="n">Closure</span> <span class="p">=</span> <span class="p">(</span><span class="nb">Int</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="nb">Int</span>
 
@@ -517,7 +517,7 @@ body {
 <span class="n">a</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="c1">// 19</span>
 <span class="n">b</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="c1">// 11</span>
 </code></pre></div><p>转换为汇编如下：</p>
-<div class="highlight"><pre class="chroma"><code class="language-asm" data-lang="asm"><span class="nf">demo</span><span class="err">`</span><span class="no">foo</span><span class="p">():</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="nf">demo</span><span class="err">`</span><span class="no">foo</span><span class="p">():</span>
     <span class="err">0</span><span class="nf">x100001880</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">pushq</span>  <span class="nv">%rbp</span>
     <span class="err">0</span><span class="nf">x100001881</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
     <span class="err">0</span><span class="nf">x100001884</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">subq</span>   <span class="no">$0x70</span><span class="p">,</span> <span class="nv">%rsp</span>
@@ -764,7 +764,7 @@ body {
 </span></code></pre></div><p>如上，首先每个需要被分配到堆上的局部变量（如 <code>i</code> 和 <code>j</code>）均会各自创建一份独立的堆空间，并将这些局部变量存储其中，保证其作用域超过函数而不被立即释放；之后会根据函数（闭包）个数创建相应个数的堆空间，并将前者的堆空间地址放置在新的堆空间中，注意编译器虽然根据每个函数都创建了对应的堆空间，但堆空间的内容却是一致的，均引用了相同的局部变量堆空间；因此这些函数实际调用时，将访问到同一片内存区域的局部变量值。</p>
 <h4 id="全局变量">全局变量</h4>
 <p>这次我们将 <code>bar</code> 声明为全局变量：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// main.swift</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// main.swift</span>
 
 <span class="kd">typealias</span> <span class="n">Closure</span> <span class="p">=</span> <span class="p">(</span><span class="nb">Int</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="nb">Int</span>
 
@@ -787,7 +787,7 @@ body {
 <span class="n">f</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="c1">// 13</span>
 <span class="n">f</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="c1">// 16</span>
 </code></pre></div><p>此时我们可以从主函数的汇编中看出，<code>bar</code> 被移动到了通过 <code>%rip</code> 寄存器偏移的地址，而 <code>%rip</code> 寄存器固定存储下一条指令的位置，因此 <code>bar</code> 确实属于全局变量。我们也可以通过 <code>(lldb) po withUnsafePointer(to: &amp;bar) { print(&quot;\($0)&quot;) }</code> 验证其内存地址位于 <code>0x0000000100002050</code>：</p>
-<div class="highlight"><pre class="chroma"><code class="language-asm" data-lang="asm"><span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
     <span class="err">0</span><span class="nf">x100000ae0</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">pushq</span>  <span class="nv">%rbp</span>
     <span class="err">0</span><span class="nf">x100000ae1</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
     <span class="err">0</span><span class="nf">x100000ae4</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">pushq</span>  <span class="nv">%r13</span>
@@ -797,7 +797,7 @@ body {
 </span><span class="c"></span>    <span class="mi">0x100000af8</span> <span class="err">&lt;+</span><span class="mi">24</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movl</span>   <span class="nv">%edi</span><span class="p">,</span> <span class="p">-</span><span class="mi">0x6c</span><span class="p">(</span><span class="nv">%rbp</span><span class="p">)</span>
     <span class="c">; ...
 </span></code></pre></div><p>而当断点执行到 <code>foo</code> 函数内部时，此时与局部变量不同的是，并没有存在 <code>swift_allocObject</code> 的符号桩：</p>
-<div class="highlight"><pre class="chroma"><code class="language-asm" data-lang="asm"><span class="nf">demo</span><span class="err">`</span><span class="no">foo</span><span class="p">():</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="nf">demo</span><span class="err">`</span><span class="no">foo</span><span class="p">():</span>
     <span class="err">0</span><span class="nf">x100000d90</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">pushq</span>  <span class="nv">%rbp</span>
     <span class="err">0</span><span class="nf">x100000d91</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
     <span class="err">0</span><span class="nf">x100000d94</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">subq</span>   <span class="no">$0x30</span><span class="p">,</span> <span class="nv">%rsp</span>
@@ -822,7 +822,7 @@ body {
     <span class="err">0</span><span class="nf">x100000dea</span> <span class="err">&lt;+</span><span class="mi">90</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">popq</span>   <span class="nv">%rbp</span>
     <span class="err">0</span><span class="nf">x100000deb</span> <span class="err">&lt;+</span><span class="mi">91</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">retq</span>
 </code></pre></div><p>而最终在 <code>baz</code> 函数内部：</p>
-<div class="highlight"><pre class="chroma"><code class="language-asm" data-lang="asm"><span class="nf">demo</span><span class="err">`</span><span class="no">baz</span> <span class="c">#1 (_:) in foo():
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="nf">demo</span><span class="err">`</span><span class="no">baz</span> <span class="c">#1 (_:) in foo():
 </span><span class="c"></span>    <span class="mi">0x100000df0</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">pushq</span>  <span class="nv">%rbp</span>
     <span class="err">0</span><span class="nf">x100000df1</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
     <span class="err">0</span><span class="nf">x100000df4</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">subq</span>   <span class="no">$0x70</span><span class="p">,</span> <span class="nv">%rsp</span>

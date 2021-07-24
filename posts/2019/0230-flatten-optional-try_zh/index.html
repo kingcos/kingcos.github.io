@@ -237,7 +237,7 @@ body {
 <h2 id="动机">动机</h2>
 <p>目前，使用 <code>try?</code> 非常容易产生嵌套的 <code>Optional</code> 类型。虽然构建嵌套可选是被允许的，但这通常并非是开发者所希望的。</p>
 <p>Swift 拥有许多机制来避免意外创建嵌套可选。比如：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 注意 as? 是如何可以无视被转换的值是否是可选类型的，其总是产生了相同的类型</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 注意 as? 是如何可以无视被转换的值是否是可选类型的，其总是产生了相同的类型</span>
 <span class="kd">let</span> <span class="nv">x</span> <span class="p">=</span> <span class="n">nonOptionalValue</span><span class="p">()</span> <span class="k">as</span><span class="p">?</span> <span class="n">MyType</span>    <span class="c1">// x 是 &#39;MyType?&#39; 类型</span>
 <span class="kd">let</span> <span class="nv">y</span> <span class="p">=</span> <span class="n">optionalValue</span><span class="p">()</span> <span class="k">as</span><span class="p">?</span> <span class="n">MyType</span>       <span class="c1">// y 是 &#39;MyType?&#39; 类型</span>
 
@@ -245,10 +245,10 @@ body {
 <span class="kd">let</span> <span class="nv">a</span> <span class="p">=</span> <span class="n">optThing</span><span class="p">?.</span><span class="n">pizza</span><span class="p">()</span>             <span class="c1">// a 是 &#39;Pizza?&#39; 类型</span>
 <span class="kd">let</span> <span class="nv">b</span> <span class="p">=</span> <span class="n">optThing</span><span class="p">?.</span><span class="n">optionalPizza</span><span class="p">()</span>     <span class="c1">// b 是 &#39;Pizza?&#39; 类型</span>
 </code></pre></div><p>但是 <code>try?</code> 的行为不同：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">let</span> <span class="nv">q</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">harbor</span><span class="p">.</span><span class="n">boat</span><span class="p">()</span>           <span class="c1">// q 是 &#39;Boat?&#39; 类型</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">let</span> <span class="nv">q</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">harbor</span><span class="p">.</span><span class="n">boat</span><span class="p">()</span>           <span class="c1">// q 是 &#39;Boat?&#39; 类型</span>
 <span class="kd">let</span> <span class="nv">r</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">harbor</span><span class="p">.</span><span class="n">optionalBoat</span><span class="p">()</span>   <span class="c1">// r 是 &#39;Boat??&#39; 类型</span>
 </code></pre></div><p>上述例子是特意举例的，但其实在生产环境的代码中，也很容易造成嵌套可选。举个例子：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 由于 &#39;foo&#39; 的可选链，&#39;foo?.makeBar()&#39; 的结果是 &#39;Bar?&#39;。</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 由于 &#39;foo&#39; 的可选链，&#39;foo?.makeBar()&#39; 的结果是 &#39;Bar?&#39;。</span>
 <span class="c1">// &#39;try?&#39; 增加了额外一层可选。所以 &#39;x&#39; 类型是 &#39;Bar??&#39;</span>
 <span class="kd">let</span> <span class="nv">x</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">foo</span><span class="p">?.</span><span class="n">makeBar</span><span class="p">()</span>
 
@@ -256,7 +256,7 @@ body {
 <span class="c1">// 我们使用 &#39;as?&#39; 来确认结果是否是期望的类型，但 &#39;try?&#39; 增加了额外一层可选，导致结果 &#39;dict&#39; 现在是 &#39;[String: Any]??&#39; 类型。</span>
 <span class="kd">let</span> <span class="nv">dict</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">JSONSerialization</span><span class="p">.</span><span class="n">jsonObject</span><span class="p">(</span><span class="n">with</span><span class="p">:</span> <span class="n">data</span><span class="p">)</span> <span class="k">as</span><span class="p">?</span> <span class="p">[</span><span class="nb">String</span><span class="p">:</span> <span class="nb">Any</span><span class="p">]</span>
 </code></pre></div><p>虽然使用 <code>try?</code> 很容易造成嵌套可选，但对现存代码的一个调查显示，这并非是理想的结果。使用 <code>try?</code> 和嵌套可选的代码几乎总是伴随着以下几种模式之一：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 模式 1：双层 if-let 或 guard-let</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 模式 1：双层 if-let 或 guard-let</span>
 <span class="k">if</span>  <span class="kd">let</span> <span class="nv">optionalX</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="kc">self</span><span class="p">.</span><span class="n">optionalThing</span><span class="p">(),</span>
     <span class="kd">let</span> <span class="nv">x</span> <span class="p">=</span> <span class="n">optionalX</span> <span class="p">{</span>
     <span class="c1">// 在这里使用 &#39;x&#39;</span>
@@ -280,7 +280,7 @@ body {
 <li>如果 <code>someExpr()</code> 返回 <code>Optional</code>，<code>try? someExpr()</code> 将不会再额外附加可选。</li>
 </ul>
 <p>这将导致以下的 <code>try?</code> 表达式类型改变：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// Swift 4: &#39;Int??&#39;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// Swift 4: &#39;Int??&#39;</span>
 <span class="c1">// Swift 5: &#39;Int?&#39;</span>
 <span class="kd">let</span> <span class="nv">result</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">database</span><span class="p">?.</span><span class="n">countOfRows</span><span class="p">(</span><span class="n">matching</span><span class="p">:</span> <span class="n">predicate</span><span class="p">)</span>
 
@@ -293,11 +293,11 @@ body {
 <span class="c1">// Swift 5: &#39;[String: Any]?&#39;</span>
 <span class="kd">let</span> <span class="nv">dict</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">JSONSerialization</span><span class="p">.</span><span class="n">jsonObject</span><span class="p">(</span><span class="n">with</span><span class="p">:</span> <span class="n">data</span><span class="p">)</span> <span class="k">as</span><span class="p">?</span> <span class="p">[</span><span class="nb">String</span><span class="p">:</span> <span class="nb">Any</span><span class="p">]</span>
 </code></pre></div><p>当子表达式返回非可选类型时，整体类型将不会发生改变。</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// Swift 4: &#39;String?&#39;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// Swift 4: &#39;String?&#39;</span>
 <span class="c1">// Swift 5: &#39;String?&#39;</span>
 <span class="kd">let</span> <span class="nv">fileContents</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="nb">String</span><span class="p">(</span><span class="n">contentsOf</span><span class="p">:</span> <span class="n">someURL</span><span class="p">)</span>
 </code></pre></div><p>如果子表达式已经是嵌套可选，结果将和此嵌套层级一致：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">func</span> <span class="nf">doubleOptionalInt</span><span class="p">()</span> <span class="kr">throws</span> <span class="p">-&gt;</span> <span class="nb">Int</span><span class="p">??</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">func</span> <span class="nf">doubleOptionalInt</span><span class="p">()</span> <span class="kr">throws</span> <span class="p">-&gt;</span> <span class="nb">Int</span><span class="p">??</span> <span class="p">{</span>
     <span class="k">return</span> <span class="mi">3</span>
 <span class="p">}</span>
 
@@ -314,7 +314,7 @@ body {
 <p>在 Swift 5 中，<code>try?</code> 表达式的类型将变为某种 <code>U</code>，<code>U</code> 是 <code>Optional&lt;_&gt;</code> 类型且子表达式类型 <code>T</code> 能够强制转换为 <code>U</code>。类型约束系统将自动选择满足约束的最小嵌套可选层级，这将导致本提案中描述的行为。</p>
 <h4 id="泛型">泛型</h4>
 <p>关于与泛型互通性的一些问题被提出，如下例：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">func</span> <span class="nf">test</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;(</span><span class="n">fn</span><span class="p">:</span> <span class="p">()</span> <span class="kr">throws</span> <span class="p">-&gt;</span> <span class="n">T</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">T</span><span class="p">?</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">func</span> <span class="nf">test</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;(</span><span class="n">fn</span><span class="p">:</span> <span class="p">()</span> <span class="kr">throws</span> <span class="p">-&gt;</span> <span class="n">T</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">T</span><span class="p">?</span> <span class="p">{</span>
 
     <span class="c1">// 如果 T 是可选类型，该行是否会改变行为？</span>
     <span class="k">if</span> <span class="kd">let</span> <span class="nv">result</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">fn</span><span class="p">()</span> <span class="p">{</span>
@@ -340,14 +340,14 @@ body {
 <h3 id="1-当前的语法或-api-必须主动展示可能为用户带来的问题">1. 当前的语法或 API 必须主动展示可能为用户带来的问题</h3>
 <p>嵌套可选是一个复杂的概念。其在语言中存在是有价值的，但对于其使用应当是目的明确的。由于目前 <code>try?</code> 和可选链或 <code>as?</code> 转换之间的交叉使用，初学者很容易不明所以地造成嵌套可选。</p>
 <p>实际检测错误 <code>try?</code> 要比使用 <code>try</code> 要<em>更加</em>困难。对比：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 使用 &#39;try?&#39;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 使用 &#39;try?&#39;</span>
 <span class="k">if</span> <span class="kd">let</span> <span class="nv">result</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">foo</span><span class="p">?.</span><span class="n">bar</span><span class="p">()</span> <span class="p">{</span>
     <span class="c1">// 额外对 &#39;result&#39; 做些什么，尽管在 if let 内其仍可能为 nil</span>
 <span class="p">}</span>
 <span class="k">else</span> <span class="p">{</span>
     <span class="c1">//出现错误，但不清楚是什么</span>
 <span class="p">}</span>
-</code></pre></div><div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 使用 &#39;try/catch&#39;</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// 使用 &#39;try/catch&#39;</span>
 <span class="k">do</span> <span class="p">{</span>
     <span class="kd">let</span> <span class="nv">result</span> <span class="p">=</span> <span class="k">try</span> <span class="n">foo</span><span class="p">?.</span><span class="n">bar</span><span class="p">()</span>
     <span class="c1">// 额外对 &#39;result&#39; 做些什么，由于可选链其仍可能为 nil</span>
@@ -357,7 +357,7 @@ body {
 <span class="p">}</span>
 </code></pre></div><p>使用 <code>try?</code> 的变体将变得非常凌乱（比如关于 <code>result</code> 是什么类型？），而且没有显而易见的优点。在不关心 <em>else</em> 语句且只希望处理存在的值时，<code>try?</code> 是更好的选择，但提议的改变将更好的作用于这种情况。</p>
 <p>由于与 <code>as?</code> 转换的交叉使用，因此当前的语法仍比较痛苦，如下：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="k">if</span> <span class="kd">let</span> <span class="nv">x</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">foo</span><span class="p">()</span> <span class="k">as</span><span class="p">?</span> <span class="nb">String</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="k">if</span> <span class="kd">let</span> <span class="nv">x</span> <span class="p">=</span> <span class="k">try</span><span class="p">?</span> <span class="n">foo</span><span class="p">()</span> <span class="k">as</span><span class="p">?</span> <span class="nb">String</span> <span class="p">{</span>
     <span class="c1">// `String` 是这里想要得到的类型，</span>
     <span class="c1">// 但意外的是 `x` 是 `Optional&lt;String&gt;` 类型</span>
 <span class="p">}</span>
@@ -374,14 +374,14 @@ body {
 </li>
 <li>
 <p><code>try? ... as?</code> 的用例有 <strong>4</strong> 个。它们都将 <code>try?</code> 包裹在括号中以使用 <code>as?</code> 的摊平行为，且这将是兼容的。它们看来像这样：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="p">(</span><span class="k">try</span><span class="p">?</span> <span class="n">JSONSerialization</span><span class="p">.</span><span class="n">jsonObject</span><span class="p">(</span><span class="n">with</span><span class="p">:</span> <span class="nv">$0</span><span class="p">))</span> <span class="k">as</span><span class="p">?</span> <span class="n">NSDictionary</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="p">(</span><span class="k">try</span><span class="p">?</span> <span class="n">JSONSerialization</span><span class="p">.</span><span class="n">jsonObject</span><span class="p">(</span><span class="n">with</span><span class="p">:</span> <span class="nv">$0</span><span class="p">))</span> <span class="k">as</span><span class="p">?</span> <span class="n">NSDictionary</span>
 </code></pre></div></li>
 <li>
 <p>3 个项目中共有 <strong>12</strong> 个 <code>try? foo?.bar()</code> 的用例。其中 <strong>10</strong> 个为 <code>_ = try? foo?.bar()</code>，所以结果的类型不重要。其中 <strong>2</strong> 个拥有 <code>Void</code> 类型的子表达式，且没有赋值结果到任何变量。</p>
 </li>
 <li>
 <p>有 <strong>6</strong> 个 <code>try? somethingReturningOptional()</code> 的用例。它们全都使用 <code>flatMap { $0 }</code> 手动摊平，且因此兼容，因为该表达式的返回类型在任一行为下都是相同的。</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="p">(</span><span class="k">try</span><span class="p">?</span> <span class="kr">get</span><span class="p">(</span><span class="n">key</span><span class="p">)).</span><span class="n">flatMap</span> <span class="p">{</span> <span class="nv">$0</span> <span class="p">}</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="p">(</span><span class="k">try</span><span class="p">?</span> <span class="kr">get</span><span class="p">(</span><span class="n">key</span><span class="p">)).</span><span class="n">flatMap</span> <span class="p">{</span> <span class="nv">$0</span> <span class="p">}</span>
 </code></pre></div></li>
 <li>
 <p>据我所知，整个套件中没有双可选被实际用来区分错误和 nil 转值的情况。</p>

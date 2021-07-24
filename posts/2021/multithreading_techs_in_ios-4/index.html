@@ -260,7 +260,7 @@ body {
 <h2 id="what">What</h2>
 <h3 id="大致流程">大致流程</h3>
 <p>为了保护代码的并发执行，我们尝试使用 <code>@synchronized</code> 即同步代码块写一段代码：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// SomeClass.m
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// SomeClass.m
 </span><span class="c1"></span>
 <span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp"></span>
@@ -278,7 +278,7 @@ body {
 
 <span class="k">@end</span>
 </code></pre></div><p>接着，我们使用 <code>xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc SomeClass.m -o SomeClass.cpp</code> 命令将以上代码重写为 C++，并找到 <code>someFunc</code> 方法的 C++ 实现：</p>
-<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// main.mm
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// main.mm
 </span><span class="c1"></span>
 <span class="c1">// 避免无法编译而添加的空实现
 </span><span class="c1"></span><span class="kt">int</span> <span class="nf">objc_sync_enter</span><span class="p">(</span><span class="n">id</span> <span class="n">obj</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="mi">0</span><span class="p">;</span> <span class="p">}</span>
@@ -326,13 +326,13 @@ body {
 
 <span class="c1">// @end
 </span></code></pre></div><p>由上可以得出 <code>@synchronized</code> 执行的大致流程：</p>
-<div class="highlight"><pre class="chroma"><code class="language-fallback" data-lang="fallback">objc_sync_enter(_sync_obj);                 // 执行前调用 objc_sync_enter，传入同步对象
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback">objc_sync_enter(_sync_obj);                 // 执行前调用 objc_sync_enter，传入同步对象
 printf(&#34;CRUD\n&#34;);                           // 同步代码块的实际执行内容，若出现异常，保存异常对象
 objc_sync_exit(_sync_obj);                  // 析构时调用 objc_sync_exit，传入同步对象
 if (rethrow) objc_exception_throw(rethrow); // 析构时调用 objc_exception_throw，传入异常对象
 </code></pre></div><h3 id="入口与出口">入口与出口</h3>
 <p>关于 <code>objc_sync_enter</code> 入口与 <code>objc_sync_exit</code> 出口函数，我们可以在 Apple 开源的 <a href="https://opensource.apple.com/tarballs/objc4/">objc4</a> 中查看其最新实现：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-sync.mm
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-sync.mm
 </span><span class="c1"></span>
 <span class="c1">// -&gt; 入口 ➡️
 </span><span class="c1"></span>
@@ -406,7 +406,7 @@ if (rethrow) objc_exception_throw(rethrow); // 析构时调用 objc_exception_th
 <h3 id="数据结构">数据结构</h3>
 <p>在分析 <code>id2data</code> 函数前，我们先对涉及的数据结构进行一定的了解。</p>
 <h4 id="stripedmapt">StripedMap&lt;T&gt;</h4>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-private.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-private.h
 </span><span class="c1"></span>
 <span class="k">enum</span> <span class="p">{</span> <span class="n">CacheLineSize</span> <span class="o">=</span> <span class="mi">64</span> <span class="p">};</span>
 
@@ -436,7 +436,7 @@ if (rethrow) objc_exception_throw(rethrow); // 析构时调用 objc_exception_th
 </span><span class="c1"></span><span class="cp">#define LOCK_FOR_OBJ(obj) sDataLists[obj].lock
 </span><span class="cp">#define LIST_FOR_OBJ(obj) sDataLists[obj].data
 </span><span class="cp"></span><span class="k">static</span> <span class="n">StripedMap</span><span class="o">&lt;</span><span class="n">SyncList</span><span class="o">&gt;</span> <span class="n">sDataLists</span><span class="p">;</span>
-</code></pre></div><div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-private.h
+</code></pre></div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-private.h
 </span><span class="c1"></span>
 <span class="k">enum</span> <span class="p">{</span> <span class="n">CacheLineSize</span> <span class="o">=</span> <span class="mi">64</span> <span class="p">};</span>
 
@@ -535,7 +535,7 @@ if (rethrow) objc_exception_throw(rethrow); // 析构时调用 objc_exception_th
 </blockquote>
 <!-- 示例 -->
 <p>先从一个简单的结构体开始，其中包含 <code>a</code> 和 <code>b</code> 两个成员：</p>
-<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// main.mm
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// main.mm
 </span><span class="c1"></span>
 <span class="k">struct</span> <span class="nc">A</span> <span class="p">{</span>
     <span class="kt">int</span> <span class="n">a</span><span class="p">;</span>
@@ -557,7 +557,7 @@ if (rethrow) objc_exception_throw(rethrow); // 析构时调用 objc_exception_th
 </span><span class="c1">// 0x7ffeefbff3f0: 0x03 0x00 0x00 0x00 0x04 0x00 0x00 0x00
 </span><span class="c1">// 0x7ffeefbff3f8: 0x01 0x00 0x00 0x00 0x02 0x00 0x00 0x00
 </span></code></pre></div><p>由上面的输出我们可以得出，<code>struct A</code> 按 4 字节对齐，该类型变量的大小为对齐数的两倍 —— 8 字节，其中的两个成员分别占用 4 字节。接着我们尝试使用 <code>alignas(expression)</code>：</p>
-<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">struct</span> <span class="nc">B</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">struct</span> <span class="nc">B</span> <span class="p">{</span>
     <span class="k">alignas</span><span class="p">(</span><span class="kt">long</span><span class="p">)</span> <span class="kt">int</span> <span class="n">a</span><span class="p">;</span>
     <span class="kt">int</span> <span class="n">b</span><span class="p">;</span>
 <span class="p">};</span>
@@ -577,7 +577,7 @@ if (rethrow) objc_exception_throw(rethrow); // 析构时调用 objc_exception_th
 </span><span class="c1">// 0x7ffeefbff3f0: 0x03 0x00 0x00 0x00 0x04 0x00 0x00 0x00
 </span><span class="c1">// 0x7ffeefbff3f8: 0x01 0x00 0x00 0x00 0x02 0x00 0x00 0x00
 </span></code></pre></div><p>此时，<code>struct B</code> 将按照成员的最大对齐数 —— 即 8 字节的 <code>alignas(long) int a;</code> 对齐，但该成员仍然只占用 <code>int</code> 类型的 4 字节，最终结构体本身占用 8 字节，也符合内存对齐。我们可以在 <code>struct B</code> 的基础上再添加一个成员：</p>
-<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">struct</span> <span class="nc">C</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">struct</span> <span class="nc">C</span> <span class="p">{</span>
     <span class="k">alignas</span><span class="p">(</span><span class="kt">long</span><span class="p">)</span> <span class="kt">int</span> <span class="n">a</span><span class="p">;</span>
     <span class="kt">int</span> <span class="n">b</span><span class="p">;</span>
     <span class="kt">char</span> <span class="n">c</span><span class="p">;</span>
@@ -607,7 +607,7 @@ if (rethrow) objc_exception_throw(rethrow); // 析构时调用 objc_exception_th
 
 </blockquote>
 <h3 id="id2data">id2data</h3>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-sync.mm
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-sync.mm
 </span><span class="c1"></span>
 <span class="c1">// Use multiple parallel lists to decrease contention among unrelated objects.
 </span><span class="c1"></span><span class="cp">#define LOCK_FOR_OBJ(obj) sDataLists[obj].lock
@@ -781,7 +781,7 @@ if (rethrow) objc_exception_throw(rethrow); // 析构时调用 objc_exception_th
     <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
 <span class="p">}</span>
 </code></pre></div><h3 id="syncdata">SyncData</h3>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-private.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-private.h
 </span><span class="c1"></span><span class="k">enum</span> <span class="p">{</span> <span class="n">CacheLineSize</span> <span class="o">=</span> <span class="mi">64</span> <span class="p">};</span>
 
 <span class="c1">// objc-sync.mm
@@ -964,7 +964,7 @@ if (rethrow) objc_exception_throw(rethrow); // 析构时调用 objc_exception_th
 <span class="p">}</span>
 </code></pre></div><h2 id="问与答">问与答</h2>
 <h3 id="为什么同步对象为空时无效">为什么同步对象为空时无效</h3>
-<div class="highlight"><pre class="chroma"><code class="language-fallback" data-lang="fallback">// objc.os.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback">// objc.os.h
 
 /* Use this for functions that are intended to be breakpoint hooks.
    If you do not, the compiler may optimize them away.
@@ -972,7 +972,7 @@ if (rethrow) objc_exception_throw(rethrow); // 析构时调用 objc_exception_th
 #   define BREAKPOINT_FUNCTION(prototype)                             \
     OBJC_EXTERN __attribute__((noinline, used, visibility(&#34;hidden&#34;))) \
     prototype { asm(&#34;&#34;); }
-</code></pre></div><div class="highlight"><pre class="chroma"><code class="language-fallback" data-lang="fallback">OBJC_EXTERN __attribute__((noinline, used, visibility(&#34;hidden&#34;))) void objc_sync_nil(void) { asm(&#34;&#34;); }
+</code></pre></div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback">OBJC_EXTERN __attribute__((noinline, used, visibility(&#34;hidden&#34;))) void objc_sync_nil(void) { asm(&#34;&#34;); }
 </code></pre></div><hr>
 <h2 id="reference">Reference</h2>
 <ul>

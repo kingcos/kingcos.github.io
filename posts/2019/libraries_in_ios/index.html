@@ -258,7 +258,7 @@ body {
 <p>我们先从 Xcode 中能够直接创建的 Cocoa Touch Static Library 说起（注意，在 Xcode 11 中，这里已经变成 Framework 与 Library，更加清晰）：</p>
 <p><img src="/img/2019/libraries_in_ios/1.png" alt="1"></p>
 <p>Cocoa Touch Static Library 即静态库。iOS 上狭义的静态库，即<strong>只包含编译后代码的 <code>.a</code> 文件</strong>。我们创建一个 oc-static-lib 的静态库，为其默认提供的 <code>oc_static_lib</code> 类添加 <code>foo</code> 方法，并添加一个 <code>NSObject</code> 的分类，实现 +load 和 <code>foo</code> 方法：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// oc_static_lib.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// oc_static_lib.h
 </span><span class="c1"></span>
 <span class="cp">#import &lt;Foundation/Foundation.h&gt;
 </span><span class="cp"></span>
@@ -314,7 +314,7 @@ body {
 </blockquote>
 <h3 id="swift-工程引入-swift-静态库">Swift 工程引入 Swift 静态库</h3>
 <p>在 Xcode 9 之后，Swift 也支持了静态库。与 Obj-C 不同，Swift 没有头文件的概念，因此我们需要将暴露给外界的类和函数等使用 <code>public</code> 修饰。编译后的 Swift 静态库也是 <code>.a</code> 文件，但不同的是多了 <code>.swiftmodule</code> 以及 <code>.swiftdoc</code>：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">➜  Debug-iphonesimulator tree
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">➜  Debug-iphonesimulator tree
 .
 ├── libswift-static-lib.a
 └── swift_static_lib.swiftmodule
@@ -325,7 +325,7 @@ body {
 </code></pre></div><p><code>.swiftmodule</code> 包含了序列化过的 AST（抽象语法树，Abstract Syntax Tree），可能也包含 SIL（Swift 中间语言，Swift Intermediate Language），我们可以将其理解为类似 C 语言库或框架中头文件的二进制格式文件；<code>.swiftdoc</code> 则是 Swift 文档注释生成的二进制文件，由 <code>Serialization::writeDocToStream()</code> 生成，因此并非是必要的。由于 Swift 的 Module 机制，我们需要在 Xcode - Targets - Build Settings - Swift Compiler - Search Paths - Import Paths 中引入：</p>
 <p><img src="/img/2019/libraries_in_ios/4.png" alt="4"></p>
 <p>这样我们才能在 Swift 工程中正常使用：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// swift_static_lib.swift</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// swift_static_lib.swift</span>
 
 <span class="kd">import</span> <span class="nc">Foundation</span>
 
@@ -351,7 +351,7 @@ body {
 <p>那么如果要在 Obj-C 工程引入 Swift 静态库，首先要在工程中引入一个占位 Swift 文件，并创建桥接文件，这样 Xcode 中 Swift 相关的依赖配置才能得以建立：</p>
 <p><img src="/img/2019/libraries_in_ios/7.png" alt="7"></p>
 <p>Swift 静态库也可以自动生成 <code>&lt;PROJECT_NAME&gt;-Swift.h</code>，但其并没有和最终产物 <code>.a</code> 放置在一起：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">➜  Build tree
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">➜  Build tree
 .
 ├── Intermediates.noindex
 │   ├── XCBuildData
@@ -367,7 +367,7 @@ body {
 
 <span class="m">17</span> directories, <span class="m">41</span> files
 </code></pre></div><p>因此我们可以将以下脚本添加到 Xcode - Targets - Build Phases - New Run Script Phase 中，这样每次构建即可将 <code>&lt;PROJECT_NAME&gt;-Swift.h</code> 一并拷贝到产物目录：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># Powered by https://paul-samuels.com/blog/2018/01/14/swift-static-library-in-objective-c/</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># Powered by https://paul-samuels.com/blog/2018/01/14/swift-static-library-in-objective-c/</span>
 
 <span class="c1"># BUILT_PRODUCTS_DIR：构建产物目录；PRODUCT_MODULE_NAME：产物名称</span>
 <span class="nv">target_dir</span><span class="o">=</span><span class="si">${</span><span class="nv">BUILT_PRODUCTS_DIR</span><span class="si">}</span>/include/<span class="si">${</span><span class="nv">PRODUCT_MODULE_NAME</span><span class="si">}</span>/
@@ -380,7 +380,7 @@ mkdir -p <span class="si">${</span><span class="nv">target_dir</span><span class
 <span class="c1"># 复制到产物路径</span>
 cp <span class="si">${</span><span class="nv">DERIVED_SOURCES_DIR</span><span class="si">}</span>/*-Swift.h <span class="si">${</span><span class="nv">target_dir</span><span class="si">}</span>
 </code></pre></div><p>之后我们需要将生成的产物放 swift_static_lib 文件中一起拖到 Obj-C 工程中（勾选「Add to targets」添加至目标 Target，或者手动将 <code>.a</code> 加入到「Link Binary With Libraries」中）：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">➜  swift_static_lib tree
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">➜  swift_static_lib tree
 .
 ├── include
 │   └── swift_static_lib
@@ -395,7 +395,7 @@ cp <span class="si">${</span><span class="nv">DERIVED_SOURCES_DIR</span><span cl
 
 ![6](/img/2019/libraries_in_ios/6.png) -->
 <p>这样，在 Obj-C 工程中通过 <code>#import &quot;swift_static_lib-Swift.h&quot;</code> 即可使用：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// ViewController.m
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// ViewController.m
 </span><span class="c1"></span>
 <span class="c1">//#import &#34;swift-static-lib/include/swift_static_lib/swift_static_lib-Swift.h&#34;
 </span><span class="c1"></span><span class="cp">#import &#34;swift_static_lib-Swift.h&#34;
@@ -409,12 +409,12 @@ cp <span class="si">${</span><span class="nv">DERIVED_SOURCES_DIR</span><span cl
 <span class="p">}</span>
 </code></pre></div><h3 id="swift-工程引入-obj-c-静态库">Swift 工程引入 Obj-C 静态库</h3>
 <p>如果想要在 Swift 工程中引入 Obj-C 静态库（注意如有分类仍需加 <code>-ObjC</code>），则也需要桥接头文件作为中介。我们在工程中新建一个占位 Obj-C 文件，按 Xcode 提示创建桥接文件；将 oc-static-lib 编译后的产物一起拖入 Swift 工程，并在桥接文件中引入 Obj-C 静态库中的相关头文件：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// swift-demo-project-Bridging-Header.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// swift-demo-project-Bridging-Header.h
 </span><span class="c1"></span>
 <span class="c1">//#import &#34;liboc-static-lib/include/oc-static-lib/oc_static_lib.h&#34;
 </span><span class="c1"></span><span class="cp">#import &#34;oc_static_lib.h&#34;
 </span></code></pre></div><p>之后即可直接在 Swift 中使用：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// ViewController.swift</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// ViewController.swift</span>
 
 <span class="kd">import</span> <span class="nc">UIKit</span>
 
@@ -427,7 +427,7 @@ cp <span class="si">${</span><span class="nv">DERIVED_SOURCES_DIR</span><span cl
 <span class="p">}</span>
 </code></pre></div><h2 id="cocoa-touch-framework">Cocoa Touch Framework</h2>
 <p>Cocoa Touch Framework 是 Xcode 中能够创建的另外一种框架（Framework）类型（注意，在 Xcode 11 中，这里已经变成 Framework 与 Library，更加清晰），而非库（Library）。不同于库，iOS 中的框架指的是包含资源（比如图片、本地化文件、Storyboard 等）、头文件、以及编译后的二进制等的集合。框架的后缀名是 <code>.framework</code>，并可以通过 <code>NSBundle</code> API 访问，不同的是框架可以直接导航到其中的目录内容，便于开发者查看：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">➜  oc_framework.framework tree
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">➜  oc_framework.framework tree
 .
 ├── Assets.car ➡️ 工程中的 xcassets 资源将被压缩为 car
 ├── Headers
@@ -470,7 +470,7 @@ cp <span class="si">${</span><span class="nv">DERIVED_SOURCES_DIR</span><span cl
 <p><img src="/img/2019/libraries_in_ios/9.png" alt="9"></p>
 <p>在工程中我们就可以将其引入并使用了：</p>
 <p><strong>oc-framework:</strong></p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// OC_Foo.m
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// OC_Foo.m
 </span><span class="c1"></span>
 <span class="cp">#import &#34;OC_Foo.h&#34;
 </span><span class="cp"></span>
@@ -486,7 +486,7 @@ cp <span class="si">${</span><span class="nv">DERIVED_SOURCES_DIR</span><span cl
 <span class="p">}</span>
 <span class="k">@end</span>
 </code></pre></div><p><strong>swift-framework:</strong></p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// Swift_Foo.swift</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// Swift_Foo.swift</span>
 
 <span class="kd">import</span> <span class="nc">Foundation</span>
 
@@ -501,7 +501,7 @@ cp <span class="si">${</span><span class="nv">DERIVED_SOURCES_DIR</span><span cl
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div><p><strong>Obj-C 工程：</strong></p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// ViewController.m
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// ViewController.m
 </span><span class="c1"></span>
 <span class="cp">#import &#34;ViewController.h&#34;
 </span><span class="cp"></span><span class="p">@</span><span class="n">import</span> <span class="n">oc_framework</span><span class="p">;</span>
@@ -539,7 +539,7 @@ cp <span class="si">${</span><span class="nv">DERIVED_SOURCES_DIR</span><span cl
 <span class="k">@end</span>
 </code></pre></div><h3 id="swift-工程">Swift 工程</h3>
 <p>Framework 的引入要比静态库简单许多，我们只需要将其直接引入工程中（注意如有分类仍需加 <code>-ObjC</code>），并在 Swift 通过 <code>import &lt;FRAMEWORK_NAME&gt;</code> 导入即可：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">import</span> <span class="nc">UIKit</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">import</span> <span class="nc">UIKit</span>
 <span class="kd">import</span> <span class="nc">oc_framework</span>
 <span class="kd">import</span> <span class="nc">swift_framework</span>
 
@@ -569,7 +569,7 @@ cp <span class="si">${</span><span class="nv">DERIVED_SOURCES_DIR</span><span cl
 <h3 id="非-use_frameworks">非 use_frameworks!</h3>
 <h4 id="obj-c-工程与-obj-c-pod">Obj-C 工程与 Obj-C Pod</h4>
 <p>使用 <code>pod lib create oc-pod</code> 即可以创建我们的私有 Pod，资源文件的管理这里我们尝试使用两种方式：</p>
-<div class="highlight"><pre class="chroma"><code class="language-ruby" data-lang="ruby"><span class="c1"># 将通过脚本引入（将直接把文件本身移动到主 Bundle 下）</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-ruby" data-lang="ruby"><span class="c1"># 将通过脚本引入（将直接把文件本身移动到主 Bundle 下）</span>
 <span class="n">s</span><span class="o">.</span><span class="n">resources</span> <span class="o">=</span> <span class="o">[</span><span class="s1">&#39;oc-pod/Assets/info.json&#39;</span><span class="o">]</span>
 
 <span class="c1"># 将创建 oc-pod 的 Bundle（将把 Bundle 移动到主 Bundle 下），等同于 s.resources = [&#39;oc-pod/Assets/oc-pod.bundle&#39;]</span>
@@ -577,7 +577,7 @@ cp <span class="si">${</span><span class="nv">DERIVED_SOURCES_DIR</span><span cl
     <span class="s1">&#39;oc-pod&#39;</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="s1">&#39;oc-pod/Assets/info-bundle.json&#39;</span><span class="o">]</span>
 <span class="p">}</span>
 </code></pre></div><p>这里我们将放置在与 oc-demo-project-pod 同一父目录下，并将语言选择 Obj-C，随后在 oc-demo-project-pod 目录下，<code>pod init</code> 并以路径指定方式引用刚才创建的 Pod：</p>
-<div class="highlight"><pre class="chroma"><code class="language-ruby" data-lang="ruby"><span class="c1"># Uncomment the next line to define a global platform for your project</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-ruby" data-lang="ruby"><span class="c1"># Uncomment the next line to define a global platform for your project</span>
 <span class="n">platform</span> <span class="ss">:ios</span><span class="p">,</span> <span class="s1">&#39;13.0&#39;</span>
 
 <span class="n">target</span> <span class="s1">&#39;oc-demo-project-pod&#39;</span> <span class="k">do</span>
@@ -589,7 +589,7 @@ cp <span class="si">${</span><span class="nv">DERIVED_SOURCES_DIR</span><span cl
 <span class="k">end</span>
 
 </code></pre></div><p>我们将上文已有代码放在 oc-pod 的 <code>Classes</code> 文件夹下，并将资源放在 <code>Assets</code> 文件夹下：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">➜  oc-pod git:<span class="o">(</span>master<span class="o">)</span> ✗ tree
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">➜  oc-pod git:<span class="o">(</span>master<span class="o">)</span> ✗ tree
 .
 ├── oc-pod
 │   ├── Assets  ➡️ 资源
@@ -643,7 +643,7 @@ cp <span class="si">${</span><span class="nv">DERIVED_SOURCES_DIR</span><span cl
 <p>Resource Bundle 或者 <code>s.dependency</code> 的子依赖将被 oc-pod 依赖：</p>
 <p><img src="/img/2019/libraries_in_ios/15.png" alt="15"></p>
 <p>如前文所述，<code>.a</code> 仅仅包含了编译后的代码，那么它所以依赖的资源文件将如何处理呢？我们可以看到上上图中的「[CP] Copy Pods Resoureces」执行了如下的脚本：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell"><span class="cp">#!/bin/sh
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="cp">#!/bin/sh
 </span><span class="cp"></span><span class="nb">set</span> -e
 <span class="nb">set</span> -u
 <span class="nb">set</span> -o pipefail <span class="c1"># 一些设置</span>
@@ -819,7 +819,7 @@ rm -f <span class="s2">&#34;</span><span class="nv">$RESOURCES_TO_COPY</span><sp
   <span class="k">fi</span>
 <span class="k">fi</span>
 </code></pre></div><p>因此最终的 <code>oc-demo-project-pod.app</code> 结构如下：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">➜  oc-demo-project-pod.app tree
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">➜  oc-demo-project-pod.app tree
 .
 ├── Base.lproj
 │   ├── LaunchScreen.storyboardc
@@ -849,7 +849,7 @@ rm -f <span class="s2">&#34;</span><span class="nv">$RESOURCES_TO_COPY</span><sp
 
 <span class="m">6</span> directories, <span class="m">19</span> files
 </code></pre></div><p>资源文件 Bundle 以及 JSON 文件被原封不动地挪动到 <code>oc-demo-project-pod.app</code> 下，而第三方和 Pods 中介的 <code>.a</code> 就已经被打入了可执行文件中，我们可以使用 <code>nm</code> 尝试打印其中的符号：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">➜  oc-demo-project-pod.app nm oc-demo-project-pod <span class="p">|</span> grep ObjC_Foo
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">➜  oc-demo-project-pod.app nm oc-demo-project-pod <span class="p">|</span> grep ObjC_Foo
 0000000100038a50 t -<span class="o">[</span>ObjC_Foo foo<span class="o">]</span>
 0000000100038b00 t -<span class="o">[</span>ObjC_Foo resources<span class="o">]</span>
 <span class="m">0000000100053220</span> S _OBJC_CLASS_<span class="nv">$_ObjC_Foo</span>
@@ -863,7 +863,7 @@ rm -f <span class="s2">&#34;</span><span class="nv">$RESOURCES_TO_COPY</span><sp
 <span class="m">0000000100053298</span> S _OBJC_METACLASS_<span class="nv">$_PodsDummy_Pods_oc_demo_project_pod</span>
 <span class="m">0000000100053248</span> S _OBJC_METACLASS_<span class="nv">$_PodsDummy_oc_pod</span>
 </code></pre></div><p>虽然资源均被拷贝到了 <code>.app</code> 下，但在代码中相应的获取方式却有一定差别：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">resources</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">resources</span> <span class="p">{</span>
     <span class="c1">// s.resources
 </span><span class="c1"></span>    <span class="n">NSBundle</span> <span class="o">*</span><span class="n">bundle</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSBundle</span> <span class="nl">bundleForClass</span><span class="p">:[</span><span class="nb">self</span> <span class="k">class</span><span class="p">]];</span>
     <span class="n">NSString</span> <span class="o">*</span><span class="n">path</span> <span class="o">=</span> <span class="p">[</span><span class="n">bundle</span> <span class="nl">pathForResource</span><span class="p">:</span><span class="s">@&#34;info&#34;</span> <span class="nl">ofType</span><span class="p">:</span><span class="s">@&#34;json&#34;</span><span class="p">];</span>
@@ -886,13 +886,13 @@ rm -f <span class="s2">&#34;</span><span class="nv">$RESOURCES_TO_COPY</span><sp
 <span class="p">}</span>
 </code></pre></div><h4 id="obj-c-工程与-swift-pod">Obj-C 工程与 Swift Pod</h4>
 <p>在 Obj-C 工程下引入 Swift Pod 与 Obj-C Pod 并无太多差别。不过有时可能会遇到 CocoaPods 提示下面这个问题，或者在编译时提示找不到许多 Swift 相关的符号：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell"><span class="o">[</span>!<span class="o">]</span> Unable to determine Swift version <span class="k">for</span> the following pods:
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="o">[</span>!<span class="o">]</span> Unable to determine Swift version <span class="k">for</span> the following pods:
 
 - <span class="sb">`</span>swift-pod<span class="sb">`</span> does not specify a Swift version and none of the targets <span class="o">(</span><span class="sb">`</span>oc-demo-project-pod<span class="sb">`</span><span class="o">)</span> integrating it have the <span class="sb">`</span>SWIFT_VERSION<span class="sb">`</span> attribute set. Please contact the author or <span class="nb">set</span> the <span class="sb">`</span>SWIFT_VERSION<span class="sb">`</span> attribute in at least one of the targets that integrate this pod.
 </code></pre></div><p>此时我们可以在 Obj-C 工程中新建一个占位 Swift 文件即可使其获得 Swift 能力：</p>
 <p><img src="/img/2019/libraries_in_ios/14.png" alt="14"></p>
 <p>另外需要注意的是，Swift Pod 引入时需要使用 <code>@import</code>：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">@</span><span class="n">import</span> <span class="n">swift_pod</span><span class="p">;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="p">@</span><span class="n">import</span> <span class="n">swift_pod</span><span class="p">;</span>
 
 <span class="k">@implementation</span> <span class="nc">ViewController</span>
 <span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">viewDidLoad</span> <span class="p">{</span>
@@ -904,13 +904,13 @@ rm -f <span class="s2">&#34;</span><span class="nv">$RESOURCES_TO_COPY</span><sp
 <span class="k">@end</span>
 </code></pre></div><h4 id="swift-工程与-obj-c-pod">Swift 工程与 Obj-C Pod</h4>
 <p>Swift 工程依赖 Obj-C Pod 的方式与 Obj-C 工程一致。但需要注意的是，我们无法直接在 Swift 代码中 <code>import</code> Obj-C Pod。这里也需要桥接文件来引入，我们可以创建 Obj-C 类型的占位文件，并创建桥接文件，在其中引入暴露给 Swift 工程的头文件：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">//
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">//
 </span><span class="c1">//  Use this file to import your target&#39;s public headers that you would like to expose to Swift.
 </span><span class="c1">//
 </span><span class="c1"></span>
 <span class="cp">#import &lt;oc-pod/ObjC_Foo.h&gt;
 </span></code></pre></div><p>这样即可在 Swift 工程中使用：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">import</span> <span class="nc">UIKit</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">import</span> <span class="nc">UIKit</span>
 
 <span class="kd">class</span> <span class="nc">ViewController</span><span class="p">:</span> <span class="n">UIViewController</span> <span class="p">{</span>
     <span class="kr">override</span> <span class="kd">func</span> <span class="nf">viewDidLoad</span><span class="p">()</span> <span class="p">{</span>
@@ -922,7 +922,7 @@ rm -f <span class="s2">&#34;</span><span class="nv">$RESOURCES_TO_COPY</span><sp
 </code></pre></div><p>对于同样未开启 <code>use_frameworks</code> 的 Swift 工程来说，CocoaPods 处理资源的脚本和逻辑是一致的。</p>
 <h4 id="swift-工程与-swift-pod">Swift 工程与 Swift Pod</h4>
 <p>Swift 工程依赖 Swift Pod 的方式则更加简单，只需要使用 <code>import</code> 引入 Pod 即可：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">import</span> <span class="nc">swift_pod</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">import</span> <span class="nc">swift_pod</span>
 
 <span class="kd">class</span> <span class="nc">ViewController</span><span class="p">:</span> <span class="n">UIViewController</span> <span class="p">{</span>
     <span class="kr">override</span> <span class="kd">func</span> <span class="nf">viewDidLoad</span><span class="p">()</span> <span class="p">{</span>
@@ -937,7 +937,7 @@ rm -f <span class="s2">&#34;</span><span class="nv">$RESOURCES_TO_COPY</span><sp
 <p>将 <code>use_frameworks!</code> 开启时，Pods 工程将以框架方式依赖：</p>
 <p><img src="/img/2019/libraries_in_ios/16.png" alt="16"></p>
 <p>在上面我们了解过 Framework，其中聚合了可执行文件以及资源等文件，因此其一般不再需要单独的脚本来处理资源，而是需要「[CP] Embed Pods Frameworks」来针对 Framework 进行操作：</p>
-<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell"><span class="cp">#!/bin/sh
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="cp">#!/bin/sh
 </span><span class="cp"></span><span class="nb">set</span> -e
 <span class="nb">set</span> -u
 <span class="nb">set</span> -o pipefail <span class="c1"># 一些设置</span>
@@ -1150,7 +1150,7 @@ strip_invalid_archs<span class="o">()</span> <span class="o">{</span>
   <span class="nb">wait</span>
 <span class="k">fi</span>
 </code></pre></div><p>使用 <code>use_frameworks!</code> 依赖的 Pod 库即可在 Obj-C 工程中使用 <code>@import</code> 引入，或者将共有头文件引入。需要注意的是，不同于上述非 <code>use_frameworks!</code> 情况，<code>#import</code> 是引入相对于 Framework 的头文件位置。对于 Swift Pod 则无不同：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &#34;ViewController.h&#34;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &#34;ViewController.h&#34;
 </span><span class="cp"></span>
 <span class="c1">//#import &lt;oc-pod/ObjC_Foo.h&gt; ❌，仅在非 `use_frameworks!` 下以文件夹相对路径引入而支持 `-`
 </span><span class="c1"></span><span class="cp">#import &lt;oc_pod/ObjC_Foo.h&gt;
@@ -1175,7 +1175,7 @@ strip_invalid_archs<span class="o">()</span> <span class="o">{</span>
 <span class="k">@end</span>
 </code></pre></div><h4 id="swift-工程-1">Swift 工程</h4>
 <p>Swift 工程下也是类似的，我们可以在桥接文件中使用 <code>@import</code> 引入，或者将共有头文件引入。但其实此时桥接文件本身即是多余的，我们只需要在 Swift 工程中直接使用 <code>import</code> 即可：</p>
-<div class="highlight"><pre class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">import</span> <span class="nc">UIKit</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">import</span> <span class="nc">UIKit</span>
 <span class="kd">import</span> <span class="nc">swift_pod</span>
 <span class="kd">import</span> <span class="nc">oc_pod</span>
 

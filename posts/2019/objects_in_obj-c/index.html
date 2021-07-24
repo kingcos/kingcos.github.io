@@ -258,7 +258,7 @@ body {
 <p>Obj-C 中的对象分为实例对象（Instance Object）、类对象（Class Object）、以及元类对象（Meta-class Object）三种，本文将借助源码简单了解一下不同类型对象的真实构造。</p>
 <p><img src="/img/2019/objects_in_obj-c/1.png" alt="1"></p>
 <p>为了方便下文举例，这里我们定义一个 <code>EDdeviceProtocol</code> 协议，并让继承自 <code>NSObject</code> 的 <code>Computer</code> 类遵守该协议：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// EDdeviceProtocol 协议
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// EDdeviceProtocol 协议
 </span><span class="c1"></span><span class="k">@protocol</span> <span class="nc">EDdeviceProtocol</span>
 <span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">powerOn</span><span class="p">;</span>
 <span class="k">@end</span>
@@ -297,7 +297,7 @@ body {
 <span class="k">@end</span>
 </code></pre></div><h2 id="实例对象">实例对象</h2>
 <p>我们创建一个 <code>Computer</code> 类型的实例对象，并对其中的成员变量赋值：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// cpt 为指向 Computer 类型实例对象的指针
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// cpt 为指向 Computer 类型实例对象的指针
 </span><span class="c1"></span><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
 
 <span class="c1">// ERROR: Direct access to Objective-C&#39;s isa is deprecated in favor of object_getClass()
@@ -310,7 +310,7 @@ body {
 </code></pre></div><p>我们在程序结束前的 <code>return 0;</code> 一行打个断点，即可看到 <code>cpt</code> 指向的实例对象中存储的数据：</p>
 <p><img src="/img/2019/objects_in_obj-c/5.png" alt="5"></p>
 <p>其中存放了 <code>isa</code> 指针成员变量（但无法直接访问）以及其它成员变量的具体值。<code>isa</code> 并不是开发者自己定义的，而是继承自 <code>NSObject</code> 基类。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// NSObject.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// NSObject.h
 </span><span class="c1"></span>
 <span class="k">@interface</span> <span class="nc">NSObject</span> <span class="o">&lt;</span><span class="n">NSObject</span><span class="o">&gt;</span> <span class="p">{</span>
 <span class="cp">#pragma clang diagnostic push
@@ -320,7 +320,7 @@ body {
 </span><span class="cp"></span><span class="p">}</span>
 </code></pre></div><h2 id="类对象">类对象</h2>
 <p>我们知道，只要创建的实例对象属于同一个类，那么它们就都可以调用该类的实例方法，因此这些方法其实并不需要每个实例对象都单独保存一份。在 Obj-C 中，实例方法存放在类对象中，类方法存储在元类对象中。与实例对象不同，类对象和元类对象并不需要开发者手动创建。类对象可以通过 <code>[cpt class]</code>、<code>[Computer class]</code> 或 Runtime API <code>object_getClass</code> 获取：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// 获取类对象的方法：
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// 获取类对象的方法：
 </span><span class="c1"></span><span class="kt">Class</span> <span class="n">cptClass1</span> <span class="o">=</span> <span class="p">[</span><span class="n">cpt</span> <span class="k">class</span><span class="p">];</span>
 <span class="kt">Class</span> <span class="n">cptClass2</span> <span class="o">=</span> <span class="p">[</span><span class="n">Computer</span> <span class="k">class</span><span class="p">];</span>
 <span class="kt">Class</span> <span class="n">cptClass3</span> <span class="o">=</span> <span class="n">object_getClass</span><span class="p">(</span><span class="n">cpt</span><span class="p">);</span>
@@ -333,7 +333,7 @@ body {
 </span><span class="c1">// (lldb) p/x cptClass3
 </span><span class="c1">// (Class) $2 = 0x00000001000013d0 Computer
 </span></code></pre></div><p>类对象的类型是 <code>Class</code>，本质是指向 <code>objc_class</code> 结构体的指针。<code>objc_class</code> 结构体中存放了 <code>isa</code>、<code>superclass</code>、方法缓存、以及为该类实例对象所公用的一些信息：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Object.mm
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// Object.mm
 </span><span class="c1"></span>
 <span class="k">typedef</span> <span class="k">struct</span> <span class="n">objc_class</span> <span class="o">*</span><span class="kt">Class</span><span class="p">;</span>
 
@@ -360,7 +360,7 @@ body {
 </span><span class="c1"></span><span class="p">}</span>
 </code></pre></div><h3 id="class_data_bits_t">class_data_bits_t</h3>
 <p>先来看看 <code>objc_class</code> 中的 <code>class_data_bits_t</code>：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-runtime-new.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-runtime-new.h
 </span><span class="c1"></span>
 <span class="k">struct</span> <span class="nl">objc_class</span> <span class="p">:</span> <span class="n">objc_object</span> <span class="p">{</span>
     <span class="c1">// objc_class 中的 data 方法，返回指向 class_rw_t 的指针
@@ -434,7 +434,7 @@ body {
 </table>
 <h3 id="class_rw_t">class_rw_t</h3>
 <p><code>class_rw_t</code> 指的是可读可写（Read-Write）表。该结构体中存储了指向 <code>class_ro_t</code> 只读表的指针、以及方法、属性、协议等信息：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-runtime-new.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-runtime-new.h
 </span><span class="c1"></span>
 <span class="c1">// 可读可写表
 </span><span class="c1"></span><span class="k">struct</span> <span class="n">class_rw_t</span> <span class="p">{</span>
@@ -453,7 +453,7 @@ body {
     <span class="c1">// ...
 </span><span class="c1"></span><span class="p">};</span>
 </code></pre></div><p>其中 <code>method_array_t</code>、<code>property_array_t</code> 与 <code>protocol_array_t</code> 类型的结构几乎一致，这里以 <code>method_array_t</code> 为例：</p>
-<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// objc-runtime-new.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// objc-runtime-new.h
 </span><span class="c1"></span>
 <span class="c1">// method_array_t 继承自 list_array_tt，其中 List 类型为 method_list_t，Element 类型为 method_t
 </span><span class="c1"></span><span class="k">class</span> <span class="nc">method_array_t</span> <span class="o">:</span>
@@ -490,7 +490,7 @@ body {
 </code></pre></div><p>由于 Obj-C 中的 <code>Class</code> 是一个不透明类型，但我们可以尝试一下将类对象的原始结构桥接到其中，首先需要将以下我整理好的内容放在 <code>.h</code> 引入，需要注意的是引入的实现文件需要支持 C++，即以 <code>.mm</code> 结尾：</p>
 <details>
 <summary>-> 点击此处即可查看完整内容 <-</summary>
-<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">//
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">//
 </span><span class="c1">//  class_details.h
 </span><span class="c1">//  Powered by kingcos.me
 </span><span class="c1">//
@@ -641,7 +641,7 @@ body {
 <span class="cp">#endif </span><span class="cm">/* class_details_h */</span><span class="cp">
 </span></code></pre></div></details>
 <p>我们仍以 <code>Computer</code> 类为例，将类或元类对象转换为其真实结构时，我们就能看到其中的细节了：</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// main.mm
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// main.mm
 </span><span class="c1"></span>
 <span class="n">V_Class</span> <span class="n">cptClassObject</span> <span class="o">=</span> <span class="p">(</span><span class="k">__bridge</span> <span class="n">V_Class</span><span class="p">)[</span><span class="n">Computer</span> <span class="k">class</span><span class="p">];</span>
 <span class="n">v_class_rw_t</span> <span class="o">*</span><span class="n">cptRWTable</span> <span class="o">=</span> <span class="n">cptClassObject</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">();</span>
@@ -657,7 +657,7 @@ body {
 </ol>
 <h3 id="class_ro_t">class_ro_t</h3>
 <p><code>class_ro_t</code> 存在于 <code>class_rw_t</code> 中，是只读（Read-Only）表：</p>
-<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// objc-runtime-new.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// objc-runtime-new.h
 </span><span class="c1"></span>
 <span class="c1">// 只读表
 </span><span class="c1"></span><span class="k">struct</span> <span class="nc">class_ro_t</span> <span class="p">{</span>
@@ -688,7 +688,7 @@ body {
 <span class="p">};</span>
 </code></pre></div><p>而与 <code>class_rw_t</code> 不同的是，<code>class_ro_t</code> 中的方法、属性、成员变量分别直接继承自 <code>method_list_t</code>、<code>ivar_list_t</code> 和 <code>property_list_t</code>， 少了一维。这是因为只读表只存储编译时（包括类本身和分类中）确定的内容，在运行时将不会再次附加其它的数据。</p>
 <p>为了证明上述结论，我们再简单了解一下类在首次初始化中所执行的 <code>realizeClass</code> 方法（注意，<code>realizeClass</code> 存在于 obj4-750，而在 Xcode 11.1 和 obj4-756.2 及之后该函数已被更名为 <code>realizeClassWithoutSwift</code> 且有部分差异，但由于主体部分未改变且变更不影响如下分析暂时略过）：</p>
-<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// objc-runtime-new.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// objc-runtime-new.h
 </span><span class="c1"></span>
 <span class="c1">// 类是未实现的 Future 类（关于 Future 类目前网上资料较少，Runtime 中有 objc_getFutureClass API，官方文档意为用作与 CoreFoundation 中类型无缝桥接（Toll-Free Bridging），比如 __NSCFArray 等，但该方法并未暴露在外界，即不允许开发者去调用）
 </span><span class="c1">// class is unrealized future class - must never be set by compiler
@@ -870,7 +870,7 @@ body {
 <span class="p">}</span>
 </code></pre></div><h3 id="method_t">method_t</h3>
 <p><code>method_t</code> 是 Obj-C 中方法的本质类型：</p>
-<div class="highlight"><pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// objc.h
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// objc.h
 </span><span class="c1"></span>
 <span class="c1">/// An opaque type that represents a method selector.
 </span><span class="c1"></span><span class="k">typedef</span> <span class="k">struct</span> <span class="nc">objc_selector</span> <span class="o">*</span><span class="n">SEL</span><span class="p">;</span>
@@ -924,7 +924,7 @@ body {
 <h2 id="元类对象">元类对象</h2>
 <p>元类对象和类对象一样，都是 <code>Class</code> 类型，但元类对象只可以通过 Runtime 的 <code>object_getClass</code> API 传入类对象，获取到元类对象。需要注意的是 <code>[[Computer class] class]</code> 或 <code>[[cpt class] class]</code> 都只能返回类对象。</p>
 <p>对于 <code>object_getClass</code>，如果参数是实例对象，返回类对象；如果参数是类对象，返回元类对象；如果参数是元类对象，返回 NSObject（基类）的元类对象。<code>class_isMetaClass</code> 可以用来检查 <code>Class</code> 是否为元类对象。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">VClass</span> <span class="n">cptMetaVClass</span> <span class="o">=</span> <span class="p">(</span><span class="k">__bridge</span> <span class="n">VClass</span><span class="p">)</span><span class="n">object_getClass</span><span class="p">([</span><span class="n">Computer</span> <span class="k">class</span><span class="p">]);</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">VClass</span> <span class="n">cptMetaVClass</span> <span class="o">=</span> <span class="p">(</span><span class="k">__bridge</span> <span class="n">VClass</span><span class="p">)</span><span class="n">object_getClass</span><span class="p">([</span><span class="n">Computer</span> <span class="k">class</span><span class="p">]);</span>
 <span class="n">class_rw_t</span> <span class="o">*</span><span class="n">rwt</span> <span class="o">=</span> <span class="n">cptMetaVClass</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">();</span>
 
 <span class="c1">// LLDB:
@@ -942,7 +942,7 @@ body {
 <h3 id="isa--superclass">isa &amp; superclass</h3>
 <p><code>isa</code> 将实例对象与类对象、元类对象连接起来；<code>superclass</code> 将子类、父类、基类连接起来。</p>
 <p>当向一个实例发送实例方法的消息时（也可称调用实例方法，但因为 Obj-C 是消息结构的语言，方法调用并不严谨），该实例对象会通过 <code>isa</code> 找到其类对象，因为实例方法存储在类对象中；如果该类的类对象中并没有存储该实例方法，其类对象将使用 <code>superclass</code> 找到其父类的类对象，并在其中查找实例方法；直到在 <code>NSObject</code> 基类的类对象也无法找到时，<code>superclass</code> 将指向 <code>nil</code> 停止查找，抛出异常：<code>unrecognized selector sent to instance</code>（注意，我们这里仅讨论消息传递，暂时忽略消息转发）。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
 <span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">run</span><span class="p">;</span>
 <span class="k">@end</span>
 
@@ -961,7 +961,7 @@ body {
 <span class="c1">// &#39;-[Mac run]: unrecognized selector sent to instance 0x10330f6c0&#39;
 </span><span class="c1"></span><span class="p">[[[</span><span class="n">Mac</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">]</span> <span class="n">run</span><span class="p">];</span>
 </code></pre></div><p>当向一个类（的类对象）发送类方法的消息时，不会经过实例对象；类对象会通过其 <code>isa</code> 指针找到其元类对象，因为类方法存储在元类对象中；如果该类的元类对象中并没有存储该类方法，其元类对象将使用 <code>superclass</code> 找到其父类的元类对象，并在其中查找类方法；直到查找到 <code>NSObject</code> 基类的元类对象还没有该类方法时，<code>NSObject</code> 元类对象的 <code>superclass</code> 将指回 <code>NSObject</code> 类对象中，在其存储的实例方法列表中查找，若此时还没有找到将停止查找，并抛出异常：<code>unrecognized selector sent to instance</code>，因为 <code>NSObject</code> 类对象的 <code>superclass</code> 将指向 <code>nil</code>。</p>
-<div class="highlight"><pre class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">NSObject</span> <span class="nl">(Extension)</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">NSObject</span> <span class="nl">(Extension)</span>
 <span class="k">@end</span>
 
 <span class="k">@implementation</span> <span class="nc">NSObject</span> <span class="nl">(Extension)</span>
