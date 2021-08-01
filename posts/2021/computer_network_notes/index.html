@@ -1605,25 +1605,98 @@ Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src      Dst
 </li>
 <li>序号（Sequence Number）：在传输过程的每一个字节都会有一个编号，在建立连接后，序号代表<strong>该次</strong>传给对方的 TCP 数据部分的<strong>第一个字节的编号</strong>。</li>
 <li>确认号（Acknowledge Number）：建立连接后，期望对方<strong>下一次</strong>传过来的 TCP 数据部分的<strong>第一个字节的编号</strong>。</li>
-<li>窗口（Window）：流量控制，用以告知对方<strong>下一次</strong>允许发送的数据大小（单位：字节）。</li>
+<li>窗口（Window）：<strong>流量控制</strong>，用以告知对方<strong>下一次</strong>允许发送的数据大小（单位：字节）。</li>
 <li>TCP 要点：<strong>可靠传输</strong>、<strong>流量控制</strong>、<strong>拥塞控制</strong>、<strong>连接管理</strong>。</li>
-<li>可靠传输：</li>
 </ul>
+<h4 id="可靠传输">可靠传输</h4>
 <p><img src="/img/2021/computer_network/16.svg" alt="16"></p>
 <ul>
 <li>为了改进 ARQ 的效率，推出了连续 ARQ 协议 + 滑动窗口协议：</li>
 </ul>
 <p><img src="/img/2021/computer_network/21.png" alt="21"></p>
 <ul>
-<li>若重传超出一定的次数或时间，仍未收到来自对端的确认报文，将会发送 RST 报文断开连接。</li>
-<li>若接收窗口最多能接收 4 个包，但发送方只发了 2 个包，接收方将在等待一定时间后返回确认收到 2 个包给发送端。</li>
-<li>SACK（Selective Acknowledge，选择性确认，[RFC-2018](<a href="https://datatracker.ietf.org/doc/html/rfc2018">https://datatracker.ietf.org/doc/html/rfc2018</a>），告知发送方哪些数据丢失，可以针对性重传。</li>
+<li>若重传超出一定的<strong>次数</strong>或<strong>时间</strong>，仍未收到来自对端的确认报文，将会发送 RST 报文断开连接。</li>
+<li>若接收窗口最多能接收 4 个包，但发送方只发了 2 个包，接收方将在<strong>等待一定时间</strong>（即所谓超时重传）后返回确认收到 2 个包给发送端。</li>
+<li>SACK（Selective Acknowledge，选择性确认，<a href="https://datatracker.ietf.org/doc/html/rfc2018">RFC-2018</a>，告知发送方哪些数据丢失，可以针对性重传。</li>
 <li>SACK 信息放在 TCP 首部的选项部分，由于选项部分最多 40 字节，因此 SACK 选项最多携带四组边界信息，最大占用字节数据为 34 字节（<code>4 * 8 + 2</code>）。</li>
 </ul>
 <p><img src="/img/2021/computer_network/22.svg" alt="22"></p>
 <ul>
 <li>TCP 传输层分层的意义：可以提高重传的性能；传输层分段后，一旦出现数据丢失，只需要重传丢失的段即可。</li>
 </ul>
+<h4 id="流量控制">流量控制</h4>
+<ul>
+<li>流量控制：控制发送方的发送速率，以让接收方能够来得及处理。</li>
+<li>原理：通过确认报文中的窗口字段来控制发送方的发送速率，发送方的发送窗口大小不能超过接收方给定的窗口大小，当接收方给定的窗口大小为 0 时，发送方就会停止发送数据。</li>
+</ul>
+<blockquote>
+<p>特殊情况：</p>
+<p>一开始接收方给发送方发送了 0 窗口的报文段（此时发送方将停止发送），后面接收方又有了一些存储空间，但给发送方的非 0 窗口的报文段丢失了，为了避免陷入僵局，发送方在停止后将同时开启一个定时器，隔一段时间就主动发个测试报文去询问接收方的最新窗口大小，如果接收的窗口还是 0，则发送方再次刷新启动定时器。</p>
+</blockquote>
+<p><img src="/img/2021/computer_network/23.png" alt="23"></p>
+<h4 id="拥塞控制">拥塞控制</h4>
+<ul>
+<li>拥塞控制：防止过多的数据注入到网络中，避免网络中的路由器或链路过载。拥塞控制是一个<strong>全局性</strong>的过程，涉及到所有的主机、路由器，以及与降低网络传输性能有关的所有因素，是大家共同努力的结果（相比而言，流量控制是<strong>点对点</strong>通信的控制）。</li>
+</ul>
+<p><img src="/img/2021/computer_network/25.jpeg" alt="25"></p>
+<ul>
+<li>慢开始（Slow start），慢启动
+<ul>
+<li>cwnd 的初始值比较小，随着数据包被接收方确认（即收到 ACK），cwnd 成<strong>指数</strong>增长</li>
+<li>ssthresh（Slow start threshold）：慢开始阈值，cwnd 达到阈值后，以<strong>线性</strong>方式增加</li>
+</ul>
+</li>
+<li>拥塞避免（Congestion avoidance）
+<ul>
+<li>加法增大：cwnd 缓慢增大，防止网络过早拥塞</li>
+<li>乘法减小：只要网络出现拥塞，ssthresh 将减为拥塞峰值的一半，同时执行慢开始算法（cwnd 又恢复到初始值，Tahoe，已弃用）</li>
+</ul>
+</li>
+<li>快重传（Fast retransmit）
+<ul>
+<li>接收方：每收到一个失序的分组后就立即发出重复确认，使发送方及时知道有分组没有到达，而不用等待自己发送数据时才进行确认</li>
+<li>发送方：只要连续收到三个重复确认（带上首个正常确认总共 4 个相同确认），就应当立即重传对方尚未收到的报文段，而不必等待重传计时器到期后的再重传</li>
+</ul>
+</li>
+</ul>
+<p><img src="/img/2021/computer_network/26.svg" alt="26"></p>
+<ul>
+<li>快恢复（Fast recovery）
+<ul>
+<li>不同于在拥塞后慢开始，快恢复将 cwnd 值设置为新的 ssthresh 值，并开始执行加法增大，使 cwnd 缓慢增大（Reno）</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p>常用缩写：</p>
+<p>MSS（Maximum Segment Size）：每个段最大的数据部分大小（在建立连接时确定，如下图），<code>MSS = 数据链路层 MTU(1500) - 网络层首部长度（20）- 传输层首部（20）= 1460</code>
+<img src="/img/2021/computer_network/24.png" alt="24">
+cwnd（Congestion window）：拥塞窗口
+rwnd（Receive window）：接收窗口
+swnd（Send window）：发送窗口（<code>swnd = min(cwnd, rwnd)</code>，当 <code>rwnd &lt; cwnd</code>，<strong>接收方的接收能力</strong>限制了发送窗口最大值，当 <code>cwnd &lt; rwnd</code>，<strong>网络的拥塞</strong>限制了发送窗口的最大值）</p>
+</blockquote>
+<h4 id="连接管理">连接管理</h4>
+<p><img src="/img/2021/computer_network/27.svg" alt="27"></p>
+<ul>
+<li>三次握手：</li>
+</ul>
+<p><img src="/img/2021/computer_network/28.svg" alt="28"></p>
+<ul>
+<li>前两次握手的特点：
+<ul>
+<li><code>SYN</code> 都设置为 <code>1</code></li>
+<li>数据部分长度均为 <code>0</code></li>
+<li>TCP 头部的长度一般都是 <code>32</code> 字节（固定首部 <code>20</code> 字节，选项部分 <code>12</code> 字节）</li>
+<li>交换信息，MSS、是否支持 SACK、Window Scale（窗口缩放系数）等（均放在选 TCP 头部的选项部分（12 字节））</li>
+</ul>
+</li>
+</ul>
+<blockquote class="book-hint info">
+    <p>Q：为什么建立连接需要进行<strong>三次</strong>握手？</p>
+<p>A：主要目的：防止服务端一直等待，浪费资源。</p>
+<!-- 两次握手可能出现的情况： -->
+
+</blockquote>
 <h3 id="reference-5">Reference</h3>
 <ul>
 <li><a href="https://en.wikipedia.org/wiki/OSI_model">OSI model - Wikipedia</a></li>
