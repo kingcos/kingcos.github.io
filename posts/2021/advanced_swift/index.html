@@ -252,7 +252,7 @@ body {
 
 <h2 id="介绍">介绍</h2>
 <ul>
-<li><code>==</code> 有时被称为<strong>结构</strong>相等（需要实现 <code>Equatable</code> 协议），<code>===</code> 有时为<strong>指针</strong>相等或者<strong>引用</strong>相等：</li>
+<li><code>==</code> 为<strong>结构</strong>相等（需要实现 <code>Equatable</code> 协议），<code>===</code> 为<strong>指针</strong>相等或者<strong>引用</strong>相等：</li>
 </ul>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">Foo</span><span class="p">:</span> <span class="nb">Equatable</span> <span class="p">{</span>
     <span class="kd">var</span> <span class="nv">bar</span><span class="p">:</span> <span class="nb">Int</span> <span class="p">=</span> <span class="mi">0</span>
@@ -268,13 +268,20 @@ body {
 <span class="kd">let</span> <span class="nv">falseValue</span> <span class="p">=</span> <span class="p">(</span><span class="n">f1</span> <span class="p">===</span> <span class="n">f2</span><span class="p">)</span> <span class="c1">// false</span>
 <span class="kd">let</span> <span class="nv">trueValue</span>  <span class="p">=</span> <span class="p">(</span><span class="n">f1</span> <span class="p">==</span>  <span class="n">f2</span><span class="p">)</span> <span class="c1">// true</span>
 </code></pre></div><ul>
-<li>Foundation 框架中的 <code>Data</code> <strong>结构体</strong>实际上是对引用类型 <code>NSData</code> 的封装，但保证了当 <code>Data</code> 结构体发生变化时对其中的 <code>NSData</code> 对象进行<strong>深拷贝</strong>：</li>
+<li>Foundation 框架中的 <code>Data</code> <strong>结构体</strong>是对引用类型 <code>NSData</code> 的封装，但保证了当 <code>Data</code> 结构体发生变化时对其中的 <code>NSData</code> 对象进行<strong>深拷贝</strong>：</li>
 </ul>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// Foundation</span>
 
 <span class="p">@</span><span class="n">frozen</span> <span class="kd">public</span> <span class="kd">struct</span> <span class="nc">Data</span> <span class="p">{</span>
     <span class="c1">// ...</span>
 <span class="p">}</span>
+
+<span class="kd">var</span> <span class="nv">d1</span> <span class="p">=</span> <span class="s">&#34;kingcos.me&#34;</span><span class="p">.</span><span class="n">data</span><span class="p">(</span><span class="n">using</span><span class="p">:</span> <span class="p">.</span><span class="n">utf8</span><span class="p">)</span>
+<span class="kd">var</span> <span class="nv">d2</span> <span class="p">=</span> <span class="n">d1</span>
+
+<span class="n">d1</span><span class="p">?.</span><span class="bp">removeAll</span><span class="p">()</span>
+<span class="bp">print</span><span class="p">(</span><span class="n">d1</span><span class="p">!.</span><span class="bp">count</span><span class="p">)</span> <span class="c1">// 0</span>
+<span class="bp">print</span><span class="p">(</span><span class="n">d2</span><span class="p">!.</span><span class="bp">count</span><span class="p">)</span> <span class="c1">// 10</span>
 </code></pre></div><ul>
 <li>数组等集合类型只有当其中的元素满足<strong>值语义</strong>，其本身才具有值语义：</li>
 </ul>
@@ -302,12 +309,18 @@ body {
 
 <span class="n">arr3</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">bar</span> <span class="p">=</span> <span class="mi">100</span> <span class="c1">// arr4[0].bar == 0</span>
 </code></pre></div><ul>
-<li>标记为 <code>final</code> 的类能够保证<strong>不被子类化</strong>，也不会被添加可变状态。</li>
-<li><strong>高阶函数</strong>（High-order function）**：一个接受别的函数作为参数的函数。</li>
+<li><code>final</code> 仅能够标记类以及类中的方法、属性，用以确保其<strong>不被子类化</strong>：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kr">final</span> <span class="kd">class</span> <span class="nc">Foo</span> <span class="p">{</span> <span class="c1">// 不得子类化</span>
+    <span class="kr">final</span> <span class="kd">func</span> <span class="nf">finalFunc</span><span class="p">()</span> <span class="p">{}</span> <span class="c1">// 子类不得重写</span>
+    <span class="kr">final</span> <span class="kd">var</span> <span class="nv">finalVar</span> <span class="p">=</span> <span class="mi">0</span>    <span class="c1">// 子类不得重写</span>
+<span class="p">}</span>
+</code></pre></div><ul>
+<li><strong>高阶函数</strong>（High-order function）：接受别的函数作为参数的函数。</li>
 <li><strong>方法</strong>（Method）：定义在类或者协议中的函数，具有一个隐式参数 <code>self</code>；不是方法的函数有时称作<strong>自由函数</strong>（Free function）。</li>
-<li>对于<strong>静态派发</strong>（Statically dispatched）的调用，编译器可能会实施<strong>内联</strong>优化。</li>
-<li>类和协议上的方法可能是<strong>动态派发</strong>（Dynamically dispatched）的。编译器在编译时不需要知道哪个方法将被调用。在 Swift 这种动态特性要么由 vtable 来完成，要么通过 <code>selector</code> 和 <code>objc_msgSend</code> 来完成，前者的处理方式类似 Java 或 C++，后者则只针对 <code>@objc</code> 修饰的类和协议上的方法。</li>
-<li>与方法重写不同，<strong>函数重载</strong>和<strong>泛型中的方法</strong>在<strong>编译</strong>时刻的即可确定。</li>
+<li>对于<strong>静态派发</strong>（Statically dispatched）的调用，编译器可能会<strong>内联</strong>优化。</li>
+<li>类和协议上的方法可能是<strong>动态派发</strong>（Dynamically dispatched），编译器在编译时不需要知道哪个方法将被调用。在 Swift 中，动态特性由 <a href="https://en.wikipedia.org/wiki/Virtual_method_table">vtable</a>（虚表）或 <code>selector</code> 和 <code>objc_msgSend</code> 来完成，前者的处理方式类似 Java 或 C++，后者则只针对 <code>@objc</code> 修饰的类和协议上的方法。</li>
+<li>函数重载和泛型中的方法在<strong>编译</strong>时确定，方法重写在<strong>运行时</strong>确定。</li>
 </ul>
 <h2 id="内建集合类型">内建集合类型</h2>
 </div>
