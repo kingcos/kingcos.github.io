@@ -592,144 +592,144 @@ body {
 </span><span class="cm">* class_initialize.  Send the &#39;+initialize&#39; message on demand to any
 </span><span class="cm">* uninitialized class. Force initialization of superclasses first.
 </span><span class="cm">* class_initialize。按需发送「+initialize」消息到所有未初始化的类。强制父类最先初始化。
-</span><span class="cm">**********************************************************************/</span>
-<span class="kt">void</span> <span class="nf">_class_initialize</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="c1">// 断言非元类
-</span><span class="c1"></span>    <span class="n">assert</span><span class="p">(</span><span class="o">!</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">isMetaClass</span><span class="p">());</span>
-
-    <span class="kt">Class</span> <span class="n">supercls</span><span class="p">;</span>
-    <span class="kt">bool</span> <span class="n">reallyInitialize</span> <span class="o">=</span> <span class="nb">NO</span><span class="p">;</span>
-
-    <span class="c1">// Make sure super is done initializing BEFORE beginning to initialize cls.
-</span><span class="c1"></span>    <span class="c1">// 在开始初始化 cls 前确保父类已经完成初始化。
-</span><span class="c1"></span>    <span class="c1">// See note about deadlock above.
-</span><span class="c1"></span>    <span class="c1">// 查看上面死锁的备注。
-</span><span class="c1"></span>    <span class="c1">// 取得父类
-</span><span class="c1"></span>    <span class="n">supercls</span> <span class="o">=</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">superclass</span><span class="p">;</span>
-    <span class="c1">// 如果父类存在，且未初始化
-</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">supercls</span>  <span class="o">&amp;&amp;</span>  <span class="o">!</span><span class="n">supercls</span><span class="o">-&gt;</span><span class="n">isInitialized</span><span class="p">())</span> <span class="p">{</span>
-    	 <span class="c1">// 递归初始化父类
-</span><span class="c1"></span>        <span class="n">_class_initialize</span><span class="p">(</span><span class="n">supercls</span><span class="p">);</span>
-    <span class="p">}</span>
-
-    <span class="c1">// Try to atomically set CLS_INITIALIZING.
-</span><span class="c1"></span>    <span class="c1">// 原子化地设置 CLS_INITIALIZING。
-</span><span class="c1"></span>    <span class="p">{</span>
-        <span class="n">monitor_locker_t</span> <span class="n">lock</span><span class="p">(</span><span class="n">classInitLock</span><span class="p">);</span>
-        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">isInitialized</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">isInitializing</span><span class="p">())</span> <span class="p">{</span>
-            <span class="n">cls</span><span class="o">-&gt;</span><span class="n">setInitializing</span><span class="p">();</span>
-            <span class="n">reallyInitialize</span> <span class="o">=</span> <span class="nb">YES</span><span class="p">;</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="n">reallyInitialize</span><span class="p">)</span> <span class="p">{</span>
-        <span class="c1">// We successfully set the CLS_INITIALIZING bit. Initialize the class.
-</span><span class="c1"></span>        <span class="c1">// 成功设置 CLS_INITIALIZING 位。初始化类。
-</span><span class="c1"></span>
-        <span class="c1">// Record that we&#39;re initializing this class so we can message it.
-</span><span class="c1"></span>        <span class="c1">// 记录我们正在初始化该类，以便可以发送这个消息。
-</span><span class="c1"></span>        <span class="n">_setThisThreadIsInitializingClass</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
-
-        <span class="k">if</span> <span class="p">(</span><span class="n">MultithreadedForkChild</span><span class="p">)</span> <span class="p">{</span>
-            <span class="c1">// LOL JK we don&#39;t really call +initialize methods after fork().
-</span><span class="c1"></span>            <span class="n">performForkChildInitialize</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">supercls</span><span class="p">);</span>
-            <span class="k">return</span><span class="p">;</span>
-        <span class="p">}</span>
-
-        <span class="c1">// Send the +initialize message.
-</span><span class="c1"></span>        <span class="c1">// 发送 +initialize 消息。
-</span><span class="c1"></span>        <span class="c1">// Note that +initialize is sent to the superclass (again) if
-</span><span class="c1"></span>        <span class="c1">// this class doesn&#39;t implement +initialize. 2157218
-</span><span class="c1"></span>        <span class="c1">// 如果该类未实现 +initialize，需要注意 +initialize（再次）被发送到了父类
-</span><span class="c1"></span>        <span class="c1">// Xcode 中 OBJC_PRINT_INITIALIZE_METHODS 环境变量值为 YES 时，将可在控制台打印该信息
-</span><span class="c1"></span>        <span class="c1">// OPTION(PrintInitializing, OBJC_PRINT_INITIALIZE_METHODS, &#34;log calls to class +initialize methods&#34;)
-</span><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span><span class="n">PrintInitializing</span><span class="p">)</span> <span class="p">{</span>
-            <span class="n">_objc_inform</span><span class="p">(</span><span class="s">&#34;INITIALIZE: thread %p: calling +[%s initialize]&#34;</span><span class="p">,</span>
-                         <span class="n">pthread_self</span><span class="p">(),</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">nameForLogging</span><span class="p">());</span>
-        <span class="p">}</span>
-
-        <span class="c1">// Exceptions: A +initialize call that throws an exception
-</span><span class="c1"></span>        <span class="c1">// is deemed to be a complete and successful +initialize.
-</span><span class="c1"></span>        <span class="c1">//
-</span><span class="c1"></span>        <span class="c1">// Only __OBJC2__ adds these handlers. !__OBJC2__ has a
-</span><span class="c1"></span>        <span class="c1">// bootstrapping problem of this versus CF&#39;s call to
-</span><span class="c1"></span>        <span class="c1">// objc_exception_set_functions().
-</span><span class="c1"></span><span class="cp">#if __OBJC2__
-</span><span class="cp"></span>        <span class="k">@try</span>
-<span class="cp">#endif
-</span><span class="cp"></span>        <span class="p">{</span>
-            <span class="c1">// ➡️ 调用 +initialize
-</span><span class="c1"></span>            <span class="n">callInitialize</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
-
-            <span class="k">if</span> <span class="p">(</span><span class="n">PrintInitializing</span><span class="p">)</span> <span class="p">{</span>
-                <span class="n">_objc_inform</span><span class="p">(</span><span class="s">&#34;INITIALIZE: thread %p: finished +[%s initialize]&#34;</span><span class="p">,</span>
-                             <span class="n">pthread_self</span><span class="p">(),</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">nameForLogging</span><span class="p">());</span>
-            <span class="p">}</span>
-        <span class="p">}</span>
-<span class="cp">#if __OBJC2__
-</span><span class="cp"></span>        <span class="k">@catch</span> <span class="p">(...)</span> <span class="p">{</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">PrintInitializing</span><span class="p">)</span> <span class="p">{</span>
-                <span class="n">_objc_inform</span><span class="p">(</span><span class="s">&#34;INITIALIZE: thread %p: +[%s initialize] &#34;</span>
-                             <span class="s">&#34;threw an exception&#34;</span><span class="p">,</span>
-                             <span class="n">pthread_self</span><span class="p">(),</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">nameForLogging</span><span class="p">());</span>
-            <span class="p">}</span>
-            <span class="k">@throw</span><span class="p">;</span>
-        <span class="p">}</span>
-        <span class="k">@finally</span>
-<span class="cp">#endif
-</span><span class="cp"></span>        <span class="p">{</span>
-            <span class="c1">// Done initializing.
-</span><span class="c1"></span>            <span class="n">lockAndFinishInitializing</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">supercls</span><span class="p">);</span>
-        <span class="p">}</span>
-        <span class="k">return</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">isInitializing</span><span class="p">())</span> <span class="p">{</span>
-        <span class="c1">// We couldn&#39;t set INITIALIZING because INITIALIZING was already set.
-</span><span class="c1"></span>        <span class="c1">// If this thread set it earlier, continue normally.
-</span><span class="c1"></span>        <span class="c1">// If some other thread set it, block until initialize is done.
-</span><span class="c1"></span>        <span class="c1">// It&#39;s ok if INITIALIZING changes to INITIALIZED while we&#39;re here,
-</span><span class="c1"></span>        <span class="c1">//   because we safely check for INITIALIZED inside the lock
-</span><span class="c1"></span>        <span class="c1">//   before blocking.
-</span><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span><span class="n">_thisThreadIsInitializingClass</span><span class="p">(</span><span class="n">cls</span><span class="p">))</span> <span class="p">{</span>
-            <span class="k">return</span><span class="p">;</span>
-        <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">MultithreadedForkChild</span><span class="p">)</span> <span class="p">{</span>
-            <span class="n">waitForInitializeToComplete</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
-            <span class="k">return</span><span class="p">;</span>
-        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-            <span class="c1">// We&#39;re on the child side of fork(), facing a class that
-</span><span class="c1"></span>            <span class="c1">// was initializing by some other thread when fork() was called.
-</span><span class="c1"></span>            <span class="n">_setThisThreadIsInitializingClass</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
-            <span class="n">performForkChildInitialize</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">supercls</span><span class="p">);</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-
-    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">isInitialized</span><span class="p">())</span> <span class="p">{</span>
-        <span class="c1">// Set CLS_INITIALIZING failed because someone else already
-</span><span class="c1"></span>        <span class="c1">//   initialized the class. Continue normally.
-</span><span class="c1"></span>        <span class="c1">// NOTE this check must come AFTER the ISINITIALIZING case.
-</span><span class="c1"></span>        <span class="c1">// Otherwise: Another thread is initializing this class. ISINITIALIZED
-</span><span class="c1"></span>        <span class="c1">//   is false. Skip this clause. Then the other thread finishes
-</span><span class="c1"></span>        <span class="c1">//   initialization and sets INITIALIZING=no and INITIALIZED=yes.
-</span><span class="c1"></span>        <span class="c1">//   Skip the ISINITIALIZING clause. Die horribly.
-</span><span class="c1"></span>        <span class="k">return</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="k">else</span> <span class="p">{</span>
-        <span class="c1">// We shouldn&#39;t be here.
-</span><span class="c1"></span>        <span class="n">_objc_fatal</span><span class="p">(</span><span class="s">&#34;thread-safe class init in objc runtime is buggy!&#34;</span><span class="p">);</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="c1">// objc-initialize.mm
-</span><span class="c1"></span><span class="kt">void</span> <span class="nf">callInitialize</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="c1">// 💡 向 cls 发送 SEL_initialize 消息
-</span><span class="c1"></span>    <span class="p">((</span><span class="kt">void</span><span class="p">(</span><span class="o">*</span><span class="p">)(</span><span class="kt">Class</span><span class="p">,</span> <span class="kt">SEL</span><span class="p">))</span><span class="n">objc_msgSend</span><span class="p">)(</span><span class="n">cls</span><span class="p">,</span> <span class="n">SEL_initialize</span><span class="p">);</span>
-    <span class="k">asm</span><span class="p">(</span><span class="s">&#34;&#34;</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><p>追根溯源，我们可以看到 +initialize 的本质其实是 objc_msgSend，即消息发送机制，不同于 +load 直接根据 IMP 指针进行调用。这也就解释了在 Demo 中，我们首先尝试向 <code>Student</code> 类发送一个 <code>alloc</code> 消息，运行时会先找到父类 <code>Person</code> 的 +initialize 方法进行调用，而由于父类又存在分类，最后编译的 <code>Person+Work</code> 分类「覆盖」了其它分类和主类中相同的方法而得以调用；随后调用子类自身的 +initialize 方法，而 <code>Student+School</code> 分类「覆盖」了主类中相同的方法而得以调用；而向 <code>Programmer</code> 类手动发送 +load 消息时（当然，一般我们不会这么做），由于该类本身没有实现 +initialize 方法，因此最终通过父类的 <code>Person+Work</code> 分类调用了 +initialize 方法。</p>
+</span><span class="cm">**********************************************************************/
+</span><span class="cm">void _class_initialize(Class cls)
+</span><span class="cm">{
+</span><span class="cm">    // 断言非元类
+</span><span class="cm">    assert(!cls-&gt;isMetaClass());
+</span><span class="cm">
+</span><span class="cm">    Class supercls;
+</span><span class="cm">    bool reallyInitialize = NO;
+</span><span class="cm">
+</span><span class="cm">    // Make sure super is done initializing BEFORE beginning to initialize cls.
+</span><span class="cm">    // 在开始初始化 cls 前确保父类已经完成初始化。
+</span><span class="cm">    // See note about deadlock above.
+</span><span class="cm">    // 查看上面死锁的备注。
+</span><span class="cm">    // 取得父类
+</span><span class="cm">    supercls = cls-&gt;superclass;
+</span><span class="cm">    // 如果父类存在，且未初始化
+</span><span class="cm">    if (supercls  &amp;&amp;  !supercls-&gt;isInitialized()) {
+</span><span class="cm">    	 // 递归初始化父类
+</span><span class="cm">        _class_initialize(supercls);
+</span><span class="cm">    }
+</span><span class="cm">
+</span><span class="cm">    // Try to atomically set CLS_INITIALIZING.
+</span><span class="cm">    // 原子化地设置 CLS_INITIALIZING。
+</span><span class="cm">    {
+</span><span class="cm">        monitor_locker_t lock(classInitLock);
+</span><span class="cm">        if (!cls-&gt;isInitialized() &amp;&amp; !cls-&gt;isInitializing()) {
+</span><span class="cm">            cls-&gt;setInitializing();
+</span><span class="cm">            reallyInitialize = YES;
+</span><span class="cm">        }
+</span><span class="cm">    }
+</span><span class="cm">
+</span><span class="cm">    if (reallyInitialize) {
+</span><span class="cm">        // We successfully set the CLS_INITIALIZING bit. Initialize the class.
+</span><span class="cm">        // 成功设置 CLS_INITIALIZING 位。初始化类。
+</span><span class="cm">
+</span><span class="cm">        // Record that we&#39;re initializing this class so we can message it.
+</span><span class="cm">        // 记录我们正在初始化该类，以便可以发送这个消息。
+</span><span class="cm">        _setThisThreadIsInitializingClass(cls);
+</span><span class="cm">
+</span><span class="cm">        if (MultithreadedForkChild) {
+</span><span class="cm">            // LOL JK we don&#39;t really call +initialize methods after fork().
+</span><span class="cm">            performForkChildInitialize(cls, supercls);
+</span><span class="cm">            return;
+</span><span class="cm">        }
+</span><span class="cm">
+</span><span class="cm">        // Send the +initialize message.
+</span><span class="cm">        // 发送 +initialize 消息。
+</span><span class="cm">        // Note that +initialize is sent to the superclass (again) if
+</span><span class="cm">        // this class doesn&#39;t implement +initialize. 2157218
+</span><span class="cm">        // 如果该类未实现 +initialize，需要注意 +initialize（再次）被发送到了父类
+</span><span class="cm">        // Xcode 中 OBJC_PRINT_INITIALIZE_METHODS 环境变量值为 YES 时，将可在控制台打印该信息
+</span><span class="cm">        // OPTION(PrintInitializing, OBJC_PRINT_INITIALIZE_METHODS, &#34;log calls to class +initialize methods&#34;)
+</span><span class="cm">        if (PrintInitializing) {
+</span><span class="cm">            _objc_inform(&#34;INITIALIZE: thread %p: calling +[%s initialize]&#34;,
+</span><span class="cm">                         pthread_self(), cls-&gt;nameForLogging());
+</span><span class="cm">        }
+</span><span class="cm">
+</span><span class="cm">        // Exceptions: A +initialize call that throws an exception
+</span><span class="cm">        // is deemed to be a complete and successful +initialize.
+</span><span class="cm">        //
+</span><span class="cm">        // Only __OBJC2__ adds these handlers. !__OBJC2__ has a
+</span><span class="cm">        // bootstrapping problem of this versus CF&#39;s call to
+</span><span class="cm">        // objc_exception_set_functions().
+</span><span class="cm">#if __OBJC2__
+</span><span class="cm">        @try
+</span><span class="cm">#endif
+</span><span class="cm">        {
+</span><span class="cm">            // ➡️ 调用 +initialize
+</span><span class="cm">            callInitialize(cls);
+</span><span class="cm">
+</span><span class="cm">            if (PrintInitializing) {
+</span><span class="cm">                _objc_inform(&#34;INITIALIZE: thread %p: finished +[%s initialize]&#34;,
+</span><span class="cm">                             pthread_self(), cls-&gt;nameForLogging());
+</span><span class="cm">            }
+</span><span class="cm">        }
+</span><span class="cm">#if __OBJC2__
+</span><span class="cm">        @catch (...) {
+</span><span class="cm">            if (PrintInitializing) {
+</span><span class="cm">                _objc_inform(&#34;INITIALIZE: thread %p: +[%s initialize] &#34;
+</span><span class="cm">                             &#34;threw an exception&#34;,
+</span><span class="cm">                             pthread_self(), cls-&gt;nameForLogging());
+</span><span class="cm">            }
+</span><span class="cm">            @throw;
+</span><span class="cm">        }
+</span><span class="cm">        @finally
+</span><span class="cm">#endif
+</span><span class="cm">        {
+</span><span class="cm">            // Done initializing.
+</span><span class="cm">            lockAndFinishInitializing(cls, supercls);
+</span><span class="cm">        }
+</span><span class="cm">        return;
+</span><span class="cm">    }
+</span><span class="cm">
+</span><span class="cm">    else if (cls-&gt;isInitializing()) {
+</span><span class="cm">        // We couldn&#39;t set INITIALIZING because INITIALIZING was already set.
+</span><span class="cm">        // If this thread set it earlier, continue normally.
+</span><span class="cm">        // If some other thread set it, block until initialize is done.
+</span><span class="cm">        // It&#39;s ok if INITIALIZING changes to INITIALIZED while we&#39;re here,
+</span><span class="cm">        //   because we safely check for INITIALIZED inside the lock
+</span><span class="cm">        //   before blocking.
+</span><span class="cm">        if (_thisThreadIsInitializingClass(cls)) {
+</span><span class="cm">            return;
+</span><span class="cm">        } else if (!MultithreadedForkChild) {
+</span><span class="cm">            waitForInitializeToComplete(cls);
+</span><span class="cm">            return;
+</span><span class="cm">        } else {
+</span><span class="cm">            // We&#39;re on the child side of fork(), facing a class that
+</span><span class="cm">            // was initializing by some other thread when fork() was called.
+</span><span class="cm">            _setThisThreadIsInitializingClass(cls);
+</span><span class="cm">            performForkChildInitialize(cls, supercls);
+</span><span class="cm">        }
+</span><span class="cm">    }
+</span><span class="cm">
+</span><span class="cm">    else if (cls-&gt;isInitialized()) {
+</span><span class="cm">        // Set CLS_INITIALIZING failed because someone else already
+</span><span class="cm">        //   initialized the class. Continue normally.
+</span><span class="cm">        // NOTE this check must come AFTER the ISINITIALIZING case.
+</span><span class="cm">        // Otherwise: Another thread is initializing this class. ISINITIALIZED
+</span><span class="cm">        //   is false. Skip this clause. Then the other thread finishes
+</span><span class="cm">        //   initialization and sets INITIALIZING=no and INITIALIZED=yes.
+</span><span class="cm">        //   Skip the ISINITIALIZING clause. Die horribly.
+</span><span class="cm">        return;
+</span><span class="cm">    }
+</span><span class="cm">
+</span><span class="cm">    else {
+</span><span class="cm">        // We shouldn&#39;t be here.
+</span><span class="cm">        _objc_fatal(&#34;thread-safe class init in objc runtime is buggy!&#34;);
+</span><span class="cm">    }
+</span><span class="cm">}
+</span><span class="cm">
+</span><span class="cm">// objc-initialize.mm
+</span><span class="cm">void callInitialize(Class cls)
+</span><span class="cm">{
+</span><span class="cm">    // 💡 向 cls 发送 SEL_initialize 消息
+</span><span class="cm">    ((void(*)(Class, SEL))objc_msgSend)(cls, SEL_initialize);
+</span><span class="cm">    asm(&#34;&#34;);
+</span><span class="cm">}
+</span></code></pre></div><p>追根溯源，我们可以看到 +initialize 的本质其实是 objc_msgSend，即消息发送机制，不同于 +load 直接根据 IMP 指针进行调用。这也就解释了在 Demo 中，我们首先尝试向 <code>Student</code> 类发送一个 <code>alloc</code> 消息，运行时会先找到父类 <code>Person</code> 的 +initialize 方法进行调用，而由于父类又存在分类，最后编译的 <code>Person+Work</code> 分类「覆盖」了其它分类和主类中相同的方法而得以调用；随后调用子类自身的 +initialize 方法，而 <code>Student+School</code> 分类「覆盖」了主类中相同的方法而得以调用；而向 <code>Programmer</code> 类手动发送 +load 消息时（当然，一般我们不会这么做），由于该类本身没有实现 +initialize 方法，因此最终通过父类的 <code>Person+Work</code> 分类调用了 +initialize 方法。</p>
 <p><img src="/img/2019/+initialize_in_ios/1.png" alt=""></p>
 <p>如上所述，一个类的 +initialize 方法并不能保证只会被调用一次，所以如果我们不希望多次调用，可以在 +initialize 方法中进行判断 <code>self == [ClassName self]</code>。</p>
 <h2 id="objc_print_initialize_methods">OBJC_PRINT_INITIALIZE_METHODS</h2>
