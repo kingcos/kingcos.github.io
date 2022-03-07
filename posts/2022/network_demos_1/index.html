@@ -8,11 +8,11 @@
 	
 	
 	
-	<title>将树莓派作为 AirPlay 音频服务器 ｜ kingcos</title>
+	<title>计算机网络实例（一）—— 在同一网段与不同网段中传递数据 ｜ kingcos</title>
 	
     
     
-    <meta name="description" content="然而「吃灰派」已经出手了 🤷‍♂️" />
+    <meta name="description" content="重学计算机基础知识" />
     
 
     
@@ -214,115 +214,147 @@ body {
             <div class="post_page">
                 <div class="post animate__animated animate__fadeInDown">
                     <div class="post_title post_detail_title">
-                        <h2><a href='/posts/2018/airplay_on_pi/'>将树莓派作为 AirPlay 音频服务器</a></h2>
-                        <span class="date">2018.07.22</span>
+                        <h2><a href='/posts/2022/network_demos_1/'>计算机网络实例（一）—— 在同一网段与不同网段中传递数据</a></h2>
+                        <span class="date">2022.03.06</span>
                         <span>by kingcos</span>
                         
                         
                         
+                        <div class="post_content markdown">
+                        <blockquote class="book-hint info">
+                            <strong>Preface · 序</strong><br>
+                            重学计算机基础知识。
+                        </blockquote>
+                        </div>
+                        
                         
                     </div>
-                    <div class="post_content markdown"><table>
+                    <div class="post_content markdown">
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>Release Notes</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <table>
 <thead>
 <tr>
-<th style="text-align:center">Raspberry Pi</th>
-<th style="text-align:center">Platform</th>
-<th style="text-align:center">juhovh/shairplay</th>
+<th style="text-align:center">Date</th>
+<th style="text-align:center">Notes</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="text-align:center">3 B</td>
-<td style="text-align:center">Raspbian 4.14</td>
-<td style="text-align:center">765148f98f343b3b9911cc05504ac276cfc44c26</td>
+<td style="text-align:center">2021-03-06</td>
+<td style="text-align:center">首次提交</td>
 </tr>
 </tbody>
 </table>
-<h2 id="info">Info</h2>
-<p>树莓派是个很容易吃灰的设备，配置太低，又弃之可惜。何不作为 AirPlay 来解放你的有线音箱呢？</p>
-<h2 id="solution">Solution</h2>
-<blockquote>
-<p>SSH 或直接在树莓派的终端中运行以下命令，关于 SSH、VNC、替换源等操作请自行搜索。</p>
-</blockquote>
-<h3 id="basic-setup">Basic setup</h3>
-<ul>
-<li>安装依赖</li>
-</ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">sudo apt-get install autoconf automake libtool
-</span></span><span class="line"><span class="cl">sudo apt-get install libltdl-dev libao-dev libavahi-compat-libdnssd-dev
-</span></span><span class="line"><span class="cl">sudo apt-get install avahi-daemon
-</span></span></code></pre></div><ul>
-<li>编译安装</li>
-</ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">cd ~/Desktop
-</span></span><span class="line"><span class="cl">mkdir AirPlay
-</span></span><span class="line"><span class="cl">cd AirPlay
+
+    </div>
+  </label>
+</div>
+
+<p>网络拓扑结构：</p>
+<p><img src="/img/2022/computer_network/1.png" alt=""></p>
+<h2 id="同一网段">同一网段</h2>
+<p>发送方：192.168.1.10（PC4）
+接收方：192.168.1.11（PC5）</p>
+<h3 id="初始状态">初始状态</h3>
+<p>PC4 ARP 缓存：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">C:\&gt;arp -a
+</span></span><span class="line"><span class="cl">No ARP Entries Found
+</span></span></code></pre></div><p>交换机 MAC 地址表：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Switch#show mac-address-table
+</span></span><span class="line"><span class="cl">          Mac Address Table
+</span></span><span class="line"><span class="cl">-------------------------------------------
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">git clone https://github.com/juhovh/shairplay.git
-</span></span><span class="line"><span class="cl">cd shairplay
+</span></span><span class="line"><span class="cl">Vlan    Mac Address       Type        Ports
+</span></span><span class="line"><span class="cl">----    -----------       --------    -----
+</span></span></code></pre></div><h3 id="首次过程">首次过程</h3>
+<ol>
+<li>PC4 ARP 到交换机，交换机记录：</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Vlan    Mac Address       Type        Ports
+</span></span><span class="line"><span class="cl">----    -----------       --------    -----
+</span></span><span class="line"><span class="cl">1       000c.cf77.542b    DYNAMIC     Fa0/1（PC4）
+</span></span></code></pre></div><ol start="2">
+<li>交换机 ARP 到 PC5 &amp; 路由器</li>
+<li>路由器拒收（隔绝广播域）</li>
+<li>PC5 接收并 ARP 到交换机，PC5 记录：</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">C:\&gt;arp -a
+</span></span><span class="line"><span class="cl">  Internet Address      Physical Address      Type
+</span></span><span class="line"><span class="cl">  192.168.1.10          000c.cf77.542b        dynamic（PC4）
+</span></span></code></pre></div><p>交换机记录：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Vlan    Mac Address       Type        Ports
+</span></span><span class="line"><span class="cl">----    -----------       --------    -----
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">./autogen.sh
-</span></span><span class="line"><span class="cl">./configure
-</span></span><span class="line"><span class="cl">make
-</span></span><span class="line"><span class="cl">sudo make install
-</span></span></code></pre></div><ul>
-<li>启动
-<ul>
-<li><code>-a</code> 后的参数 为 AirPlay 的名称，可自定义，eg. <code>HomePod</code></li>
-<li>注意该命令必须在下载源码的路径中运行</li>
-</ul>
-</li>
-</ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">shairplay -a HomePod
-</span></span></code></pre></div><ul>
-<li>至此，即可在同一局域网环境下的 Apple 设备中发现该 AirPlay 音箱，但如果终端窗口关闭，则会终止运行</li>
-</ul>
-<p><img src="/img/2018/AirPlay_on_Pi/1.png" alt="shairplay -a HomePod"></p>
-<h3 id="后台运行">后台运行</h3>
-<ul>
-<li>安装 Supervisor（可参考前文）</li>
-<li>配置
-<ul>
-<li>注意第一个 <code>command</code> 需要切换到 ShairPlay 源代码的路径</li>
-</ul>
-</li>
-</ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="c1">; shareplay.ini</span>
-</span></span><span class="line"><span class="cl"><span class="k">[program:shairplay]</span>
-</span></span><span class="line"><span class="cl"><span class="na">command</span><span class="o">=</span><span class="s">cd /home/pi/Desktop/ShairPlay/shairplay</span>
-</span></span><span class="line"><span class="cl"><span class="na">command</span><span class="o">=</span><span class="s">shairplay -a HomePod</span>
-</span></span><span class="line"><span class="cl"><span class="na">autostart</span><span class="o">=</span><span class="s">true</span>
-</span></span><span class="line"><span class="cl"><span class="na">autorestart</span><span class="o">=</span><span class="s">true</span>
-</span></span><span class="line"><span class="cl"><span class="na">startretries</span><span class="o">=</span><span class="s">5</span>
-</span></span><span class="line"><span class="cl"><span class="na">user</span><span class="o">=</span><span class="s">pi</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">[supervisord]</span>
-</span></span></code></pre></div><ul>
-<li>在 supervisor.conf 中包含上述配置文件即可</li>
-</ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">[include]
-</span></span><span class="line"><span class="cl">files=shairplay.ini
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">[supervisorctl]
-</span></span></code></pre></div><ul>
-<li>运行 Supervisor</li>
-</ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl"># superviord -c ${SUPERVISOR_CONFIG_PATH}
-</span></span><span class="line"><span class="cl">sudo supervisord -c /etc/supervisor/conf.d/supervisord.conf
-</span></span></code></pre></div><ul>
-<li>Enjoy it!</li>
-</ul>
-<p><img src="/img/2018/AirPlay_on_Pi/2.jpg" alt="AirPlay on iPhone"></p>
-<h2 id="reference">Reference</h2>
-<ul>
-<li><a href="https://github.com/juhovh/shairplay">juhovh/shairplay</a></li>
-<li><a href="/posts/2018/supervisor/">Supervisor 的安装与基本使用</a></li>
-</ul>
-<h2 id="extension">Extension</h2>
-<ul>
-<li><a href="https://sspai.com/post/39839">跟着上手树莓派（三）—— 让你的有线音箱从此无拘无束</a></li>
-<li><a href="http://www.moodeaudio.org">moOde audio player</a></li>
-</ul>
+</span></span><span class="line"><span class="cl">1       0009.7cc2.6e23    DYNAMIC     Fa1/1（PC5）
+</span></span><span class="line"><span class="cl">1       000c.cf77.542b    DYNAMIC     Fa0/1（PC4）
+</span></span></code></pre></div><ol start="5">
+<li>交换机 ARP 到 PC4，PC4 记录：</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">C:\&gt;arp -a
+</span></span><span class="line"><span class="cl">  Internet Address      Physical Address      Type
+</span></span><span class="line"><span class="cl">  192.168.1.11          0009.7cc2.6e23        dynamic（PC5）
+</span></span></code></pre></div><ol start="6">
+<li>PC4 ICMP 到交换机</li>
+<li>交换机 ICMP 到 PC5</li>
+<li>PC5 ICMP 到交换机</li>
+<li>交换机 ICMP 到 PC4</li>
+</ol>
+<h3 id="二次过程">二次过程</h3>
+<ol>
+<li>PC4 ICMP 到交换机</li>
+<li>交换机 ICMP 到 PC5</li>
+<li>PC5 ICMP 到交换机</li>
+<li>交换机 ICMP 到 PC4</li>
+</ol>
+<h2 id="不同网段">不同网段</h2>
+<p>发送方：192.168.1.10（PC4）
+接收方：192.168.2.11（PC7）</p>
+<h3 id="初始状态-1">初始状态</h3>
+<p>PC4 ARP 缓存：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">C:\&gt;arp -a
+</span></span><span class="line"><span class="cl">  Internet Address      Physical Address      Type
+</span></span><span class="line"><span class="cl">  192.168.1.11          0009.7cc2.6e23        dynamic（PC5）
+</span></span></code></pre></div><h3 id="首次过程-1">首次过程</h3>
+<ol>
+<li>PC4 ARP 到交换机</li>
+<li>交换机 ARP 到 PC5 &amp; 路由器</li>
+<li>PC5 拒收</li>
+<li>路由器接收并 ARP 到交换机</li>
+<li>交换机 ARP 到 PC4，PC4 记录：</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">C:\&gt;arp -a
+</span></span><span class="line"><span class="cl">  Internet Address      Physical Address      Type
+</span></span><span class="line"><span class="cl">  192.168.1.1           0000.0cb0.0e20        dynamic（路由器）
+</span></span><span class="line"><span class="cl">  192.168.1.11          0009.7cc2.6e23        dynamic（PC5）
+</span></span></code></pre></div><ol start="6">
+<li>PC4 ICMP 到交换机</li>
+<li>交换机 ICMP 到路由器</li>
+<li>路由器 ARP 到 PC6 &amp; PC7</li>
+<li>PC6 拒收</li>
+<li>PC7 接收并 ARP 到交换机，PC7 记录：</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">C:\&gt;arp -a
+</span></span><span class="line"><span class="cl">  Internet Address      Physical Address      Type
+</span></span><span class="line"><span class="cl">  192.168.2.1           0002.4a1c.cc87        dynamic（路由器）
+</span></span></code></pre></div><ol start="11">
+<li>交换机 ARP 到路由器</li>
+<li>路由器 ICMP 到交换机</li>
+<li>交换机 ICMP 到 PC7</li>
+</ol>
+<h3 id="二次过程-1">二次过程</h3>
+<ol>
+<li>PC4 ICMP 到交换机</li>
+<li>交换机 ICMP 到路由器</li>
+<li>路由器 ICMP 到交换机</li>
+<li>交换机 ICMP 到 PC7</li>
+</ol>
 </div>
                     <div class="post_footer">
                         
@@ -331,9 +363,7 @@ body {
                                 <span class="field tags">
                                     <i class="ri-stack-line"></i>
                                     
-                                    <a href="https://kingcos.me/tags/tips/">Tips</a>
-                                    
-                                    <a href="https://kingcos.me/tags/pi/">Pi</a>
+                                    <a href="https://kingcos.me/tags/focus/">Focus</a>
                                     
                                 </span>
                             </div>

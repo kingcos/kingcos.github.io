@@ -260,142 +260,142 @@ body {
 <h2 id="what">What</h2>
 <p>正如 Apple 官方对于 <code>DisguisedPtr&lt;T&gt;</code> 的注释：「acts like pointer type <code>T*</code>（行为类似于指针类型 <code>T*</code>）」，即其本身的作用等同于指针引用对象，而不同之处则在于其<strong>将引用对象的内存地址隐藏</strong>了。我们可以在 Apple 开源的 <a href="https://opensource.apple.com/tarballs/objc4/">objc4-818.2</a> 中找到其具体实现（如下）。</p>
 <p><code>DisguisedPtr&lt;T&gt;</code> 的本质是 C++ 的模版类，其中只含有一个 <code>uintptr_t</code> 类型的成员变量 <code>value</code>，<code>uintptr_t</code> 是无符号整型，64 位下的大小为 8 字节，等同于指针的大小，可以用来存储指针。因此 <code>DisguisedPtr</code> 类型的对象大小其实也是 8 字节。当我们将指针构造为该类型的对象时，将通过 <code>disguise</code> 静态函数首先将指针存储的内存地址本身强制转换为 <code>uintptr_t</code> 无符号整型的十进制数据，并取负达到隐藏的目的。当然，其也提供了 <code>undisguise</code> 静态函数将隐藏的数据转换回内存地址，以及一些操作符便于外界直接使用。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// objc-private.h
-</span><span class="c1"></span>
-<span class="c1">// DisguisedPtr&lt;T&gt; acts like pointer type T*, except the
-</span><span class="c1">// stored value is disguised to hide it from tools like `leaks`.
-</span><span class="c1">// nil is disguised as itself so zero-filled memory works as expected,
-</span><span class="c1">// which means 0x80..00 is also disguised as itself but we don&#39;t care.
-</span><span class="c1">// Note that weak_entry_t knows about this encoding.
-</span><span class="c1">//
-</span><span class="c1">// DisguisedPtr&lt;T&gt; 的行为类似于指针类型 T* 一样，唯一的不同在于存储的值是伪装的，以避免被 leaks 等工具发现。
-</span><span class="c1">// nil 被伪装成了自己，所以零填充的内存可以像预期的那样工作，这意味着 0x80...00 也被伪装成了自己，但我们并不在意。
-</span><span class="c1">// 注意，weak_entry_t 也使用了该编码。
-</span><span class="c1"></span>
-<span class="n">template</span> <span class="o">&lt;</span><span class="kr">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-<span class="k">class</span> <span class="n">DisguisedPtr</span> <span class="p">{</span>
-    <span class="c1">// _uintptr_t.h:
-</span><span class="c1"></span>    <span class="c1">// typedef unsigned long uintptr_t;
-</span><span class="c1"></span>    <span class="c1">// uintptr_t 表示能够存储指针地址的无符号整数类型（不同操作系统可能存在不同）
-</span><span class="c1"></span>    <span class="n">uintptr_t</span> <span class="n">value</span><span class="p">;</span>
-
-    <span class="k">static</span> <span class="n">uintptr_t</span> <span class="nf">disguise</span><span class="p">(</span><span class="n">T</span><span class="o">*</span> <span class="n">ptr</span><span class="p">)</span> <span class="p">{</span>
-        <span class="c1">// 将指针指向的地址转换为 unsigned long，并取负
-</span><span class="c1"></span>        <span class="k">return</span> <span class="o">-</span><span class="p">(</span><span class="n">uintptr_t</span><span class="p">)</span><span class="n">ptr</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="k">static</span> <span class="n">T</span><span class="o">*</span> <span class="nf">undisguise</span><span class="p">(</span><span class="n">uintptr_t</span> <span class="n">val</span><span class="p">)</span> <span class="p">{</span>
-        <span class="c1">// 转换回指针指向的地址
-</span><span class="c1"></span>        <span class="k">return</span> <span class="p">(</span><span class="n">T</span><span class="o">*</span><span class="p">)</span><span class="o">-</span><span class="n">val</span><span class="p">;</span>
-    <span class="p">}</span>
-
- <span class="nl">public</span><span class="p">:</span>
-    <span class="c1">// 无参构造方法
-</span><span class="c1"></span>    <span class="n">DisguisedPtr</span><span class="p">()</span> <span class="p">{</span> <span class="p">}</span>
-    
-    <span class="c1">// 指针构造（value = disguise(ptr)）
-</span><span class="c1"></span>    <span class="n">DisguisedPtr</span><span class="p">(</span><span class="n">T</span><span class="o">*</span> <span class="n">ptr</span><span class="p">)</span>
-        <span class="o">:</span> <span class="n">value</span><span class="p">(</span><span class="n">disguise</span><span class="p">(</span><span class="n">ptr</span><span class="p">))</span> <span class="p">{</span> <span class="p">}</span>
-    
-    <span class="c1">// 使用 DisguisedPtr 类型构造（value = ptr.value）
-</span><span class="c1"></span>    <span class="n">DisguisedPtr</span><span class="p">(</span><span class="k">const</span> <span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">ptr</span><span class="p">)</span>
-        <span class="o">:</span> <span class="n">value</span><span class="p">(</span><span class="n">ptr</span><span class="p">.</span><span class="n">value</span><span class="p">)</span> <span class="p">{</span> <span class="p">}</span>
-
-    <span class="c1">// 实现 = 运算符，右操作数类型为 T*
-</span><span class="c1"></span>    <span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">operator</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span><span class="o">*</span> <span class="n">rhs</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="n">disguise</span><span class="p">(</span><span class="n">rhs</span><span class="p">);</span>
-        <span class="k">return</span> <span class="o">*</span><span class="n">this</span><span class="p">;</span>
-    <span class="p">}</span>
-    
-    <span class="c1">// 实现 = 运算符，右操作数类型为 DisguisedPtr&lt;T&gt;
-</span><span class="c1"></span>    <span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">operator</span> <span class="o">=</span> <span class="p">(</span><span class="k">const</span> <span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">rhs</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="n">rhs</span><span class="p">.</span><span class="n">value</span><span class="p">;</span>
-        <span class="k">return</span> <span class="o">*</span><span class="n">this</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="n">operator</span> <span class="n">T</span><span class="o">*</span> <span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
-        <span class="c1">// Foo *someFoo = disguisedFooPtr;
-</span><span class="c1"></span>        <span class="k">return</span> <span class="n">undisguise</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="n">T</span><span class="o">*</span> <span class="n">operator</span> <span class="o">-&gt;</span> <span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
-        <span class="c1">// disguisedFooPtr-&gt;bar
-</span><span class="c1"></span>        <span class="k">return</span> <span class="n">undisguise</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="n">T</span><span class="o">&amp;</span> <span class="n">operator</span> <span class="o">*</span> <span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
-        <span class="c1">// *disguisedFooPtr
-</span><span class="c1"></span>        <span class="k">return</span> <span class="o">*</span><span class="n">undisguise</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="n">T</span><span class="o">&amp;</span> <span class="n">operator</span> <span class="p">[]</span> <span class="p">(</span><span class="n">size_t</span> <span class="n">i</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
-        <span class="c1">// &amp;disguisedFooPtr[0]
-</span><span class="c1"></span>        <span class="k">return</span> <span class="n">undisguise</span><span class="p">(</span><span class="n">value</span><span class="p">)[</span><span class="n">i</span><span class="p">];</span>
-    <span class="p">}</span>
-
-    <span class="c1">// pointer arithmetic operators omitted
-</span><span class="c1"></span>    <span class="c1">// because we don&#39;t currently use them anywhere
-</span><span class="c1"></span>    <span class="c1">// 省略了指针运算符，因为我们目前没有在任何地方使用它们
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="c1">// fixme type id is weird and not identical to objc_object*
-</span><span class="c1"></span><span class="k">static</span> <span class="kr">inline</span> <span class="kt">bool</span> <span class="n">operator</span> <span class="o">==</span> <span class="p">(</span><span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">objc_object</span><span class="o">&gt;</span> <span class="n">lhs</span><span class="p">,</span> <span class="kt">id</span> <span class="n">rhs</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="n">lhs</span> <span class="o">==</span> <span class="p">(</span><span class="n">objc_object</span> <span class="o">*</span><span class="p">)</span><span class="n">rhs</span><span class="p">;</span>
-<span class="p">}</span>
-<span class="k">static</span> <span class="kr">inline</span> <span class="kt">bool</span> <span class="n">operator</span> <span class="o">!=</span> <span class="p">(</span><span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">objc_object</span><span class="o">&gt;</span> <span class="n">lhs</span><span class="p">,</span> <span class="kt">id</span> <span class="n">rhs</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="n">lhs</span> <span class="o">!=</span> <span class="p">(</span><span class="n">objc_object</span> <span class="o">*</span><span class="p">)</span><span class="n">rhs</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><h2 id="how">How</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="c1">// objc-private.h
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// DisguisedPtr&lt;T&gt; acts like pointer type T*, except the
+</span></span></span><span class="line"><span class="cl"><span class="c1">// stored value is disguised to hide it from tools like `leaks`.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// nil is disguised as itself so zero-filled memory works as expected,
+</span></span></span><span class="line"><span class="cl"><span class="c1">// which means 0x80..00 is also disguised as itself but we don&#39;t care.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Note that weak_entry_t knows about this encoding.
+</span></span></span><span class="line"><span class="cl"><span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1">// DisguisedPtr&lt;T&gt; 的行为类似于指针类型 T* 一样，唯一的不同在于存储的值是伪装的，以避免被 leaks 等工具发现。
+</span></span></span><span class="line"><span class="cl"><span class="c1">// nil 被伪装成了自己，所以零填充的内存可以像预期的那样工作，这意味着 0x80...00 也被伪装成了自己，但我们并不在意。
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 注意，weak_entry_t 也使用了该编码。
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="n">template</span> <span class="o">&lt;</span><span class="kr">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="n">DisguisedPtr</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// _uintptr_t.h:
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// typedef unsigned long uintptr_t;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// uintptr_t 表示能够存储指针地址的无符号整数类型（不同操作系统可能存在不同）
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">uintptr_t</span> <span class="n">value</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">static</span> <span class="n">uintptr_t</span> <span class="nf">disguise</span><span class="p">(</span><span class="n">T</span><span class="o">*</span> <span class="n">ptr</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// 将指针指向的地址转换为 unsigned long，并取负
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">return</span> <span class="o">-</span><span class="p">(</span><span class="n">uintptr_t</span><span class="p">)</span><span class="n">ptr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">static</span> <span class="n">T</span><span class="o">*</span> <span class="nf">undisguise</span><span class="p">(</span><span class="n">uintptr_t</span> <span class="n">val</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// 转换回指针指向的地址
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">return</span> <span class="p">(</span><span class="n">T</span><span class="o">*</span><span class="p">)</span><span class="o">-</span><span class="n">val</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"> <span class="nl">public</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 无参构造方法
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">DisguisedPtr</span><span class="p">()</span> <span class="p">{</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c1">// 指针构造（value = disguise(ptr)）
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">DisguisedPtr</span><span class="p">(</span><span class="n">T</span><span class="o">*</span> <span class="n">ptr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="o">:</span> <span class="n">value</span><span class="p">(</span><span class="n">disguise</span><span class="p">(</span><span class="n">ptr</span><span class="p">))</span> <span class="p">{</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c1">// 使用 DisguisedPtr 类型构造（value = ptr.value）
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">DisguisedPtr</span><span class="p">(</span><span class="k">const</span> <span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">ptr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="o">:</span> <span class="n">value</span><span class="p">(</span><span class="n">ptr</span><span class="p">.</span><span class="n">value</span><span class="p">)</span> <span class="p">{</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// 实现 = 运算符，右操作数类型为 T*
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">operator</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span><span class="o">*</span> <span class="n">rhs</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">value</span> <span class="o">=</span> <span class="n">disguise</span><span class="p">(</span><span class="n">rhs</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="o">*</span><span class="n">this</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c1">// 实现 = 运算符，右操作数类型为 DisguisedPtr&lt;T&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">operator</span> <span class="o">=</span> <span class="p">(</span><span class="k">const</span> <span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&amp;</span> <span class="n">rhs</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">value</span> <span class="o">=</span> <span class="n">rhs</span><span class="p">.</span><span class="n">value</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="o">*</span><span class="n">this</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">operator</span> <span class="n">T</span><span class="o">*</span> <span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// Foo *someFoo = disguisedFooPtr;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">return</span> <span class="n">undisguise</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">T</span><span class="o">*</span> <span class="n">operator</span> <span class="o">-&gt;</span> <span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// disguisedFooPtr-&gt;bar
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">return</span> <span class="n">undisguise</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">T</span><span class="o">&amp;</span> <span class="n">operator</span> <span class="o">*</span> <span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// *disguisedFooPtr
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">return</span> <span class="o">*</span><span class="n">undisguise</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">T</span><span class="o">&amp;</span> <span class="n">operator</span> <span class="p">[]</span> <span class="p">(</span><span class="n">size_t</span> <span class="n">i</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// &amp;disguisedFooPtr[0]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">return</span> <span class="n">undisguise</span><span class="p">(</span><span class="n">value</span><span class="p">)[</span><span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// pointer arithmetic operators omitted
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// because we don&#39;t currently use them anywhere
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// 省略了指针运算符，因为我们目前没有在任何地方使用它们
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// fixme type id is weird and not identical to objc_object*
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="kr">inline</span> <span class="kt">bool</span> <span class="n">operator</span> <span class="o">==</span> <span class="p">(</span><span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">objc_object</span><span class="o">&gt;</span> <span class="n">lhs</span><span class="p">,</span> <span class="kt">id</span> <span class="n">rhs</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">lhs</span> <span class="o">==</span> <span class="p">(</span><span class="n">objc_object</span> <span class="o">*</span><span class="p">)</span><span class="n">rhs</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">static</span> <span class="kr">inline</span> <span class="kt">bool</span> <span class="n">operator</span> <span class="o">!=</span> <span class="p">(</span><span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">objc_object</span><span class="o">&gt;</span> <span class="n">lhs</span><span class="p">,</span> <span class="kt">id</span> <span class="n">rhs</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">lhs</span> <span class="o">!=</span> <span class="p">(</span><span class="n">objc_object</span> <span class="o">*</span><span class="p">)</span><span class="n">rhs</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="how">How</h2>
 <p>在平时的开发中，我们其实不会接触到这一「画蛇添足」的类型，但在 Apple 的许多官方组件中，却常常能见到其身影，大多数时候我们只要认为其等同于指针引用对象即可。下面是其 API 的部分用例，需要注意的是，正如上文提到的 <code>DisguisedPtr&lt;T&gt;</code> 属于 C++ 模版类，因此需要将引入其头文件的实现文件后缀改为 <code>.mm</code>：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// main.mm
-</span><span class="c1"></span>
-<span class="cp">#import &lt;Foundation/Foundation.h&gt;
-</span><span class="cp">#import &#34;objc-private.h&#34;
-</span><span class="cp"></span>
-<span class="k">class</span> <span class="n">Foo</span> <span class="p">{</span>
-<span class="nl">public</span><span class="p">:</span>
-    <span class="kt">int</span> <span class="n">bar</span><span class="p">;</span>
-    <span class="kt">double</span> <span class="n">baz</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
-    <span class="c1">// 创建对象
-</span><span class="c1"></span>    <span class="n">Foo</span> <span class="n">foo</span><span class="p">;</span>
-    <span class="n">foo</span><span class="p">.</span><span class="n">bar</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
-    <span class="n">foo</span><span class="p">.</span><span class="n">baz</span> <span class="o">=</span> <span class="mf">3.14</span><span class="p">;</span>
-    
-    <span class="c1">// 指针 fooPtr 指向 foo（即 fooPtr 存储了 foo 的内存地址）
-</span><span class="c1"></span>    <span class="n">Foo</span> <span class="o">*</span><span class="n">fooPtr</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">foo</span><span class="p">;</span>
-    
-    <span class="c1">// 构造 DisguisedPtr
-</span><span class="c1"></span>    <span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">Foo</span><span class="o">&gt;</span> <span class="n">disguisedFooPtr</span> <span class="o">=</span> <span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">Foo</span><span class="o">&gt;</span><span class="p">(</span><span class="n">fooPtr</span><span class="p">);</span>
-    
-    <span class="n">Foo</span> <span class="o">*</span><span class="n">someFoo</span> <span class="o">=</span> <span class="n">disguisedFooPtr</span><span class="p">;</span> <span class="c1">// =&gt; operator T* ()
-</span><span class="c1"></span>    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%d&#34;</span><span class="p">,</span> <span class="n">someFoo</span><span class="o">-&gt;</span><span class="n">bar</span><span class="p">);</span>     <span class="c1">// 1
-</span><span class="c1"></span>    
-    <span class="n">disguisedFooPtr</span><span class="o">-&gt;</span><span class="n">bar</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>            <span class="c1">// =&gt; T* operator -&gt; ()
-</span><span class="c1"></span>    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%d&#34;</span><span class="p">,</span> <span class="n">disguisedFooPtr</span><span class="o">-&gt;</span><span class="n">bar</span><span class="p">);</span>   <span class="c1">// 10
-</span><span class="c1"></span>    
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%d&#34;</span><span class="p">,</span> <span class="p">(</span><span class="o">*</span><span class="n">disguisedFooPtr</span><span class="p">).</span><span class="n">bar</span><span class="p">);</span> <span class="c1">// 10 =&gt; T&amp; operator * ()
-</span><span class="c1"></span>    
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%p&#34;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">disguisedFooPtr</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>    <span class="c1">// 0x16fdff320 =&gt; T&amp; operator * ()
-</span><span class="c1"></span>    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%p&#34;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">disguisedFooPtr</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>    <span class="c1">// 0x16fdff330 =&gt; T&amp; operator * ()
-</span><span class="c1"></span>    
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// BREAKPOINT 🔴
-</span><span class="c1"></span><span class="p">}</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// 1
-</span><span class="c1">// 10
-</span><span class="c1">// 10
-</span><span class="c1">// 0x16fdff320
-</span><span class="c1">// 0x16fdff330
-</span><span class="c1"></span>
-<span class="c1">// LLDB:
-</span><span class="c1">// (lldb) memory read 0x16fdff320
-</span><span class="c1">// 0x16fdff320: 0a 00 00 00 00 00 00 00 1f 85 eb 51 b8 1e 09 40  ...........Q...@
-</span><span class="c1">// 0x16fdff330: 88 f3 df 6f 01 00 00 00 01 00 00 00 00 00 00 00  ...o............
-</span><span class="c1">// (lldb) memory read 0x16fdff330
-</span><span class="c1">// 0x16fdff330: 88 f3 df 6f 01 00 00 00 01 00 00 00 00 00 00 00  ...o............
-</span><span class="c1">// 0x16fdff340: 60 f3 df 6f 01 00 00 00 50 d4 26 89 01 00 00 00  `..o....P.&amp;.....
-</span></code></pre></div><h2 id="why">Why</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="c1">// main.mm
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
+</span></span></span><span class="line"><span class="cl"><span class="cp">#import &#34;objc-private.h&#34;
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="n">Foo</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="nl">public</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">bar</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">double</span> <span class="n">baz</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 创建对象
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">Foo</span> <span class="n">foo</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">foo</span><span class="p">.</span><span class="n">bar</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">foo</span><span class="p">.</span><span class="n">baz</span> <span class="o">=</span> <span class="mf">3.14</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c1">// 指针 fooPtr 指向 foo（即 fooPtr 存储了 foo 的内存地址）
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">Foo</span> <span class="o">*</span><span class="n">fooPtr</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">foo</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c1">// 构造 DisguisedPtr
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">Foo</span><span class="o">&gt;</span> <span class="n">disguisedFooPtr</span> <span class="o">=</span> <span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">Foo</span><span class="o">&gt;</span><span class="p">(</span><span class="n">fooPtr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="n">Foo</span> <span class="o">*</span><span class="n">someFoo</span> <span class="o">=</span> <span class="n">disguisedFooPtr</span><span class="p">;</span> <span class="c1">// =&gt; operator T* ()
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%d&#34;</span><span class="p">,</span> <span class="n">someFoo</span><span class="o">-&gt;</span><span class="n">bar</span><span class="p">);</span>     <span class="c1">// 1
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    
+</span></span><span class="line"><span class="cl">    <span class="n">disguisedFooPtr</span><span class="o">-&gt;</span><span class="n">bar</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>            <span class="c1">// =&gt; T* operator -&gt; ()
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%d&#34;</span><span class="p">,</span> <span class="n">disguisedFooPtr</span><span class="o">-&gt;</span><span class="n">bar</span><span class="p">);</span>   <span class="c1">// 10
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%d&#34;</span><span class="p">,</span> <span class="p">(</span><span class="o">*</span><span class="n">disguisedFooPtr</span><span class="p">).</span><span class="n">bar</span><span class="p">);</span> <span class="c1">// 10 =&gt; T&amp; operator * ()
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%p&#34;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">disguisedFooPtr</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>    <span class="c1">// 0x16fdff320 =&gt; T&amp; operator * ()
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%p&#34;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">disguisedFooPtr</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>    <span class="c1">// 0x16fdff330 =&gt; T&amp; operator * ()
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// BREAKPOINT 🔴
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 1
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 10
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 10
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 0x16fdff320
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 0x16fdff330
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// LLDB:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (lldb) memory read 0x16fdff320
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 0x16fdff320: 0a 00 00 00 00 00 00 00 1f 85 eb 51 b8 1e 09 40  ...........Q...@
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 0x16fdff330: 88 f3 df 6f 01 00 00 00 01 00 00 00 00 00 00 00  ...o............
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (lldb) memory read 0x16fdff330
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 0x16fdff330: 88 f3 df 6f 01 00 00 00 01 00 00 00 00 00 00 00  ...o............
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 0x16fdff340: 60 f3 df 6f 01 00 00 00 50 d4 26 89 01 00 00 00  `..o....P.&amp;.....
+</span></span></span></code></pre></div><h2 id="why">Why</h2>
 <p>那么为什么 Apple 要如此「画蛇添足」地实现这一类型呢？根据官方注释：「to hide it from tools like <code>leaks</code>（以避免被 <code>leaks</code> 等工具发现）」，由于可参考的信息太少，网络上大部分关于这一点的介绍也仅此而已，本文也仅只是「猜想」。</p>
 <p><code>leaks</code> 是 macOS 自带的一款内存泄漏检测工具，我们可以在命令行 <code>man leaks</code> 以及 Reference 中的参考链接了解更多关于 <code>leaks</code> 的细节。<code>DisguisedPtr&lt;T&gt;</code> 避免了被 <code>leaks</code> 工具的检测，我们猜想这也意味着在使用 <code>leaks</code> 确认问题时，避免了被运行时底层的信息干扰。</p>
 <h2 id="reference">Reference</h2>

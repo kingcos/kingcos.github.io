@@ -240,187 +240,187 @@ body {
 <p>KVC，即 Key-Value Coding，译作键值编码（下文简称 KVC）。当对象兼容 KVC 时，可以通过统一的 API 访问对象中某个键对应的属性值。Cocoa 中的许多功能都依赖 KVC，比如，KVO、Cocoa 绑定机制、Core Data、以及 AppleScript 等。本文将主要探讨 KVC 及其本质相关，关于其它的内容可参考文末的「Reference」。</p>
 <h2 id="basics">Basics</h2>
 <h3 id="how">How</h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
-</span><span class="cp"></span>
-<span class="k">@interface</span> <span class="nc">Speaker</span> : <span class="nc">NSObject</span>
-<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">)</span> <span class="kt">int</span> <span class="n">volume</span><span class="p">;</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Speaker</span>
-<span class="k">@end</span>
-
-<span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
-<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">)</span> <span class="n">NSString</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
-<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">)</span> <span class="n">NSArray</span> <span class="o">*</span><span class="n">speakers</span><span class="p">;</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Computer</span>
-<span class="k">@end</span>
-
-<span class="kt">int</span> <span class="n">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
-    <span class="k">@autoreleasepool</span> <span class="p">{</span>
-        <span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-        <span class="c1">// ➡️ 通过 setter 设置
-</span><span class="c1"></span>        <span class="p">[</span><span class="n">cpt</span> <span class="nl">setName</span><span class="p">:</span><span class="s">@&#34;My Mac 1&#34;</span><span class="p">];</span>
-        <span class="c1">// ➡️ 通过 getter 读取
-</span><span class="c1"></span>        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;name from getter - %@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="n">name</span><span class="p">]);</span>
-        
-        <span class="c1">// ➡️ 通过 setValue:forKey: 设置
-</span><span class="c1"></span>        <span class="p">[</span><span class="n">cpt</span> <span class="nl">setValue</span><span class="p">:</span><span class="s">@&#34;My Mac 2&#34;</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">];</span>
-        <span class="c1">// ➡️ 通过 valueForKey: 读取
-</span><span class="c1"></span>        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;name from KVC - %@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">]);</span>
-        
-        <span class="n">Speaker</span> <span class="o">*</span><span class="n">s1</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-        <span class="n">s1</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
-        <span class="n">Speaker</span> <span class="o">*</span><span class="n">s2</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-        <span class="n">s2</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
-        <span class="n">cpt</span><span class="p">.</span><span class="n">speakers</span> <span class="o">=</span> <span class="l">@[</span><span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="l">]</span><span class="p">;</span>
-        <span class="c1">// ➡️ 通过 setValue:forKeyPath: 设置
-</span><span class="c1"></span>        <span class="p">[</span><span class="n">cpt</span> <span class="nl">setValue</span><span class="p">:</span><span class="mi">@10</span> <span class="nl">forKeyPath</span><span class="p">:</span><span class="s">@&#34;speakers.volume&#34;</span><span class="p">];</span>
-        <span class="c1">// ➡️ 通过 valueForKeyPath: 读取
-</span><span class="c1"></span>        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;speakers.volume - %@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;speakers.volume&#34;</span><span class="p">]);</span>
-        
-        <span class="c1">// ➡️ dictionaryWithValuesForKeys
-</span><span class="c1"></span>        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">dictionaryWithValuesForKeys</span><span class="p">:</span><span class="l">@[</span><span class="s">@&#34;name&#34;</span><span class="p">,</span> <span class="s">@&#34;speakers&#34;</span><span class="l">]</span><span class="p">]);</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// name from getter - My Mac 1
-</span><span class="c1">// name from KVC - My Mac 2
-</span><span class="c1">// speakers.volume - (
-</span><span class="c1">//     10,
-</span><span class="c1">//     10
-</span><span class="c1">// )
-</span><span class="c1">// {
-</span><span class="c1">//     name = &#34;My Mac 2&#34;;
-</span><span class="c1">//     speakers =     (
-</span><span class="c1">//         &#34;&lt;Speaker: 0x100501610&gt;&#34;,
-</span><span class="c1">//         &#34;&lt;Speaker: 0x1005018f0&gt;&#34;
-</span><span class="c1">//     );
-</span><span class="c1">// }
-</span></code></pre></div><p>定义一个 <code>Computer</code> 类，其拥有 <code>name</code> 和 <code>speakers</code> 属性，后者为数组类型，是容纳 <code>Speaker</code> 类型对象的集合。访问对象的属性，最自然的是通过 getter &amp; setter，但 KVC 提供了通过键或键路径统一访问属性的方式。<code>setValue:forKey:</code> 和 <code>valueForKey:</code> 可以通过键来使用，键即是属性的名称，使用 ASCII 编码，不支持空格；<code>setValue:forKeyPath:</code> 和 <code>valueForKeyPath:</code> 是对应的键路径方法，键路径通过 <code>.</code> 连接键，对于多级嵌套的类型提供了便捷的方式。<code>dictionaryWithValuesForKeys:</code> 支持通过多个键（非键路径）的数组返回包含键和对应值的字典。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Speaker</span> : <span class="nc">NSObject</span>
+</span></span><span class="line"><span class="cl"><span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">)</span> <span class="kt">int</span> <span class="n">volume</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Speaker</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+</span></span><span class="line"><span class="cl"><span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">)</span> <span class="n">NSString</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">)</span> <span class="n">NSArray</span> <span class="o">*</span><span class="n">speakers</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">@autoreleasepool</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// ➡️ 通过 setter 设置
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="p">[</span><span class="n">cpt</span> <span class="nl">setName</span><span class="p">:</span><span class="s">@&#34;My Mac 1&#34;</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// ➡️ 通过 getter 读取
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;name from getter - %@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="n">name</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="c1">// ➡️ 通过 setValue:forKey: 设置
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="p">[</span><span class="n">cpt</span> <span class="nl">setValue</span><span class="p">:</span><span class="s">@&#34;My Mac 2&#34;</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// ➡️ 通过 valueForKey: 读取
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;name from KVC - %@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="n">Speaker</span> <span class="o">*</span><span class="n">s1</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">        <span class="n">s1</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Speaker</span> <span class="o">*</span><span class="n">s2</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">        <span class="n">s2</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cpt</span><span class="p">.</span><span class="n">speakers</span> <span class="o">=</span> <span class="l">@[</span><span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="l">]</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// ➡️ 通过 setValue:forKeyPath: 设置
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="p">[</span><span class="n">cpt</span> <span class="nl">setValue</span><span class="p">:</span><span class="mi">@10</span> <span class="nl">forKeyPath</span><span class="p">:</span><span class="s">@&#34;speakers.volume&#34;</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// ➡️ 通过 valueForKeyPath: 读取
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;speakers.volume - %@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;speakers.volume&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="c1">// ➡️ dictionaryWithValuesForKeys
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">dictionaryWithValuesForKeys</span><span class="p">:</span><span class="l">@[</span><span class="s">@&#34;name&#34;</span><span class="p">,</span> <span class="s">@&#34;speakers&#34;</span><span class="l">]</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// name from getter - My Mac 1
+</span></span></span><span class="line"><span class="cl"><span class="c1">// name from KVC - My Mac 2
+</span></span></span><span class="line"><span class="cl"><span class="c1">// speakers.volume - (
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     10,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     10
+</span></span></span><span class="line"><span class="cl"><span class="c1">// )
+</span></span></span><span class="line"><span class="cl"><span class="c1">// {
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     name = &#34;My Mac 2&#34;;
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     speakers =     (
+</span></span></span><span class="line"><span class="cl"><span class="c1">//         &#34;&lt;Speaker: 0x100501610&gt;&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//         &#34;&lt;Speaker: 0x1005018f0&gt;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     );
+</span></span></span><span class="line"><span class="cl"><span class="c1">// }
+</span></span></span></code></pre></div><p>定义一个 <code>Computer</code> 类，其拥有 <code>name</code> 和 <code>speakers</code> 属性，后者为数组类型，是容纳 <code>Speaker</code> 类型对象的集合。访问对象的属性，最自然的是通过 getter &amp; setter，但 KVC 提供了通过键或键路径统一访问属性的方式。<code>setValue:forKey:</code> 和 <code>valueForKey:</code> 可以通过键来使用，键即是属性的名称，使用 ASCII 编码，不支持空格；<code>setValue:forKeyPath:</code> 和 <code>valueForKeyPath:</code> 是对应的键路径方法，键路径通过 <code>.</code> 连接键，对于多级嵌套的类型提供了便捷的方式。<code>dictionaryWithValuesForKeys:</code> 支持通过多个键（非键路径）的数组返回包含键和对应值的字典。</p>
 <h3 id="why">Why</h3>
 <p>KVC 中的方法都定义在 NSObject 的 <code>NSKeyValueCoding</code> 分类（Category）中，所以所有基于 NSObject 类型的对象都是 KVC 兼容的。那么 KVC 是如何根据键或键路径来搜索匹配到属性的呢？</p>
 <h4 id="valueforkey">valueForKey</h4>
 <h5 id="getter">getter</h5>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Computer</span>
-
-<span class="p">-</span> <span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">getName</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="p">-</span> <span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">name</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="p">-</span> <span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">isName</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="p">-</span> <span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">_name</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="k">@end</span>
-
-<span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">]);</span>
-
-<span class="c1">// 依次注释方法代码可得：
-</span><span class="c1">// OUTPUT:
-</span><span class="c1">// -[Computer getName]
-</span><span class="c1">// -[Computer name]
-</span><span class="c1">// -[Computer isName]
-</span><span class="c1">// -[Computer _name]
-</span></code></pre></div><p>当调用 <code>valueForKey</code> 方法时，首先会通过传入的 Key 按顺序寻找调用 <code>get&lt;Key&gt;</code>、<code>&lt;key&gt;</code>、<code>is&lt;Key&gt;</code>、<code>_&lt;key&gt;</code> getter <strong>方法</strong>，当前面的寻找到并返回后，即提前结束匹配，若该四个方法都没有实现，则进入下一阶段集合元素匹配。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">-</span> <span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">getName</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">-</span> <span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">name</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">-</span> <span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">isName</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">-</span> <span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">_name</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 依次注释方法代码可得：
+</span></span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer getName]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer name]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer isName]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer _name]
+</span></span></span></code></pre></div><p>当调用 <code>valueForKey</code> 方法时，首先会通过传入的 Key 按顺序寻找调用 <code>get&lt;Key&gt;</code>、<code>&lt;key&gt;</code>、<code>is&lt;Key&gt;</code>、<code>_&lt;key&gt;</code> getter <strong>方法</strong>，当前面的寻找到并返回后，即提前结束匹配，若该四个方法都没有实现，则进入下一阶段集合元素匹配。</p>
 <h5 id="集合匹配">集合匹配</h5>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
-    <span class="k">@public</span>
-    <span class="n">NSArray</span> <span class="o">*</span><span class="n">_namesArray</span><span class="p">;</span>
-    <span class="n">NSSet</span> <span class="o">*</span><span class="n">_namesSet</span><span class="p">;</span>
-<span class="p">}</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Computer</span>
-
-<span class="c1">// 属性数量
-</span><span class="c1"></span><span class="p">-</span> <span class="p">(</span><span class="n">NSUInteger</span><span class="p">)</span><span class="nf">countOfNamesArray</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">_namesArray</span> <span class="n">count</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="c1">// 数组指定下标的元素（与 namesArrayAtIndexes: 择一实现即可）
-</span><span class="c1"></span><span class="p">-</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">objectInNamesArrayAtIndex:</span><span class="p">(</span><span class="n">NSUInteger</span><span class="p">)</span><span class="nv">index</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">_namesArray</span> <span class="nl">objectAtIndex</span><span class="p">:</span><span class="n">index</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="c1">// 数组下标集合的元素数组
-</span><span class="c1"></span><span class="p">-</span> <span class="p">(</span><span class="n">NSArray</span> <span class="o">*</span><span class="p">)</span><span class="nf">namesArrayAtIndexes:</span><span class="p">(</span><span class="n">NSIndexSet</span> <span class="o">*</span><span class="p">)</span><span class="nv">indexes</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">_namesArray</span> <span class="nl">objectsAtIndexes</span><span class="p">:</span><span class="n">indexes</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="c1">//- (void)getNamesArray:(NSString *)namesArray range:(NSRange)range {
-</span><span class="c1">//    NSLog(@&#34;%@&#34;, [NSString stringWithFormat:@&#34;%s&#34;, __func__]);
-</span><span class="c1">//}
-</span><span class="c1"></span>
-<span class="c1">// ---
-</span><span class="c1"></span>
-<span class="c1">// 属性数量
-</span><span class="c1"></span><span class="p">-</span> <span class="p">(</span><span class="n">NSUInteger</span><span class="p">)</span><span class="nf">countOfNamesSet</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">_namesSet</span> <span class="n">count</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="c1">// 集合枚举
-</span><span class="c1"></span><span class="p">-</span> <span class="p">(</span><span class="n">NSEnumerator</span> <span class="o">*</span><span class="p">)</span><span class="nf">enumeratorOfNamesSet</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">_namesSet</span> <span class="n">objectEnumerator</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="c1">// 集合成员
-</span><span class="c1"></span><span class="p">-</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">memberOfNamesSet:</span><span class="p">(</span><span class="n">NSSet</span> <span class="o">*</span><span class="p">)</span><span class="nv">namesSet</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">_namesSet</span> <span class="nl">member</span><span class="p">:</span><span class="n">namesSet</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="k">@end</span>
-
-<span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_namesArray</span> <span class="o">=</span> <span class="l">@[</span><span class="s">@&#34;a&#34;</span><span class="p">,</span> <span class="s">@&#34;b&#34;</span><span class="p">,</span> <span class="s">@&#34;c&#34;</span><span class="l">]</span><span class="p">;</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;namesArray&#34;</span><span class="p">]);</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// -[Computer countOfNamesArray]
-</span><span class="c1">// -[Computer countOfNamesArray]
-</span><span class="c1">// -[Computer objectInNamesArrayAtIndex:] or -[Computer namesArrayAtIndexes:]
-</span><span class="c1">// -[Computer objectInNamesArrayAtIndex:] or -[Computer namesArrayAtIndexes:]
-</span><span class="c1">// -[Computer objectInNamesArrayAtIndex:] or -[Computer namesArrayAtIndexes:]
-</span><span class="c1">// (
-</span><span class="c1">//     a,
-</span><span class="c1">//     b,
-</span><span class="c1">//     c
-</span><span class="c1">// )
-</span><span class="c1"></span>
-<span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_namesSet</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSSet</span> <span class="nl">setWithArray</span><span class="p">:</span><span class="l">@[</span><span class="s">@&#34;a&#34;</span><span class="p">,</span> <span class="s">@&#34;b&#34;</span><span class="p">,</span> <span class="s">@&#34;c&#34;</span><span class="l">]</span><span class="p">];</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;namesSet&#34;</span><span class="p">]);</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// -[Computer countOfNamesSet]
-</span><span class="c1">// -[Computer countOfNamesSet]
-</span><span class="c1">// -[Computer enumeratorOfNamesSet]
-</span><span class="c1">// {(
-</span><span class="c1">//     a,
-</span><span class="c1">//     b,
-</span><span class="c1">//     c
-</span><span class="c1">// )}
-</span></code></pre></div><p>集合匹配主要是利用集合（Collection）类型的一些方法进行匹配：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">@public</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSArray</span> <span class="o">*</span><span class="n">_namesArray</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSSet</span> <span class="o">*</span><span class="n">_namesSet</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 属性数量
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">-</span> <span class="p">(</span><span class="n">NSUInteger</span><span class="p">)</span><span class="nf">countOfNamesArray</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="n">_namesArray</span> <span class="n">count</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 数组指定下标的元素（与 namesArrayAtIndexes: 择一实现即可）
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">-</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">objectInNamesArrayAtIndex:</span><span class="p">(</span><span class="n">NSUInteger</span><span class="p">)</span><span class="nv">index</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="n">_namesArray</span> <span class="nl">objectAtIndex</span><span class="p">:</span><span class="n">index</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 数组下标集合的元素数组
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">-</span> <span class="p">(</span><span class="n">NSArray</span> <span class="o">*</span><span class="p">)</span><span class="nf">namesArrayAtIndexes:</span><span class="p">(</span><span class="n">NSIndexSet</span> <span class="o">*</span><span class="p">)</span><span class="nv">indexes</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="n">_namesArray</span> <span class="nl">objectsAtIndexes</span><span class="p">:</span><span class="n">indexes</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">//- (void)getNamesArray:(NSString *)namesArray range:(NSRange)range {
+</span></span></span><span class="line"><span class="cl"><span class="c1">//    NSLog(@&#34;%@&#34;, [NSString stringWithFormat:@&#34;%s&#34;, __func__]);
+</span></span></span><span class="line"><span class="cl"><span class="c1">//}
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// ---
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 属性数量
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">-</span> <span class="p">(</span><span class="n">NSUInteger</span><span class="p">)</span><span class="nf">countOfNamesSet</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="n">_namesSet</span> <span class="n">count</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 集合枚举
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">-</span> <span class="p">(</span><span class="n">NSEnumerator</span> <span class="o">*</span><span class="p">)</span><span class="nf">enumeratorOfNamesSet</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="n">_namesSet</span> <span class="n">objectEnumerator</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 集合成员
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">-</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">memberOfNamesSet:</span><span class="p">(</span><span class="n">NSSet</span> <span class="o">*</span><span class="p">)</span><span class="nv">namesSet</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="n">_namesSet</span> <span class="nl">member</span><span class="p">:</span><span class="n">namesSet</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_namesArray</span> <span class="o">=</span> <span class="l">@[</span><span class="s">@&#34;a&#34;</span><span class="p">,</span> <span class="s">@&#34;b&#34;</span><span class="p">,</span> <span class="s">@&#34;c&#34;</span><span class="l">]</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;namesArray&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer countOfNamesArray]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer countOfNamesArray]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer objectInNamesArrayAtIndex:] or -[Computer namesArrayAtIndexes:]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer objectInNamesArrayAtIndex:] or -[Computer namesArrayAtIndexes:]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer objectInNamesArrayAtIndex:] or -[Computer namesArrayAtIndexes:]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     a,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     b,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     c
+</span></span></span><span class="line"><span class="cl"><span class="c1">// )
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_namesSet</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSSet</span> <span class="nl">setWithArray</span><span class="p">:</span><span class="l">@[</span><span class="s">@&#34;a&#34;</span><span class="p">,</span> <span class="s">@&#34;b&#34;</span><span class="p">,</span> <span class="s">@&#34;c&#34;</span><span class="l">]</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;namesSet&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer countOfNamesSet]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer countOfNamesSet]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer enumeratorOfNamesSet]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// {(
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     a,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     b,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     c
+</span></span></span><span class="line"><span class="cl"><span class="c1">// )}
+</span></span></span></code></pre></div><p>集合匹配主要是利用集合（Collection）类型的一些方法进行匹配：</p>
 <ol>
 <li>首先如果 <code>countOf&lt;Key&gt;</code> 方法（其内部本质为 NSArray 或 NSSet 的 <code>count</code>）已经被实现，跳入第 2 步，如果未被实现，则直接跳入成员变量匹配；</li>
 <li>若 <code>objectIn&lt;Key&gt;AtIndex:</code>（其内部本质为 NSArray 的 <code>objectAtIndex:</code>）或 <code>&lt;key&gt;AtIndexes:</code>（其内部本质为 NSArray 的 <code>objectsAtIndexes:</code>）两个方法中至少有一个被实现，首先会调用（两次）<code>countOf&lt;Key&gt;</code> 方法；之后会调用两者中被实现的方法，如果均被实现时，只会调用一次前者，并结束匹配；若该两个方法均未实现，跳入第 3 步；</li>
@@ -434,275 +434,275 @@ body {
 <p>官方文档中提到在上述第 2 步中，如果对象实现了 <code>get&lt;Key&gt;:range:</code> 方法，代理对象也会在合适的时机调用该方法以达到更好的性能。但我在尝试中，在 <code>objectIn&lt;Key&gt;AtIndex:</code> 或 <code>&lt;key&gt;AtIndexes:</code> 中有被实现的方法时，即会在 <code>countOf&lt;Key&gt;</code> 方法被调用后，调用 <code>get&lt;Key&gt;:range:</code> 方法，但会发生崩溃：「Thread 1: EXC_BAD_ACCESS」。具体的原因尚未查明，欢迎大家指教。</p>
 </blockquote>
 <h4 id="成员变量匹配">成员变量匹配</h4>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
-    <span class="k">@public</span>
-    <span class="n">NSString</span> <span class="o">*</span><span class="n">_name</span><span class="p">;</span>
-    <span class="n">NSString</span> <span class="o">*</span><span class="n">_isName</span><span class="p">;</span>
-    <span class="n">NSString</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
-    <span class="n">NSString</span> <span class="o">*</span><span class="n">isName</span><span class="p">;</span>
-<span class="p">}</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Computer</span>
-<span class="k">@end</span>
-
-<span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-
-<span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_name</span> <span class="o">=</span> <span class="s">@&#34;a&#34;</span><span class="p">;</span>
-<span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_isName</span> <span class="o">=</span> <span class="s">@&#34;b&#34;</span><span class="p">;</span>
-<span class="n">cpt</span><span class="o">-&gt;</span><span class="n">name</span> <span class="o">=</span> <span class="s">@&#34;c&#34;</span><span class="p">;</span>
-<span class="n">cpt</span><span class="o">-&gt;</span><span class="n">isName</span> <span class="o">=</span> <span class="s">@&#34;d&#34;</span><span class="p">;</span>
-
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">]);</span>
-
-<span class="c1">// 依次注释方法和成员变量代码可得：
-</span><span class="c1">// OUTPUT:
-</span><span class="c1">// a
-</span><span class="c1">// b
-</span><span class="c1">// c
-</span><span class="c1">// d
-</span></code></pre></div><p>在成员变量匹配阶段首先判断 <code>accessInstanceVariablesDirectly</code> 方法的返回，即是否允许直接访问成员变量，默认返回 <code>YES</code>；当为 <code>YES</code> 时，将按顺序尝试直接访问 <code>_&lt;key&gt;</code>、<code>_is&lt;Key&gt;</code>、<code>&lt;key&gt;</code>、<code>is&lt;Key&gt;</code> 成员变量。当为 <code>NO</code> 或没有匹配到相应的成员变量时，将调用 <code>valueForUndefinedKey:</code> 方法，该方法默认实现为抛出「NSUnknownKeyException」异常，但子类可以重写该方法以提供更灵活的行为。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Computer</span>
-
-<span class="p">-</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">valueForUndefinedKey:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">key</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="k">if</span> <span class="p">([</span><span class="n">key</span> <span class="nl">isEqualToString</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">])</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
-    <span class="p">}</span>
-    
-    <span class="k">return</span> <span class="p">[</span><span class="nb">super</span> <span class="nl">valueForUndefinedKey</span><span class="p">:</span><span class="n">key</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="k">@end</span>
-
-<span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">]);</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// -[Computer valueForUndefinedKey:]
-</span><span class="c1">// (null)
-</span></code></pre></div><h5 id="总结">总结</h5>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">@public</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSString</span> <span class="o">*</span><span class="n">_name</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSString</span> <span class="o">*</span><span class="n">_isName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSString</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSString</span> <span class="o">*</span><span class="n">isName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_name</span> <span class="o">=</span> <span class="s">@&#34;a&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_isName</span> <span class="o">=</span> <span class="s">@&#34;b&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">cpt</span><span class="o">-&gt;</span><span class="n">name</span> <span class="o">=</span> <span class="s">@&#34;c&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">cpt</span><span class="o">-&gt;</span><span class="n">isName</span> <span class="o">=</span> <span class="s">@&#34;d&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 依次注释方法和成员变量代码可得：
+</span></span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// a
+</span></span></span><span class="line"><span class="cl"><span class="c1">// b
+</span></span></span><span class="line"><span class="cl"><span class="c1">// c
+</span></span></span><span class="line"><span class="cl"><span class="c1">// d
+</span></span></span></code></pre></div><p>在成员变量匹配阶段首先判断 <code>accessInstanceVariablesDirectly</code> 方法的返回，即是否允许直接访问成员变量，默认返回 <code>YES</code>；当为 <code>YES</code> 时，将按顺序尝试直接访问 <code>_&lt;key&gt;</code>、<code>_is&lt;Key&gt;</code>、<code>&lt;key&gt;</code>、<code>is&lt;Key&gt;</code> 成员变量。当为 <code>NO</code> 或没有匹配到相应的成员变量时，将调用 <code>valueForUndefinedKey:</code> 方法，该方法默认实现为抛出「NSUnknownKeyException」异常，但子类可以重写该方法以提供更灵活的行为。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">-</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">valueForUndefinedKey:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">key</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">([</span><span class="n">key</span> <span class="nl">isEqualToString</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="nb">super</span> <span class="nl">valueForUndefinedKey</span><span class="p">:</span><span class="n">key</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer valueForUndefinedKey:]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (null)
+</span></span></span></code></pre></div><h5 id="总结">总结</h5>
 <p>KVC <code>valueForKey:</code> 方法的调用确实深究起来比较复杂，画成图表更容易理解些：</p>
 <p><img src="/img/2019/kvc_in_ios/1.png" alt=""></p>
 <h4 id="setvalueforkey">setValue:forKey:</h4>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Computer</span>
-
-<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">setName:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">name</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="n">_name</span> <span class="o">=</span> <span class="n">name</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">_setName:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">name</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="n">_name</span> <span class="o">=</span> <span class="n">name</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="k">@end</span>
-
-<span class="c1">// 依次注释方法代码可得：
-</span><span class="c1">// OUTPUT:
-</span><span class="c1">// -[Computer setName:] or -[Computer _setName:]
-</span><span class="c1">// a
-</span></code></pre></div><p>当调用 <code>setValue:forKey:</code> 方法时，会通过传入的 Key 按顺序寻找调用 <code>set&lt;Key&gt;</code>、<code>_set&lt;Key&gt;</code> 方法，当前面的寻找到并设置后，即提前返回。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
-    <span class="k">@public</span>
-    <span class="n">NSString</span> <span class="o">*</span><span class="n">_name</span><span class="p">;</span>
-    <span class="n">NSString</span> <span class="o">*</span><span class="n">_isName</span><span class="p">;</span>
-    <span class="n">NSString</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
-    <span class="n">NSString</span> <span class="o">*</span><span class="n">isName</span><span class="p">;</span>
-<span class="p">}</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Computer</span>
-
-<span class="k">@end</span>
-
-<span class="c1">// 依次注释成员变量代码可得：
-</span><span class="c1">// OUTPUT:
-</span><span class="c1">// a
-</span><span class="c1">// a
-</span><span class="c1">// a
-</span><span class="c1">// a
-</span></code></pre></div><p>若这两个方法都没有实现，则会判断 <code>accessInstanceVariablesDirectly</code> 方法的返回，即是否允许直接访问成员变量，默认返回 YES；当为 YES 时，将按顺序尝试直接通过 <code>_&lt;key&gt;</code>、<code>_is&lt;Key&gt;</code>、<code>&lt;key&gt;</code>、<code>is&lt;Key&gt;</code> 成员变量设置值。当为 NO 或没有匹配到相应的成员变量时，将调用 <code>setValue:forUndefinedKey:</code> 方法，该方法默认实现为抛出「NSUnknownKeyException」异常，但子类可以重写该方法以提供更灵活的行为。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Computer</span>
-
-<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">setValue:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">value</span> <span class="nf">forUndefinedKey:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">key</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="k">if</span> <span class="p">([</span><span class="n">key</span> <span class="nl">isEqualToString</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">])</span> <span class="p">{</span>
-        <span class="k">return</span><span class="p">;</span>
-    <span class="p">}</span>
-    
-    <span class="k">return</span> <span class="p">[</span><span class="nb">super</span> <span class="nl">setValue</span><span class="p">:</span><span class="n">value</span> <span class="nl">forUndefinedKey</span><span class="p">:</span><span class="n">key</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="k">@end</span>
-
-<span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="p">[</span><span class="n">cpt</span> <span class="nl">setValue</span><span class="p">:</span><span class="s">@&#34;a&#34;</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">];</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">]);</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// -[Computer setValue:forUndefinedKey:]
-</span><span class="c1">// -[Computer valueForUndefinedKey:]
-</span><span class="c1">// (null)
-</span></code></pre></div><h2 id="mutablevalueforkey">mutableValueForKey</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">setName:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">name</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">_name</span> <span class="o">=</span> <span class="n">name</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">_setName:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">name</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">_name</span> <span class="o">=</span> <span class="n">name</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 依次注释方法代码可得：
+</span></span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer setName:] or -[Computer _setName:]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// a
+</span></span></span></code></pre></div><p>当调用 <code>setValue:forKey:</code> 方法时，会通过传入的 Key 按顺序寻找调用 <code>set&lt;Key&gt;</code>、<code>_set&lt;Key&gt;</code> 方法，当前面的寻找到并设置后，即提前返回。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">@public</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSString</span> <span class="o">*</span><span class="n">_name</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSString</span> <span class="o">*</span><span class="n">_isName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSString</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSString</span> <span class="o">*</span><span class="n">isName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 依次注释成员变量代码可得：
+</span></span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// a
+</span></span></span><span class="line"><span class="cl"><span class="c1">// a
+</span></span></span><span class="line"><span class="cl"><span class="c1">// a
+</span></span></span><span class="line"><span class="cl"><span class="c1">// a
+</span></span></span></code></pre></div><p>若这两个方法都没有实现，则会判断 <code>accessInstanceVariablesDirectly</code> 方法的返回，即是否允许直接访问成员变量，默认返回 YES；当为 YES 时，将按顺序尝试直接通过 <code>_&lt;key&gt;</code>、<code>_is&lt;Key&gt;</code>、<code>&lt;key&gt;</code>、<code>is&lt;Key&gt;</code> 成员变量设置值。当为 NO 或没有匹配到相应的成员变量时，将调用 <code>setValue:forUndefinedKey:</code> 方法，该方法默认实现为抛出「NSUnknownKeyException」异常，但子类可以重写该方法以提供更灵活的行为。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">setValue:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">value</span> <span class="nf">forUndefinedKey:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">key</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">([</span><span class="n">key</span> <span class="nl">isEqualToString</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="nb">super</span> <span class="nl">setValue</span><span class="p">:</span><span class="n">value</span> <span class="nl">forUndefinedKey</span><span class="p">:</span><span class="n">key</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">[</span><span class="n">cpt</span> <span class="nl">setValue</span><span class="p">:</span><span class="s">@&#34;a&#34;</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer setValue:forUndefinedKey:]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer valueForUndefinedKey:]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (null)
+</span></span></span></code></pre></div><h2 id="mutablevalueforkey">mutableValueForKey</h2>
 <h3 id="how-1">How</h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-
-<span class="n">Speaker</span> <span class="o">*</span><span class="n">s1</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">s1</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@1</span><span class="p">;</span>
-<span class="n">Speaker</span> <span class="o">*</span><span class="n">s2</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">s1</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@2</span><span class="p">;</span>
-
-<span class="n">cpt</span><span class="p">.</span><span class="n">speakers</span> <span class="o">=</span> <span class="l">@[</span><span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="l">]</span><span class="p">;</span>
-
-<span class="n">NSMutableArray</span> <span class="o">*</span><span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">mutableArrayValueForKeyPath</span><span class="p">:</span><span class="s">@&#34;speakers&#34;</span><span class="p">];</span>
-
-<span class="n">Speaker</span> <span class="o">*</span><span class="n">s3</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">s3</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@20</span><span class="p">;</span>
-
-<span class="p">[</span><span class="n">arr</span> <span class="nl">addObject</span><span class="p">:</span><span class="n">s3</span><span class="p">];</span>
-
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">mutableArrayValueForKey</span><span class="p">:</span><span class="s">@&#34;speakers&#34;</span><span class="p">]);</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// (
-</span><span class="c1">//     &#34;&lt;Speaker: 0x100505220&gt;&#34;,
-</span><span class="c1">//     &#34;&lt;Speaker: 0x1005021a0&gt;&#34;,
-</span><span class="c1">//     &#34;&lt;Speaker: 0x100502180&gt;&#34;
-</span><span class="c1">// )
-</span></code></pre></div><p>对于对象中的集合类型 <code>NSArray</code>、<code>NSSet</code>、<code>NSOrderedSet</code>，KVC 提供了比 <code>setValue:forKey:</code> 和 <code>valueForKey:</code> 更便捷高效的 <code>mutableArrayValueForKey:</code>、<code>mutableSetValueForKey</code>、<code>mutableOrderedSetValueForKey:</code> 以及对应的 <code>KeyPath</code> 方法。它们都会返回一个可变（Mutable）类型的代理对象，在该代理对象上的操作将影响真实的属性值。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Speaker</span> <span class="o">*</span><span class="n">s1</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">s1</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">Speaker</span> <span class="o">*</span><span class="n">s2</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">s1</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">cpt</span><span class="p">.</span><span class="n">speakers</span> <span class="o">=</span> <span class="l">@[</span><span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="l">]</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NSMutableArray</span> <span class="o">*</span><span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">mutableArrayValueForKeyPath</span><span class="p">:</span><span class="s">@&#34;speakers&#34;</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Speaker</span> <span class="o">*</span><span class="n">s3</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">s3</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@20</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">[</span><span class="n">arr</span> <span class="nl">addObject</span><span class="p">:</span><span class="n">s3</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">mutableArrayValueForKey</span><span class="p">:</span><span class="s">@&#34;speakers&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;Speaker: 0x100505220&gt;&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;Speaker: 0x1005021a0&gt;&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;Speaker: 0x100502180&gt;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="c1">// )
+</span></span></span></code></pre></div><p>对于对象中的集合类型 <code>NSArray</code>、<code>NSSet</code>、<code>NSOrderedSet</code>，KVC 提供了比 <code>setValue:forKey:</code> 和 <code>valueForKey:</code> 更便捷高效的 <code>mutableArrayValueForKey:</code>、<code>mutableSetValueForKey</code>、<code>mutableOrderedSetValueForKey:</code> 以及对应的 <code>KeyPath</code> 方法。它们都会返回一个可变（Mutable）类型的代理对象，在该代理对象上的操作将影响真实的属性值。</p>
 <h3 id="why-1">Why</h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
-	<span class="k">@public</span>
-	<span class="n">NSMutableArray</span> <span class="o">*</span><span class="n">_speakers</span><span class="p">;</span>
-<span class="p">}</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Computer</span>
-<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">insertObject:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">value</span> <span class="nf">inSpeakersAtIndex:</span><span class="p">(</span><span class="n">NSUInteger</span><span class="p">)</span><span class="nv">index</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="p">[</span><span class="n">_speakers</span> <span class="nl">insertObject</span><span class="p">:</span><span class="n">value</span> <span class="nl">atIndex</span><span class="p">:</span><span class="n">index</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">removeObjectFromSpeakersAtIndex:</span><span class="p">(</span><span class="n">NSUInteger</span><span class="p">)</span><span class="nv">index</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="p">[</span><span class="n">_speakers</span> <span class="nl">removeObjectAtIndex</span><span class="p">:</span><span class="n">index</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">insertSpeakers:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">object</span> <span class="nf">atIndexes:</span><span class="p">(</span><span class="n">NSIndexSet</span> <span class="o">*</span><span class="p">)</span><span class="nv">indexes</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="p">[</span><span class="n">_speakers</span> <span class="nl">insertObjects</span><span class="p">:</span><span class="l">@[</span><span class="n">object</span><span class="l">]</span> <span class="nl">atIndexes</span><span class="p">:</span><span class="n">indexes</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">removeSpeakersAtIndexes:</span><span class="p">(</span><span class="n">NSIndexSet</span> <span class="o">*</span><span class="p">)</span><span class="nv">indexes</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="p">[</span><span class="n">_speakers</span> <span class="nl">removeObjectsAtIndexes</span><span class="p">:</span><span class="n">indexes</span><span class="p">];</span>
-<span class="p">}</span>
-<span class="k">@end</span>
-
-<span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-
-<span class="n">Speaker</span> <span class="o">*</span><span class="n">s1</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">s1</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@1</span><span class="p">;</span>
-<span class="n">Speaker</span> <span class="o">*</span><span class="n">s2</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">s1</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@2</span><span class="p">;</span>
-
-<span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_speakers</span> <span class="o">=</span> <span class="p">[</span><span class="l">@[</span><span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="l">]</span> <span class="n">mutableCopy</span><span class="p">];</span>
-
-<span class="n">NSMutableArray</span> <span class="o">*</span><span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">mutableArrayValueForKey</span><span class="p">:</span><span class="s">@&#34;speakers&#34;</span><span class="p">];</span>
-
-<span class="n">Speaker</span> <span class="o">*</span><span class="n">s3</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">s3</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@20</span><span class="p">;</span>
-
-<span class="n">Speaker</span> <span class="o">*</span><span class="n">s4</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">s4</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@30</span><span class="p">;</span>
-
-<span class="p">[</span><span class="n">arr</span> <span class="nl">addObjectsFromArray</span><span class="p">:</span><span class="l">@[</span><span class="n">s3</span><span class="p">,</span> <span class="n">s4</span><span class="l">]</span><span class="p">];</span>
-
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">mutableArrayValueForKey</span><span class="p">:</span><span class="s">@&#34;speakers&#34;</span><span class="p">]);</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// -[Computer insertObject:inSpeakersAtIndex:]
-</span><span class="c1">// -[Computer insertObject:inSpeakersAtIndex:]
-</span><span class="c1">// (
-</span><span class="c1">//     &#34;&lt;Speaker: 0x10068cb00&gt;&#34;,
-</span><span class="c1">//     &#34;&lt;Speaker: 0x10067a880&gt;&#34;,
-</span><span class="c1">//     &#34;&lt;Speaker: 0x100705430&gt;&#34;,
-</span><span class="c1">//     &#34;&lt;Speaker: 0x100705020&gt;&#34;
-</span><span class="c1">// )
-</span></code></pre></div><p>当调用 <code>mutableArrayValueForKey:</code> 会首先寻找 <code>insertObject:in&lt;key&gt;AtIndex:</code>（其内部本质为 NSMutableArray 的 <code>insertObject:atIndex:</code>）、<code>removeObjectFrom&lt;key&gt;AtIndex:</code>（其内部本质为 NSMutableArray 的 <code>removeObjectAtIndex:</code>）、<code>insertSpeakers:atIndexes:</code>（其内部本质为 NSMutableArray 的 <code>insertObjects:atIndexes:</code>）、<code>removeKeyAtIndexes:</code>（其内部本质为 NSMutableArray 的 <code>removeObjectsAtIndexes:</code>），判断这四个方法中是否有至少一个插入和一个移除方法被实现，如果有，将返回 NSMutableArray 类型的代理对象，并通过调用已实现的插入和移除方法对实际的数组进行操作。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@implementation</span> <span class="nc">Computer</span>
-
-<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">setSpeakers:</span><span class="p">(</span><span class="n">NSMutableArray</span> <span class="o">*</span><span class="p">)</span><span class="nv">speakers</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="n">_speakers</span> <span class="o">=</span> <span class="n">speakers</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="k">@end</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// -[Computer setSpeakers:]
-</span><span class="c1">// -[Computer setSpeakers:]
-</span><span class="c1">// (
-</span><span class="c1">//     &#34;&lt;Speaker: 0x101808b90&gt;&#34;,
-</span><span class="c1">//     &#34;&lt;Speaker: 0x10180da20&gt;&#34;,
-</span><span class="c1">//     &#34;&lt;Speaker: 0x100613c00&gt;&#34;,
-</span><span class="c1">//     &#34;&lt;Speaker: 0x100613260&gt;&#34;
-</span><span class="c1">// )
-</span></code></pre></div><p>如果上述四个方法不符合至少一个插入和一个移除方法被实现，将寻找 setter <code>setKey:</code> 方法实现，若存在该实现，代理对象将通过它设置值。但若这一阶段的效率将低于上一阶段，因为每次更新数据都需要创建新的一个数组对象。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
-    <span class="k">@public</span>
-    <span class="n">NSMutableArray</span> <span class="o">*</span><span class="n">_speakers</span><span class="p">;</span>
-    <span class="n">NSMutableArray</span> <span class="o">*</span><span class="n">speakers</span><span class="p">;</span>
-<span class="p">}</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Computer</span>
-<span class="k">@end</span>
-
-<span class="c1">// 注释成员变量声明可得到同样的结果：
-</span><span class="c1">// OUTPUT:
-</span><span class="c1">// (
-</span><span class="c1">//     &#34;&lt;Speaker: 0x100601550&gt;&#34;,
-</span><span class="c1">//     &#34;&lt;Speaker: 0x100604800&gt;&#34;,
-</span><span class="c1">//     &#34;&lt;Speaker: 0x100606190&gt;&#34;,
-</span><span class="c1">//     &#34;&lt;Speaker: 0x100600bd0&gt;&#34;
-</span><span class="c1">// )
-</span></code></pre></div><p>若 setter 也不存在，将会判断 <code>accessInstanceVariablesDirectly</code> 方法的返回，即是否允许直接访问成员变量，默认返回 YES；当为 YES 时，代理对象将按顺序尝试直接通过 <code>_&lt;key&gt;</code>、<code>&lt;key&gt;</code> 成员变量设置值。当为 NO 或没有匹配到相应的成员变量时，官方文档称将调用 <code>setValue:forUndefinedKey:</code> 方法，该方法默认实现为抛出「NSUnknownKeyException」异常，但子类可以重写该方法以提供更灵活的行为。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Computer</span>
-<span class="p">-</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">valueForUndefinedKey:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">key</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="k">return</span> <span class="p">[</span><span class="nb">super</span> <span class="nl">valueForUndefinedKey</span><span class="p">:</span><span class="n">key</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">setValue:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">value</span> <span class="nf">forUndefinedKey:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">key</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
-    <span class="k">return</span> <span class="p">[</span><span class="nb">super</span> <span class="nl">setValue</span><span class="p">:</span><span class="n">value</span> <span class="nl">forUndefinedKey</span><span class="p">:</span><span class="n">key</span><span class="p">];</span>
-<span class="p">}</span>
-<span class="k">@end</span>
-
-<span class="n">Speaker</span> <span class="o">*</span><span class="n">s3</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">s3</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@20</span><span class="p">;</span>
-
-<span class="p">[</span><span class="n">arr</span> <span class="nl">addObject</span><span class="p">:</span><span class="n">s3</span><span class="p">];</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// -[Computer valueForUndefinedKey:]
-</span><span class="c1">// *** Terminating app due to uncaught exception &#39;NSUnknownKeyException&#39;, reason: &#39;[&lt;Computer 0x1005426d0&gt; valueForUndefinedKey:]: this class is not key value coding-compliant for the key speakers.&#39;
-</span></code></pre></div><p>但其实经过测试，对代理对象进行插入操作，将首先进入 <code>valueForUndefinedKey:</code>，若该 key 无法匹配，将抛出「NSUnknownKeyException」异常，若这一步骤未抛出异常，才将会进入到 <code>setValue:forUndefinedKey:</code>。原因我认为是当我们对代理对象进行插入操作时，首先要获得其中原本的元素，所以此时如果无法匹配，将抛出异常提前终止。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">@public</span>
+</span></span><span class="line"><span class="cl">	<span class="n">NSMutableArray</span> <span class="o">*</span><span class="n">_speakers</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl"><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">insertObject:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">value</span> <span class="nf">inSpeakersAtIndex:</span><span class="p">(</span><span class="n">NSUInteger</span><span class="p">)</span><span class="nv">index</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="n">_speakers</span> <span class="nl">insertObject</span><span class="p">:</span><span class="n">value</span> <span class="nl">atIndex</span><span class="p">:</span><span class="n">index</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">removeObjectFromSpeakersAtIndex:</span><span class="p">(</span><span class="n">NSUInteger</span><span class="p">)</span><span class="nv">index</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="n">_speakers</span> <span class="nl">removeObjectAtIndex</span><span class="p">:</span><span class="n">index</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">insertSpeakers:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">object</span> <span class="nf">atIndexes:</span><span class="p">(</span><span class="n">NSIndexSet</span> <span class="o">*</span><span class="p">)</span><span class="nv">indexes</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="n">_speakers</span> <span class="nl">insertObjects</span><span class="p">:</span><span class="l">@[</span><span class="n">object</span><span class="l">]</span> <span class="nl">atIndexes</span><span class="p">:</span><span class="n">indexes</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">removeSpeakersAtIndexes:</span><span class="p">(</span><span class="n">NSIndexSet</span> <span class="o">*</span><span class="p">)</span><span class="nv">indexes</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="n">_speakers</span> <span class="nl">removeObjectsAtIndexes</span><span class="p">:</span><span class="n">indexes</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Speaker</span> <span class="o">*</span><span class="n">s1</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">s1</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">Speaker</span> <span class="o">*</span><span class="n">s2</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">s1</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_speakers</span> <span class="o">=</span> <span class="p">[</span><span class="l">@[</span><span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="l">]</span> <span class="n">mutableCopy</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NSMutableArray</span> <span class="o">*</span><span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">mutableArrayValueForKey</span><span class="p">:</span><span class="s">@&#34;speakers&#34;</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Speaker</span> <span class="o">*</span><span class="n">s3</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">s3</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@20</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Speaker</span> <span class="o">*</span><span class="n">s4</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">s4</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@30</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">[</span><span class="n">arr</span> <span class="nl">addObjectsFromArray</span><span class="p">:</span><span class="l">@[</span><span class="n">s3</span><span class="p">,</span> <span class="n">s4</span><span class="l">]</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">mutableArrayValueForKey</span><span class="p">:</span><span class="s">@&#34;speakers&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer insertObject:inSpeakersAtIndex:]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer insertObject:inSpeakersAtIndex:]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;Speaker: 0x10068cb00&gt;&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;Speaker: 0x10067a880&gt;&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;Speaker: 0x100705430&gt;&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;Speaker: 0x100705020&gt;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="c1">// )
+</span></span></span></code></pre></div><p>当调用 <code>mutableArrayValueForKey:</code> 会首先寻找 <code>insertObject:in&lt;key&gt;AtIndex:</code>（其内部本质为 NSMutableArray 的 <code>insertObject:atIndex:</code>）、<code>removeObjectFrom&lt;key&gt;AtIndex:</code>（其内部本质为 NSMutableArray 的 <code>removeObjectAtIndex:</code>）、<code>insertSpeakers:atIndexes:</code>（其内部本质为 NSMutableArray 的 <code>insertObjects:atIndexes:</code>）、<code>removeKeyAtIndexes:</code>（其内部本质为 NSMutableArray 的 <code>removeObjectsAtIndexes:</code>），判断这四个方法中是否有至少一个插入和一个移除方法被实现，如果有，将返回 NSMutableArray 类型的代理对象，并通过调用已实现的插入和移除方法对实际的数组进行操作。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">setSpeakers:</span><span class="p">(</span><span class="n">NSMutableArray</span> <span class="o">*</span><span class="p">)</span><span class="nv">speakers</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">_speakers</span> <span class="o">=</span> <span class="n">speakers</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer setSpeakers:]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer setSpeakers:]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;Speaker: 0x101808b90&gt;&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;Speaker: 0x10180da20&gt;&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;Speaker: 0x100613c00&gt;&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;Speaker: 0x100613260&gt;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="c1">// )
+</span></span></span></code></pre></div><p>如果上述四个方法不符合至少一个插入和一个移除方法被实现，将寻找 setter <code>setKey:</code> 方法实现，若存在该实现，代理对象将通过它设置值。但若这一阶段的效率将低于上一阶段，因为每次更新数据都需要创建新的一个数组对象。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">@public</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSMutableArray</span> <span class="o">*</span><span class="n">_speakers</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSMutableArray</span> <span class="o">*</span><span class="n">speakers</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 注释成员变量声明可得到同样的结果：
+</span></span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;Speaker: 0x100601550&gt;&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;Speaker: 0x100604800&gt;&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;Speaker: 0x100606190&gt;&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;Speaker: 0x100600bd0&gt;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="c1">// )
+</span></span></span></code></pre></div><p>若 setter 也不存在，将会判断 <code>accessInstanceVariablesDirectly</code> 方法的返回，即是否允许直接访问成员变量，默认返回 YES；当为 YES 时，代理对象将按顺序尝试直接通过 <code>_&lt;key&gt;</code>、<code>&lt;key&gt;</code> 成员变量设置值。当为 NO 或没有匹配到相应的成员变量时，官方文档称将调用 <code>setValue:forUndefinedKey:</code> 方法，该方法默认实现为抛出「NSUnknownKeyException」异常，但子类可以重写该方法以提供更灵活的行为。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl"><span class="p">-</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">valueForUndefinedKey:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">key</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="nb">super</span> <span class="nl">valueForUndefinedKey</span><span class="p">:</span><span class="n">key</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">setValue:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">value</span> <span class="nf">forUndefinedKey:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">key</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@&#34;%s&#34;</span><span class="p">,</span> <span class="n">__func__</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="nb">super</span> <span class="nl">setValue</span><span class="p">:</span><span class="n">value</span> <span class="nl">forUndefinedKey</span><span class="p">:</span><span class="n">key</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Speaker</span> <span class="o">*</span><span class="n">s3</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">s3</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@20</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">[</span><span class="n">arr</span> <span class="nl">addObject</span><span class="p">:</span><span class="n">s3</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// -[Computer valueForUndefinedKey:]
+</span></span></span><span class="line"><span class="cl"><span class="c1">// *** Terminating app due to uncaught exception &#39;NSUnknownKeyException&#39;, reason: &#39;[&lt;Computer 0x1005426d0&gt; valueForUndefinedKey:]: this class is not key value coding-compliant for the key speakers.&#39;
+</span></span></span></code></pre></div><p>但其实经过测试，对代理对象进行插入操作，将首先进入 <code>valueForUndefinedKey:</code>，若该 key 无法匹配，将抛出「NSUnknownKeyException」异常，若这一步骤未抛出异常，才将会进入到 <code>setValue:forUndefinedKey:</code>。原因我认为是当我们对代理对象进行插入操作时，首先要获得其中原本的元素，所以此时如果无法匹配，将抛出异常提前终止。</p>
 <h2 id="集合操作符">集合操作符</h2>
 <p>对于对象中的集合类型，KVC 提供了一些可以放置在键路径中的操作符，由 <code>@</code> 开头，整体结构为：<code>左键路径.@集合操作符.右键路径</code>，当然，左右键路径都可以根据需要选择是否忽略。集合操作符分为三种：聚合（Aggregation）操作符、数组操作符、嵌套（Nesting）操作符。</p>
 <table>
@@ -761,225 +761,225 @@ body {
         <td>返回调用集合（Set）中所有集合（Set）中包含右键路径指定属性的对象数组（即值为 <code>nil</code> 时不会被包含进来，多个空对象也会被去重），并去重</td>
     </tr>
 </table>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Speaker</span> : <span class="nc">NSObject</span>
-<span class="c1">// ⚠️ 注意：这里将 volume 改为 NSNumber * 类型，因为 int 时，属性将有默认值 0，不便于后续结果演示
-</span><span class="c1"></span><span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">)</span> <span class="n">NSNumber</span> <span class="o">*</span><span class="n">volume</span><span class="p">;</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Speaker</span>
-<span class="k">@end</span>
-
-<span class="c1">// main()
-</span><span class="c1"></span><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt1</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">Speaker</span> <span class="o">*</span><span class="n">s1</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">s1</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@1</span><span class="p">;</span>
-<span class="n">Speaker</span> <span class="o">*</span><span class="n">s2</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">s2</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@2</span><span class="p">;</span>
-<span class="n">Speaker</span> <span class="o">*</span><span class="n">s3</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">s3</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@2</span><span class="p">;</span>
-<span class="n">Speaker</span> <span class="o">*</span><span class="n">s4</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="c1">// s4.volume = nil;
-</span><span class="c1"></span><span class="n">Speaker</span> <span class="o">*</span><span class="n">s5</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">s5</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@5</span><span class="p">;</span>
-
-<span class="p">[</span><span class="n">cpt1</span> <span class="nl">setValue</span><span class="p">:</span><span class="l">@[</span><span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="p">,</span> <span class="n">s3</span><span class="p">,</span> <span class="n">s4</span><span class="p">,</span> <span class="n">s5</span><span class="l">]</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@&#34;speakers&#34;</span><span class="p">];</span>
-
-<span class="c1">// Aggregation Operators:
-</span><span class="c1"></span><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Aggregation Operators:&#34;</span><span class="p">);</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Volumes at avg: %.2lf&#34;</span><span class="p">,</span> <span class="p">[[</span><span class="n">cpt1</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;speakers.@avg.volume&#34;</span><span class="p">]</span> <span class="n">doubleValue</span><span class="p">]);</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Speakers at count: %d&#34;</span><span class="p">,</span> <span class="p">[[</span><span class="n">cpt1</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;speakers.@count&#34;</span><span class="p">]</span> <span class="n">intValue</span><span class="p">]);</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Volumes at max: %.2lf&#34;</span><span class="p">,</span> <span class="p">[[</span><span class="n">cpt1</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;speakers.@max.volume&#34;</span><span class="p">]</span> <span class="n">doubleValue</span><span class="p">]);</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Volumes at min: %.2lf&#34;</span><span class="p">,</span> <span class="p">[[</span><span class="n">cpt1</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;speakers.@min.volume&#34;</span><span class="p">]</span> <span class="n">doubleValue</span><span class="p">]);</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Volumes at sum: %.2lf&#34;</span><span class="p">,</span> <span class="p">[[</span><span class="n">cpt1</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;speakers.@sum.volume&#34;</span><span class="p">]</span> <span class="n">doubleValue</span><span class="p">]);</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// Aggregation Operators:
-</span><span class="c1">// Volumes at avg: 2.00
-</span><span class="c1">// Speakers at count: 5
-</span><span class="c1">// Volumes at max: 5.00
-</span><span class="c1">// Volumes at min: 1.00
-</span><span class="c1">// Volumes at sum: 10.00
-</span><span class="c1"></span>
-<span class="c1">// Array Operators:
-</span><span class="c1"></span><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Array Operators:&#34;</span><span class="p">);</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt1</span><span class="p">.</span><span class="n">speakers</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;@unionOfObjects.volume&#34;</span><span class="p">]);</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt1</span><span class="p">.</span><span class="n">speakers</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;@distinctUnionOfObjects.volume&#34;</span><span class="p">]);</span>
-
-<span class="n">Computer</span> <span class="o">*</span><span class="n">cpt2</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">Speaker</span> <span class="o">*</span><span class="n">s6</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">s6</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@5</span><span class="p">;</span>
-<span class="n">Speaker</span> <span class="o">*</span><span class="n">s7</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="c1">// s7.volume = nil;
-</span><span class="c1"></span><span class="n">Speaker</span> <span class="o">*</span><span class="n">s8</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">s8</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@8</span><span class="p">;</span>
-<span class="n">cpt2</span><span class="p">.</span><span class="n">speakers</span> <span class="o">=</span> <span class="l">@[</span><span class="n">s6</span><span class="p">,</span> <span class="n">s7</span><span class="p">,</span> <span class="n">s8</span><span class="l">]</span><span class="p">;</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// Array Operators:
-</span><span class="c1">// (
-</span><span class="c1">//     1,
-</span><span class="c1">//     2,
-</span><span class="c1">//     2,
-</span><span class="c1">//     5
-</span><span class="c1">// )
-</span><span class="c1">// (
-</span><span class="c1">//     2,
-</span><span class="c1">//     5,
-</span><span class="c1">//     1
-</span><span class="c1">// )
-</span><span class="c1"></span>
-<span class="c1">// Nesting Operators:
-</span><span class="c1"></span><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Nesting Operators:&#34;</span><span class="p">);</span>
-<span class="n">NSArray</span> <span class="o">*</span><span class="n">arrayOfArrays</span> <span class="o">=</span> <span class="l">@[</span><span class="n">cpt1</span><span class="p">.</span><span class="n">speakers</span><span class="p">,</span> <span class="n">cpt2</span><span class="p">.</span><span class="n">speakers</span><span class="l">]</span><span class="p">;</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">arrayOfArrays</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;@unionOfArrays.volume&#34;</span><span class="p">]);</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">arrayOfArrays</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;@distinctUnionOfArrays.volume&#34;</span><span class="p">]);</span>
-
-<span class="n">NSSet</span> <span class="o">*</span><span class="n">setOfSets</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSSet</span> <span class="nl">setWithArray</span><span class="p">:</span><span class="l">@[</span><span class="p">[</span><span class="n">NSSet</span> <span class="nl">setWithArray</span><span class="p">:</span><span class="n">cpt1</span><span class="p">.</span><span class="n">speakers</span><span class="p">],</span> <span class="p">[</span><span class="n">NSSet</span> <span class="nl">setWithArray</span><span class="p">:</span><span class="n">cpt2</span><span class="p">.</span><span class="n">speakers</span><span class="p">]</span><span class="l">]</span><span class="p">];</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">setOfSets</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;@distinctUnionOfSets.volume&#34;</span><span class="p">]);</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// Nesting Operators:
-</span><span class="c1">// (
-</span><span class="c1">//     1,
-</span><span class="c1">//     2,
-</span><span class="c1">//     2,
-</span><span class="c1">//     &#34;&lt;null&gt;&#34;,
-</span><span class="c1">//     5,
-</span><span class="c1">//     5,
-</span><span class="c1">//     &#34;&lt;null&gt;&#34;,
-</span><span class="c1">//     8
-</span><span class="c1">// )
-</span><span class="c1">// (
-</span><span class="c1">//     5,
-</span><span class="c1">//     1,
-</span><span class="c1">//     2,
-</span><span class="c1">//     &#34;&lt;null&gt;&#34;,
-</span><span class="c1">//     8
-</span><span class="c1">// )
-</span><span class="c1">// {(
-</span><span class="c1">//     2,
-</span><span class="c1">//     5,
-</span><span class="c1">//     8,
-</span><span class="c1">//     1
-</span><span class="c1">// )}
-</span></code></pre></div><h2 id="非对象属性">非对象属性</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Speaker</span> : <span class="nc">NSObject</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// ⚠️ 注意：这里将 volume 改为 NSNumber * 类型，因为 int 时，属性将有默认值 0，不便于后续结果演示
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">)</span> <span class="n">NSNumber</span> <span class="o">*</span><span class="n">volume</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Speaker</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// main()
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt1</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">Speaker</span> <span class="o">*</span><span class="n">s1</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">s1</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">Speaker</span> <span class="o">*</span><span class="n">s2</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">s2</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">Speaker</span> <span class="o">*</span><span class="n">s3</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">s3</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">Speaker</span> <span class="o">*</span><span class="n">s4</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// s4.volume = nil;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">Speaker</span> <span class="o">*</span><span class="n">s5</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">s5</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@5</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">[</span><span class="n">cpt1</span> <span class="nl">setValue</span><span class="p">:</span><span class="l">@[</span><span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="p">,</span> <span class="n">s3</span><span class="p">,</span> <span class="n">s4</span><span class="p">,</span> <span class="n">s5</span><span class="l">]</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@&#34;speakers&#34;</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Aggregation Operators:
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Aggregation Operators:&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Volumes at avg: %.2lf&#34;</span><span class="p">,</span> <span class="p">[[</span><span class="n">cpt1</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;speakers.@avg.volume&#34;</span><span class="p">]</span> <span class="n">doubleValue</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Speakers at count: %d&#34;</span><span class="p">,</span> <span class="p">[[</span><span class="n">cpt1</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;speakers.@count&#34;</span><span class="p">]</span> <span class="n">intValue</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Volumes at max: %.2lf&#34;</span><span class="p">,</span> <span class="p">[[</span><span class="n">cpt1</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;speakers.@max.volume&#34;</span><span class="p">]</span> <span class="n">doubleValue</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Volumes at min: %.2lf&#34;</span><span class="p">,</span> <span class="p">[[</span><span class="n">cpt1</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;speakers.@min.volume&#34;</span><span class="p">]</span> <span class="n">doubleValue</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Volumes at sum: %.2lf&#34;</span><span class="p">,</span> <span class="p">[[</span><span class="n">cpt1</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;speakers.@sum.volume&#34;</span><span class="p">]</span> <span class="n">doubleValue</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Aggregation Operators:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Volumes at avg: 2.00
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Speakers at count: 5
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Volumes at max: 5.00
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Volumes at min: 1.00
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Volumes at sum: 10.00
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// Array Operators:
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Array Operators:&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt1</span><span class="p">.</span><span class="n">speakers</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;@unionOfObjects.volume&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">cpt1</span><span class="p">.</span><span class="n">speakers</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;@distinctUnionOfObjects.volume&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt2</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">Speaker</span> <span class="o">*</span><span class="n">s6</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">s6</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@5</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">Speaker</span> <span class="o">*</span><span class="n">s7</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// s7.volume = nil;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">Speaker</span> <span class="o">*</span><span class="n">s8</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Speaker</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">s8</span><span class="p">.</span><span class="n">volume</span> <span class="o">=</span> <span class="mi">@8</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">cpt2</span><span class="p">.</span><span class="n">speakers</span> <span class="o">=</span> <span class="l">@[</span><span class="n">s6</span><span class="p">,</span> <span class="n">s7</span><span class="p">,</span> <span class="n">s8</span><span class="l">]</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Array Operators:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     1,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     2,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     2,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     5
+</span></span></span><span class="line"><span class="cl"><span class="c1">// )
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     2,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     5,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     1
+</span></span></span><span class="line"><span class="cl"><span class="c1">// )
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// Nesting Operators:
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Nesting Operators:&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSArray</span> <span class="o">*</span><span class="n">arrayOfArrays</span> <span class="o">=</span> <span class="l">@[</span><span class="n">cpt1</span><span class="p">.</span><span class="n">speakers</span><span class="p">,</span> <span class="n">cpt2</span><span class="p">.</span><span class="n">speakers</span><span class="l">]</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">arrayOfArrays</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;@unionOfArrays.volume&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">arrayOfArrays</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;@distinctUnionOfArrays.volume&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NSSet</span> <span class="o">*</span><span class="n">setOfSets</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSSet</span> <span class="nl">setWithArray</span><span class="p">:</span><span class="l">@[</span><span class="p">[</span><span class="n">NSSet</span> <span class="nl">setWithArray</span><span class="p">:</span><span class="n">cpt1</span><span class="p">.</span><span class="n">speakers</span><span class="p">],</span> <span class="p">[</span><span class="n">NSSet</span> <span class="nl">setWithArray</span><span class="p">:</span><span class="n">cpt2</span><span class="p">.</span><span class="n">speakers</span><span class="p">]</span><span class="l">]</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%@&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">setOfSets</span> <span class="nl">valueForKeyPath</span><span class="p">:</span><span class="s">@&#34;@distinctUnionOfSets.volume&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Nesting Operators:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     1,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     2,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     2,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;null&gt;&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     5,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     5,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;null&gt;&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     8
+</span></span></span><span class="line"><span class="cl"><span class="c1">// )
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     5,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     1,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     2,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     &#34;&lt;null&gt;&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     8
+</span></span></span><span class="line"><span class="cl"><span class="c1">// )
+</span></span></span><span class="line"><span class="cl"><span class="c1">// {(
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     2,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     5,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     8,
+</span></span></span><span class="line"><span class="cl"><span class="c1">//     1
+</span></span></span><span class="line"><span class="cl"><span class="c1">// )}
+</span></span></span></code></pre></div><h2 id="非对象属性">非对象属性</h2>
 <p>当 KVC 中的 <code>valueForKey:</code> 或 <code>valueForKeyPath:</code> 获取到的值不是 Obj-C 对象时，将会以其值初始化 	<code>NSNumber</code> 对象（针对标量（Scalar））或 <code>NSValue</code> 对象（针对结构体）并返回。</p>
 <ul>
 <li>标量值</li>
 </ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
-    <span class="k">@public</span>
-    <span class="kt">int</span> <span class="n">_diskSize</span><span class="p">;</span>
-<span class="p">}</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Computer</span>
-<span class="k">@end</span>
-
-<span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_diskSize</span> <span class="o">=</span> <span class="mi">512</span><span class="p">;</span>
-<span class="n">NSNumber</span> <span class="o">*</span><span class="n">diskSizeNum</span> <span class="o">=</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;diskSize&#34;</span><span class="p">];</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Disk size: %d.&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">diskSizeNum</span> <span class="n">intValue</span><span class="p">]);</span>
-
-<span class="c1">// LLDB:
-</span><span class="c1">// (lldb) po object_getClass([cpt valueForKey:@&#34;diskSize&#34;])
-</span><span class="c1">// __NSCFNumber
-</span><span class="c1"></span>
-<span class="c1">// OUTPUT:
-</span><span class="c1">// Disk size: 512.
-</span></code></pre></div><ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">@public</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">_diskSize</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_diskSize</span> <span class="o">=</span> <span class="mi">512</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSNumber</span> <span class="o">*</span><span class="n">diskSizeNum</span> <span class="o">=</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;diskSize&#34;</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Disk size: %d.&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">diskSizeNum</span> <span class="n">intValue</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// LLDB:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (lldb) po object_getClass([cpt valueForKey:@&#34;diskSize&#34;])
+</span></span></span><span class="line"><span class="cl"><span class="c1">// __NSCFNumber
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Disk size: 512.
+</span></span></span></code></pre></div><ul>
 <li>结构体</li>
 </ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
-    <span class="n">NSSize</span> <span class="n">size</span><span class="p">;</span>
-    <span class="kt">double</span> <span class="n">inch</span><span class="p">;</span>
-<span class="p">}</span> <span class="n">Screen</span><span class="p">;</span>
-
-<span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
-    <span class="k">@public</span>
-    <span class="n">Screen</span> <span class="n">_screen</span><span class="p">;</span>
-<span class="p">}</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Computer</span>
-<span class="k">@end</span>
-
-<span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_screen</span><span class="p">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">NSMakeSize</span><span class="p">(</span><span class="mi">1920</span><span class="p">,</span> <span class="mi">1090</span><span class="p">);</span>
-<span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_screen</span><span class="p">.</span><span class="n">inch</span> <span class="o">=</span> <span class="mf">15.6</span><span class="p">;</span>
-
-<span class="c1">// ➡️ valueForKey
-</span><span class="c1"></span><span class="n">NSValue</span> <span class="o">*</span><span class="n">value</span> <span class="o">=</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;screen&#34;</span><span class="p">];</span>
-
-<span class="n">Screen</span> <span class="n">screen</span><span class="p">;</span>
-<span class="p">[</span><span class="n">value</span> <span class="nl">getValue</span><span class="p">:</span><span class="o">&amp;</span><span class="n">screen</span><span class="p">];</span>
-
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Screen size: %.f * %.f</span><span class="se">\n</span><span class="s">Screen inch: %.1lf&#34;</span><span class="p">,</span> <span class="n">screen</span><span class="p">.</span><span class="n">size</span><span class="p">.</span><span class="n">width</span><span class="p">,</span> <span class="n">screen</span><span class="p">.</span><span class="n">size</span><span class="p">.</span><span class="n">height</span><span class="p">,</span> <span class="n">screen</span><span class="p">.</span><span class="n">inch</span><span class="p">);</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// Screen size: 1920 * 1090
-</span><span class="c1">// Screen inch: 15.6
-</span><span class="c1"></span>
-<span class="n">Screen</span> <span class="n">retinaScreen</span><span class="p">;</span>
-<span class="n">retinaScreen</span><span class="p">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">NSMakeSize</span><span class="p">(</span><span class="mi">2560</span><span class="p">,</span> <span class="mi">1600</span><span class="p">);</span>
-<span class="n">retinaScreen</span><span class="p">.</span><span class="n">inch</span> <span class="o">=</span> <span class="mf">13.3</span><span class="p">;</span>
-
-<span class="n">NSValue</span> <span class="o">*</span><span class="n">retinaValue</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSValue</span> <span class="nl">valueWithBytes</span><span class="p">:</span><span class="o">&amp;</span><span class="n">retinaScreen</span> <span class="nl">objCType</span><span class="p">:</span><span class="k">@encode</span><span class="p">(</span><span class="n">Screen</span><span class="p">)];</span>
-
-<span class="c1">// ➡️ setValue:forKey
-</span><span class="c1"></span><span class="p">[</span><span class="n">cpt</span> <span class="nl">setValue</span><span class="p">:</span><span class="n">retinaValue</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@&#34;screen&#34;</span><span class="p">];</span>
-
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Screen size: %.f * %.f</span><span class="se">\n</span><span class="s">Screen inch: %.1lf&#34;</span><span class="p">,</span> <span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_screen</span><span class="p">.</span><span class="n">size</span><span class="p">.</span><span class="n">width</span><span class="p">,</span> <span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_screen</span><span class="p">.</span><span class="n">size</span><span class="p">.</span><span class="n">height</span><span class="p">,</span> <span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_screen</span><span class="p">.</span><span class="n">inch</span><span class="p">);</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// Screen size: 2560 * 1600
-</span><span class="c1">// Screen inch: 13.3
-</span></code></pre></div><h2 id="属性校验">属性校验</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">static</span> <span class="n">NSString</span> <span class="o">*</span> <span class="k">const</span> <span class="n">kKVCValidateErrorDomain</span> <span class="o">=</span> <span class="s">@&#34;kKVCValidateErrorDomain&#34;</span><span class="p">;</span>
-
-<span class="k">typedef</span> <span class="nf">NS_ENUM</span><span class="p">(</span><span class="n">NSUInteger</span><span class="p">,</span> <span class="n">KVCValidateError</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">KVCValidateErrorNilValue</span>
-<span class="p">};</span>
-
-<span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
-<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">)</span> <span class="n">NSString</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Computer</span>
-
-<span class="p">-</span> <span class="p">(</span><span class="kt">BOOL</span><span class="p">)</span><span class="nf">validateValue:</span><span class="p">(</span><span class="k">inout</span> <span class="kt">id</span>  <span class="n">_Nullable</span> <span class="k">__autoreleasing</span> <span class="o">*</span><span class="p">)</span><span class="nv">ioValue</span>
-               <span class="nf">forKey:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">inKey</span>
-                <span class="nf">error:</span><span class="p">(</span><span class="k">out</span> <span class="n">NSError</span> <span class="o">*</span> <span class="n">_Nullable</span> <span class="k">__autoreleasing</span> <span class="o">*</span><span class="p">)</span><span class="nv">outError</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">([</span><span class="n">inKey</span> <span class="nl">isEqualToString</span><span class="p">:</span><span class="n">NSStringFromSelector</span><span class="p">(</span><span class="k">@selector</span><span class="p">(</span><span class="n">name</span><span class="p">))])</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">ioValue</span> <span class="o">!=</span> <span class="nb">nil</span><span class="p">)</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="nb">YES</span><span class="p">;</span>
-        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-            <span class="o">*</span><span class="n">outError</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSError</span> <span class="nl">errorWithDomain</span><span class="p">:</span><span class="n">kKVCValidateErrorDomain</span>
-                                            <span class="nl">code</span><span class="p">:</span><span class="n">KVCValidateErrorNilValue</span>
-                                        <span class="nl">userInfo</span><span class="p">:</span><span class="nb">nil</span><span class="p">];</span>
-            <span class="k">return</span> <span class="nb">NO</span><span class="p">;</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-    
-    <span class="k">return</span> <span class="p">[</span><span class="nb">super</span> <span class="nl">validateValue</span><span class="p">:</span><span class="n">ioValue</span> <span class="nl">forKey</span><span class="p">:</span><span class="n">inKey</span> <span class="nl">error</span><span class="p">:</span><span class="n">outError</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="k">@end</span>
-
-<span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-
-<span class="n">NSString</span> <span class="o">*</span><span class="n">nilName</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
-<span class="n">NSError</span> <span class="o">*</span><span class="n">err</span><span class="p">;</span>
-
-<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">[</span><span class="n">cpt</span> <span class="nl">validateValue</span><span class="p">:</span><span class="o">&amp;</span><span class="n">nilName</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span> <span class="nl">error</span><span class="p">:</span><span class="o">&amp;</span><span class="n">err</span><span class="p">])</span> <span class="p">{</span>
-    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Error domain: %@, code: %ld&#34;</span><span class="p">,</span> <span class="n">err</span><span class="p">.</span><span class="n">domain</span><span class="p">,</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span><span class="n">err</span><span class="p">.</span><span class="n">code</span><span class="p">);</span>
-<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-    <span class="p">[</span><span class="n">cpt</span> <span class="nl">setValue</span><span class="p">:</span><span class="n">nilName</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// Error domain: kKVCValidateErrorDomain, code: 0
-</span></code></pre></div><p>KVC 中的属性校验的方法可以让我们在设置值前先进行校验，即 <code>validateValue:forKey:error:</code>。该方法会调用被观察对象的 <code>validateValue:forKey:error:</code> 方法，NSObject 中的默认实现是返回 <code>YES</code> 即不作校验。所以当我们需要校验 <code>value</code> 是否为空，需要自己实现该方法。需要注意的是，<code>validateValue:forKey:error:</code> 和 <code>validateValue:forKey:error:</code> 方法中的 <code>value</code> 和 <code>error</code> 参数均是引用传递，外界调用时要传入相应的地址 <code>&amp;value</code> 和 <code>&amp;error</code>，而在方法内部我们只需要在方法中将其赋值到 <code>*value</code> 和 <code>*error</code> 即可。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSSize</span> <span class="n">size</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">double</span> <span class="n">inch</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">Screen</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">@public</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Screen</span> <span class="n">_screen</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_screen</span><span class="p">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">NSMakeSize</span><span class="p">(</span><span class="mi">1920</span><span class="p">,</span> <span class="mi">1090</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_screen</span><span class="p">.</span><span class="n">inch</span> <span class="o">=</span> <span class="mf">15.6</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// ➡️ valueForKey
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">NSValue</span> <span class="o">*</span><span class="n">value</span> <span class="o">=</span> <span class="p">[</span><span class="n">cpt</span> <span class="nl">valueForKey</span><span class="p">:</span><span class="s">@&#34;screen&#34;</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Screen</span> <span class="n">screen</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">[</span><span class="n">value</span> <span class="nl">getValue</span><span class="p">:</span><span class="o">&amp;</span><span class="n">screen</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Screen size: %.f * %.f</span><span class="se">\n</span><span class="s">Screen inch: %.1lf&#34;</span><span class="p">,</span> <span class="n">screen</span><span class="p">.</span><span class="n">size</span><span class="p">.</span><span class="n">width</span><span class="p">,</span> <span class="n">screen</span><span class="p">.</span><span class="n">size</span><span class="p">.</span><span class="n">height</span><span class="p">,</span> <span class="n">screen</span><span class="p">.</span><span class="n">inch</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Screen size: 1920 * 1090
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Screen inch: 15.6
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="n">Screen</span> <span class="n">retinaScreen</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">retinaScreen</span><span class="p">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">NSMakeSize</span><span class="p">(</span><span class="mi">2560</span><span class="p">,</span> <span class="mi">1600</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">retinaScreen</span><span class="p">.</span><span class="n">inch</span> <span class="o">=</span> <span class="mf">13.3</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NSValue</span> <span class="o">*</span><span class="n">retinaValue</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSValue</span> <span class="nl">valueWithBytes</span><span class="p">:</span><span class="o">&amp;</span><span class="n">retinaScreen</span> <span class="nl">objCType</span><span class="p">:</span><span class="k">@encode</span><span class="p">(</span><span class="n">Screen</span><span class="p">)];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// ➡️ setValue:forKey
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">[</span><span class="n">cpt</span> <span class="nl">setValue</span><span class="p">:</span><span class="n">retinaValue</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@&#34;screen&#34;</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Screen size: %.f * %.f</span><span class="se">\n</span><span class="s">Screen inch: %.1lf&#34;</span><span class="p">,</span> <span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_screen</span><span class="p">.</span><span class="n">size</span><span class="p">.</span><span class="n">width</span><span class="p">,</span> <span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_screen</span><span class="p">.</span><span class="n">size</span><span class="p">.</span><span class="n">height</span><span class="p">,</span> <span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_screen</span><span class="p">.</span><span class="n">inch</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Screen size: 2560 * 1600
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Screen inch: 13.3
+</span></span></span></code></pre></div><h2 id="属性校验">属性校验</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">static</span> <span class="n">NSString</span> <span class="o">*</span> <span class="k">const</span> <span class="n">kKVCValidateErrorDomain</span> <span class="o">=</span> <span class="s">@&#34;kKVCValidateErrorDomain&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="nf">NS_ENUM</span><span class="p">(</span><span class="n">NSUInteger</span><span class="p">,</span> <span class="n">KVCValidateError</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">KVCValidateErrorNilValue</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span>
+</span></span><span class="line"><span class="cl"><span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">)</span> <span class="n">NSString</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">-</span> <span class="p">(</span><span class="kt">BOOL</span><span class="p">)</span><span class="nf">validateValue:</span><span class="p">(</span><span class="k">inout</span> <span class="kt">id</span>  <span class="n">_Nullable</span> <span class="k">__autoreleasing</span> <span class="o">*</span><span class="p">)</span><span class="nv">ioValue</span>
+</span></span><span class="line"><span class="cl">               <span class="nf">forKey:</span><span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">inKey</span>
+</span></span><span class="line"><span class="cl">                <span class="nf">error:</span><span class="p">(</span><span class="k">out</span> <span class="n">NSError</span> <span class="o">*</span> <span class="n">_Nullable</span> <span class="k">__autoreleasing</span> <span class="o">*</span><span class="p">)</span><span class="nv">outError</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">([</span><span class="n">inKey</span> <span class="nl">isEqualToString</span><span class="p">:</span><span class="n">NSStringFromSelector</span><span class="p">(</span><span class="k">@selector</span><span class="p">(</span><span class="n">name</span><span class="p">))])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">ioValue</span> <span class="o">!=</span> <span class="nb">nil</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="nb">YES</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="o">*</span><span class="n">outError</span> <span class="o">=</span> <span class="p">[</span><span class="n">NSError</span> <span class="nl">errorWithDomain</span><span class="p">:</span><span class="n">kKVCValidateErrorDomain</span>
+</span></span><span class="line"><span class="cl">                                            <span class="nl">code</span><span class="p">:</span><span class="n">KVCValidateErrorNilValue</span>
+</span></span><span class="line"><span class="cl">                                        <span class="nl">userInfo</span><span class="p">:</span><span class="nb">nil</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="nb">NO</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="nb">super</span> <span class="nl">validateValue</span><span class="p">:</span><span class="n">ioValue</span> <span class="nl">forKey</span><span class="p">:</span><span class="n">inKey</span> <span class="nl">error</span><span class="p">:</span><span class="n">outError</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NSString</span> <span class="o">*</span><span class="n">nilName</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSError</span> <span class="o">*</span><span class="n">err</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">[</span><span class="n">cpt</span> <span class="nl">validateValue</span><span class="p">:</span><span class="o">&amp;</span><span class="n">nilName</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span> <span class="nl">error</span><span class="p">:</span><span class="o">&amp;</span><span class="n">err</span><span class="p">])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Error domain: %@, code: %ld&#34;</span><span class="p">,</span> <span class="n">err</span><span class="p">.</span><span class="n">domain</span><span class="p">,</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span><span class="n">err</span><span class="p">.</span><span class="n">code</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="n">cpt</span> <span class="nl">setValue</span><span class="p">:</span><span class="n">nilName</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@&#34;name&#34;</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Error domain: kKVCValidateErrorDomain, code: 0
+</span></span></span></code></pre></div><p>KVC 中的属性校验的方法可以让我们在设置值前先进行校验，即 <code>validateValue:forKey:error:</code>。该方法会调用被观察对象的 <code>validateValue:forKey:error:</code> 方法，NSObject 中的默认实现是返回 <code>YES</code> 即不作校验。所以当我们需要校验 <code>value</code> 是否为空，需要自己实现该方法。需要注意的是，<code>validateValue:forKey:error:</code> 和 <code>validateValue:forKey:error:</code> 方法中的 <code>value</code> 和 <code>error</code> 参数均是引用传递，外界调用时要传入相应的地址 <code>&amp;value</code> 和 <code>&amp;error</code>，而在方法内部我们只需要在方法中将其赋值到 <code>*value</code> 和 <code>*error</code> 即可。</p>
 <h2 id="reference">Reference</h2>
 <ul>
 <li><a href="https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/KeyValueCoding/index.html">Key-Value Coding Programming Guide</a></li>

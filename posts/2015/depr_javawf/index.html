@@ -243,191 +243,191 @@ System: Mac OS X 11.1</p>
 <p><strong>难点：</strong>
 此 API 需要用 GZIP 解压后方可解析，否则为乱码，且非编码方式原因。</p>
 <p><em>Main.java</em></p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kn">import</span> <span class="nn">java.io.*</span><span class="o">;</span>
-<span class="kn">import</span> <span class="nn">java.net.*</span><span class="o">;</span>
-<span class="kn">import</span> <span class="nn">javax.xml.parsers.*</span><span class="o">;</span>
-<span class="kn">import</span> <span class="nn">java.util.ArrayList</span><span class="o">;</span>
-<span class="kn">import</span> <span class="nn">java.util.zip.GZIPInputStream</span><span class="o">;</span>
-
-<span class="kd">public</span> <span class="kd">class</span> <span class="nc">Main</span> <span class="o">{</span>
- <span class="kd">private</span> <span class="kd">final</span> <span class="kd">static</span> <span class="n">String</span> <span class="n">WEATHER_XML_API</span> <span class="o">=</span> <span class="s">&#34;http://wthrcdn.etouch.cn/WeatherApi?citykey=&#34;</span><span class="o">;</span>
- <span class="kd">private</span> <span class="kd">final</span> <span class="kd">static</span> <span class="n">String</span> <span class="n">cityID</span> <span class="o">=</span> <span class="s">&#34;101180701&#34;</span><span class="o">;</span> 
- <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
-  <span class="n">URL</span> <span class="n">url</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
-  <span class="k">try</span> <span class="o">{</span>
-   <span class="n">url</span> <span class="o">=</span> <span class="k">new</span> <span class="n">URL</span><span class="o">(</span><span class="n">WEATHER_XML_API</span> <span class="o">+</span> <span class="n">cityID</span><span class="o">);</span>
-  <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">MalformedURLException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
-   <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
-  <span class="o">}</span>
-  <span class="n">URLConnection</span> <span class="n">urlc</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
-  <span class="n">GZIPInputStream</span> <span class="n">in</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
-  <span class="k">try</span> <span class="o">{</span>
-   <span class="n">urlc</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="na">openConnection</span><span class="o">();</span>
-   <span class="n">urlc</span><span class="o">.</span><span class="na">setDoInput</span><span class="o">(</span><span class="kc">true</span><span class="o">);</span>
-   <span class="n">InputStream</span> <span class="n">is</span> <span class="o">=</span> <span class="n">urlc</span><span class="o">.</span><span class="na">getInputStream</span><span class="o">();</span>
-   <span class="n">in</span> <span class="o">=</span> <span class="k">new</span> <span class="n">GZIPInputStream</span><span class="o">(</span><span class="n">is</span><span class="o">);</span>
-  <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">IOException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
-   <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
-  <span class="o">}</span>
-  <span class="n">WeatherHandler</span> <span class="n">wh</span> <span class="o">=</span> <span class="k">new</span> <span class="n">WeatherHandler</span><span class="o">();</span>
-  <span class="k">try</span> <span class="o">{</span>
-   <span class="n">SAXParserFactory</span> <span class="n">factory</span> <span class="o">=</span> <span class="n">SAXParserFactory</span><span class="o">.</span><span class="na">newInstance</span><span class="o">();</span>  
-      <span class="n">SAXParser</span> <span class="n">parser</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="na">newSAXParser</span><span class="o">();</span>
-      <span class="n">parser</span><span class="o">.</span><span class="na">parse</span><span class="o">(</span><span class="n">in</span><span class="o">,</span> <span class="n">wh</span><span class="o">);</span>
-   <span class="n">in</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-  <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">Exception</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
-   <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
-  <span class="o">}</span>
-  
-  <span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Weather</span><span class="o">&gt;</span> <span class="n">WeatherInfo</span> <span class="o">=</span> <span class="n">wh</span><span class="o">.</span><span class="na">getWeatherInfo</span><span class="o">();</span>
-  <span class="k">for</span> <span class="o">(</span><span class="n">Weather</span> <span class="n">w</span><span class="o">:</span> <span class="n">WeatherInfo</span><span class="o">)</span> <span class="o">{</span>
-   <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">w</span><span class="o">.</span><span class="na">toString</span><span class="o">());</span>
-  <span class="o">}</span>
- <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p><em>WeatherHandler.java</em></p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kn">import</span> <span class="nn">java.util.*</span><span class="o">;</span>
-<span class="kn">import</span> <span class="nn">org.xml.sax.*</span><span class="o">;</span>
-<span class="kn">import</span> <span class="nn">org.xml.sax.helpers.*</span><span class="o">;</span>
-
-<span class="kd">public</span> <span class="kd">class</span> <span class="nc">WeatherHandler</span> <span class="kd">extends</span> <span class="n">DefaultHandler</span> <span class="o">{</span>
- <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">CITY</span> <span class="o">=</span> <span class="s">&#34;city&#34;</span><span class="o">;</span>
- <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">UPDATE_TIME</span> <span class="o">=</span> <span class="s">&#34;updatetime&#34;</span><span class="o">;</span>
- <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">TEMPERATURE</span> <span class="o">=</span> <span class="s">&#34;wendu&#34;</span><span class="o">;</span>
- <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">WIND_POWER</span> <span class="o">=</span> <span class="s">&#34;fengli&#34;</span><span class="o">;</span>
- <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">WIND_DIRECTION</span> <span class="o">=</span> <span class="s">&#34;fengxiang&#34;</span><span class="o">;</span>
- 
- <span class="kd">private</span> <span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Weather</span><span class="o">&gt;</span> <span class="n">WeatherInfo</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Weather</span><span class="o">&gt;();;</span>
- <span class="kd">private</span> <span class="n">Weather</span> <span class="n">currentCity</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
- <span class="kd">private</span> <span class="n">String</span> <span class="n">tagName</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
-
- <span class="kd">public</span> <span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Weather</span><span class="o">&gt;</span> <span class="nf">getWeatherInfo</span><span class="o">()</span> <span class="o">{</span>
-  <span class="k">return</span> <span class="n">WeatherInfo</span><span class="o">;</span>
- <span class="o">}</span>
-
-<span class="c1">// @Override
-</span><span class="c1">// public void startDocument() throws SAXException {
-</span><span class="c1">//  super.startDocument();
-</span><span class="c1">// }
-</span><span class="c1"></span>
- <span class="nd">@Override</span>
- <span class="kd">public</span> <span class="kt">void</span> <span class="nf">startElement</span><span class="o">(</span><span class="n">String</span> <span class="n">uri</span><span class="o">,</span> <span class="n">String</span> <span class="n">localName</span><span class="o">,</span> <span class="n">String</span> <span class="n">qName</span><span class="o">,</span>
-   <span class="n">Attributes</span> <span class="n">attributes</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">SAXException</span> <span class="o">{</span>
-  <span class="kd">super</span><span class="o">.</span><span class="na">startElement</span><span class="o">(</span><span class="n">uri</span><span class="o">,</span> <span class="n">localName</span><span class="o">,</span> <span class="n">qName</span><span class="o">,</span> <span class="n">attributes</span><span class="o">);</span>
-  <span class="k">if</span> <span class="o">(</span><span class="n">qName</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">CITY</span><span class="o">)){</span>
-   <span class="n">currentCity</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Weather</span><span class="o">();</span>
-   <span class="k">if</span> <span class="o">(</span><span class="n">attributes</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
-    <span class="n">currentCity</span><span class="o">.</span><span class="na">setCity</span><span class="o">(</span><span class="n">attributes</span><span class="o">.</span><span class="na">getValue</span><span class="o">(</span><span class="n">CITY</span><span class="o">));</span>
-    <span class="n">currentCity</span><span class="o">.</span><span class="na">setUpdateTime</span><span class="o">(</span><span class="n">attributes</span><span class="o">.</span><span class="na">getValue</span><span class="o">(</span><span class="n">UPDATE_TIME</span><span class="o">));</span>
-    <span class="n">currentCity</span><span class="o">.</span><span class="na">setTemperature</span><span class="o">(</span><span class="n">attributes</span><span class="o">.</span><span class="na">getValue</span><span class="o">(</span><span class="n">TEMPERATURE</span><span class="o">));</span>
-    <span class="n">currentCity</span><span class="o">.</span><span class="na">setWindPower</span><span class="o">(</span><span class="n">attributes</span><span class="o">.</span><span class="na">getValue</span><span class="o">(</span><span class="n">WIND_POWER</span><span class="o">));</span>
-    <span class="n">currentCity</span><span class="o">.</span><span class="na">setWindDirection</span><span class="o">(</span><span class="n">attributes</span><span class="o">.</span><span class="na">getValue</span><span class="o">(</span><span class="n">WIND_DIRECTION</span><span class="o">));</span>
-    
-   <span class="o">}</span>
-  <span class="o">}</span>
-  <span class="n">tagName</span> <span class="o">=</span> <span class="n">qName</span><span class="o">;</span>
- <span class="o">}</span>
- 
- <span class="nd">@Override</span>
- <span class="kd">public</span> <span class="kt">void</span> <span class="nf">characters</span><span class="o">(</span><span class="kt">char</span><span class="o">[]</span> <span class="n">ch</span><span class="o">,</span> <span class="kt">int</span> <span class="n">start</span><span class="o">,</span> <span class="kt">int</span> <span class="n">length</span><span class="o">)</span>
-   <span class="kd">throws</span> <span class="n">SAXException</span> <span class="o">{</span>
-  <span class="kd">super</span><span class="o">.</span><span class="na">characters</span><span class="o">(</span><span class="n">ch</span><span class="o">,</span> <span class="n">start</span><span class="o">,</span> <span class="n">length</span><span class="o">);</span>
-  <span class="k">if</span> <span class="o">(</span><span class="n">tagName</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
-   <span class="n">String</span> <span class="n">data</span> <span class="o">=</span> <span class="k">new</span> <span class="n">String</span><span class="o">(</span><span class="n">ch</span><span class="o">,</span> <span class="n">start</span><span class="o">,</span> <span class="n">length</span><span class="o">);</span>
-   <span class="k">if</span> <span class="o">(</span><span class="n">tagName</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">CITY</span><span class="o">))</span> <span class="o">{</span>
-    <span class="n">currentCity</span><span class="o">.</span><span class="na">setCity</span><span class="o">(</span><span class="n">data</span><span class="o">);</span>
-   <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">tagName</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">UPDATE_TIME</span><span class="o">))</span> <span class="o">{</span>
-    <span class="n">currentCity</span><span class="o">.</span><span class="na">setUpdateTime</span><span class="o">(</span><span class="n">data</span><span class="o">);</span>
-   <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">tagName</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">TEMPERATURE</span><span class="o">))</span> <span class="o">{</span>
-    <span class="n">currentCity</span><span class="o">.</span><span class="na">setTemperature</span><span class="o">(</span><span class="n">data</span><span class="o">);</span>
-   <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">tagName</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">WIND_POWER</span><span class="o">))</span> <span class="o">{</span>
-    <span class="n">currentCity</span><span class="o">.</span><span class="na">setWindPower</span><span class="o">(</span><span class="n">data</span><span class="o">);</span>
-   <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">tagName</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">WIND_DIRECTION</span><span class="o">))</span> <span class="o">{</span>
-    <span class="n">currentCity</span><span class="o">.</span><span class="na">setWindDirection</span><span class="o">(</span><span class="n">data</span><span class="o">);</span>
-   <span class="o">}</span>
-  <span class="o">}</span>
- <span class="o">}</span>
- 
- <span class="nd">@Override</span>
- <span class="kd">public</span> <span class="kt">void</span> <span class="nf">endElement</span><span class="o">(</span><span class="n">String</span> <span class="n">uri</span><span class="o">,</span> <span class="n">String</span> <span class="n">localName</span><span class="o">,</span> <span class="n">String</span> <span class="n">qName</span><span class="o">)</span>
-   <span class="kd">throws</span> <span class="n">SAXException</span> <span class="o">{</span>
-  <span class="kd">super</span><span class="o">.</span><span class="na">endElement</span><span class="o">(</span><span class="n">uri</span><span class="o">,</span> <span class="n">localName</span><span class="o">,</span> <span class="n">qName</span><span class="o">);</span>
-  <span class="k">if</span> <span class="o">(</span><span class="n">qName</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">CITY</span><span class="o">)){</span>
-   <span class="n">WeatherInfo</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">currentCity</span><span class="o">);</span>
-  <span class="o">}</span>
-  <span class="n">tagName</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
- <span class="o">}</span> 
- 
-<span class="c1">// @Override 
-</span><span class="c1">//    public void endDocument() throws SAXException {
-</span><span class="c1">//        super.endDocument(); 
-</span><span class="c1">//    } 
-</span><span class="c1"></span><span class="o">}</span>
-</code></pre></div><p><em>Weather.java</em></p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Weather</span> <span class="o">{</span>
- <span class="kd">private</span> <span class="n">String</span> <span class="n">city</span><span class="o">;</span>
- <span class="kd">private</span> <span class="n">String</span> <span class="n">updateTime</span><span class="o">;</span>
- <span class="kd">private</span> <span class="n">String</span> <span class="n">temperature</span><span class="o">;</span>
- <span class="kd">private</span> <span class="n">String</span> <span class="n">windPower</span><span class="o">;</span>
- <span class="kd">private</span> <span class="n">String</span> <span class="n">windDirection</span><span class="o">;</span>
- 
- <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setCity</span><span class="o">(</span><span class="n">String</span> <span class="n">city</span><span class="o">)</span> <span class="o">{</span>
-  <span class="k">this</span><span class="o">.</span><span class="na">city</span> <span class="o">=</span> <span class="n">city</span><span class="o">;</span>
- <span class="o">}</span>
- 
- <span class="kd">public</span> <span class="n">String</span> <span class="nf">getCity</span><span class="o">()</span> <span class="o">{</span>
-  <span class="k">return</span> <span class="n">city</span><span class="o">;</span>
- <span class="o">}</span>
- 
- <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setUpdateTime</span><span class="o">(</span><span class="n">String</span> <span class="n">updateTime</span><span class="o">)</span> <span class="o">{</span>
-  <span class="k">this</span><span class="o">.</span><span class="na">updateTime</span> <span class="o">=</span> <span class="n">updateTime</span><span class="o">;</span>
- <span class="o">}</span>
- 
- <span class="kd">public</span> <span class="n">String</span> <span class="nf">getUpdateTime</span><span class="o">()</span> <span class="o">{</span>
-  <span class="k">return</span> <span class="n">updateTime</span><span class="o">;</span>
- <span class="o">}</span>
- 
- <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setTemperature</span><span class="o">(</span><span class="n">String</span> <span class="n">temperature</span><span class="o">)</span> <span class="o">{</span>
-  <span class="k">this</span><span class="o">.</span><span class="na">temperature</span> <span class="o">=</span> <span class="n">temperature</span><span class="o">;</span>
- <span class="o">}</span>
- 
- <span class="kd">public</span> <span class="n">String</span> <span class="nf">getTemperature</span><span class="o">()</span> <span class="o">{</span>
-  <span class="k">return</span> <span class="n">temperature</span><span class="o">;</span>
- <span class="o">}</span>
- 
- <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setWindPower</span><span class="o">(</span><span class="n">String</span> <span class="n">windPower</span><span class="o">)</span> <span class="o">{</span>
-  <span class="k">this</span><span class="o">.</span><span class="na">windPower</span> <span class="o">=</span> <span class="n">windPower</span><span class="o">;</span>
- <span class="o">}</span>
- 
- <span class="kd">public</span> <span class="n">String</span> <span class="nf">getWindPower</span><span class="o">()</span> <span class="o">{</span>
-  <span class="k">return</span> <span class="n">windPower</span><span class="o">;</span>
- <span class="o">}</span>
- 
- <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setWindDirection</span><span class="o">(</span><span class="n">String</span> <span class="n">windDirection</span><span class="o">)</span> <span class="o">{</span>
-  <span class="k">this</span><span class="o">.</span><span class="na">windDirection</span> <span class="o">=</span> <span class="n">windDirection</span><span class="o">;</span>
- <span class="o">}</span>
- 
- <span class="kd">public</span> <span class="n">String</span> <span class="nf">getWindDirection</span><span class="o">()</span> <span class="o">{</span>
-  <span class="k">return</span> <span class="n">windDirection</span><span class="o">;</span>
- <span class="o">}</span>
- 
- <span class="nd">@Override</span>
- <span class="kd">public</span> <span class="n">String</span> <span class="nf">toString</span><span class="o">()</span> <span class="o">{</span>
-  <span class="n">String</span> <span class="n">s</span> <span class="o">=</span> <span class="s">&#34;\n&#34;</span><span class="o">;</span>
-  <span class="n">String</span> <span class="n">s1</span> <span class="o">=</span> <span class="s">&#34;City: &#34;</span><span class="o">;</span>
-  <span class="n">String</span> <span class="n">s2</span> <span class="o">=</span> <span class="s">&#34;Update Time: &#34;</span><span class="o">;</span>
-  <span class="n">String</span> <span class="n">s3</span> <span class="o">=</span> <span class="s">&#34;Temperature: &#34;</span><span class="o">;</span>
-  <span class="n">String</span> <span class="n">s4</span> <span class="o">=</span> <span class="s">&#34;Wind Power: &#34;</span><span class="o">;</span>
-  <span class="n">String</span> <span class="n">s5</span> <span class="o">=</span> <span class="s">&#34;Wind Direction: &#34;</span><span class="o">;</span>
-
-  <span class="k">return</span> <span class="n">s1</span> <span class="o">+</span> <span class="n">city</span> <span class="o">+</span> <span class="n">s</span>
-    <span class="o">+</span> <span class="n">s2</span> <span class="o">+</span> <span class="n">updateTime</span> <span class="o">+</span> <span class="n">s</span>
-    <span class="o">+</span> <span class="n">s3</span> <span class="o">+</span> <span class="n">temperature</span> <span class="o">+</span> <span class="n">s</span>
-    <span class="o">+</span> <span class="n">s4</span> <span class="o">+</span> <span class="n">windPower</span> <span class="o">+</span> <span class="n">s</span>
-    <span class="o">+</span> <span class="n">s5</span> <span class="o">+</span> <span class="n">windDirection</span><span class="o">;</span>
- <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div></div>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">java.io.*</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">java.net.*</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">javax.xml.parsers.*</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">java.util.ArrayList</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">java.util.zip.GZIPInputStream</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Main</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">private</span> <span class="kd">final</span> <span class="kd">static</span> <span class="n">String</span> <span class="n">WEATHER_XML_API</span> <span class="o">=</span> <span class="s">&#34;http://wthrcdn.etouch.cn/WeatherApi?citykey=&#34;</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">private</span> <span class="kd">final</span> <span class="kd">static</span> <span class="n">String</span> <span class="n">cityID</span> <span class="o">=</span> <span class="s">&#34;101180701&#34;</span><span class="o">;</span> 
+</span></span><span class="line"><span class="cl"> <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">URL</span> <span class="n">url</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">try</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">   <span class="n">url</span> <span class="o">=</span> <span class="k">new</span> <span class="n">URL</span><span class="o">(</span><span class="n">WEATHER_XML_API</span> <span class="o">+</span> <span class="n">cityID</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">  <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">MalformedURLException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">   <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">  <span class="o">}</span>
+</span></span><span class="line"><span class="cl">  <span class="n">URLConnection</span> <span class="n">urlc</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">GZIPInputStream</span> <span class="n">in</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">try</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">   <span class="n">urlc</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="na">openConnection</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">   <span class="n">urlc</span><span class="o">.</span><span class="na">setDoInput</span><span class="o">(</span><span class="kc">true</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">   <span class="n">InputStream</span> <span class="n">is</span> <span class="o">=</span> <span class="n">urlc</span><span class="o">.</span><span class="na">getInputStream</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">   <span class="n">in</span> <span class="o">=</span> <span class="k">new</span> <span class="n">GZIPInputStream</span><span class="o">(</span><span class="n">is</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">  <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">IOException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">   <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">  <span class="o">}</span>
+</span></span><span class="line"><span class="cl">  <span class="n">WeatherHandler</span> <span class="n">wh</span> <span class="o">=</span> <span class="k">new</span> <span class="n">WeatherHandler</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">try</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">   <span class="n">SAXParserFactory</span> <span class="n">factory</span> <span class="o">=</span> <span class="n">SAXParserFactory</span><span class="o">.</span><span class="na">newInstance</span><span class="o">();</span>  
+</span></span><span class="line"><span class="cl">      <span class="n">SAXParser</span> <span class="n">parser</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="na">newSAXParser</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">      <span class="n">parser</span><span class="o">.</span><span class="na">parse</span><span class="o">(</span><span class="n">in</span><span class="o">,</span> <span class="n">wh</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">   <span class="n">in</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">  <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">Exception</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">   <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">  <span class="o">}</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">  <span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Weather</span><span class="o">&gt;</span> <span class="n">WeatherInfo</span> <span class="o">=</span> <span class="n">wh</span><span class="o">.</span><span class="na">getWeatherInfo</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="o">(</span><span class="n">Weather</span> <span class="n">w</span><span class="o">:</span> <span class="n">WeatherInfo</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">   <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">w</span><span class="o">.</span><span class="na">toString</span><span class="o">());</span>
+</span></span><span class="line"><span class="cl">  <span class="o">}</span>
+</span></span><span class="line"><span class="cl"> <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p><em>WeatherHandler.java</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">java.util.*</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">org.xml.sax.*</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">org.xml.sax.helpers.*</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">WeatherHandler</span> <span class="kd">extends</span> <span class="n">DefaultHandler</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">CITY</span> <span class="o">=</span> <span class="s">&#34;city&#34;</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">UPDATE_TIME</span> <span class="o">=</span> <span class="s">&#34;updatetime&#34;</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">TEMPERATURE</span> <span class="o">=</span> <span class="s">&#34;wendu&#34;</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">WIND_POWER</span> <span class="o">=</span> <span class="s">&#34;fengli&#34;</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">WIND_DIRECTION</span> <span class="o">=</span> <span class="s">&#34;fengxiang&#34;</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"> <span class="kd">private</span> <span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Weather</span><span class="o">&gt;</span> <span class="n">WeatherInfo</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Weather</span><span class="o">&gt;();;</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">private</span> <span class="n">Weather</span> <span class="n">currentCity</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">private</span> <span class="n">String</span> <span class="n">tagName</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"> <span class="kd">public</span> <span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Weather</span><span class="o">&gt;</span> <span class="nf">getWeatherInfo</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">WeatherInfo</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// @Override
+</span></span></span><span class="line"><span class="cl"><span class="c1">// public void startDocument() throws SAXException {
+</span></span></span><span class="line"><span class="cl"><span class="c1">//  super.startDocument();
+</span></span></span><span class="line"><span class="cl"><span class="c1">// }
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"> <span class="nd">@Override</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">startElement</span><span class="o">(</span><span class="n">String</span> <span class="n">uri</span><span class="o">,</span> <span class="n">String</span> <span class="n">localName</span><span class="o">,</span> <span class="n">String</span> <span class="n">qName</span><span class="o">,</span>
+</span></span><span class="line"><span class="cl">   <span class="n">Attributes</span> <span class="n">attributes</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">SAXException</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kd">super</span><span class="o">.</span><span class="na">startElement</span><span class="o">(</span><span class="n">uri</span><span class="o">,</span> <span class="n">localName</span><span class="o">,</span> <span class="n">qName</span><span class="o">,</span> <span class="n">attributes</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="o">(</span><span class="n">qName</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">CITY</span><span class="o">)){</span>
+</span></span><span class="line"><span class="cl">   <span class="n">currentCity</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Weather</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">   <span class="k">if</span> <span class="o">(</span><span class="n">attributes</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">currentCity</span><span class="o">.</span><span class="na">setCity</span><span class="o">(</span><span class="n">attributes</span><span class="o">.</span><span class="na">getValue</span><span class="o">(</span><span class="n">CITY</span><span class="o">));</span>
+</span></span><span class="line"><span class="cl">    <span class="n">currentCity</span><span class="o">.</span><span class="na">setUpdateTime</span><span class="o">(</span><span class="n">attributes</span><span class="o">.</span><span class="na">getValue</span><span class="o">(</span><span class="n">UPDATE_TIME</span><span class="o">));</span>
+</span></span><span class="line"><span class="cl">    <span class="n">currentCity</span><span class="o">.</span><span class="na">setTemperature</span><span class="o">(</span><span class="n">attributes</span><span class="o">.</span><span class="na">getValue</span><span class="o">(</span><span class="n">TEMPERATURE</span><span class="o">));</span>
+</span></span><span class="line"><span class="cl">    <span class="n">currentCity</span><span class="o">.</span><span class="na">setWindPower</span><span class="o">(</span><span class="n">attributes</span><span class="o">.</span><span class="na">getValue</span><span class="o">(</span><span class="n">WIND_POWER</span><span class="o">));</span>
+</span></span><span class="line"><span class="cl">    <span class="n">currentCity</span><span class="o">.</span><span class="na">setWindDirection</span><span class="o">(</span><span class="n">attributes</span><span class="o">.</span><span class="na">getValue</span><span class="o">(</span><span class="n">WIND_DIRECTION</span><span class="o">));</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">   <span class="o">}</span>
+</span></span><span class="line"><span class="cl">  <span class="o">}</span>
+</span></span><span class="line"><span class="cl">  <span class="n">tagName</span> <span class="o">=</span> <span class="n">qName</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="o">}</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"> <span class="nd">@Override</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">characters</span><span class="o">(</span><span class="kt">char</span><span class="o">[]</span> <span class="n">ch</span><span class="o">,</span> <span class="kt">int</span> <span class="n">start</span><span class="o">,</span> <span class="kt">int</span> <span class="n">length</span><span class="o">)</span>
+</span></span><span class="line"><span class="cl">   <span class="kd">throws</span> <span class="n">SAXException</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kd">super</span><span class="o">.</span><span class="na">characters</span><span class="o">(</span><span class="n">ch</span><span class="o">,</span> <span class="n">start</span><span class="o">,</span> <span class="n">length</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="o">(</span><span class="n">tagName</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">   <span class="n">String</span> <span class="n">data</span> <span class="o">=</span> <span class="k">new</span> <span class="n">String</span><span class="o">(</span><span class="n">ch</span><span class="o">,</span> <span class="n">start</span><span class="o">,</span> <span class="n">length</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">   <span class="k">if</span> <span class="o">(</span><span class="n">tagName</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">CITY</span><span class="o">))</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">currentCity</span><span class="o">.</span><span class="na">setCity</span><span class="o">(</span><span class="n">data</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">   <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">tagName</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">UPDATE_TIME</span><span class="o">))</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">currentCity</span><span class="o">.</span><span class="na">setUpdateTime</span><span class="o">(</span><span class="n">data</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">   <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">tagName</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">TEMPERATURE</span><span class="o">))</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">currentCity</span><span class="o">.</span><span class="na">setTemperature</span><span class="o">(</span><span class="n">data</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">   <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">tagName</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">WIND_POWER</span><span class="o">))</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">currentCity</span><span class="o">.</span><span class="na">setWindPower</span><span class="o">(</span><span class="n">data</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">   <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">tagName</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">WIND_DIRECTION</span><span class="o">))</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">currentCity</span><span class="o">.</span><span class="na">setWindDirection</span><span class="o">(</span><span class="n">data</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">   <span class="o">}</span>
+</span></span><span class="line"><span class="cl">  <span class="o">}</span>
+</span></span><span class="line"><span class="cl"> <span class="o">}</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"> <span class="nd">@Override</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">endElement</span><span class="o">(</span><span class="n">String</span> <span class="n">uri</span><span class="o">,</span> <span class="n">String</span> <span class="n">localName</span><span class="o">,</span> <span class="n">String</span> <span class="n">qName</span><span class="o">)</span>
+</span></span><span class="line"><span class="cl">   <span class="kd">throws</span> <span class="n">SAXException</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kd">super</span><span class="o">.</span><span class="na">endElement</span><span class="o">(</span><span class="n">uri</span><span class="o">,</span> <span class="n">localName</span><span class="o">,</span> <span class="n">qName</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="o">(</span><span class="n">qName</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">CITY</span><span class="o">)){</span>
+</span></span><span class="line"><span class="cl">   <span class="n">WeatherInfo</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">currentCity</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">  <span class="o">}</span>
+</span></span><span class="line"><span class="cl">  <span class="n">tagName</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="o">}</span> 
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"><span class="c1">// @Override 
+</span></span></span><span class="line"><span class="cl"><span class="c1">//    public void endDocument() throws SAXException {
+</span></span></span><span class="line"><span class="cl"><span class="c1">//        super.endDocument(); 
+</span></span></span><span class="line"><span class="cl"><span class="c1">//    } 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="o">}</span>
+</span></span></code></pre></div><p><em>Weather.java</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Weather</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">private</span> <span class="n">String</span> <span class="n">city</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">private</span> <span class="n">String</span> <span class="n">updateTime</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">private</span> <span class="n">String</span> <span class="n">temperature</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">private</span> <span class="n">String</span> <span class="n">windPower</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">private</span> <span class="n">String</span> <span class="n">windDirection</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setCity</span><span class="o">(</span><span class="n">String</span> <span class="n">city</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="o">.</span><span class="na">city</span> <span class="o">=</span> <span class="n">city</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="o">}</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"> <span class="kd">public</span> <span class="n">String</span> <span class="nf">getCity</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">city</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="o">}</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setUpdateTime</span><span class="o">(</span><span class="n">String</span> <span class="n">updateTime</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="o">.</span><span class="na">updateTime</span> <span class="o">=</span> <span class="n">updateTime</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="o">}</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"> <span class="kd">public</span> <span class="n">String</span> <span class="nf">getUpdateTime</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">updateTime</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="o">}</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setTemperature</span><span class="o">(</span><span class="n">String</span> <span class="n">temperature</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="o">.</span><span class="na">temperature</span> <span class="o">=</span> <span class="n">temperature</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="o">}</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"> <span class="kd">public</span> <span class="n">String</span> <span class="nf">getTemperature</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">temperature</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="o">}</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setWindPower</span><span class="o">(</span><span class="n">String</span> <span class="n">windPower</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="o">.</span><span class="na">windPower</span> <span class="o">=</span> <span class="n">windPower</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="o">}</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"> <span class="kd">public</span> <span class="n">String</span> <span class="nf">getWindPower</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">windPower</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="o">}</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setWindDirection</span><span class="o">(</span><span class="n">String</span> <span class="n">windDirection</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="o">.</span><span class="na">windDirection</span> <span class="o">=</span> <span class="n">windDirection</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="o">}</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"> <span class="kd">public</span> <span class="n">String</span> <span class="nf">getWindDirection</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">windDirection</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="o">}</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"> <span class="nd">@Override</span>
+</span></span><span class="line"><span class="cl"> <span class="kd">public</span> <span class="n">String</span> <span class="nf">toString</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">String</span> <span class="n">s</span> <span class="o">=</span> <span class="s">&#34;\n&#34;</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">String</span> <span class="n">s1</span> <span class="o">=</span> <span class="s">&#34;City: &#34;</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">String</span> <span class="n">s2</span> <span class="o">=</span> <span class="s">&#34;Update Time: &#34;</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">String</span> <span class="n">s3</span> <span class="o">=</span> <span class="s">&#34;Temperature: &#34;</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">String</span> <span class="n">s4</span> <span class="o">=</span> <span class="s">&#34;Wind Power: &#34;</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">String</span> <span class="n">s5</span> <span class="o">=</span> <span class="s">&#34;Wind Direction: &#34;</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">s1</span> <span class="o">+</span> <span class="n">city</span> <span class="o">+</span> <span class="n">s</span>
+</span></span><span class="line"><span class="cl">    <span class="o">+</span> <span class="n">s2</span> <span class="o">+</span> <span class="n">updateTime</span> <span class="o">+</span> <span class="n">s</span>
+</span></span><span class="line"><span class="cl">    <span class="o">+</span> <span class="n">s3</span> <span class="o">+</span> <span class="n">temperature</span> <span class="o">+</span> <span class="n">s</span>
+</span></span><span class="line"><span class="cl">    <span class="o">+</span> <span class="n">s4</span> <span class="o">+</span> <span class="n">windPower</span> <span class="o">+</span> <span class="n">s</span>
+</span></span><span class="line"><span class="cl">    <span class="o">+</span> <span class="n">s5</span> <span class="o">+</span> <span class="n">windDirection</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"> <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div></div>
                     <div class="post_footer">
                         
                         <div class="meta">

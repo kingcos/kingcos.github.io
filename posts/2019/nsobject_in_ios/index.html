@@ -239,375 +239,375 @@ body {
 </tbody>
 </table>
 <h2 id="nsobject-实例对象的大小">NSObject 实例对象的大小</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// NSObject Obj-C -&gt; C NSObject_IMPL
-</span><span class="c1"></span><span class="k">struct</span> <span class="nc">NSObject_IMPL</span> <span class="p">{</span>
-	<span class="n">Class</span> <span class="n">isa</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="c1">// 指向 objc_class 结构体的指针
-</span><span class="c1"></span><span class="k">typedef</span> <span class="k">struct</span> <span class="nc">objc_class</span> <span class="o">*</span><span class="n">Class</span><span class="p">;</span>
-</code></pre></div><p>将 Obj-C 源码通过 <code>clang -rewrite-objc</code> 翻译为 C++（其实大部分为 C），可以发现 Obj-C 中的 <code>NSObject</code> 类其实就是 C 中的 <code>NSObject_IMPL</code> 结构体，其中只有一个成员变量，即 <code>isa</code>。<code>isa</code> 的类型是 <code>Class</code>，本质是一个指向 <code>objc_class</code> 结构体的指针。在 64 位系统中，指针占用 8 个字节（Byte），即 <code>NSObject</code> 的实例对象大小应该为 8 个字节。我们也可以尝试用 C 语言中的 <code>sizeof()</code> 运算符来证明这一点：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">NSObject</span> <span class="o">*</span><span class="n">obj</span> <span class="o">=</span> <span class="p">[[</span><span class="n">NSObject</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%zd&#34;</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">NSObject</span> <span class="o">*</span><span class="p">));</span>
-<span class="c1">// 8
-</span></code></pre></div><p>但系统分配给 <code>NSObject</code> 实例对象的内存空间真的是 8 个字节吗？在 <code>NSObject</code> 对象初始化后，打个断点，运行程序。得到 <code>obj</code> 的内存地址，放在 Xcode Menu - Debug - Debug Workflow - View Memory - Address 中进行查看。1 个字节为 8 位（Bit），为了便于观察，通常会使用十六进制代表二进制，即使用 1 个十六进制表示 4 个二进制，则 2 个十六进制即代表 1 个字节。观察图中上方红框处，除了 <code>obj</code> 对象实际使用的 8 个字节，其后面还有 8 个空（<code>00</code>）字节。这 8 个字节是否也是系统分配给 <code>obj</code> 的呢？</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="c1">// NSObject Obj-C -&gt; C NSObject_IMPL
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">struct</span> <span class="nc">NSObject_IMPL</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">Class</span> <span class="n">isa</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 指向 objc_class 结构体的指针
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">typedef</span> <span class="k">struct</span> <span class="nc">objc_class</span> <span class="o">*</span><span class="n">Class</span><span class="p">;</span>
+</span></span></code></pre></div><p>将 Obj-C 源码通过 <code>clang -rewrite-objc</code> 翻译为 C++（其实大部分为 C），可以发现 Obj-C 中的 <code>NSObject</code> 类其实就是 C 中的 <code>NSObject_IMPL</code> 结构体，其中只有一个成员变量，即 <code>isa</code>。<code>isa</code> 的类型是 <code>Class</code>，本质是一个指向 <code>objc_class</code> 结构体的指针。在 64 位系统中，指针占用 8 个字节（Byte），即 <code>NSObject</code> 的实例对象大小应该为 8 个字节。我们也可以尝试用 C 语言中的 <code>sizeof()</code> 运算符来证明这一点：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="n">NSObject</span> <span class="o">*</span><span class="n">obj</span> <span class="o">=</span> <span class="p">[[</span><span class="n">NSObject</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%zd&#34;</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">NSObject</span> <span class="o">*</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 8
+</span></span></span></code></pre></div><p>但系统分配给 <code>NSObject</code> 实例对象的内存空间真的是 8 个字节吗？在 <code>NSObject</code> 对象初始化后，打个断点，运行程序。得到 <code>obj</code> 的内存地址，放在 Xcode Menu - Debug - Debug Workflow - View Memory - Address 中进行查看。1 个字节为 8 位（Bit），为了便于观察，通常会使用十六进制代表二进制，即使用 1 个十六进制表示 4 个二进制，则 2 个十六进制即代表 1 个字节。观察图中上方红框处，除了 <code>obj</code> 对象实际使用的 8 个字节，其后面还有 8 个空（<code>00</code>）字节。这 8 个字节是否也是系统分配给 <code>obj</code> 的呢？</p>
 <p><img src="/img/2019/nsobject_in_ios/1.png" alt=""></p>
 <h2 id="alloc">alloc</h2>
 <p>在 <code>[[NSObject alloc] init]</code> 中，<code>alloc</code> 是为了向系统申请内存空间。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// NSObject.mm
-</span><span class="c1"></span><span class="p">+</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">alloc</span> <span class="p">{</span>
-    <span class="c1">// ➡️ 调用 _objc_rootAlloc
-</span><span class="c1"></span>    <span class="k">return</span> <span class="n">_objc_rootAlloc</span><span class="p">(</span><span class="nb">self</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="c1">// Base class implementation of +alloc. cls is not nil.
-</span><span class="c1">// Calls [cls allocWithZone:nil].
-</span><span class="c1"></span><span class="kt">id</span>
-<span class="nf">_objc_rootAlloc</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="c1">// ➡️ 调用 callAlloc
-</span><span class="c1"></span>    <span class="k">return</span> <span class="n">callAlloc</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="nb">false</span><span class="cm">/*checkNil*/</span><span class="p">,</span> <span class="nb">true</span><span class="cm">/*allocWithZone*/</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="c1">// Call [cls alloc] or [cls allocWithZone:nil], with appropriate
-</span><span class="c1">// shortcutting optimizations.
-</span><span class="c1"></span><span class="k">static</span> <span class="n">ALWAYS_INLINE</span> <span class="kt">id</span>
-<span class="nf">callAlloc</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">checkNil</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">allocWithZone</span><span class="o">=</span><span class="nb">false</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">slowpath</span><span class="p">(</span><span class="n">checkNil</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">cls</span><span class="p">))</span> <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
-
-<span class="cp">#if __OBJC2__
-</span><span class="cp"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">fastpath</span><span class="p">(</span><span class="o">!</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">ISA</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">hasCustomAWZ</span><span class="p">()))</span> <span class="p">{</span>
-        <span class="c1">// No alloc/allocWithZone implementation. Go straight to the allocator.
-</span><span class="c1"></span>        <span class="c1">// fixme store hasCustomAWZ in the non-meta class and
-</span><span class="c1"></span>        <span class="c1">// add it to canAllocFast&#39;s summary
-</span><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span><span class="n">fastpath</span><span class="p">(</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">canAllocFast</span><span class="p">()))</span> <span class="p">{</span>
-            <span class="c1">// No ctors, raw isa, etc. Go straight to the metal.
-</span><span class="c1"></span>            <span class="kt">bool</span> <span class="n">dtor</span> <span class="o">=</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">hasCxxDtor</span><span class="p">();</span>
-            <span class="kt">id</span> <span class="n">obj</span> <span class="o">=</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">bits</span><span class="p">.</span><span class="n">fastInstanceSize</span><span class="p">());</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">slowpath</span><span class="p">(</span><span class="o">!</span><span class="n">obj</span><span class="p">))</span> <span class="k">return</span> <span class="n">callBadAllocHandler</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
-            <span class="n">obj</span><span class="o">-&gt;</span><span class="n">initInstanceIsa</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">dtor</span><span class="p">);</span>
-            <span class="k">return</span> <span class="n">obj</span><span class="p">;</span>
-        <span class="p">}</span>
-        <span class="k">else</span> <span class="p">{</span>
-            <span class="c1">// Has ctor or raw isa or something. Use the slower path.
-</span><span class="c1"></span>            <span class="c1">// ➡️ 调用 class_createInstance，extraBytes == 0
-</span><span class="c1"></span>            <span class="kt">id</span> <span class="n">obj</span> <span class="o">=</span> <span class="n">class_createInstance</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">slowpath</span><span class="p">(</span><span class="o">!</span><span class="n">obj</span><span class="p">))</span> <span class="k">return</span> <span class="n">callBadAllocHandler</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
-            <span class="k">return</span> <span class="n">obj</span><span class="p">;</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-<span class="cp">#endif
-</span><span class="cp"></span>
-    <span class="c1">// No shortcuts available.
-</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">allocWithZone</span><span class="p">)</span> <span class="k">return</span> <span class="p">[</span><span class="n">cls</span> <span class="nl">allocWithZone</span><span class="p">:</span><span class="nb">nil</span><span class="p">];</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">cls</span> <span class="n">alloc</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="c1">// objc-runtime-new.mm
-</span><span class="c1"></span><span class="kt">id</span>
-<span class="nf">class_createInstance</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">extraBytes</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="c1">// ➡️ 调用 _class_createInstanceFromZone，extraBytes == 0
-</span><span class="c1"></span>    <span class="k">return</span> <span class="n">_class_createInstanceFromZone</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">extraBytes</span><span class="p">,</span> <span class="nb">nil</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="c1">// objc-runtime-new.mm
-</span><span class="c1"></span><span class="cm">/***********************************************************************
-</span><span class="cm">* class_createInstance
-</span><span class="cm">* fixme
-</span><span class="cm">* Locking: none
-</span><span class="cm">**********************************************************************/</span>
-
-<span class="k">static</span> <span class="nf">__attribute__</span><span class="p">((</span><span class="n">always_inline</span><span class="p">))</span>
-<span class="kt">id</span>
-<span class="n">_class_createInstanceFromZone</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">extraBytes</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">zone</span><span class="p">,</span>
-                              <span class="kt">bool</span> <span class="n">cxxConstruct</span> <span class="o">=</span> <span class="nb">true</span><span class="p">,</span>
-                              <span class="n">size_t</span> <span class="o">*</span><span class="n">outAllocatedSize</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">cls</span><span class="p">)</span> <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
-
-    <span class="n">assert</span><span class="p">(</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">isRealized</span><span class="p">());</span>
-
-    <span class="c1">// Read class&#39;s info bits all at once for performance
-</span><span class="c1"></span>    <span class="kt">bool</span> <span class="n">hasCxxCtor</span> <span class="o">=</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">hasCxxCtor</span><span class="p">();</span>
-    <span class="kt">bool</span> <span class="n">hasCxxDtor</span> <span class="o">=</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">hasCxxDtor</span><span class="p">();</span>
-    <span class="kt">bool</span> <span class="n">fast</span> <span class="o">=</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">canAllocNonpointer</span><span class="p">();</span>
-
-    <span class="c1">// ➡️ 调用 instanceSize，extraBytes == 0
-</span><span class="c1"></span>    <span class="n">size_t</span> <span class="n">size</span> <span class="o">=</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">instanceSize</span><span class="p">(</span><span class="n">extraBytes</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">outAllocatedSize</span><span class="p">)</span> <span class="o">*</span><span class="n">outAllocatedSize</span> <span class="o">=</span> <span class="n">size</span><span class="p">;</span>
-
-    <span class="kt">id</span> <span class="n">obj</span><span class="p">;</span>
-    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">zone</span>  <span class="o">&amp;&amp;</span>  <span class="n">fast</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">obj</span> <span class="o">=</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
-        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">obj</span><span class="p">)</span> <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
-        <span class="n">obj</span><span class="o">-&gt;</span><span class="n">initInstanceIsa</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">hasCxxDtor</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="k">else</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">zone</span><span class="p">)</span> <span class="p">{</span>
-            <span class="n">obj</span> <span class="o">=</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="n">malloc_zone_calloc</span> <span class="p">((</span><span class="n">malloc_zone_t</span> <span class="o">*</span><span class="p">)</span><span class="n">zone</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
-        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-            <span class="n">obj</span> <span class="o">=</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
-        <span class="p">}</span>
-        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">obj</span><span class="p">)</span> <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
-
-        <span class="c1">// Use raw pointer isa on the assumption that they might be
-</span><span class="c1"></span>        <span class="c1">// doing something weird with the zone or RR.
-</span><span class="c1"></span>        <span class="n">obj</span><span class="o">-&gt;</span><span class="n">initIsa</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
-    <span class="p">}</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="n">cxxConstruct</span> <span class="o">&amp;&amp;</span> <span class="n">hasCxxCtor</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">obj</span> <span class="o">=</span> <span class="n">_objc_constructOrFree</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">cls</span><span class="p">);</span>
-    <span class="p">}</span>
-
-    <span class="k">return</span> <span class="n">obj</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="c1">// objc-runtime-new.h
-</span><span class="c1"></span><span class="n">size_t</span> <span class="nf">instanceSize</span><span class="p">(</span><span class="n">size_t</span> <span class="n">extraBytes</span><span class="p">)</span> <span class="p">{</span>
-    <span class="c1">// ➡️ 调用 alignedInstanceSize
-</span><span class="c1"></span>    <span class="n">size_t</span> <span class="n">size</span> <span class="o">=</span> <span class="n">alignedInstanceSize</span><span class="p">()</span> <span class="o">+</span> <span class="n">extraBytes</span><span class="p">;</span>
-    <span class="c1">// CF requires all objects be at least 16 bytes.
-</span><span class="c1"></span>    <span class="c1">// ⚠️ CF 要求所有对象至少 16 字节
-</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">size</span> <span class="o">&lt;</span> <span class="mi">16</span><span class="p">)</span> <span class="n">size</span> <span class="o">=</span> <span class="mi">16</span><span class="p">;</span>
-    <span class="k">return</span> <span class="n">size</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="c1">// Class&#39;s ivar size rounded up to a pointer-size boundary.
-</span><span class="c1"></span><span class="n">uint32_t</span> <span class="nf">alignedInstanceSize</span><span class="p">()</span> <span class="p">{</span>
-    <span class="c1">// ➡️ 调用 unalignedInstanceSize，再调用 word_align
-</span><span class="c1"></span>    <span class="k">return</span> <span class="n">word_align</span><span class="p">(</span><span class="n">unalignedInstanceSize</span><span class="p">());</span>
-<span class="p">}</span>
-
-<span class="c1">// objc-runtime-new.h
-</span><span class="c1">// May be unaligned depending on class&#39;s ivars.
-</span><span class="c1"></span><span class="n">uint32_t</span> <span class="nf">unalignedInstanceSize</span><span class="p">()</span> <span class="p">{</span>
-    <span class="n">assert</span><span class="p">(</span><span class="n">isRealized</span><span class="p">());</span>
-    <span class="c1">// ➡️ 调用 data
-</span><span class="c1"></span>    <span class="k">return</span> <span class="n">data</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">ro</span><span class="o">-&gt;</span><span class="n">instanceSize</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="c1">// objc-runtime-new.h
-</span><span class="c1">// ➡️ 返回类中的读写数据
-</span><span class="c1"></span><span class="n">class_rw_t</span> <span class="o">*</span><span class="nf">data</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="n">bits</span><span class="p">.</span><span class="n">data</span><span class="p">();</span>
-<span class="p">}</span>
-
-<span class="c1">// objc-runtime-new.h
-</span><span class="c1"></span><span class="n">class_rw_t</span><span class="o">*</span> <span class="nf">data</span><span class="p">()</span> <span class="p">{</span>
-    <span class="c1">// ➡️ bits 按位与 FAST_DATA_MASK
-</span><span class="c1"></span>    <span class="k">return</span> <span class="p">(</span><span class="n">class_rw_t</span> <span class="o">*</span><span class="p">)(</span><span class="n">bits</span> <span class="o">&amp;</span> <span class="n">FAST_DATA_MASK</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="c1">// objc-runtime-new.h
-</span><span class="c1">// data pointer
-</span><span class="c1"></span><span class="cp">#define FAST_DATA_MASK          0x00007ffffffffff8UL
-</span><span class="cp"></span>
-<span class="c1">// ➡️ 类中的只读数据
-</span><span class="c1"></span><span class="k">const</span> <span class="n">class_ro_t</span> <span class="o">*</span><span class="n">ro</span><span class="p">;</span>
-
-<span class="k">struct</span> <span class="n">class_ro_t</span> <span class="p">{</span>
-    <span class="n">uint32_t</span> <span class="n">flags</span><span class="p">;</span>
-    <span class="n">uint32_t</span> <span class="n">instanceStart</span><span class="p">;</span>
-    <span class="c1">// ➡️ 实例大小
-</span><span class="c1"></span>    <span class="n">uint32_t</span> <span class="n">instanceSize</span><span class="p">;</span>
-<span class="cp">#ifdef __LP64__
-</span><span class="cp"></span>    <span class="n">uint32_t</span> <span class="n">reserved</span><span class="p">;</span>
-<span class="cp">#endif
-</span><span class="cp"></span>
-    <span class="k">const</span> <span class="n">uint8_t</span> <span class="o">*</span> <span class="n">ivarLayout</span><span class="p">;</span>
-
-    <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">name</span><span class="p">;</span>
-    <span class="n">method_list_t</span> <span class="o">*</span> <span class="n">baseMethodList</span><span class="p">;</span>
-    <span class="n">protocol_list_t</span> <span class="o">*</span> <span class="n">baseProtocols</span><span class="p">;</span>
-    <span class="k">const</span> <span class="n">ivar_list_t</span> <span class="o">*</span> <span class="n">ivars</span><span class="p">;</span>
-
-    <span class="k">const</span> <span class="n">uint8_t</span> <span class="o">*</span> <span class="n">weakIvarLayout</span><span class="p">;</span>
-    <span class="n">property_list_t</span> <span class="o">*</span><span class="n">baseProperties</span><span class="p">;</span>
-
-    <span class="n">method_list_t</span> <span class="o">*</span><span class="nf">baseMethods</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="n">baseMethodList</span><span class="p">;</span>
-    <span class="p">}</span>
-<span class="p">};</span>
-
-<span class="c1">// objc-os.h
-</span><span class="c1">// ➡️ word_align 有两个实现，unalignedInstanceSize 返回 uint32_t
-</span><span class="c1">// 所以这里的 word_align 为参数是 uint32_t 类型的一个
-</span><span class="c1"></span><span class="k">static</span> <span class="kr">inline</span> <span class="n">uint32_t</span> <span class="nf">word_align</span><span class="p">(</span><span class="n">uint32_t</span> <span class="n">x</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">WORD_MASK</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">WORD_MASK</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="c1">// __LP64__ 代表在 64 位时的情况
-</span><span class="c1"></span><span class="cp">#ifdef __LP64__
-</span><span class="cp">#   define WORD_SHIFT 3UL
-</span><span class="cp"></span>    <span class="c1">// ➡️ WORD_MASK
-</span><span class="c1"></span><span class="cp">#   define WORD_MASK 7UL
-</span><span class="cp">#   define WORD_BITS 64
-</span><span class="cp">#else
-</span><span class="cp">#   define WORD_SHIFT 2UL
-</span><span class="cp">#   define WORD_MASK 3UL
-</span><span class="cp">#   define WORD_BITS 32
-</span><span class="cp">#endif
-</span></code></pre></div><p>在 <code>word_align</code> 字长对齐的方法中，<code>WORD_MASK</code> 在 64 位下为无符号长整型（Unsigned Long）的 <code>7</code>，即二进制下为 <code>0b0111</code>，<code>~WORD_MASK</code> 即 <code>-0b1000</code>。将参数即实例大小加上 <code>WORD_MASK</code> 并对 <code>~WORD_MASK</code> 做按位与操作。保证了对齐后的大小均为 8 的倍数。而在 <code>instanceSize</code> 的后续步骤中，也注释表明了「CF 要求所有对象至少 16 字节」。所以到这里，我们可以认为 <code>NSObject</code> 的对象实际分配的空间为 16 字节。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="c1">// NSObject.mm
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">+</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">alloc</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ➡️ 调用 _objc_rootAlloc
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">return</span> <span class="n">_objc_rootAlloc</span><span class="p">(</span><span class="nb">self</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Base class implementation of +alloc. cls is not nil.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Calls [cls allocWithZone:nil].
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">id</span>
+</span></span><span class="line"><span class="cl"><span class="nf">_objc_rootAlloc</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ➡️ 调用 callAlloc
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">return</span> <span class="n">callAlloc</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="nb">false</span><span class="cm">/*checkNil*/</span><span class="p">,</span> <span class="nb">true</span><span class="cm">/*allocWithZone*/</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Call [cls alloc] or [cls allocWithZone:nil], with appropriate
+</span></span></span><span class="line"><span class="cl"><span class="c1">// shortcutting optimizations.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="n">ALWAYS_INLINE</span> <span class="kt">id</span>
+</span></span><span class="line"><span class="cl"><span class="nf">callAlloc</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">checkNil</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">allocWithZone</span><span class="o">=</span><span class="nb">false</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">slowpath</span><span class="p">(</span><span class="n">checkNil</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">cls</span><span class="p">))</span> <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cp">#if __OBJC2__
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">fastpath</span><span class="p">(</span><span class="o">!</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">ISA</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">hasCustomAWZ</span><span class="p">()))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// No alloc/allocWithZone implementation. Go straight to the allocator.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">// fixme store hasCustomAWZ in the non-meta class and
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">// add it to canAllocFast&#39;s summary
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span><span class="n">fastpath</span><span class="p">(</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">canAllocFast</span><span class="p">()))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="c1">// No ctors, raw isa, etc. Go straight to the metal.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="kt">bool</span> <span class="n">dtor</span> <span class="o">=</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">hasCxxDtor</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">            <span class="kt">id</span> <span class="n">obj</span> <span class="o">=</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">bits</span><span class="p">.</span><span class="n">fastInstanceSize</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="n">slowpath</span><span class="p">(</span><span class="o">!</span><span class="n">obj</span><span class="p">))</span> <span class="k">return</span> <span class="n">callBadAllocHandler</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">obj</span><span class="o">-&gt;</span><span class="n">initInstanceIsa</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">dtor</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">obj</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="c1">// Has ctor or raw isa or something. Use the slower path.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="c1">// ➡️ 调用 class_createInstance，extraBytes == 0
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="kt">id</span> <span class="n">obj</span> <span class="o">=</span> <span class="n">class_createInstance</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="n">slowpath</span><span class="p">(</span><span class="o">!</span><span class="n">obj</span><span class="p">))</span> <span class="k">return</span> <span class="n">callBadAllocHandler</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">obj</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// No shortcuts available.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">allocWithZone</span><span class="p">)</span> <span class="k">return</span> <span class="p">[</span><span class="n">cls</span> <span class="nl">allocWithZone</span><span class="p">:</span><span class="nb">nil</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="n">cls</span> <span class="n">alloc</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// objc-runtime-new.mm
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">id</span>
+</span></span><span class="line"><span class="cl"><span class="nf">class_createInstance</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">extraBytes</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ➡️ 调用 _class_createInstanceFromZone，extraBytes == 0
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">return</span> <span class="n">_class_createInstanceFromZone</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">extraBytes</span><span class="p">,</span> <span class="nb">nil</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// objc-runtime-new.mm
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cm">/***********************************************************************
+</span></span></span><span class="line"><span class="cl"><span class="cm">* class_createInstance
+</span></span></span><span class="line"><span class="cl"><span class="cm">* fixme
+</span></span></span><span class="line"><span class="cl"><span class="cm">* Locking: none
+</span></span></span><span class="line"><span class="cl"><span class="cm">**********************************************************************/</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">static</span> <span class="nf">__attribute__</span><span class="p">((</span><span class="n">always_inline</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl"><span class="kt">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">_class_createInstanceFromZone</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">extraBytes</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">zone</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                              <span class="kt">bool</span> <span class="n">cxxConstruct</span> <span class="o">=</span> <span class="nb">true</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                              <span class="n">size_t</span> <span class="o">*</span><span class="n">outAllocatedSize</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">cls</span><span class="p">)</span> <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">assert</span><span class="p">(</span><span class="n">cls</span><span class="o">-&gt;</span><span class="n">isRealized</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Read class&#39;s info bits all at once for performance
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">bool</span> <span class="n">hasCxxCtor</span> <span class="o">=</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">hasCxxCtor</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">bool</span> <span class="n">hasCxxDtor</span> <span class="o">=</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">hasCxxDtor</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">bool</span> <span class="n">fast</span> <span class="o">=</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">canAllocNonpointer</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// ➡️ 调用 instanceSize，extraBytes == 0
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">size_t</span> <span class="n">size</span> <span class="o">=</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">instanceSize</span><span class="p">(</span><span class="n">extraBytes</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">outAllocatedSize</span><span class="p">)</span> <span class="o">*</span><span class="n">outAllocatedSize</span> <span class="o">=</span> <span class="n">size</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kt">id</span> <span class="n">obj</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">zone</span>  <span class="o">&amp;&amp;</span>  <span class="n">fast</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">obj</span> <span class="o">=</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">obj</span><span class="p">)</span> <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">obj</span><span class="o">-&gt;</span><span class="n">initInstanceIsa</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">hasCxxDtor</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">zone</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">obj</span> <span class="o">=</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="n">malloc_zone_calloc</span> <span class="p">((</span><span class="n">malloc_zone_t</span> <span class="o">*</span><span class="p">)</span><span class="n">zone</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">obj</span> <span class="o">=</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">obj</span><span class="p">)</span> <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1">// Use raw pointer isa on the assumption that they might be
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">// doing something weird with the zone or RR.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">obj</span><span class="o">-&gt;</span><span class="n">initIsa</span><span class="p">(</span><span class="n">cls</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">cxxConstruct</span> <span class="o">&amp;&amp;</span> <span class="n">hasCxxCtor</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">obj</span> <span class="o">=</span> <span class="n">_objc_constructOrFree</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">cls</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">obj</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// objc-runtime-new.h
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">size_t</span> <span class="nf">instanceSize</span><span class="p">(</span><span class="n">size_t</span> <span class="n">extraBytes</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ➡️ 调用 alignedInstanceSize
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">size_t</span> <span class="n">size</span> <span class="o">=</span> <span class="n">alignedInstanceSize</span><span class="p">()</span> <span class="o">+</span> <span class="n">extraBytes</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// CF requires all objects be at least 16 bytes.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// ⚠️ CF 要求所有对象至少 16 字节
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">size</span> <span class="o">&lt;</span> <span class="mi">16</span><span class="p">)</span> <span class="n">size</span> <span class="o">=</span> <span class="mi">16</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">size</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Class&#39;s ivar size rounded up to a pointer-size boundary.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">uint32_t</span> <span class="nf">alignedInstanceSize</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ➡️ 调用 unalignedInstanceSize，再调用 word_align
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">return</span> <span class="n">word_align</span><span class="p">(</span><span class="n">unalignedInstanceSize</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// objc-runtime-new.h
+</span></span></span><span class="line"><span class="cl"><span class="c1">// May be unaligned depending on class&#39;s ivars.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">uint32_t</span> <span class="nf">unalignedInstanceSize</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">assert</span><span class="p">(</span><span class="n">isRealized</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ➡️ 调用 data
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">return</span> <span class="n">data</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">ro</span><span class="o">-&gt;</span><span class="n">instanceSize</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// objc-runtime-new.h
+</span></span></span><span class="line"><span class="cl"><span class="c1">// ➡️ 返回类中的读写数据
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">class_rw_t</span> <span class="o">*</span><span class="nf">data</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">bits</span><span class="p">.</span><span class="n">data</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// objc-runtime-new.h
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">class_rw_t</span><span class="o">*</span> <span class="nf">data</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ➡️ bits 按位与 FAST_DATA_MASK
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">return</span> <span class="p">(</span><span class="n">class_rw_t</span> <span class="o">*</span><span class="p">)(</span><span class="n">bits</span> <span class="o">&amp;</span> <span class="n">FAST_DATA_MASK</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// objc-runtime-new.h
+</span></span></span><span class="line"><span class="cl"><span class="c1">// data pointer
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#define FAST_DATA_MASK          0x00007ffffffffff8UL
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// ➡️ 类中的只读数据
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">const</span> <span class="n">class_ro_t</span> <span class="o">*</span><span class="n">ro</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">class_ro_t</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">uint32_t</span> <span class="n">flags</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">uint32_t</span> <span class="n">instanceStart</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ➡️ 实例大小
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">uint32_t</span> <span class="n">instanceSize</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#ifdef __LP64__
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="n">uint32_t</span> <span class="n">reserved</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl">    <span class="k">const</span> <span class="n">uint8_t</span> <span class="o">*</span> <span class="n">ivarLayout</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">name</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">method_list_t</span> <span class="o">*</span> <span class="n">baseMethodList</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">protocol_list_t</span> <span class="o">*</span> <span class="n">baseProtocols</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">const</span> <span class="n">ivar_list_t</span> <span class="o">*</span> <span class="n">ivars</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">const</span> <span class="n">uint8_t</span> <span class="o">*</span> <span class="n">weakIvarLayout</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">property_list_t</span> <span class="o">*</span><span class="n">baseProperties</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">method_list_t</span> <span class="o">*</span><span class="nf">baseMethods</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">baseMethodList</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// objc-os.h
+</span></span></span><span class="line"><span class="cl"><span class="c1">// ➡️ word_align 有两个实现，unalignedInstanceSize 返回 uint32_t
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 所以这里的 word_align 为参数是 uint32_t 类型的一个
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="kr">inline</span> <span class="n">uint32_t</span> <span class="nf">word_align</span><span class="p">(</span><span class="n">uint32_t</span> <span class="n">x</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">WORD_MASK</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">WORD_MASK</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// __LP64__ 代表在 64 位时的情况
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#ifdef __LP64__
+</span></span></span><span class="line"><span class="cl"><span class="cp">#   define WORD_SHIFT 3UL
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="c1">// ➡️ WORD_MASK
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#   define WORD_MASK 7UL
+</span></span></span><span class="line"><span class="cl"><span class="cp">#   define WORD_BITS 64
+</span></span></span><span class="line"><span class="cl"><span class="cp">#else
+</span></span></span><span class="line"><span class="cl"><span class="cp">#   define WORD_SHIFT 2UL
+</span></span></span><span class="line"><span class="cl"><span class="cp">#   define WORD_MASK 3UL
+</span></span></span><span class="line"><span class="cl"><span class="cp">#   define WORD_BITS 32
+</span></span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span></code></pre></div><p>在 <code>word_align</code> 字长对齐的方法中，<code>WORD_MASK</code> 在 64 位下为无符号长整型（Unsigned Long）的 <code>7</code>，即二进制下为 <code>0b0111</code>，<code>~WORD_MASK</code> 即 <code>-0b1000</code>。将参数即实例大小加上 <code>WORD_MASK</code> 并对 <code>~WORD_MASK</code> 做按位与操作。保证了对齐后的大小均为 8 的倍数。而在 <code>instanceSize</code> 的后续步骤中，也注释表明了「CF 要求所有对象至少 16 字节」。所以到这里，我们可以认为 <code>NSObject</code> 的对象实际分配的空间为 16 字节。</p>
 <h2 id="class_getinstancesize">class_getInstanceSize</h2>
 <p><code>class_getInstanceSize</code> 是 Runtime 中的一个方法，可以获取传入实例类型的大小。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback">#import &lt;malloc/malloc.h&gt;
-
-NSLog(@&#34;%zd&#34;, class_getInstanceSize([NSObject class]));
-// 8
-</code></pre></div><p>为什么它的答案也是 8 呢？当我们看到其中的实现就一目了然了，<code>class_getInstanceSize</code> 本质也是调用了 <code>alignedInstanceSize</code> 方法，所以和上面的答案一致。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// runtime.h
-</span><span class="c1"></span><span class="cm">/**
-</span><span class="cm"> * Returns the size of instances of a class.
-</span><span class="cm"> *
-</span><span class="cm"> * @param cls A class object.
-</span><span class="cm"> *
-</span><span class="cm"> * @return The size in bytes of instances of the class \e cls, or \c 0 if \e cls is \c Nil.
-</span><span class="cm"> */</span>
-<span class="n">OBJC_EXPORT</span> <span class="n">size_t</span>
-<span class="nf">class_getInstanceSize</span><span class="p">(</span><span class="kt">Class</span> <span class="n">_Nullable</span> <span class="n">cls</span><span class="p">)</span>
-    <span class="n">OBJC_AVAILABLE</span><span class="p">(</span><span class="mf">10.5</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">9.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">);</span>
-
-<span class="c1">// objc-class.mm
-</span><span class="c1"></span><span class="n">size_t</span> <span class="nf">class_getInstanceSize</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">cls</span><span class="p">)</span> <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="c1">// ➡️ 调用 alignedInstanceSize
-</span><span class="c1"></span>    <span class="k">return</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">alignedInstanceSize</span><span class="p">();</span>
-<span class="p">}</span>
-</code></pre></div><h2 id="malloc_size">malloc_size</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">#import &lt;malloc/malloc.h&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">NSLog(@&#34;%zd&#34;, class_getInstanceSize([NSObject class]));
+</span></span><span class="line"><span class="cl">// 8
+</span></span></code></pre></div><p>为什么它的答案也是 8 呢？当我们看到其中的实现就一目了然了，<code>class_getInstanceSize</code> 本质也是调用了 <code>alignedInstanceSize</code> 方法，所以和上面的答案一致。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="c1">// runtime.h
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cm">/**
+</span></span></span><span class="line"><span class="cl"><span class="cm"> * Returns the size of instances of a class.
+</span></span></span><span class="line"><span class="cl"><span class="cm"> *
+</span></span></span><span class="line"><span class="cl"><span class="cm"> * @param cls A class object.
+</span></span></span><span class="line"><span class="cl"><span class="cm"> *
+</span></span></span><span class="line"><span class="cl"><span class="cm"> * @return The size in bytes of instances of the class \e cls, or \c 0 if \e cls is \c Nil.
+</span></span></span><span class="line"><span class="cl"><span class="cm"> */</span>
+</span></span><span class="line"><span class="cl"><span class="n">OBJC_EXPORT</span> <span class="n">size_t</span>
+</span></span><span class="line"><span class="cl"><span class="nf">class_getInstanceSize</span><span class="p">(</span><span class="kt">Class</span> <span class="n">_Nullable</span> <span class="n">cls</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">OBJC_AVAILABLE</span><span class="p">(</span><span class="mf">10.5</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">9.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// objc-class.mm
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">size_t</span> <span class="nf">class_getInstanceSize</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">cls</span><span class="p">)</span> <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ➡️ 调用 alignedInstanceSize
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">return</span> <span class="n">cls</span><span class="o">-&gt;</span><span class="n">alignedInstanceSize</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="malloc_size">malloc_size</h2>
 <p>那有什么办法可以获取对象真正分配的内存空间呢？答案是 <code>malloc_size</code>。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;malloc/malloc.h&gt;
-</span><span class="cp"></span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%zd&#34;</span><span class="p">,</span> <span class="n">malloc_size</span><span class="p">((</span><span class="k">__bridge</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)[[</span><span class="n">NSObject</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">]));</span>
-<span class="c1">// 16
-</span></code></pre></div><p>因为 <code>malloc_size</code> 返回的是指针指向的内存地址大小，而 <code>class_getInstanceSize</code> 返回的则是类的实例的大小。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="c1">// malloc.h
-</span><span class="c1"></span><span class="k">extern</span> <span class="n">size_t</span> <span class="nf">malloc_size</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">);</span>
-    <span class="cm">/* Returns size of given ptr */</span>
-</code></pre></div><h2 id="自定义类">自定义类</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="cp">#import &lt;malloc/malloc.h&gt;
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%zd&#34;</span><span class="p">,</span> <span class="n">malloc_size</span><span class="p">((</span><span class="k">__bridge</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)[[</span><span class="n">NSObject</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">]));</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 16
+</span></span></span></code></pre></div><p>因为 <code>malloc_size</code> 返回的是指针指向的内存地址大小，而 <code>class_getInstanceSize</code> 返回的则是类的实例的大小。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="c1">// malloc.h
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">extern</span> <span class="n">size_t</span> <span class="nf">malloc_size</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="cm">/* Returns size of given ptr */</span>
+</span></span></code></pre></div><h2 id="自定义类">自定义类</h2>
 <p>定义一个 <code>Computer</code> Obj-C 类，继承自 <code>NSObject</code>，拥有两个成员变量。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
-    <span class="k">@public</span>
-    <span class="kt">int</span> <span class="n">_memorySize</span><span class="p">;</span>
-    <span class="kt">int</span> <span class="n">_diskSize</span><span class="p">;</span>
-<span class="p">}</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Computer</span>
-<span class="k">@end</span>
-</code></pre></div><p>使用 clang 将其翻译为 C/C++ 代码，Obj-C 的类就变成了 C 语言中的结构体：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">struct</span> <span class="nc">NSObject_IMPL</span> <span class="p">{</span>
-    <span class="n">Class</span> <span class="n">isa</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="k">struct</span> <span class="nc">Computer_IMPL</span> <span class="p">{</span>
-    <span class="k">struct</span> <span class="nc">NSObject_IMPL</span> <span class="n">NSObject_IVARS</span><span class="p">;</span>
-    <span class="kt">int</span> <span class="n">_memorySize</span><span class="p">;</span>
-    <span class="kt">int</span> <span class="n">_diskSize</span><span class="p">;</span>
-<span class="p">};</span>
-</code></pre></div><p>简单实践一下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_memorySize</span> <span class="o">=</span> <span class="mi">16</span><span class="p">;</span>
-<span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_diskSize</span> <span class="o">=</span> <span class="mi">512</span><span class="p">;</span>
-
-<span class="c1">// 将 cpt 指向 Computer Obj-C 类的指针转换为指向 Computer_IMPL 结构体的指针
-</span><span class="c1"></span><span class="k">struct</span> <span class="n">Computer_IMPL</span> <span class="o">*</span><span class="n">cptStruct</span> <span class="o">=</span> <span class="p">(</span><span class="k">__bridge</span> <span class="k">struct</span> <span class="n">Computer_IMPL</span> <span class="o">*</span><span class="p">)(</span><span class="n">cpt</span><span class="p">);</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;cptStruct-&gt;_memorySize: %d, cptStruct-&gt;_diskSize: %d&#34;</span><span class="p">,</span> <span class="n">cptStruct</span><span class="o">-&gt;</span><span class="n">_memorySize</span><span class="p">,</span> <span class="n">cptStruct</span><span class="o">-&gt;</span><span class="n">_diskSize</span><span class="p">);</span>
-<span class="c1">// cptStruct-&gt;_memorySize: 16, cptStruct-&gt;_diskSize: 512
-</span></code></pre></div><h2 id="自定义类的实例对象大小">自定义类的实例对象大小</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
-    <span class="k">@public</span>
-    <span class="kt">int</span> <span class="n">_memorySize</span><span class="p">;</span>
-    <span class="kt">int</span> <span class="n">_diskSize</span><span class="p">;</span>
-<span class="p">}</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Computer</span>
-<span class="k">@end</span>
-
-<span class="c1">// ---
-</span><span class="c1"></span><span class="k">@interface</span> <span class="nc">Mac</span> : <span class="nc">Computer</span> <span class="p">{</span>
-    <span class="k">@public</span>
-    <span class="kt">bool</span> <span class="n">_hasScreen</span><span class="p">;</span>
-<span class="p">}</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Mac</span>
-<span class="k">@end</span>
-
-<span class="c1">// ---
-</span><span class="c1"></span><span class="k">@interface</span> <span class="nc">MacPro</span> : <span class="nc">Mac</span> <span class="p">{</span>
-    <span class="k">@public</span>
-    <span class="kt">double</span> <span class="n">_cpuPerformance</span><span class="p">;</span>
-<span class="p">}</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">MacPro</span>
-<span class="k">@end</span>
-</code></pre></div><p>定义以上几个类，<code>Computer</code> 继承自 <code>NSObject</code>，<code>Mac</code> 继承自 <code>Computer</code>，<code>MacPro</code> 继承自 <code>Mac</code>，尝试输出它们的实例以及实际分配的大小。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="n">NSObject</span> <span class="o">*</span><span class="n">myObj</span> <span class="o">=</span> <span class="p">[[</span><span class="n">NSObject</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">NSObject</span> <span class="o">*</span><span class="n">myCpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">NSObject</span> <span class="o">*</span><span class="n">myMac</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Mac</span>      <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-<span class="n">NSObject</span> <span class="o">*</span><span class="n">myPro</span> <span class="o">=</span> <span class="p">[[</span><span class="n">MacPro</span>   <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;NSObject - Instance Size - %zd&#34;</span><span class="p">,</span> <span class="n">class_getInstanceSize</span><span class="p">([</span><span class="n">NSObject</span> <span class="k">class</span><span class="p">]));</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;NSObject - Malloc Size   - %zd&#34;</span><span class="p">,</span> <span class="n">malloc_size</span><span class="p">((</span><span class="k">__bridge</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)(</span><span class="n">myObj</span><span class="p">)));</span>
-
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Computer - Instance Size - %zd&#34;</span><span class="p">,</span> <span class="n">class_getInstanceSize</span><span class="p">([</span><span class="n">Computer</span> <span class="k">class</span><span class="p">]));</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Computer - Malloc Size   - %zd&#34;</span><span class="p">,</span> <span class="n">malloc_size</span><span class="p">((</span><span class="k">__bridge</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)(</span><span class="n">myCpt</span><span class="p">)));</span>
-
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Mac      - Instance Size - %zd&#34;</span><span class="p">,</span> <span class="n">class_getInstanceSize</span><span class="p">([</span><span class="n">Mac</span> <span class="k">class</span><span class="p">]));</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Mac      - Malloc Size   - %zd&#34;</span><span class="p">,</span> <span class="n">malloc_size</span><span class="p">((</span><span class="k">__bridge</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)(</span><span class="n">myMac</span><span class="p">)));</span>
-
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;MacPro   - Instance Size - %zd&#34;</span><span class="p">,</span> <span class="n">class_getInstanceSize</span><span class="p">([</span><span class="n">MacPro</span> <span class="k">class</span><span class="p">]));</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;MacPro   - Malloc Size   - %zd&#34;</span><span class="p">,</span> <span class="n">malloc_size</span><span class="p">((</span><span class="k">__bridge</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)(</span><span class="n">myPro</span><span class="p">)));</span>
-
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;bool   size - %zd&#34;</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">bool</span><span class="p">));</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;int    size - %zd&#34;</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">));</span>
-<span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;double size - %zd&#34;</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">double</span><span class="p">));</span>
-
-<span class="c1">// NSObject - Instance Size - 8
-</span><span class="c1">// NSObject - Malloc Size   - 16
-</span><span class="c1">// Computer - Instance Size - 16
-</span><span class="c1">// Computer - Malloc Size   - 16
-</span><span class="c1">// Mac      - Instance Size - 24
-</span><span class="c1">// Mac      - Malloc Size   - 32
-</span><span class="c1">// MacPro   - Instance Size - 32
-</span><span class="c1">// MacPro   - Malloc Size   - 32
-</span><span class="c1">// bool   size - 1
-</span><span class="c1">// int    size - 4
-</span><span class="c1">// double size - 8
-</span><span class="c1">// Program ended with exit code: 0
-</span></code></pre></div><p>比较让人困惑的是 <code>myMac</code> 的实例大小与实际分配大小。<code>Mac</code> 除了自己的一个成员变量，还有两个继承自父类 <code>Computer</code> 的成员变量，以及一个继承自基类 <code>NSObject</code> 的 <code>isa</code>。在 64 位操作系统上，共计占用 8+4+4+1=17 字节，经过字长对齐后即 24 字节，与 <code>class_getInstanceSize</code> 返回的结果一致。但为什么最终 <code>malloc_size</code> 却是 32 字节呢？</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">@public</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">_memorySize</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">_diskSize</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span></code></pre></div><p>使用 clang 将其翻译为 C/C++ 代码，Obj-C 的类就变成了 C 语言中的结构体：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">NSObject_IMPL</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Class</span> <span class="n">isa</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Computer_IMPL</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">struct</span> <span class="nc">NSObject_IMPL</span> <span class="n">NSObject_IVARS</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">_memorySize</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">_diskSize</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>简单实践一下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="n">Computer</span> <span class="o">*</span><span class="n">cpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_memorySize</span> <span class="o">=</span> <span class="mi">16</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">cpt</span><span class="o">-&gt;</span><span class="n">_diskSize</span> <span class="o">=</span> <span class="mi">512</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 将 cpt 指向 Computer Obj-C 类的指针转换为指向 Computer_IMPL 结构体的指针
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">struct</span> <span class="n">Computer_IMPL</span> <span class="o">*</span><span class="n">cptStruct</span> <span class="o">=</span> <span class="p">(</span><span class="k">__bridge</span> <span class="k">struct</span> <span class="n">Computer_IMPL</span> <span class="o">*</span><span class="p">)(</span><span class="n">cpt</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;cptStruct-&gt;_memorySize: %d, cptStruct-&gt;_diskSize: %d&#34;</span><span class="p">,</span> <span class="n">cptStruct</span><span class="o">-&gt;</span><span class="n">_memorySize</span><span class="p">,</span> <span class="n">cptStruct</span><span class="o">-&gt;</span><span class="n">_diskSize</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// cptStruct-&gt;_memorySize: 16, cptStruct-&gt;_diskSize: 512
+</span></span></span></code></pre></div><h2 id="自定义类的实例对象大小">自定义类的实例对象大小</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Computer</span> : <span class="nc">NSObject</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">@public</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">_memorySize</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">_diskSize</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Computer</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// ---
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">@interface</span> <span class="nc">Mac</span> : <span class="nc">Computer</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">@public</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">bool</span> <span class="n">_hasScreen</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Mac</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// ---
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">@interface</span> <span class="nc">MacPro</span> : <span class="nc">Mac</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">@public</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">double</span> <span class="n">_cpuPerformance</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">MacPro</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span></code></pre></div><p>定义以上几个类，<code>Computer</code> 继承自 <code>NSObject</code>，<code>Mac</code> 继承自 <code>Computer</code>，<code>MacPro</code> 继承自 <code>Mac</code>，尝试输出它们的实例以及实际分配的大小。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="n">NSObject</span> <span class="o">*</span><span class="n">myObj</span> <span class="o">=</span> <span class="p">[[</span><span class="n">NSObject</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSObject</span> <span class="o">*</span><span class="n">myCpt</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Computer</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSObject</span> <span class="o">*</span><span class="n">myMac</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Mac</span>      <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSObject</span> <span class="o">*</span><span class="n">myPro</span> <span class="o">=</span> <span class="p">[[</span><span class="n">MacPro</span>   <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;NSObject - Instance Size - %zd&#34;</span><span class="p">,</span> <span class="n">class_getInstanceSize</span><span class="p">([</span><span class="n">NSObject</span> <span class="k">class</span><span class="p">]));</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;NSObject - Malloc Size   - %zd&#34;</span><span class="p">,</span> <span class="n">malloc_size</span><span class="p">((</span><span class="k">__bridge</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)(</span><span class="n">myObj</span><span class="p">)));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Computer - Instance Size - %zd&#34;</span><span class="p">,</span> <span class="n">class_getInstanceSize</span><span class="p">([</span><span class="n">Computer</span> <span class="k">class</span><span class="p">]));</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Computer - Malloc Size   - %zd&#34;</span><span class="p">,</span> <span class="n">malloc_size</span><span class="p">((</span><span class="k">__bridge</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)(</span><span class="n">myCpt</span><span class="p">)));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Mac      - Instance Size - %zd&#34;</span><span class="p">,</span> <span class="n">class_getInstanceSize</span><span class="p">([</span><span class="n">Mac</span> <span class="k">class</span><span class="p">]));</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;Mac      - Malloc Size   - %zd&#34;</span><span class="p">,</span> <span class="n">malloc_size</span><span class="p">((</span><span class="k">__bridge</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)(</span><span class="n">myMac</span><span class="p">)));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;MacPro   - Instance Size - %zd&#34;</span><span class="p">,</span> <span class="n">class_getInstanceSize</span><span class="p">([</span><span class="n">MacPro</span> <span class="k">class</span><span class="p">]));</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;MacPro   - Malloc Size   - %zd&#34;</span><span class="p">,</span> <span class="n">malloc_size</span><span class="p">((</span><span class="k">__bridge</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)(</span><span class="n">myPro</span><span class="p">)));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;bool   size - %zd&#34;</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">bool</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;int    size - %zd&#34;</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;double size - %zd&#34;</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">double</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// NSObject - Instance Size - 8
+</span></span></span><span class="line"><span class="cl"><span class="c1">// NSObject - Malloc Size   - 16
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Computer - Instance Size - 16
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Computer - Malloc Size   - 16
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Mac      - Instance Size - 24
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Mac      - Malloc Size   - 32
+</span></span></span><span class="line"><span class="cl"><span class="c1">// MacPro   - Instance Size - 32
+</span></span></span><span class="line"><span class="cl"><span class="c1">// MacPro   - Malloc Size   - 32
+</span></span></span><span class="line"><span class="cl"><span class="c1">// bool   size - 1
+</span></span></span><span class="line"><span class="cl"><span class="c1">// int    size - 4
+</span></span></span><span class="line"><span class="cl"><span class="c1">// double size - 8
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Program ended with exit code: 0
+</span></span></span></code></pre></div><p>比较让人困惑的是 <code>myMac</code> 的实例大小与实际分配大小。<code>Mac</code> 除了自己的一个成员变量，还有两个继承自父类 <code>Computer</code> 的成员变量，以及一个继承自基类 <code>NSObject</code> 的 <code>isa</code>。在 64 位操作系统上，共计占用 8+4+4+1=17 字节，经过字长对齐后即 24 字节，与 <code>class_getInstanceSize</code> 返回的结果一致。但为什么最终 <code>malloc_size</code> 却是 32 字节呢？</p>
 <p>因为在分配内存时，除了字长对齐，还存在另外的内存对齐。其将按照 16 的倍数进行对齐：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback">// nano_zone_common.h
-#define NANO_MAX_SIZE			256 /* Buckets sized {16, 32, 48, ..., 256} */
-</code></pre></div><h2 id="calloc">calloc</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">// nano_zone_common.h
+</span></span><span class="line"><span class="cl">#define NANO_MAX_SIZE			256 /* Buckets sized {16, 32, 48, ..., 256} */
+</span></span></code></pre></div><h2 id="calloc">calloc</h2>
 <p>在 GNU 中的 glibc，也有类似 <code>NANO_MAX_SIZE</code> 的实现 <code>MALLOC_ALIGNMENT</code>，都是为了进行内存对齐。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="c1">// sysdeps/generic/malloc-alignment.h
-</span><span class="c1"></span><span class="cm">/* MALLOC_ALIGNMENT is the minimum alignment for malloc&#39;ed chunks.  It
-</span><span class="cm">   must be a power of two at least 2 * SIZE_SZ, even on machines for
-</span><span class="cm">   which smaller alignments would suffice. It may be defined as larger
-</span><span class="cm">   than this though. Note however that code and data structures are
-</span><span class="cm">   optimized for the case of 8-byte alignment.  */</span>
-<span class="c1">// long double 占用 16 字节，SIZE_SZ 即 sizeof(size_t)，在 Xcode 中为 8
-</span><span class="c1">// 即 #define MALLOC_ALIGNMENT 16
-</span><span class="c1"></span><span class="cp">#define MALLOC_ALIGNMENT (2 * SIZE_SZ &lt; __alignof__ (long double) \
-</span><span class="cp">			  ? __alignof__ (long double) : 2 * SIZE_SZ)
-</span><span class="cp"></span>
-<span class="c1">// malloc/malloc-internal.h
-</span><span class="c1"></span><span class="cm">/* The corresponding word size.  */</span>
-<span class="cp">#define SIZE_SZ (sizeof (INTERNAL_SIZE_T))
-</span><span class="cp"></span>
-<span class="cp">#ifndef INTERNAL_SIZE_T
-</span><span class="cp"># define INTERNAL_SIZE_T size_t
-</span><span class="cp">#endif
-</span><span class="cp"></span>
-<span class="c1">// sysdeps/i386/malloc-alignment.h
-</span><span class="c1"></span><span class="cp">#define MALLOC_ALIGNMENT 16
-</span></code></pre></div><h2 id="reference">Reference</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="c1">// sysdeps/generic/malloc-alignment.h
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cm">/* MALLOC_ALIGNMENT is the minimum alignment for malloc&#39;ed chunks.  It
+</span></span></span><span class="line"><span class="cl"><span class="cm">   must be a power of two at least 2 * SIZE_SZ, even on machines for
+</span></span></span><span class="line"><span class="cl"><span class="cm">   which smaller alignments would suffice. It may be defined as larger
+</span></span></span><span class="line"><span class="cl"><span class="cm">   than this though. Note however that code and data structures are
+</span></span></span><span class="line"><span class="cl"><span class="cm">   optimized for the case of 8-byte alignment.  */</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// long double 占用 16 字节，SIZE_SZ 即 sizeof(size_t)，在 Xcode 中为 8
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 即 #define MALLOC_ALIGNMENT 16
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#define MALLOC_ALIGNMENT (2 * SIZE_SZ &lt; __alignof__ (long double) \
+</span></span></span><span class="line"><span class="cl"><span class="cp">			  ? __alignof__ (long double) : 2 * SIZE_SZ)
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// malloc/malloc-internal.h
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cm">/* The corresponding word size.  */</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#define SIZE_SZ (sizeof (INTERNAL_SIZE_T))
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#ifndef INTERNAL_SIZE_T
+</span></span></span><span class="line"><span class="cl"><span class="cp"># define INTERNAL_SIZE_T size_t
+</span></span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// sysdeps/i386/malloc-alignment.h
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#define MALLOC_ALIGNMENT 16
+</span></span></span></code></pre></div><h2 id="reference">Reference</h2>
 <ul>
 <li><a href="https://github.com/kingcos/Perspective/issues/72">将 Obj-C 代码翻译为 C++ 代码</a></li>
 <li><a href="https://stackoverflow.com/questions/6721037/where-is-lp64-defined-for-default-builds-of-c-applications-on-osx-10-6">Where is <code>__LP64__</code> defined for default builds of C++ applications on OSX 10.6? - StackOverflow</a></li>

@@ -242,216 +242,216 @@ body {
 <p>内存布局（Memory Layout）指的是变量在内存中的占用情况，了解内存布局可以使我们对于数据类型的本质更加熟悉。</p>
 <h3 id="简单枚举">简单枚举</h3>
 <p>简单枚举这里指不带关联值与原始值的枚举类型。当 case 个数小于等于 256 个时，其占用 1 个字节（当然，超过 256 个时，将占用 2 个字节）：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">enum</span> <span class="nc">Foo</span> <span class="p">{</span>
-    <span class="k">case</span> <span class="bp">first</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">third</span>
-<span class="p">}</span>
-
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">size</span><span class="p">)</span>      <span class="c1">// 1</span>
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="bp">stride</span><span class="p">)</span>    <span class="c1">// 1</span>
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">alignment</span><span class="p">)</span> <span class="c1">// 1</span>
-
-<span class="kd">var</span> <span class="nv">foo</span> <span class="p">=</span> <span class="n">Foo</span><span class="p">.</span><span class="n">third</span>
-<span class="bp">withUnsafePointer</span><span class="p">(</span><span class="n">to</span><span class="p">:</span> <span class="p">&amp;</span><span class="n">foo</span><span class="p">)</span> <span class="p">{</span> <span class="bp">print</span><span class="p">(</span><span class="s">&#34;</span><span class="si">\(</span><span class="nv">$0</span><span class="si">)</span><span class="s">&#34;</span><span class="p">)</span> <span class="p">}</span> <span class="c1">// 0x00000001000040e0</span>
-
-<span class="c1">// View Memory:</span>
-<span class="c1">// 0x00000001000040e0 -&gt;</span>
-<span class="c1">// 02</span>
-</code></pre></div><blockquote>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="kd">enum</span> <span class="nc">Foo</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">case</span> <span class="bp">first</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">third</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">size</span><span class="p">)</span>      <span class="c1">// 1</span>
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="bp">stride</span><span class="p">)</span>    <span class="c1">// 1</span>
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">alignment</span><span class="p">)</span> <span class="c1">// 1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="nv">foo</span> <span class="p">=</span> <span class="n">Foo</span><span class="p">.</span><span class="n">third</span>
+</span></span><span class="line"><span class="cl"><span class="bp">withUnsafePointer</span><span class="p">(</span><span class="n">to</span><span class="p">:</span> <span class="p">&amp;</span><span class="n">foo</span><span class="p">)</span> <span class="p">{</span> <span class="bp">print</span><span class="p">(</span><span class="s">&#34;</span><span class="si">\(</span><span class="nv">$0</span><span class="si">)</span><span class="s">&#34;</span><span class="p">)</span> <span class="p">}</span> <span class="c1">// 0x00000001000040e0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// View Memory:</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 0x00000001000040e0 -&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 02</span>
+</span></span></code></pre></div><blockquote>
 <p><strong>View Memory</strong></p>
 <p>我们可以在 Xcode Menu - Debug - Debug Workflow - View Memory - Address 中输入通过 <code>withUnsafePointer(to: &amp;foo)</code> 获得的内存地址，来查看内存占用情况；也可以在 LLDB 中输入 <code>memory read</code> 或 <code>x</code> 加上内存地址，输出内存占用信息。</p>
 </blockquote>
 <p>当 case 个数只有一个时，<code>size</code> 为 <code>0</code>，即实际占用的内存大小为 0。这是因为此时枚举类型中有且仅有这一种可能，即使无需内存空间也可表示，而根据内存对齐最少 1 个字节，这样的类型最终在内存中被分配了 1 个字节：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">enum</span> <span class="nc">Foo</span> <span class="p">{</span>
-    <span class="k">case</span> <span class="bp">first</span>
-<span class="p">}</span>
-
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">size</span><span class="p">)</span>      <span class="c1">// 0</span>
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="bp">stride</span><span class="p">)</span>    <span class="c1">// 1</span>
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">alignment</span><span class="p">)</span> <span class="c1">// 1</span>
-</code></pre></div><h3 id="带有原始值">带有原始值</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="kd">enum</span> <span class="nc">Foo</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">case</span> <span class="bp">first</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">size</span><span class="p">)</span>      <span class="c1">// 0</span>
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="bp">stride</span><span class="p">)</span>    <span class="c1">// 1</span>
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">alignment</span><span class="p">)</span> <span class="c1">// 1</span>
+</span></span></code></pre></div><h3 id="带有原始值">带有原始值</h3>
 <p>那么带有原始值的枚举类型变量在内存中是什么样呢？</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">enum</span> <span class="nc">Foo</span><span class="p">:</span> <span class="nb">Int</span> <span class="p">{</span>
-    <span class="k">case</span> <span class="bp">first</span> <span class="p">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">third</span>
-<span class="p">}</span>
-
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">size</span><span class="p">)</span>      <span class="c1">// 1</span>
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="bp">stride</span><span class="p">)</span>    <span class="c1">// 1</span>
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">alignment</span><span class="p">)</span> <span class="c1">// 1</span>
-
-<span class="kd">var</span> <span class="nv">foo</span> <span class="p">=</span> <span class="n">Foo</span><span class="p">.</span><span class="n">third</span>
-<span class="bp">print</span><span class="p">(</span><span class="n">foo</span><span class="p">.</span><span class="n">rawValue</span><span class="p">)</span> <span class="c1">// 1002</span>
-
-<span class="bp">withUnsafePointer</span><span class="p">(</span><span class="n">to</span><span class="p">:</span> <span class="p">&amp;</span><span class="n">foo</span><span class="p">)</span> <span class="p">{</span> <span class="bp">print</span><span class="p">(</span><span class="s">&#34;</span><span class="si">\(</span><span class="nv">$0</span><span class="si">)</span><span class="s">&#34;</span><span class="p">)</span> <span class="p">}</span> <span class="c1">// 0x00000001000040e0</span>
-
-<span class="c1">// View Memory:</span>
-<span class="c1">// (lldb) memory read 0x00000001000040e0</span>
-<span class="c1">// 0x1000040e0: 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................</span>
-<span class="c1">// 0x1000040f0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................</span>
-</code></pre></div><p>通过实际的输出我们可以发现，无论原始值的大小如何，枚举变量将总是占用 1 个字节。这是因为枚举的原始值并不存储在枚举变量中，而是作为整个枚举类型所共用。当然，枚举的原始值也无法再次改变。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="kd">enum</span> <span class="nc">Foo</span><span class="p">:</span> <span class="nb">Int</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">case</span> <span class="bp">first</span> <span class="p">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">third</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">size</span><span class="p">)</span>      <span class="c1">// 1</span>
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="bp">stride</span><span class="p">)</span>    <span class="c1">// 1</span>
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">alignment</span><span class="p">)</span> <span class="c1">// 1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="nv">foo</span> <span class="p">=</span> <span class="n">Foo</span><span class="p">.</span><span class="n">third</span>
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">foo</span><span class="p">.</span><span class="n">rawValue</span><span class="p">)</span> <span class="c1">// 1002</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="bp">withUnsafePointer</span><span class="p">(</span><span class="n">to</span><span class="p">:</span> <span class="p">&amp;</span><span class="n">foo</span><span class="p">)</span> <span class="p">{</span> <span class="bp">print</span><span class="p">(</span><span class="s">&#34;</span><span class="si">\(</span><span class="nv">$0</span><span class="si">)</span><span class="s">&#34;</span><span class="p">)</span> <span class="p">}</span> <span class="c1">// 0x00000001000040e0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// View Memory:</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// (lldb) memory read 0x00000001000040e0</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 0x1000040e0: 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 0x1000040f0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................</span>
+</span></span></code></pre></div><p>通过实际的输出我们可以发现，无论原始值的大小如何，枚举变量将总是占用 1 个字节。这是因为枚举的原始值并不存储在枚举变量中，而是作为整个枚举类型所共用。当然，枚举的原始值也无法再次改变。</p>
 <h3 id="带有关联值">带有关联值</h3>
 <p>不同于枚举的原始值，关联值并不在定义时确定，而每个枚举变量的关联值都可能不一样，因此关联值必须要有额外的内存空间来存储：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">enum</span> <span class="nc">Foo</span> <span class="p">{</span>
-    <span class="k">case</span> <span class="bp">first</span><span class="p">(</span><span class="nb">Int</span><span class="p">,</span> <span class="nb">Int</span><span class="p">,</span> <span class="nb">Int</span><span class="p">,</span> <span class="nb">Int</span><span class="p">)</span> <span class="c1">// 4 个 Int 值，即 8 * 4 = 32 个字节</span>
-    <span class="k">case</span> <span class="n">second</span><span class="p">,</span> <span class="n">third</span>
-<span class="p">}</span>
-
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">size</span><span class="p">)</span>      <span class="c1">// 33，前 32 位存储关联值，第 33 位存储从 0 开始的次序值</span>
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="bp">stride</span><span class="p">)</span>    <span class="c1">// 40</span>
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">alignment</span><span class="p">)</span> <span class="c1">// 8</span>
-
-<span class="kd">var</span> <span class="nv">foo</span> <span class="p">=</span> <span class="n">Foo</span><span class="p">.</span><span class="bp">first</span><span class="p">(</span><span class="nb">Int</span><span class="p">.</span><span class="bp">max</span><span class="p">,</span> <span class="nb">Int</span><span class="p">.</span><span class="bp">max</span><span class="p">,</span> <span class="nb">Int</span><span class="p">.</span><span class="bp">max</span><span class="p">,</span> <span class="nb">Int</span><span class="p">.</span><span class="bp">max</span><span class="p">)</span>
-<span class="kd">var</span> <span class="nv">next</span> <span class="p">=</span> <span class="nb">Int</span><span class="p">.</span><span class="bp">max</span>
-
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">.</span><span class="n">size</span><span class="p">(</span><span class="n">ofValue</span><span class="p">:</span> <span class="n">foo</span><span class="p">))</span> <span class="c1">// 33</span>
-
-<span class="bp">withUnsafePointer</span><span class="p">(</span><span class="n">to</span><span class="p">:</span> <span class="p">&amp;</span><span class="n">foo</span><span class="p">)</span> <span class="p">{</span> <span class="bp">print</span><span class="p">(</span><span class="s">&#34;</span><span class="si">\(</span><span class="nv">$0</span><span class="si">)</span><span class="s">&#34;</span><span class="p">)</span> <span class="p">}</span>  <span class="c1">// 0x0000000100003098</span>
-<span class="bp">withUnsafePointer</span><span class="p">(</span><span class="n">to</span><span class="p">:</span> <span class="p">&amp;</span><span class="n">next</span><span class="p">)</span> <span class="p">{</span> <span class="bp">print</span><span class="p">(</span><span class="s">&#34;</span><span class="si">\(</span><span class="nv">$0</span><span class="si">)</span><span class="s">&#34;</span><span class="p">)</span> <span class="p">}</span> <span class="c1">// 0x00000001000030c0</span>
-
-<span class="c1">// View Memory:</span>
-<span class="c1">// 0x0000000100003098 -&gt;</span>
-<span class="c1">// FF FF FF FF FF FF FF 7F</span>
-<span class="c1">// FF FF FF FF FF FF FF 7F</span>
-<span class="c1">// FF FF FF FF FF FF FF 7F</span>
-<span class="c1">// FF FF FF FF FF FF FF 7F</span>
-<span class="c1">// 00 00 00 00 00 00 00 00</span>
-<span class="c1">// 0x00000001000030c0 -&gt;</span>
-<span class="c1">// FF FF FF FF FF FF FF 7F</span>
-
-<span class="n">foo</span> <span class="p">=</span> <span class="p">.</span><span class="n">second</span>
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">.</span><span class="n">size</span><span class="p">(</span><span class="n">ofValue</span><span class="p">:</span> <span class="n">foo</span><span class="p">))</span> <span class="c1">// 33，等同于 MemoryLayout&lt;Foo&gt;.size</span>
-
-<span class="c1">// View Memory:</span>
-<span class="c1">// 0x0000000100003098 -&gt;</span>
-<span class="c1">// 00 00 00 00 00 00 00 00</span>
-<span class="c1">// 00 00 00 00 00 00 00 00</span>
-<span class="c1">// 00 00 00 00 00 00 00 00</span>
-<span class="c1">// 00 00 00 00 00 00 00 00</span>
-<span class="c1">// 01 00 00 00 00 00 00 00</span>
-<span class="c1">// 0x00000001000030c0 -&gt;</span>
-<span class="c1">// FF FF FF FF FF FF FF 7F</span>
-
-<span class="n">foo</span> <span class="p">=</span> <span class="p">.</span><span class="n">third</span>
-<span class="c1">// View Memory:</span>
-<span class="c1">// 0x0000000100003098 -&gt;</span>
-<span class="c1">// 01 00 00 00 00 00 00 00</span>
-<span class="c1">// 00 00 00 00 00 00 00 00</span>
-<span class="c1">// 00 00 00 00 00 00 00 00</span>
-<span class="c1">// 00 00 00 00 00 00 00 00</span>
-<span class="c1">// 01 00 00 00 00 00 00 00</span>
-<span class="c1">// 0x00000001000030c0 -&gt;</span>
-<span class="c1">// FF FF FF FF FF FF FF 7F</span>
-</code></pre></div><p>当枚举类型中只有一个 case 且含有关联值时，枚举变量则无需额外的内存空间来充当标记位：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">enum</span> <span class="nc">Foo</span> <span class="p">{</span>
-    <span class="k">case</span> <span class="bp">first</span><span class="p">(</span><span class="nb">Int</span><span class="p">)</span>
-<span class="p">}</span>
-
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">size</span><span class="p">)</span>      <span class="c1">// 8</span>
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="bp">stride</span><span class="p">)</span>    <span class="c1">// 8</span>
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">alignment</span><span class="p">)</span> <span class="c1">// 8</span>
-</code></pre></div><p>当枚举类型中的 case 较多时，除去一个标记位，其它位则可以根据需要而共用：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">enum</span> <span class="nc">Foo</span> <span class="p">{</span>
-    <span class="k">case</span> <span class="bp">first</span><span class="p">(</span><span class="nb">Int</span><span class="p">,</span> <span class="nb">Int</span><span class="p">,</span> <span class="nb">Int</span><span class="p">)</span>
-    <span class="k">case</span> <span class="n">second</span><span class="p">(</span><span class="nb">Int</span><span class="p">,</span> <span class="nb">Int</span><span class="p">)</span>
-    <span class="k">case</span> <span class="n">third</span><span class="p">(</span><span class="nb">Int</span><span class="p">)</span>
-    <span class="k">case</span> <span class="n">fourth</span><span class="p">(</span><span class="nb">Bool</span><span class="p">)</span>
-    <span class="k">case</span> <span class="n">fifth</span>
-<span class="p">}</span>
-
-<span class="kd">var</span> <span class="nv">foo</span> <span class="p">=</span> <span class="n">Foo</span><span class="p">.</span><span class="n">fifth</span>
-
-<span class="bp">withUnsafePointer</span><span class="p">(</span><span class="n">to</span><span class="p">:</span> <span class="p">&amp;</span><span class="n">foo</span><span class="p">)</span> <span class="p">{</span> <span class="bp">print</span><span class="p">(</span><span class="s">&#34;</span><span class="si">\(</span><span class="nv">$0</span><span class="si">)</span><span class="s">&#34;</span><span class="p">)</span> <span class="p">}</span>  <span class="c1">// 0x0000000100003088</span>
-
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">size</span><span class="p">)</span>      <span class="c1">// 25</span>
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="bp">stride</span><span class="p">)</span>    <span class="c1">// 32</span>
-<span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">alignment</span><span class="p">)</span> <span class="c1">// 8</span>
-
-<span class="c1">// (lldb) memory read 0x0000000100003088</span>
-<span class="c1">// 0x100003088: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................</span>
-<span class="c1">// 0x100003098: 00 00 00 00 00 00 00 00 04 00 00 00 00 00 00 00  ................</span>
-</code></pre></div><h2 id="optional">Optional</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="kd">enum</span> <span class="nc">Foo</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">case</span> <span class="bp">first</span><span class="p">(</span><span class="nb">Int</span><span class="p">,</span> <span class="nb">Int</span><span class="p">,</span> <span class="nb">Int</span><span class="p">,</span> <span class="nb">Int</span><span class="p">)</span> <span class="c1">// 4 个 Int 值，即 8 * 4 = 32 个字节</span>
+</span></span><span class="line"><span class="cl">    <span class="k">case</span> <span class="n">second</span><span class="p">,</span> <span class="n">third</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">size</span><span class="p">)</span>      <span class="c1">// 33，前 32 位存储关联值，第 33 位存储从 0 开始的次序值</span>
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="bp">stride</span><span class="p">)</span>    <span class="c1">// 40</span>
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">alignment</span><span class="p">)</span> <span class="c1">// 8</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="nv">foo</span> <span class="p">=</span> <span class="n">Foo</span><span class="p">.</span><span class="bp">first</span><span class="p">(</span><span class="nb">Int</span><span class="p">.</span><span class="bp">max</span><span class="p">,</span> <span class="nb">Int</span><span class="p">.</span><span class="bp">max</span><span class="p">,</span> <span class="nb">Int</span><span class="p">.</span><span class="bp">max</span><span class="p">,</span> <span class="nb">Int</span><span class="p">.</span><span class="bp">max</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="nv">next</span> <span class="p">=</span> <span class="nb">Int</span><span class="p">.</span><span class="bp">max</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">.</span><span class="n">size</span><span class="p">(</span><span class="n">ofValue</span><span class="p">:</span> <span class="n">foo</span><span class="p">))</span> <span class="c1">// 33</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="bp">withUnsafePointer</span><span class="p">(</span><span class="n">to</span><span class="p">:</span> <span class="p">&amp;</span><span class="n">foo</span><span class="p">)</span> <span class="p">{</span> <span class="bp">print</span><span class="p">(</span><span class="s">&#34;</span><span class="si">\(</span><span class="nv">$0</span><span class="si">)</span><span class="s">&#34;</span><span class="p">)</span> <span class="p">}</span>  <span class="c1">// 0x0000000100003098</span>
+</span></span><span class="line"><span class="cl"><span class="bp">withUnsafePointer</span><span class="p">(</span><span class="n">to</span><span class="p">:</span> <span class="p">&amp;</span><span class="n">next</span><span class="p">)</span> <span class="p">{</span> <span class="bp">print</span><span class="p">(</span><span class="s">&#34;</span><span class="si">\(</span><span class="nv">$0</span><span class="si">)</span><span class="s">&#34;</span><span class="p">)</span> <span class="p">}</span> <span class="c1">// 0x00000001000030c0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// View Memory:</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 0x0000000100003098 -&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// FF FF FF FF FF FF FF 7F</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// FF FF FF FF FF FF FF 7F</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// FF FF FF FF FF FF FF 7F</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// FF FF FF FF FF FF FF 7F</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 00 00 00 00 00 00 00 00</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 0x00000001000030c0 -&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// FF FF FF FF FF FF FF 7F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">foo</span> <span class="p">=</span> <span class="p">.</span><span class="n">second</span>
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">.</span><span class="n">size</span><span class="p">(</span><span class="n">ofValue</span><span class="p">:</span> <span class="n">foo</span><span class="p">))</span> <span class="c1">// 33，等同于 MemoryLayout&lt;Foo&gt;.size</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// View Memory:</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 0x0000000100003098 -&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 00 00 00 00 00 00 00 00</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 00 00 00 00 00 00 00 00</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 00 00 00 00 00 00 00 00</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 00 00 00 00 00 00 00 00</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 01 00 00 00 00 00 00 00</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 0x00000001000030c0 -&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// FF FF FF FF FF FF FF 7F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">foo</span> <span class="p">=</span> <span class="p">.</span><span class="n">third</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// View Memory:</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 0x0000000100003098 -&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 01 00 00 00 00 00 00 00</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 00 00 00 00 00 00 00 00</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 00 00 00 00 00 00 00 00</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 00 00 00 00 00 00 00 00</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 01 00 00 00 00 00 00 00</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 0x00000001000030c0 -&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// FF FF FF FF FF FF FF 7F</span>
+</span></span></code></pre></div><p>当枚举类型中只有一个 case 且含有关联值时，枚举变量则无需额外的内存空间来充当标记位：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="kd">enum</span> <span class="nc">Foo</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">case</span> <span class="bp">first</span><span class="p">(</span><span class="nb">Int</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">size</span><span class="p">)</span>      <span class="c1">// 8</span>
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="bp">stride</span><span class="p">)</span>    <span class="c1">// 8</span>
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">alignment</span><span class="p">)</span> <span class="c1">// 8</span>
+</span></span></code></pre></div><p>当枚举类型中的 case 较多时，除去一个标记位，其它位则可以根据需要而共用：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="kd">enum</span> <span class="nc">Foo</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">case</span> <span class="bp">first</span><span class="p">(</span><span class="nb">Int</span><span class="p">,</span> <span class="nb">Int</span><span class="p">,</span> <span class="nb">Int</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">case</span> <span class="n">second</span><span class="p">(</span><span class="nb">Int</span><span class="p">,</span> <span class="nb">Int</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">case</span> <span class="n">third</span><span class="p">(</span><span class="nb">Int</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">case</span> <span class="n">fourth</span><span class="p">(</span><span class="nb">Bool</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">case</span> <span class="n">fifth</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="nv">foo</span> <span class="p">=</span> <span class="n">Foo</span><span class="p">.</span><span class="n">fifth</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="bp">withUnsafePointer</span><span class="p">(</span><span class="n">to</span><span class="p">:</span> <span class="p">&amp;</span><span class="n">foo</span><span class="p">)</span> <span class="p">{</span> <span class="bp">print</span><span class="p">(</span><span class="s">&#34;</span><span class="si">\(</span><span class="nv">$0</span><span class="si">)</span><span class="s">&#34;</span><span class="p">)</span> <span class="p">}</span>  <span class="c1">// 0x0000000100003088</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">size</span><span class="p">)</span>      <span class="c1">// 25</span>
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="bp">stride</span><span class="p">)</span>    <span class="c1">// 32</span>
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">MemoryLayout</span><span class="p">&lt;</span><span class="n">Foo</span><span class="p">&gt;.</span><span class="n">alignment</span><span class="p">)</span> <span class="c1">// 8</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// (lldb) memory read 0x0000000100003088</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 0x100003088: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 0x100003098: 00 00 00 00 00 00 00 00 04 00 00 00 00 00 00 00  ................</span>
+</span></span></code></pre></div><h2 id="optional">Optional</h2>
 <blockquote>
 <p><code>frame variable -R &lt;VAR&gt;</code> / <code>fr v -R &lt;VAR&gt;</code></p>
 <p>LLDB 中的 <code>frame</code> 命令用来展示变量的当前栈帧（Stack Frame）。<code>-R</code> 参数意味着将结果原始输出（Raw Output），不加修饰。</p>
 </blockquote>
 <p>可选类型的本质其实也是枚举，即 <code>.some</code> 和 <code>.none</code>。这里我们主要看下多重可选的情况：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">//           ┌──────────┐  ┌──────────┐</span>
-<span class="c1">// ┌──────┐  │   Int??  │  │   Int??  │</span>
-<span class="c1">// │ Int? │  │ ┌──────┐ │  │ ┌──────┐ │</span>
-<span class="c1">// │      │  │ │ Int? │ │  │ │ Int? │ │</span>
-<span class="c1">// │  10  │  │ │      │ │  │ │      │ │</span>
-<span class="c1">// └──────┘  │ │  10  │ │  │ │  10  │ │</span>
-<span class="c1">//           └─┴──────┴─┘  └─┴──────┴─┘</span>
-<span class="c1">//   foo1        foo2         foo3</span>
-<span class="kd">var</span> <span class="nv">foo1</span><span class="p">:</span> <span class="nb">Int</span><span class="p">?</span> <span class="p">=</span> <span class="mi">10</span>
-<span class="kd">var</span> <span class="nv">foo2</span><span class="p">:</span> <span class="nb">Int</span><span class="p">??</span> <span class="p">=</span> <span class="n">foo1</span>
-<span class="kd">var</span> <span class="nv">foo3</span><span class="p">:</span> <span class="nb">Int</span><span class="p">??</span> <span class="p">=</span> <span class="mi">10</span>
-
-<span class="bp">print</span><span class="p">(</span><span class="n">foo2</span> <span class="p">==</span> <span class="n">foo3</span><span class="p">)</span> <span class="c1">// true</span>
-
-<span class="c1">// LLDB:</span>
-<span class="c1">// (lldb) fr v -R foo1</span>
-<span class="c1">// (Swift.Optional&lt;Swift.Int&gt;) foo1 = some {</span>
-<span class="c1">//   some = {</span>
-<span class="c1">//     _value = 10</span>
-<span class="c1">//   }</span>
-<span class="c1">// }</span>
-<span class="c1">// (lldb) fr v -R foo2</span>
-<span class="c1">// (Swift.Optional&lt;Swift.Optional&lt;Swift.Int&gt;&gt;) foo2 = some {</span>
-<span class="c1">//   some = some {</span>
-<span class="c1">//     some = {</span>
-<span class="c1">//       _value = 10</span>
-<span class="c1">//     }</span>
-<span class="c1">//   }</span>
-<span class="c1">// }</span>
-<span class="c1">// (lldb) fr v -R foo3</span>
-<span class="c1">// (Swift.Optional&lt;Swift.Optional&lt;Swift.Int&gt;&gt;) foo3 = some {</span>
-<span class="c1">//   some = some {</span>
-<span class="c1">//     some = {</span>
-<span class="c1">//       _value = 10</span>
-<span class="c1">//     }</span>
-<span class="c1">//   }</span>
-<span class="c1">// }</span>
-</code></pre></div><p>通过 <code>fr v -R</code> 我们可以看出，<code>foo2</code> 和 <code>foo3</code> 均为两重可选，且均为 <code>.some</code>，最内部实际包装的值也为 <code>10</code>，因此两者相同。而下面这种情况略有不同：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">//           ┌──────────┐  ┌──────────┐</span>
-<span class="c1">// ┌──────┐  │   Int??  │  │   Int??  │</span>
-<span class="c1">// │ Int? │  │ ┌──────┐ │  │          │</span>
-<span class="c1">// │      │  │ │ Int? │ │  │          │</span>
-<span class="c1">// │      │  │ │      │ │  │          │</span>
-<span class="c1">// └──────┘  │ │      │ │  │          │</span>
-<span class="c1">//           └─┴──────┴─┘  └──────────┘</span>
-<span class="c1">//   bar1        bar2         bar3</span>
-
-<span class="kd">var</span> <span class="nv">bar1</span><span class="p">:</span> <span class="nb">Int</span><span class="p">?</span> <span class="p">=</span> <span class="kc">nil</span>
-<span class="kd">var</span> <span class="nv">bar2</span><span class="p">:</span> <span class="nb">Int</span><span class="p">??</span> <span class="p">=</span> <span class="n">bar1</span>
-<span class="kd">var</span> <span class="nv">bar3</span><span class="p">:</span> <span class="nb">Int</span><span class="p">??</span> <span class="p">=</span> <span class="kc">nil</span>
-
-<span class="bp">print</span><span class="p">(</span><span class="n">bar1</span> <span class="p">==</span> <span class="n">bar3</span><span class="p">)</span> <span class="c1">// false</span>
-<span class="bp">print</span><span class="p">(</span><span class="n">bar2</span> <span class="p">==</span> <span class="n">bar3</span><span class="p">)</span> <span class="c1">// false</span>
-
-<span class="c1">// LLDB:</span>
-<span class="c1">// (lldb) fr v -R bar1</span>
-<span class="c1">// (Swift.Optional&lt;Swift.Int&gt;) bar1 = none {</span>
-<span class="c1">//   some = {</span>
-<span class="c1">//     _value = 0</span>
-<span class="c1">//   }</span>
-<span class="c1">// }</span>
-<span class="c1">// (lldb) fr v -R bar2</span>
-<span class="c1">// (Swift.Optional&lt;Swift.Optional&lt;Swift.Int&gt;&gt;) bar2 = some {</span>
-<span class="c1">//   some = none {</span>
-<span class="c1">//     some = {</span>
-<span class="c1">//       _value = 0</span>
-<span class="c1">//     }</span>
-<span class="c1">//   }</span>
-<span class="c1">// }</span>
-<span class="c1">// (lldb) fr v -R bar3</span>
-<span class="c1">// (Swift.Optional&lt;Swift.Optional&lt;Swift.Int&gt;&gt;) bar3 = none {</span>
-<span class="c1">//   some = some {</span>
-<span class="c1">//     some = {</span>
-<span class="c1">//       _value = 0</span>
-<span class="c1">//     }</span>
-<span class="c1">//   }</span>
-<span class="c1">// }</span>
-</code></pre></div><p>不同于之前例子中的赋非 <code>nil</code> 值，这里的 <code>bar1</code> 和 <code>bar3</code> 固然因为类型都无法匹配而无法判等；而 <code>bar2</code> 和 <code>bar3</code> 似乎看起来都被赋值了 <code>nil</code>，但其实前者本质上被赋值了 <code>Int?</code> 类型的 <code>nil</code>，即第二层可选仍有值，后者则是被赋值了 <code>Int??</code> 的 <code>nil</code>，两层可选均为空，因此结果也不相等。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="c1">//           ┌──────────┐  ┌──────────┐</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// ┌──────┐  │   Int??  │  │   Int??  │</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// │ Int? │  │ ┌──────┐ │  │ ┌──────┐ │</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// │      │  │ │ Int? │ │  │ │ Int? │ │</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// │  10  │  │ │      │ │  │ │      │ │</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// └──────┘  │ │  10  │ │  │ │  10  │ │</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//           └─┴──────┴─┘  └─┴──────┴─┘</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//   foo1        foo2         foo3</span>
+</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="nv">foo1</span><span class="p">:</span> <span class="nb">Int</span><span class="p">?</span> <span class="p">=</span> <span class="mi">10</span>
+</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="nv">foo2</span><span class="p">:</span> <span class="nb">Int</span><span class="p">??</span> <span class="p">=</span> <span class="n">foo1</span>
+</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="nv">foo3</span><span class="p">:</span> <span class="nb">Int</span><span class="p">??</span> <span class="p">=</span> <span class="mi">10</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">foo2</span> <span class="p">==</span> <span class="n">foo3</span><span class="p">)</span> <span class="c1">// true</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// LLDB:</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// (lldb) fr v -R foo1</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// (Swift.Optional&lt;Swift.Int&gt;) foo1 = some {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//   some = {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//     _value = 10</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//   }</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// }</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// (lldb) fr v -R foo2</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// (Swift.Optional&lt;Swift.Optional&lt;Swift.Int&gt;&gt;) foo2 = some {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//   some = some {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//     some = {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//       _value = 10</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//     }</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//   }</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// }</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// (lldb) fr v -R foo3</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// (Swift.Optional&lt;Swift.Optional&lt;Swift.Int&gt;&gt;) foo3 = some {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//   some = some {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//     some = {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//       _value = 10</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//     }</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//   }</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// }</span>
+</span></span></code></pre></div><p>通过 <code>fr v -R</code> 我们可以看出，<code>foo2</code> 和 <code>foo3</code> 均为两重可选，且均为 <code>.some</code>，最内部实际包装的值也为 <code>10</code>，因此两者相同。而下面这种情况略有不同：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="c1">//           ┌──────────┐  ┌──────────┐</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// ┌──────┐  │   Int??  │  │   Int??  │</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// │ Int? │  │ ┌──────┐ │  │          │</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// │      │  │ │ Int? │ │  │          │</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// │      │  │ │      │ │  │          │</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// └──────┘  │ │      │ │  │          │</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//           └─┴──────┴─┘  └──────────┘</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//   bar1        bar2         bar3</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="nv">bar1</span><span class="p">:</span> <span class="nb">Int</span><span class="p">?</span> <span class="p">=</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="nv">bar2</span><span class="p">:</span> <span class="nb">Int</span><span class="p">??</span> <span class="p">=</span> <span class="n">bar1</span>
+</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="nv">bar3</span><span class="p">:</span> <span class="nb">Int</span><span class="p">??</span> <span class="p">=</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">bar1</span> <span class="p">==</span> <span class="n">bar3</span><span class="p">)</span> <span class="c1">// false</span>
+</span></span><span class="line"><span class="cl"><span class="bp">print</span><span class="p">(</span><span class="n">bar2</span> <span class="p">==</span> <span class="n">bar3</span><span class="p">)</span> <span class="c1">// false</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// LLDB:</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// (lldb) fr v -R bar1</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// (Swift.Optional&lt;Swift.Int&gt;) bar1 = none {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//   some = {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//     _value = 0</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//   }</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// }</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// (lldb) fr v -R bar2</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// (Swift.Optional&lt;Swift.Optional&lt;Swift.Int&gt;&gt;) bar2 = some {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//   some = none {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//     some = {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//       _value = 0</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//     }</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//   }</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// }</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// (lldb) fr v -R bar3</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// (Swift.Optional&lt;Swift.Optional&lt;Swift.Int&gt;&gt;) bar3 = none {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//   some = some {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//     some = {</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//       _value = 0</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//     }</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//   }</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// }</span>
+</span></span></code></pre></div><p>不同于之前例子中的赋非 <code>nil</code> 值，这里的 <code>bar1</code> 和 <code>bar3</code> 固然因为类型都无法匹配而无法判等；而 <code>bar2</code> 和 <code>bar3</code> 似乎看起来都被赋值了 <code>nil</code>，但其实前者本质上被赋值了 <code>Int?</code> 类型的 <code>nil</code>，即第二层可选仍有值，后者则是被赋值了 <code>Int??</code> 的 <code>nil</code>，两层可选均为空，因此结果也不相等。</p>
 <!--
 ## switch-case
 

@@ -250,45 +250,45 @@ body {
 <h2 id="102-让异步测试执行更快更稳定">#102 让异步测试执行更快更稳定</h2>
 <p>异步代码似乎总是很难去编写单元测试，因为我们不清楚什么时候请求才能回来。现在在 Swift 中，我们可以使用 <code>expectation</code>（预料）简单设定超时时间，并在 Closure 回调时调用 <code>fulfill()</code> 即可轻松实现。</p>
 <p>Talk is cheap, show me the code!</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">import</span> <span class="nc">XCTest</span>
-<span class="p">@</span><span class="n">testable</span> <span class="kd">import</span> <span class="nc">TestUnitTest</span>
-
-<span class="kd">class</span> <span class="nc">TestUnitTestTests</span><span class="p">:</span> <span class="n">XCTestCase</span> <span class="p">{</span>
-    <span class="kd">func</span> <span class="nf">fetchFromNetwork</span><span class="p">(</span><span class="kc">_</span> <span class="n">completion</span><span class="p">:</span> <span class="p">@</span><span class="n">escaping</span> <span class="p">(</span><span class="nb">String</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="nb">Void</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">DispatchQueue</span><span class="p">.</span><span class="n">main</span><span class="p">.</span><span class="n">asyncAfter</span><span class="p">(</span><span class="n">deadline</span><span class="p">:</span> <span class="n">DispatchTime</span><span class="p">.</span><span class="n">now</span><span class="p">()</span> <span class="o">+</span> <span class="mf">1.5</span><span class="p">)</span> <span class="p">{</span>
-            <span class="kd">let</span> <span class="nv">response</span> <span class="p">=</span> <span class="s">&#34;Foo&#34;</span>
-            <span class="n">completion</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-
-    <span class="c1">// 🙅 Not good</span>
-    <span class="kd">func</span> <span class="nf">testAsyncOperationsWithSleep</span><span class="p">()</span> <span class="p">{</span>
-        <span class="n">fetchFromNetwork</span> <span class="p">{</span> <span class="n">res</span> <span class="k">in</span>
-            <span class="n">XCTAssert</span><span class="p">(</span><span class="n">res</span> <span class="p">==</span> <span class="s">&#34;Foo&#34;</span><span class="p">,</span> <span class="s">&#34;Response should be &#39;Foo&#39;.&#34;</span><span class="p">)</span>
-        <span class="p">}</span>
-
-        <span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-    <span class="p">}</span>
-
-    <span class="c1">// 🚩 Preferred</span>
-    <span class="kd">func</span> <span class="nf">testAsyncOperationsWithoutSleep</span><span class="p">()</span> <span class="p">{</span>
-        <span class="c1">// 声明 exp</span>
-        <span class="kd">let</span> <span class="nv">exp</span> <span class="p">=</span> <span class="n">expectation</span><span class="p">(</span><span class="n">description</span><span class="p">:</span> <span class="s">&#34;Async Test&#34;</span><span class="p">)</span>
-
-        <span class="kd">var</span> <span class="nv">result</span> <span class="p">=</span> <span class="s">&#34;&#34;</span>
-        <span class="n">fetchFromNetwork</span> <span class="p">{</span> <span class="n">res</span> <span class="k">in</span>
-            <span class="n">result</span> <span class="p">=</span> <span class="n">res</span>
-
-            <span class="c1">// Closure 执行完毕</span>
-            <span class="n">exp</span><span class="p">.</span><span class="n">fulfill</span><span class="p">()</span>
-        <span class="p">}</span>
-
-        <span class="c1">// 等待 exp，超时时间 2 秒</span>
-        <span class="n">wait</span><span class="p">(</span><span class="k">for</span><span class="p">:</span> <span class="p">[</span><span class="n">exp</span><span class="p">],</span> <span class="n">timeout</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">)</span>
-        <span class="n">XCTAssert</span><span class="p">(</span><span class="n">result</span> <span class="p">==</span> <span class="s">&#34;Foo&#34;</span><span class="p">,</span> <span class="s">&#34;Response should be &#39;Foo&#39;.&#34;</span><span class="p">)</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div><p>对于单元测试，在 iOS 项目中使用「<a href="https://github.com/Quick/Quick">Quick</a>」&amp;「<a href="https://github.com/Quick/Nimble">Nimble</a>」、在 Swift Package Management 项目中使用「<a href="https://github.com/kylef/Spectre">Spectre</a>」可以编写更加符合 BDD（Behavior Driven Design 即行为驱动设计）的测试用例。后者我曾在开源项目 <a href="https://github.com/kingcos/WWDCHelper">WWDCHelper</a> 中使用过，配合 CI 即可持续保障代码覆盖率。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="kd">import</span> <span class="nc">XCTest</span>
+</span></span><span class="line"><span class="cl"><span class="p">@</span><span class="n">testable</span> <span class="kd">import</span> <span class="nc">TestUnitTest</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">TestUnitTestTests</span><span class="p">:</span> <span class="n">XCTestCase</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">func</span> <span class="nf">fetchFromNetwork</span><span class="p">(</span><span class="kc">_</span> <span class="n">completion</span><span class="p">:</span> <span class="p">@</span><span class="n">escaping</span> <span class="p">(</span><span class="nb">String</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="nb">Void</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">DispatchQueue</span><span class="p">.</span><span class="n">main</span><span class="p">.</span><span class="n">asyncAfter</span><span class="p">(</span><span class="n">deadline</span><span class="p">:</span> <span class="n">DispatchTime</span><span class="p">.</span><span class="n">now</span><span class="p">()</span> <span class="o">+</span> <span class="mf">1.5</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="kd">let</span> <span class="nv">response</span> <span class="p">=</span> <span class="s">&#34;Foo&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="n">completion</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// 🙅 Not good</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">func</span> <span class="nf">testAsyncOperationsWithSleep</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">fetchFromNetwork</span> <span class="p">{</span> <span class="n">res</span> <span class="k">in</span>
+</span></span><span class="line"><span class="cl">            <span class="n">XCTAssert</span><span class="p">(</span><span class="n">res</span> <span class="p">==</span> <span class="s">&#34;Foo&#34;</span><span class="p">,</span> <span class="s">&#34;Response should be &#39;Foo&#39;.&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// 🚩 Preferred</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">func</span> <span class="nf">testAsyncOperationsWithoutSleep</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// 声明 exp</span>
+</span></span><span class="line"><span class="cl">        <span class="kd">let</span> <span class="nv">exp</span> <span class="p">=</span> <span class="n">expectation</span><span class="p">(</span><span class="n">description</span><span class="p">:</span> <span class="s">&#34;Async Test&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="kd">var</span> <span class="nv">result</span> <span class="p">=</span> <span class="s">&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">fetchFromNetwork</span> <span class="p">{</span> <span class="n">res</span> <span class="k">in</span>
+</span></span><span class="line"><span class="cl">            <span class="n">result</span> <span class="p">=</span> <span class="n">res</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1">// Closure 执行完毕</span>
+</span></span><span class="line"><span class="cl">            <span class="n">exp</span><span class="p">.</span><span class="n">fulfill</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1">// 等待 exp，超时时间 2 秒</span>
+</span></span><span class="line"><span class="cl">        <span class="n">wait</span><span class="p">(</span><span class="k">for</span><span class="p">:</span> <span class="p">[</span><span class="n">exp</span><span class="p">],</span> <span class="n">timeout</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">XCTAssert</span><span class="p">(</span><span class="n">result</span> <span class="p">==</span> <span class="s">&#34;Foo&#34;</span><span class="p">,</span> <span class="s">&#34;Response should be &#39;Foo&#39;.&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>对于单元测试，在 iOS 项目中使用「<a href="https://github.com/Quick/Quick">Quick</a>」&amp;「<a href="https://github.com/Quick/Nimble">Nimble</a>」、在 Swift Package Management 项目中使用「<a href="https://github.com/kylef/Spectre">Spectre</a>」可以编写更加符合 BDD（Behavior Driven Design 即行为驱动设计）的测试用例。后者我曾在开源项目 <a href="https://github.com/kingcos/WWDCHelper">WWDCHelper</a> 中使用过，配合 CI 即可持续保障代码覆盖率。</p>
 <h3 id="reference">Reference</h3>
 <ul>
 <li><a href="https://www.swiftbysundell.com/posts/unit-testing-asynchronous-swift-code">Unit testing asynchronous Swift code</a></li>
@@ -299,145 +299,144 @@ body {
 </ul>
 <h2 id="100-函数绑定值">#100 函数绑定值</h2>
 <p>将值和函数使用额外的 <code>combine</code> 函数绑定起来，可无需在闭包（Closure）中捕获 <code>self</code>，相当于只将最终需要检查的执行者与参数告知即可。对于 <code>combine</code> 函数是支持泛型的，即其无需关心具体的业务内容，它只负责将参数与闭包组装并执行：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">import</span> <span class="nc">UIKit</span>
-
-<span class="c1">// 类型别名</span>
-<span class="kd">typealias</span> <span class="n">Handler</span> <span class="p">=</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">Void</span>
-
-<span class="c1">// 闭包包裹器，否则无法存储在关联对象内</span>
-<span class="n">fileprivate</span> <span class="kd">class</span> <span class="nc">ClosureWrapper</span> <span class="p">{</span>
-    <span class="kd">var</span> <span class="nv">handler</span><span class="p">:</span> <span class="n">Handler</span><span class="p">?</span>
-
-    <span class="kd">init</span><span class="p">(</span><span class="kc">_</span> <span class="n">closure</span><span class="p">:</span> <span class="n">Handler</span><span class="p">?)</span> <span class="p">{</span>
-        <span class="n">handler</span> <span class="p">=</span> <span class="n">closure</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kd">extension</span> <span class="nc">UIButton</span> <span class="p">{</span>
-    <span class="c1">// 关联键</span>
-    <span class="kd">private</span> <span class="kd">struct</span> <span class="nc">AssociatedKeys</span> <span class="p">{</span>
-        <span class="kd">static</span> <span class="kd">var</span> <span class="nv">touchUpInside</span> <span class="p">=</span> <span class="s">&#34;touchUpInside&#34;</span>
-    <span class="p">}</span>
-
-    <span class="c1">// 处理方法</span>
-    <span class="kd">var</span> <span class="nv">handler</span><span class="p">:</span> <span class="n">Handler</span><span class="p">?</span> <span class="p">{</span>
-        <span class="kr">get</span> <span class="p">{</span>
-            <span class="k">if</span> <span class="kd">let</span> <span class="nv">wrapper</span> <span class="p">=</span> <span class="n">objc_getAssociatedObject</span><span class="p">(</span><span class="kc">self</span><span class="p">,</span>
-                                                      <span class="p">&amp;</span><span class="n">AssociatedKeys</span><span class="p">.</span><span class="n">touchUpInside</span><span class="p">)</span> <span class="k">as</span><span class="p">?</span> <span class="n">ClosureWrapper</span><span class="p">,</span>
-                <span class="kd">let</span> <span class="nv">handler</span> <span class="p">=</span> <span class="n">wrapper</span><span class="p">.</span><span class="n">handler</span> <span class="p">{</span>
-                <span class="k">return</span> <span class="n">handler</span>
-            <span class="p">}</span>
-
-            <span class="k">return</span> <span class="kc">nil</span>
-        <span class="p">}</span>
-
-        <span class="kr">set</span> <span class="p">{</span>
-            <span class="k">if</span> <span class="kd">let</span> <span class="nv">newValue</span> <span class="p">=</span> <span class="n">newValue</span> <span class="p">{</span>
-                <span class="n">objc_setAssociatedObject</span><span class="p">(</span><span class="kc">self</span><span class="p">,</span>
-                                         <span class="p">&amp;</span><span class="n">AssociatedKeys</span><span class="p">.</span><span class="n">touchUpInside</span><span class="p">,</span>
-                                         <span class="n">ClosureWrapper</span><span class="p">(</span><span class="n">newValue</span><span class="p">),</span>
-                                         <span class="p">.</span><span class="n">OBJC_ASSOCIATION_RETAIN_NONATOMIC</span><span class="p">)</span>
-
-                <span class="n">addTarget</span><span class="p">(</span><span class="kc">self</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="k">#selector</span><span class="p">(</span><span class="n">runHandler</span><span class="p">),</span> <span class="k">for</span><span class="p">:</span> <span class="p">.</span><span class="n">touchUpInside</span><span class="p">)</span>
-            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-                <span class="n">removeTarget</span><span class="p">(</span><span class="kc">self</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="k">#selector</span><span class="p">(</span><span class="n">runHandler</span><span class="p">),</span> <span class="k">for</span><span class="p">:</span> <span class="p">.</span><span class="n">touchUpInside</span><span class="p">)</span>
-            <span class="p">}</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-
-    <span class="kr">@objc</span> <span class="kd">func</span> <span class="nf">runHandler</span><span class="p">()</span> <span class="p">{</span>
-        <span class="n">handler</span><span class="p">?()</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-
-
-<span class="kd">struct</span> <span class="nc">Product</span> <span class="p">{</span>
-    <span class="kd">var</span> <span class="nv">bar</span><span class="p">:</span> <span class="nb">Int</span>
-<span class="p">}</span>
-
-<span class="kd">struct</span> <span class="nc">ProductManager</span> <span class="p">{</span>
-    <span class="kd">func</span> <span class="nf">startCheckout</span><span class="p">(</span><span class="k">for</span> <span class="n">product</span><span class="p">:</span> <span class="n">Product</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">switch</span> <span class="n">product</span><span class="p">.</span><span class="n">bar</span> <span class="p">{</span>
-        <span class="k">case</span> <span class="mf">0.</span><span class="p">.&lt;</span><span class="mi">60</span><span class="p">:</span>
-            <span class="bp">print</span><span class="p">(</span><span class="s">&#34;不合格&#34;</span><span class="p">)</span>
-        <span class="k">case</span> <span class="mf">60.</span><span class="p">..</span><span class="mi">100</span><span class="p">:</span>
-            <span class="bp">print</span><span class="p">(</span><span class="s">&#34;合格&#34;</span><span class="p">)</span>
-        <span class="k">default</span><span class="p">:</span>
-            <span class="bp">fatalError</span><span class="p">()</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="c1">// 泛型 A B</span>
-<span class="kd">func</span> <span class="nf">combine</span><span class="p">&lt;</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">&gt;(</span><span class="kc">_</span> <span class="n">value</span><span class="p">:</span> <span class="n">A</span><span class="p">,</span>
-                   <span class="n">with</span> <span class="n">closure</span><span class="p">:</span> <span class="p">@</span><span class="n">escaping</span> <span class="p">(</span><span class="n">A</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">B</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="n">B</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="p">{</span> <span class="n">closure</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kd">class</span> <span class="nc">Demo100ViewController</span><span class="p">:</span> <span class="n">UIViewController</span> <span class="p">{</span>
-    <span class="kr">lazy</span> <span class="kd">var</span> <span class="nv">fooButton</span><span class="p">:</span> <span class="n">UIButton</span><span class="p">!</span> <span class="p">=</span> <span class="p">{</span>
-        <span class="kd">let</span> <span class="nv">button</span> <span class="p">=</span> <span class="n">UIButton</span><span class="p">(</span><span class="n">type</span><span class="p">:</span> <span class="p">.</span><span class="n">system</span><span class="p">)</span>
-
-        <span class="n">button</span><span class="p">.</span><span class="n">frame</span> <span class="p">=</span> <span class="n">CGRect</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="mf">100.0</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="n">height</span><span class="p">:</span> <span class="mi">50</span><span class="p">)</span>
-        <span class="n">button</span><span class="p">.</span><span class="n">setTitle</span><span class="p">(</span><span class="s">&#34;Foo&#34;</span><span class="p">,</span> <span class="k">for</span><span class="p">:</span> <span class="p">.</span><span class="n">normal</span><span class="p">)</span>
-
-        <span class="n">view</span><span class="p">.</span><span class="n">addSubview</span><span class="p">(</span><span class="n">button</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">button</span>
-    <span class="p">}()</span>
-
-    <span class="kd">var</span> <span class="nv">product</span> <span class="p">=</span> <span class="n">Product</span><span class="p">(</span><span class="n">bar</span><span class="p">:</span> <span class="mi">89</span><span class="p">)</span>
-    <span class="kd">var</span> <span class="nv">productManager</span> <span class="p">=</span> <span class="n">ProductManager</span><span class="p">()</span>
-
-    <span class="kr">override</span> <span class="kd">func</span> <span class="nf">viewDidLoad</span><span class="p">()</span> <span class="p">{</span>
-        <span class="kc">super</span><span class="p">.</span><span class="n">viewDidLoad</span><span class="p">()</span>
-
-        <span class="n">title</span> <span class="p">=</span> <span class="s">&#34;100&#34;</span>
-        <span class="n">view</span><span class="p">.</span><span class="n">backgroundColor</span> <span class="p">=</span> <span class="p">.</span><span class="n">white</span>
-
-        <span class="c1">// 🙅‍♂️ Not good</span>
-        <span class="n">fooButton</span><span class="p">.</span><span class="n">handler</span> <span class="p">=</span> <span class="p">{</span> <span class="p">[</span><span class="kr">weak</span> <span class="kc">self</span><span class="p">]</span> <span class="k">in</span>
-            <span class="k">guard</span> <span class="kd">let</span> <span class="nv">self</span> <span class="p">=</span> <span class="kc">self</span> <span class="k">else</span> <span class="p">{</span> <span class="k">return</span> <span class="p">}</span>
-
-            <span class="kc">self</span><span class="p">.</span><span class="n">productManager</span><span class="p">.</span><span class="n">startCheckout</span><span class="p">(</span><span class="k">for</span><span class="p">:</span> <span class="kc">self</span><span class="p">.</span><span class="n">product</span><span class="p">)</span>
-        <span class="p">}</span>
-
-        <span class="c1">// 🚩 Preferred</span>
-        <span class="n">fooButton</span><span class="p">.</span><span class="n">handler</span> <span class="p">=</span> <span class="n">combine</span><span class="p">(</span><span class="kc">self</span><span class="p">.</span><span class="n">product</span><span class="p">,</span> <span class="n">with</span><span class="p">:</span> <span class="n">productManager</span><span class="p">.</span><span class="n">startCheckout</span><span class="p">)</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div><p>然而在真正实现这一段的 <code>handler</code> 时，却花费了一些周折。<code>UIButton</code> 在官方的设计模式是 Target Action，而我们需要改为闭包回调的形式。由于 Swift 的 <code>extension</code> 并不支持存储属性，类似 Obj-C 的 Category 不支持实例变量，这里仍然使用了关联对象来将闭包关联在对象上。又由于闭包无法直接被关联，仍然需要包裹在类中才得以实现。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="kd">import</span> <span class="nc">UIKit</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 类型别名</span>
+</span></span><span class="line"><span class="cl"><span class="kd">typealias</span> <span class="n">Handler</span> <span class="p">=</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="nb">Void</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 闭包包裹器，否则无法存储在关联对象内</span>
+</span></span><span class="line"><span class="cl"><span class="n">fileprivate</span> <span class="kd">class</span> <span class="nc">ClosureWrapper</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nv">handler</span><span class="p">:</span> <span class="n">Handler</span><span class="p">?</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">init</span><span class="p">(</span><span class="kc">_</span> <span class="n">closure</span><span class="p">:</span> <span class="n">Handler</span><span class="p">?)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">handler</span> <span class="p">=</span> <span class="n">closure</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">extension</span> <span class="nc">UIButton</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 关联键</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">private</span> <span class="kd">struct</span> <span class="nc">AssociatedKeys</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kd">static</span> <span class="kd">var</span> <span class="nv">touchUpInside</span> <span class="p">=</span> <span class="s">&#34;touchUpInside&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// 处理方法</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nv">handler</span><span class="p">:</span> <span class="n">Handler</span><span class="p">?</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kr">get</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="kd">let</span> <span class="nv">wrapper</span> <span class="p">=</span> <span class="n">objc_getAssociatedObject</span><span class="p">(</span><span class="kc">self</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                                      <span class="p">&amp;</span><span class="n">AssociatedKeys</span><span class="p">.</span><span class="n">touchUpInside</span><span class="p">)</span> <span class="k">as</span><span class="p">?</span> <span class="n">ClosureWrapper</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="kd">let</span> <span class="nv">handler</span> <span class="p">=</span> <span class="n">wrapper</span><span class="p">.</span><span class="n">handler</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="k">return</span> <span class="n">handler</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="kr">set</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="kd">let</span> <span class="nv">newValue</span> <span class="p">=</span> <span class="n">newValue</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">objc_setAssociatedObject</span><span class="p">(</span><span class="kc">self</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                         <span class="p">&amp;</span><span class="n">AssociatedKeys</span><span class="p">.</span><span class="n">touchUpInside</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                         <span class="n">ClosureWrapper</span><span class="p">(</span><span class="n">newValue</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                                         <span class="p">.</span><span class="n">OBJC_ASSOCIATION_RETAIN_NONATOMIC</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">                <span class="n">addTarget</span><span class="p">(</span><span class="kc">self</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="k">#selector</span><span class="p">(</span><span class="n">runHandler</span><span class="p">),</span> <span class="k">for</span><span class="p">:</span> <span class="p">.</span><span class="n">touchUpInside</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">removeTarget</span><span class="p">(</span><span class="kc">self</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="k">#selector</span><span class="p">(</span><span class="n">runHandler</span><span class="p">),</span> <span class="k">for</span><span class="p">:</span> <span class="p">.</span><span class="n">touchUpInside</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kr">@objc</span> <span class="kd">func</span> <span class="nf">runHandler</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">handler</span><span class="p">?()</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">struct</span> <span class="nc">Product</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nv">bar</span><span class="p">:</span> <span class="nb">Int</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">struct</span> <span class="nc">ProductManager</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">func</span> <span class="nf">startCheckout</span><span class="p">(</span><span class="k">for</span> <span class="n">product</span><span class="p">:</span> <span class="n">Product</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">switch</span> <span class="n">product</span><span class="p">.</span><span class="n">bar</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">case</span> <span class="mf">0.</span><span class="p">.&lt;</span><span class="mi">60</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">print</span><span class="p">(</span><span class="s">&#34;不合格&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">case</span> <span class="mf">60.</span><span class="p">..</span><span class="mi">100</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">print</span><span class="p">(</span><span class="s">&#34;合格&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">default</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">fatalError</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 泛型 A B</span>
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">combine</span><span class="p">&lt;</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">&gt;(</span><span class="kc">_</span> <span class="n">value</span><span class="p">:</span> <span class="n">A</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                   <span class="n">with</span> <span class="n">closure</span><span class="p">:</span> <span class="p">@</span><span class="n">escaping</span> <span class="p">(</span><span class="n">A</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">B</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="p">()</span> <span class="p">-&gt;</span> <span class="n">B</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span> <span class="n">closure</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">Demo100ViewController</span><span class="p">:</span> <span class="n">UIViewController</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kr">lazy</span> <span class="kd">var</span> <span class="nv">fooButton</span><span class="p">:</span> <span class="n">UIButton</span><span class="p">!</span> <span class="p">=</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kd">let</span> <span class="nv">button</span> <span class="p">=</span> <span class="n">UIButton</span><span class="p">(</span><span class="n">type</span><span class="p">:</span> <span class="p">.</span><span class="n">system</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">button</span><span class="p">.</span><span class="n">frame</span> <span class="p">=</span> <span class="n">CGRect</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="mf">100.0</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="n">height</span><span class="p">:</span> <span class="mi">50</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">button</span><span class="p">.</span><span class="n">setTitle</span><span class="p">(</span><span class="s">&#34;Foo&#34;</span><span class="p">,</span> <span class="k">for</span><span class="p">:</span> <span class="p">.</span><span class="n">normal</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">view</span><span class="p">.</span><span class="n">addSubview</span><span class="p">(</span><span class="n">button</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">button</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nv">product</span> <span class="p">=</span> <span class="n">Product</span><span class="p">(</span><span class="n">bar</span><span class="p">:</span> <span class="mi">89</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nv">productManager</span> <span class="p">=</span> <span class="n">ProductManager</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kr">override</span> <span class="kd">func</span> <span class="nf">viewDidLoad</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kc">super</span><span class="p">.</span><span class="n">viewDidLoad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">title</span> <span class="p">=</span> <span class="s">&#34;100&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">view</span><span class="p">.</span><span class="n">backgroundColor</span> <span class="p">=</span> <span class="p">.</span><span class="n">white</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1">// 🙅‍♂️ Not good</span>
+</span></span><span class="line"><span class="cl">        <span class="n">fooButton</span><span class="p">.</span><span class="n">handler</span> <span class="p">=</span> <span class="p">{</span> <span class="p">[</span><span class="kr">weak</span> <span class="kc">self</span><span class="p">]</span> <span class="k">in</span>
+</span></span><span class="line"><span class="cl">            <span class="k">guard</span> <span class="kd">let</span> <span class="nv">self</span> <span class="p">=</span> <span class="kc">self</span> <span class="k">else</span> <span class="p">{</span> <span class="k">return</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="kc">self</span><span class="p">.</span><span class="n">productManager</span><span class="p">.</span><span class="n">startCheckout</span><span class="p">(</span><span class="k">for</span><span class="p">:</span> <span class="kc">self</span><span class="p">.</span><span class="n">product</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1">// 🚩 Preferred</span>
+</span></span><span class="line"><span class="cl">        <span class="n">fooButton</span><span class="p">.</span><span class="n">handler</span> <span class="p">=</span> <span class="n">combine</span><span class="p">(</span><span class="kc">self</span><span class="p">.</span><span class="n">product</span><span class="p">,</span> <span class="n">with</span><span class="p">:</span> <span class="n">productManager</span><span class="p">.</span><span class="n">startCheckout</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>然而在真正实现这一段的 <code>handler</code> 时，却花费了一些周折。<code>UIButton</code> 在官方的设计模式是 Target Action，而我们需要改为闭包回调的形式。由于 Swift 的 <code>extension</code> 并不支持存储属性，类似 Obj-C 的 Category 不支持实例变量，这里仍然使用了关联对象来将闭包关联在对象上。又由于闭包无法直接被关联，仍然需要包裹在类中才得以实现。</p>
 <h2 id="99-使用函数进行依赖注入">#99 使用函数进行依赖注入</h2>
 <p>在开始前，我们先来认识一下什么是<strong>依赖注入（Dependency Injection）</strong>。</p>
 <p>依赖注入又称控制反转（Inversion of Control，IoC）。简单来说，依赖注入的重点在于注入，即将依赖以<strong>注入</strong>的方式引入，而非直接在依赖内创建，以避免耦合。举个简单的例子：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">struct</span> <span class="nc">Foo</span> <span class="p">{</span>
-    <span class="kd">var</span> <span class="nv">bar</span><span class="p">:</span> <span class="nb">String</span>
-<span class="p">}</span>
-
-<span class="kd">struct</span> <span class="nc">FooFactory</span> <span class="p">{</span>
-    <span class="kd">static</span> <span class="kd">func</span> <span class="nf">generate</span><span class="p">(</span><span class="kc">_</span> <span class="n">bar</span><span class="p">:</span> <span class="nb">String</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">Foo</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="n">Foo</span><span class="p">(</span><span class="n">bar</span><span class="p">:</span> <span class="n">bar</span><span class="p">)</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kd">struct</span> <span class="nc">Bar</span> <span class="p">{</span>
-    <span class="kd">var</span> <span class="nv">foo</span><span class="p">:</span> <span class="n">Foo</span>
-
-    <span class="c1">// 🙅 Not good</span>
-    <span class="kd">init</span><span class="p">(</span><span class="kc">_</span> <span class="n">bar</span><span class="p">:</span> <span class="nb">String</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">foo</span> <span class="p">=</span> <span class="n">Foo</span><span class="p">(</span><span class="n">bar</span><span class="p">:</span> <span class="n">bar</span><span class="p">)</span>
-        <span class="c1">// foo = FooFactory.generate(bar)</span>
-    <span class="p">}</span>
-
-    <span class="c1">// 🚩 Preferred</span>
-    <span class="kd">init</span><span class="p">(</span><span class="kc">_</span> <span class="n">foo</span><span class="p">:</span> <span class="n">Foo</span><span class="p">)</span> <span class="p">{</span>
-        <span class="kc">self</span><span class="p">.</span><span class="n">foo</span> <span class="p">=</span> <span class="n">foo</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div><p>设计模式上更加推荐将 <code>foo</code> 直接注入到 <code>Bar</code> 中，显而易见的好处是这样可以便于单元测试，因为我们将 <code>Foo</code> 的构造暴露了在外部，避免增加了 <code>Bar</code> 的耦合度。这也正符合其另一个名称控制反转，即将控制权交由外界，<code>Bar</code> 无需关心 <code>foo</code> 是如何创建的（通过构造器，抑或工厂方法等），其只需要直接使用即可。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="kd">struct</span> <span class="nc">Foo</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nv">bar</span><span class="p">:</span> <span class="nb">String</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">struct</span> <span class="nc">FooFactory</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">static</span> <span class="kd">func</span> <span class="nf">generate</span><span class="p">(</span><span class="kc">_</span> <span class="n">bar</span><span class="p">:</span> <span class="nb">String</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">Foo</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">Foo</span><span class="p">(</span><span class="n">bar</span><span class="p">:</span> <span class="n">bar</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">struct</span> <span class="nc">Bar</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nv">foo</span><span class="p">:</span> <span class="n">Foo</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// 🙅 Not good</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">init</span><span class="p">(</span><span class="kc">_</span> <span class="n">bar</span><span class="p">:</span> <span class="nb">String</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">foo</span> <span class="p">=</span> <span class="n">Foo</span><span class="p">(</span><span class="n">bar</span><span class="p">:</span> <span class="n">bar</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// foo = FooFactory.generate(bar)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// 🚩 Preferred</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">init</span><span class="p">(</span><span class="kc">_</span> <span class="n">foo</span><span class="p">:</span> <span class="n">Foo</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kc">self</span><span class="p">.</span><span class="n">foo</span> <span class="p">=</span> <span class="n">foo</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>设计模式上更加推荐将 <code>foo</code> 直接注入到 <code>Bar</code> 中，显而易见的好处是这样可以便于单元测试，因为我们将 <code>Foo</code> 的构造暴露了在外部，避免增加了 <code>Bar</code> 的耦合度。这也正符合其另一个名称控制反转，即将控制权交由外界，<code>Bar</code> 无需关心 <code>foo</code> 是如何创建的（通过构造器，抑或工厂方法等），其只需要直接使用即可。</p>
 <p>在 Swift 中，函数是一类公民，即可以作为一种类型。因此函数的注入也使得内部无需关心函数具体的定义，只需要定义好参数和返回值即可。比如在网络请求中，我们可以无需关心网络层到底是通过 <code>URLSession</code> 还是 <code>Alamofire</code> 这样封装好的网络库来构造的：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift">
-</code></pre></div><h3 id="reference-1">Reference</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"></code></pre></div><h3 id="reference-1">Reference</h3>
 <ul>
 <li><a href="https://www.swiftbysundell.com/posts/simple-swift-dependency-injection-with-functions">Simple Swift dependency injection with functions</a></li>
 <li><a href="https://www.swiftbysundell.com/posts/under-the-hood-of-futures-and-promises-in-swift">Under the hood of Futures &amp; Promises in Swift</a></li>

@@ -233,41 +233,41 @@ body {
 <li>使用 <code>xcrun simctl list</code> 命令列出所有模拟器机型，用 <code>xcrun simctl erase UDID</code> 还原相应的设备，重试即可。</li>
 <li>下面是一个 Python 3 脚本，可以使用 <code>python erase_simulators.py -d 'DEVICE_TYPE'</code> 来直接还原相应设备类型的所有设备。</li>
 </ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="c1"># -*- coding: utf-8 -*-</span>
-
-<span class="kn">import</span> <span class="nn">argparse</span>
-<span class="kn">import</span> <span class="nn">subprocess</span>
-<span class="kn">import</span> <span class="nn">re</span>
-
-<span class="k">def</span> <span class="nf">erase_device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
-    <span class="n">status</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">getstatusoutput</span><span class="p">(</span><span class="s1">&#39;xcrun simctl list | grep </span><span class="se">\&#39;</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">device</span> <span class="o">+</span> <span class="s1">&#39; (</span><span class="se">\&#39;</span><span class="s1">&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">outputs</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
-            <span class="n">simulator_udids</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">&#39;[A-Z0-9-]</span><span class="si">{36}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">simulator_udids</span> <span class="o">!=</span> <span class="p">[]:</span>
-                <span class="k">for</span> <span class="n">udid</span> <span class="ow">in</span> <span class="n">simulator_udids</span><span class="p">:</span>
-                    <span class="n">subprocess</span><span class="o">.</span><span class="n">getstatusoutput</span><span class="p">(</span><span class="s1">&#39;xcrun simctl erase&#39;</span> <span class="o">+</span> <span class="n">udid</span><span class="p">)</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Already erased &#39;</span> <span class="o">+</span> <span class="n">device</span> <span class="o">+</span> <span class="s1">&#39; - UDID: &#39;</span> <span class="o">+</span> <span class="n">udid</span><span class="p">)</span>
-
-<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
-    <span class="n">iphone_64_devices</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;iPhone 5s&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone 6&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone 6 Plus&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone 6s&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone 6s Plus&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone 7&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone 7 Plus&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone 8&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone 8 Plus&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone X&#39;</span><span class="p">]</span>
-    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-d&#39;</span><span class="p">,</span> <span class="s1">&#39;--device&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Specify the simulator device, eg. iPhone X&#39;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">iphone_64_devices</span><span class="p">)</span>
-    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">erase_device</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Please specify the device option!&#39;</span><span class="p">)</span>
-</code></pre></div><h3 id="the-operation-couldnt-be-completed-dvtcoresimulatoradditionserrordomain-error-0">The operation couldn’t be completed. (DVTCoreSimulatorAdditionsErrorDomain error 0.)</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># -*- coding: utf-8 -*-</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">argparse</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">subprocess</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">re</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">erase_device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">status</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">getstatusoutput</span><span class="p">(</span><span class="s1">&#39;xcrun simctl list | grep </span><span class="se">\&#39;</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">device</span> <span class="o">+</span> <span class="s1">&#39; (</span><span class="se">\&#39;</span><span class="s1">&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">outputs</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">simulator_udids</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">&#39;[A-Z0-9-]</span><span class="si">{36}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">simulator_udids</span> <span class="o">!=</span> <span class="p">[]:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">for</span> <span class="n">udid</span> <span class="ow">in</span> <span class="n">simulator_udids</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">subprocess</span><span class="o">.</span><span class="n">getstatusoutput</span><span class="p">(</span><span class="s1">&#39;xcrun simctl erase&#39;</span> <span class="o">+</span> <span class="n">udid</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Already erased &#39;</span> <span class="o">+</span> <span class="n">device</span> <span class="o">+</span> <span class="s1">&#39; - UDID: &#39;</span> <span class="o">+</span> <span class="n">udid</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">iphone_64_devices</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;iPhone 5s&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone 6&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone 6 Plus&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone 6s&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone 6s Plus&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone 7&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone 7 Plus&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone 8&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone 8 Plus&#39;</span><span class="p">,</span> <span class="s1">&#39;iPhone X&#39;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-d&#39;</span><span class="p">,</span> <span class="s1">&#39;--device&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Specify the simulator device, eg. iPhone X&#39;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">iphone_64_devices</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">erase_device</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Please specify the device option!&#39;</span><span class="p">)</span>
+</span></span></code></pre></div><h3 id="the-operation-couldnt-be-completed-dvtcoresimulatoradditionserrordomain-error-0">The operation couldn’t be completed. (DVTCoreSimulatorAdditionsErrorDomain error 0.)</h3>
 <ul>
 <li>Xcode: 10</li>
 <li>macOS: 10.14</li>
 <li>在清空了 <code>~/Library/Developer/CoreSimulator/Devices</code> 后 <code>xcodebuild test</code> 时出现此问题。</li>
 </ul>
 <h4 id="solution-1">Solution</h4>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">xcrun simctl erase all
-</code></pre></div><h2 id="cannot-find-srcrootinfoplist">Cannot find &ldquo;$(SRCROOT)/*/Info.plist&rdquo;</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">xcrun simctl erase all
+</span></span></code></pre></div><h2 id="cannot-find-srcrootinfoplist">Cannot find &ldquo;$(SRCROOT)/*/Info.plist&rdquo;</h2>
 <ul>
 <li>Fastlane <code>increment_version_number</code></li>
 <li><code>agvtool new-marketing-version x.x.x</code></li>
@@ -288,8 +288,8 @@ body {
 <li>手动打包不勾选「Rebuild from bitcode」选项即可；</li>
 <li>Fastlane 需要在关闭 Bitcode，具体如下：</li>
 </ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-ruby" data-lang="ruby"><span class="n">build_ios_app</span><span class="p">(</span><span class="ss">export_options</span><span class="p">:</span> <span class="p">{</span> <span class="ss">compileBitcode</span><span class="p">:</span> <span class="kp">false</span> <span class="p">})</span>
-</code></pre></div><h2 id="missing-password-for-user-xxxyyycom-and-running-in-non-interactive-shell">Missing password for user <a href="mailto:xxx@yyy.com">xxx@yyy.com</a>, and running in non-interactive shell</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-ruby" data-lang="ruby"><span class="line"><span class="cl"><span class="n">build_ios_app</span><span class="p">(</span><span class="ss">export_options</span><span class="p">:</span> <span class="p">{</span> <span class="ss">compileBitcode</span><span class="p">:</span> <span class="kp">false</span> <span class="p">})</span>
+</span></span></code></pre></div><h2 id="missing-password-for-user-xxxyyycom-and-running-in-non-interactive-shell">Missing password for user <a href="mailto:xxx@yyy.com">xxx@yyy.com</a>, and running in non-interactive shell</h2>
 <ul>
 <li>Fastlane 上传 App Store 时会出现该问题。</li>
 </ul>
@@ -316,8 +316,8 @@ body {
 <ul>
 <li><a href="https://help.apple.com/simulator/mac/9.0/index.html#/dev8a5f2aa4e">官方文档</a>。</li>
 </ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">sudo launchctl limit maxproc <span class="m">2000</span> <span class="m">2500</span>
-</code></pre></div><h2 id="在-iphone-x-及以上全面屏机型-uiwebview-的内容未填充整个视图">在 iPhone X 及以上全面屏机型 UIWebView 的内容未填充整个视图</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">sudo launchctl limit maxproc <span class="m">2000</span> <span class="m">2500</span>
+</span></span></code></pre></div><h2 id="在-iphone-x-及以上全面屏机型-uiwebview-的内容未填充整个视图">在 iPhone X 及以上全面屏机型 UIWebView 的内容未填充整个视图</h2>
 <ul>
 <li>视图层级关系：UIWebView &gt; UIWebScrollView &gt; UIWebBrowserView</li>
 <li>由于 iPhone X 带来的全面屏，系统会自动对其中的 UIWebBrowserView 进行调整，导致即使设置 UIWebView 整体的约束，显示的内容区域也时有问题。</li>
@@ -326,10 +326,10 @@ body {
 <ul>
 <li>将其中的 UIScrollView 的自动调整行为关闭即可。</li>
 </ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="k">if</span> <span class="cp">#available</span><span class="p">(</span><span class="cp">iOS</span> <span class="mf">11.0</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">webView</span><span class="p">.</span><span class="n">scrollView</span><span class="p">.</span><span class="n">contentInsetAdjustmentBehavior</span> <span class="p">=</span> <span class="p">.</span><span class="n">never</span>
-<span class="p">}</span>
-</code></pre></div></div>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="k">if</span> <span class="cp">#available</span><span class="p">(</span><span class="cp">iOS</span> <span class="mf">11.0</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">webView</span><span class="p">.</span><span class="n">scrollView</span><span class="p">.</span><span class="n">contentInsetAdjustmentBehavior</span> <span class="p">=</span> <span class="p">.</span><span class="n">never</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div></div>
                     <div class="post_footer">
                         
                         <div class="meta">

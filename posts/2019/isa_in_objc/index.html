@@ -243,76 +243,76 @@ body {
 <p><code>isa</code> 指针是所有 Obj-C 对象中都拥有的一个成员。因为除了继承链之外，Obj-C 还特有一条从实例对象到类对象、元类对象的链。而后者正是依靠 <code>isa</code> 而串联起来的，那么本文就将结合源码谈谈 Obj-C 中的 <code>isa</code>。</p>
 <p>对于不大熟悉 Obj-C 中对象的同学，可以先行阅读 <a href="../objects_in_obj-c/">Obj-C 中的对象</a>一文。</p>
 <h2 id="where">Where</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// NSObject.h
-</span><span class="c1"></span><span class="err">@</span><span class="n">interface</span> <span class="n">NSObject</span> <span class="o">&lt;</span><span class="n">NSObject</span><span class="o">&gt;</span> <span class="p">{</span>
-<span class="cp">#pragma clang diagnostic push
-</span><span class="cp">#pragma clang diagnostic ignored &#34;-Wobjc-interface-ivars&#34;
-</span><span class="cp"></span>    <span class="n">Class</span> <span class="n">isa</span>  <span class="n">OBJC_ISA_AVAILABILITY</span><span class="p">;</span> <span class="c1">// ⬅️
-</span><span class="c1"></span><span class="cp">#pragma clang diagnostic pop
-</span><span class="cp"></span><span class="p">}</span>
-
-<span class="c1">// objc-runtime-new.h
-</span><span class="c1"></span><span class="k">struct</span> <span class="nc">objc_class</span> <span class="o">:</span> <span class="n">objc_object</span> <span class="p">{</span>
-    <span class="c1">// Class ISA;
-</span><span class="c1"></span><span class="p">}</span>
-
-<span class="c1">// objc-private.h
-</span><span class="c1"></span><span class="k">struct</span> <span class="nc">objc_object</span> <span class="p">{</span>
-<span class="k">private</span><span class="o">:</span>
-    <span class="n">isa_t</span> <span class="n">isa</span><span class="p">;</span> <span class="c1">// ⬅️
-</span><span class="c1"></span><span class="p">}</span>
-</code></pre></div><p>如上，对于实例对象，<code>isa</code> 定义在基类 <code>NSObject</code> 的内部被其它类所继承；对于类对象和元类对象，<code>isa</code> 在 <code>objc_object</code> 结构体中被继承。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="c1">// NSObject.h
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="err">@</span><span class="n">interface</span> <span class="n">NSObject</span> <span class="o">&lt;</span><span class="n">NSObject</span><span class="o">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#pragma clang diagnostic push
+</span></span></span><span class="line"><span class="cl"><span class="cp">#pragma clang diagnostic ignored &#34;-Wobjc-interface-ivars&#34;
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="n">Class</span> <span class="n">isa</span>  <span class="n">OBJC_ISA_AVAILABILITY</span><span class="p">;</span> <span class="c1">// ⬅️
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#pragma clang diagnostic pop
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// objc-runtime-new.h
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">struct</span> <span class="nc">objc_class</span> <span class="o">:</span> <span class="n">objc_object</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Class ISA;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// objc-private.h
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">struct</span> <span class="nc">objc_object</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">isa_t</span> <span class="n">isa</span><span class="p">;</span> <span class="c1">// ⬅️
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><p>如上，对于实例对象，<code>isa</code> 定义在基类 <code>NSObject</code> 的内部被其它类所继承；对于类对象和元类对象，<code>isa</code> 在 <code>objc_object</code> 结构体中被继承。</p>
 <p><img src="/img/2019/isa_in_objc/1.png" alt="1"></p>
 <p>实例对象中的 <code>isa</code> 指向类对象，类对象中的 <code>isa</code> 指向元类对象，元类对象中的 <code>isa</code> 指向根元类对象（包括根元类对象也指向自己）。</p>
 <h2 id="what">What</h2>
 <p>那么 <code>isa</code> 到底是什么呢？其实在 ARM 64 之前，<code>isa</code> 直接保存了类对象或者元类对象的地址，而之后使用了位域结构存储了更多信息。</p>
 <p>我们可以在源码中追根溯源找到 <code>isa_t</code> 类型的共用体（关于共用体和位域，可参考 <a href="../bit_field_union_in_cpp/">C/C++ 中的位域与共用体</a>一文）：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// objc-private.h
-</span><span class="c1"></span><span class="k">struct</span> <span class="nc">objc_object</span> <span class="p">{</span>
-<span class="k">private</span><span class="o">:</span>
-    <span class="n">isa_t</span> <span class="n">isa</span><span class="p">;</span>
-
-<span class="c1">// ...
-</span><span class="c1"></span><span class="p">}</span>
-
-<span class="k">union</span> <span class="nc">isa_t</span> <span class="p">{</span>
-    <span class="n">isa_t</span><span class="p">()</span> <span class="p">{</span> <span class="p">}</span>
-    <span class="n">isa_t</span><span class="p">(</span><span class="n">uintptr_t</span> <span class="n">value</span><span class="p">)</span> <span class="o">:</span> <span class="n">bits</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="p">{</span> <span class="p">}</span>
-
-    <span class="n">Class</span> <span class="n">cls</span><span class="p">;</span>
-    <span class="n">uintptr_t</span> <span class="n">bits</span><span class="p">;</span>
-<span class="cp">#if defined(ISA_BITFIELD)
-</span><span class="cp"></span>    <span class="k">struct</span> <span class="p">{</span>
-        <span class="n">ISA_BITFIELD</span><span class="p">;</span>  <span class="c1">// defined in isa.h
-</span><span class="c1"></span>    <span class="p">};</span>
-<span class="cp">#endif
-</span><span class="cp"></span><span class="p">};</span>
-
-<span class="c1">// isa.h
-</span><span class="c1">// ARM 64
-</span><span class="c1"></span><span class="cp"># if __arm64__
-</span><span class="cp">#   define ISA_MASK        0x0000000ffffffff8ULL
-</span><span class="cp">#   define ISA_MAGIC_MASK  0x000003f000000001ULL
-</span><span class="cp">#   define ISA_MAGIC_VALUE 0x000001a000000001ULL
-</span><span class="cp">#   define ISA_BITFIELD                                                      \
-</span><span class="cp">      uintptr_t nonpointer        : 1;                                       \
-</span><span class="cp">      uintptr_t has_assoc         : 1;                                       \
-</span><span class="cp">      uintptr_t has_cxx_dtor      : 1;                                       \
-</span><span class="cp">      uintptr_t shiftcls          : 33; </span><span class="cm">/*MACH_VM_MAX_ADDRESS 0x1000000000*/</span><span class="cp"> \
-</span><span class="cp">      uintptr_t magic             : 6;                                       \
-</span><span class="cp">      uintptr_t weakly_referenced : 1;                                       \
-</span><span class="cp">      uintptr_t deallocating      : 1;                                       \
-</span><span class="cp">      uintptr_t has_sidetable_rc  : 1;                                       \
-</span><span class="cp">      uintptr_t extra_rc          : 19
-</span><span class="cp">#   define RC_ONE   (1ULL&lt;&lt;45)
-</span><span class="cp">#   define RC_HALF  (1ULL&lt;&lt;18)
-</span><span class="cp"></span>
-<span class="c1">// _uintptr_t.h
-</span><span class="c1"></span><span class="cp">#ifndef _UINTPTR_T
-</span><span class="cp">#define _UINTPTR_T
-</span><span class="cp"></span><span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">long</span>           <span class="n">uintptr_t</span><span class="p">;</span>
-<span class="cp">#endif </span><span class="cm">/* _UINTPTR_T */</span><span class="cp">
-</span></code></pre></div><p>为了最大程度地优化内存占用，<code>isa</code> 使用了位域与共用体结构，将 <code>unsigned long</code> 的 8 个字节分为 64 位来使用。在 ARM 64 结构之下，<code>isa</code> 中的内容如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="c1">// objc-private.h
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">struct</span> <span class="nc">objc_object</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">isa_t</span> <span class="n">isa</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">union</span> <span class="nc">isa_t</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">isa_t</span><span class="p">()</span> <span class="p">{</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">isa_t</span><span class="p">(</span><span class="n">uintptr_t</span> <span class="n">value</span><span class="p">)</span> <span class="o">:</span> <span class="n">bits</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="p">{</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">Class</span> <span class="n">cls</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">uintptr_t</span> <span class="n">bits</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#if defined(ISA_BITFIELD)
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="k">struct</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ISA_BITFIELD</span><span class="p">;</span>  <span class="c1">// defined in isa.h
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// isa.h
+</span></span></span><span class="line"><span class="cl"><span class="c1">// ARM 64
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp"># if __arm64__
+</span></span></span><span class="line"><span class="cl"><span class="cp">#   define ISA_MASK        0x0000000ffffffff8ULL
+</span></span></span><span class="line"><span class="cl"><span class="cp">#   define ISA_MAGIC_MASK  0x000003f000000001ULL
+</span></span></span><span class="line"><span class="cl"><span class="cp">#   define ISA_MAGIC_VALUE 0x000001a000000001ULL
+</span></span></span><span class="line"><span class="cl"><span class="cp">#   define ISA_BITFIELD                                                      \
+</span></span></span><span class="line"><span class="cl"><span class="cp">      uintptr_t nonpointer        : 1;                                       \
+</span></span></span><span class="line"><span class="cl"><span class="cp">      uintptr_t has_assoc         : 1;                                       \
+</span></span></span><span class="line"><span class="cl"><span class="cp">      uintptr_t has_cxx_dtor      : 1;                                       \
+</span></span></span><span class="line"><span class="cl"><span class="cp">      uintptr_t shiftcls          : 33; </span><span class="cm">/*MACH_VM_MAX_ADDRESS 0x1000000000*/</span><span class="cp"> \
+</span></span></span><span class="line"><span class="cl"><span class="cp">      uintptr_t magic             : 6;                                       \
+</span></span></span><span class="line"><span class="cl"><span class="cp">      uintptr_t weakly_referenced : 1;                                       \
+</span></span></span><span class="line"><span class="cl"><span class="cp">      uintptr_t deallocating      : 1;                                       \
+</span></span></span><span class="line"><span class="cl"><span class="cp">      uintptr_t has_sidetable_rc  : 1;                                       \
+</span></span></span><span class="line"><span class="cl"><span class="cp">      uintptr_t extra_rc          : 19
+</span></span></span><span class="line"><span class="cl"><span class="cp">#   define RC_ONE   (1ULL&lt;&lt;45)
+</span></span></span><span class="line"><span class="cl"><span class="cp">#   define RC_HALF  (1ULL&lt;&lt;18)
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// _uintptr_t.h
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#ifndef _UINTPTR_T
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define _UINTPTR_T
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">long</span>           <span class="n">uintptr_t</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif </span><span class="cm">/* _UINTPTR_T */</span><span class="cp">
+</span></span></span></code></pre></div><p>为了最大程度地优化内存占用，<code>isa</code> 使用了位域与共用体结构，将 <code>unsigned long</code> 的 8 个字节分为 64 位来使用。在 ARM 64 结构之下，<code>isa</code> 中的内容如下：</p>
 <table>
 <thead>
 <tr>
@@ -370,31 +370,31 @@ body {
 </tbody>
 </table>
 <p>得到了 <code>isa</code> 中各个成员的位数，这样我们就可以通过掩码来运算得出我们想要的部分。比如 <code>ISA_MASK</code>，<code>0x0000000ffffffff8</code> 换算为二进制即 <code>0b 0000 0000 0000 0000 0000 0000 0000 1111 1111 1111 1111 1111 1111 1111 1111 1000</code>，因此如果使用 <code>&amp;</code> 逻辑与将把 <code>shiftcls</code> 即类或元类对象的地址得出：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
-</span><span class="cp">#import &lt;objc/runtime.h&gt;
-</span><span class="cp"></span>
-<span class="k">@interface</span> <span class="nc">Foo</span> : <span class="nc">NSObject</span>
-<span class="k">@end</span>
-
-<span class="k">@implementation</span> <span class="nc">Foo</span>
-<span class="k">@end</span>
-
-<span class="kt">int</span> <span class="n">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
-    <span class="k">@autoreleasepool</span> <span class="p">{</span>
-        <span class="n">Foo</span> <span class="o">*</span><span class="n">foo</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Foo</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
-
-        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%p&#34;</span><span class="p">,</span> <span class="n">object_getClass</span><span class="p">(</span><span class="n">foo</span><span class="p">));</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="c1">// OUTPUT:
-</span><span class="c1">// 0x100002478
-</span><span class="c1">// LLDB:
-</span><span class="c1">// (lldb) p/x foo-&gt;isa
-</span><span class="c1">// (Class) $0 = 0x001d800100002479 Foo
-</span><span class="c1">// (lldb) p/x 0x001d800100002479 &amp; 0x0000000ffffffff8ULL
-</span><span class="c1">// (unsigned long long) $1 = 0x0000000100002478
-</span></code></pre></div><h2 id="reference">Reference</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="cp">#import &lt;Foundation/Foundation.h&gt;
+</span></span></span><span class="line"><span class="cl"><span class="cp">#import &lt;objc/runtime.h&gt;
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">@interface</span> <span class="nc">Foo</span> : <span class="nc">NSObject</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">@implementation</span> <span class="nc">Foo</span>
+</span></span><span class="line"><span class="cl"><span class="k">@end</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">@autoreleasepool</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Foo</span> <span class="o">*</span><span class="n">foo</span> <span class="o">=</span> <span class="p">[[</span><span class="n">Foo</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&#34;%p&#34;</span><span class="p">,</span> <span class="n">object_getClass</span><span class="p">(</span><span class="n">foo</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// OUTPUT:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 0x100002478
+</span></span></span><span class="line"><span class="cl"><span class="c1">// LLDB:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (lldb) p/x foo-&gt;isa
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (Class) $0 = 0x001d800100002479 Foo
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (lldb) p/x 0x001d800100002479 &amp; 0x0000000ffffffff8ULL
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (unsigned long long) $1 = 0x0000000100002478
+</span></span></span></code></pre></div><h2 id="reference">Reference</h2>
 <ul>
 <li><a href="../bit_field_union_in_cpp/">C/C++ 中的位域与共用体 - kingcos</a></li>
 <li><a href="../objects_in_obj-c/">Obj-C 中的对象 - kingcos</a></li>

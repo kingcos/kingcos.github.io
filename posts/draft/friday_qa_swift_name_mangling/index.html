@@ -241,28 +241,28 @@ body {
 <p>许久没有参与到 Friday Q&amp;A 中，不过我带着全新主题的文章又回来了：Swift。在最近的几篇文章中，Mike 具体介绍了 Swift 的内部结构是什么样的，但他只是轻描淡写了当查看包含 Swift 的二进制文件时，链接器所看到的：被修饰的（Mangled）符号名。</p>
 <hr>
 <p>在 C 之类的编程语言中，任何给定的名称（<em>符号</em>）都只能对应一个函数或者一条数据，那么名字修饰（Name Mangling）就不是必需的。尽管如此，如果我们查看典型的纯 C 二进制文件的符号表，仍然能发现每个函数名中都有一个 <code>_</code>（下划线）作为前缀。举个例子：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">$ <span class="nb">echo</span> <span class="s1">&#39;int main() { return 0; }&#39;</span> <span class="p">|</span> xcrun clang -x c - -o ./test
-$ xctest nm ./test <span class="c1"># 译者注：xctest 命令可能无法直接找到，也可直接使用 nm ./test</span>
-<span class="m">0000000100000000</span> T __mh_execute_header
-0000000100000f80 T _main
-                 U dyld_stub_binder
-$
-</code></pre></div><p>这种简单的「修饰」没有什么作用，其存在主要是历史原因，由于兼容性与统一性而被保留。按照约定，C 中定义的名称将带有下划线，而纯汇编定义的全局符号则没有（尽管许多汇编语言的作者仍会为了统一性而使用下划线作为前缀）。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">$ <span class="nb">echo</span> <span class="s1">&#39;int main() { return 0; }&#39;</span> <span class="p">|</span> xcrun clang -x c - -o ./test
+</span></span><span class="line"><span class="cl">$ xctest nm ./test <span class="c1"># 译者注：xctest 命令可能无法直接找到，也可直接使用 nm ./test</span>
+</span></span><span class="line"><span class="cl"><span class="m">0000000100000000</span> T __mh_execute_header
+</span></span><span class="line"><span class="cl">0000000100000f80 T _main
+</span></span><span class="line"><span class="cl">                 U dyld_stub_binder
+</span></span><span class="line"><span class="cl">$
+</span></span></code></pre></div><p>这种简单的「修饰」没有什么作用，其存在主要是历史原因，由于兼容性与统一性而被保留。按照约定，C 中定义的名称将带有下划线，而纯汇编定义的全局符号则没有（尽管许多汇编语言的作者仍会为了统一性而使用下划线作为前缀）。</p>
 <p>Obj-C 同样不会在符号名称间产生冲突；Obj-C 的方法实现总是形如 <code>-[class selector]</code>，而且 Obj-C 不允许在同一个类中重载具有不同类型签名的同一选择器（Selectors）。</p>
 <h2 id="好了让我们开始玩转名字修饰吧">好了，让我们开始玩转名字修饰吧！</h2>
 <p>如果在编程语言中只有简单的命名而没有提供任何更多的信息，会导致事情变得更加复杂。想一想这个 C++ 中的例子：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">$ cat <span class="p">|</span> xcrun clang -x c++ - -o <span class="nb">test</span> <span class="c1"># 译者注：输入完此行需要手动换行再粘贴下述语句</span>
-int foo<span class="o">(</span>int a<span class="o">)</span> <span class="o">{</span> <span class="k">return</span> a * 2<span class="p">;</span> <span class="o">}</span>
-int foo<span class="o">(</span>double a<span class="o">)</span> <span class="o">{</span> <span class="k">return</span> a * 2.0<span class="p">;</span> <span class="o">}</span>
-int main<span class="o">()</span> <span class="o">{</span> <span class="k">return</span> foo<span class="o">(</span>1<span class="o">)</span> + foo<span class="o">(</span>1.0<span class="o">)</span><span class="p">;</span> <span class="o">}</span>
-^D <span class="c1"># 译者注：换行后按下键盘 control + D</span>
-$ xcrun nm -a <span class="nb">test</span>
-0000000100000f30 T __Z3food
-0000000100000f10 T __Z3fooi
-<span class="m">0000000100000000</span> T __mh_execute_header
-0000000100000f60 T _main
-                 U dyld_stub_binder
-</code></pre></div><p>由于 <code>foo</code> 指的是两个具有不同签名的不同函数，而这样的语法在 C++ 中是合法的，因而不可能简单地生成两个 <code>_foo</code> 符号；链接器将无法将它们对应起来。所以 C++ 编译器使用一组严格的编码规则来「修饰」符号。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">$ cat <span class="p">|</span> xcrun clang -x c++ - -o <span class="nb">test</span> <span class="c1"># 译者注：输入完此行需要手动换行再粘贴下述语句</span>
+</span></span><span class="line"><span class="cl">int foo<span class="o">(</span>int a<span class="o">)</span> <span class="o">{</span> <span class="k">return</span> a * 2<span class="p">;</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">int foo<span class="o">(</span>double a<span class="o">)</span> <span class="o">{</span> <span class="k">return</span> a * 2.0<span class="p">;</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">int main<span class="o">()</span> <span class="o">{</span> <span class="k">return</span> foo<span class="o">(</span>1<span class="o">)</span> + foo<span class="o">(</span>1.0<span class="o">)</span><span class="p">;</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">^D <span class="c1"># 译者注：换行后按下键盘 control + D</span>
+</span></span><span class="line"><span class="cl">$ xcrun nm -a <span class="nb">test</span>
+</span></span><span class="line"><span class="cl">0000000100000f30 T __Z3food
+</span></span><span class="line"><span class="cl">0000000100000f10 T __Z3fooi
+</span></span><span class="line"><span class="cl"><span class="m">0000000100000000</span> T __mh_execute_header
+</span></span><span class="line"><span class="cl">0000000100000f60 T _main
+</span></span><span class="line"><span class="cl">                 U dyld_stub_binder
+</span></span></code></pre></div><p>由于 <code>foo</code> 指的是两个具有不同签名的不同函数，而这样的语法在 C++ 中是合法的，因而不可能简单地生成两个 <code>_foo</code> 符号；链接器将无法将它们对应起来。所以 C++ 编译器使用一组严格的编码规则来「修饰」符号。</p>
 <p>与 C 和 Obj-C 不同，C++ 和 Swift 中的函数名本身不足以区分每个单独的函数实现。因此同名但参数类型不同的函数（例如 <code>foo(int)</code> 和 <code>foo(double)</code>）需要更多信息以区分。而使用代码中给定的完整签名（例如 <code>foo(int)</code>）将导致链接器中产生许多额外的代码，而且当多个类型名称对应相同的底层类型时会造成混淆（比如 <code>unsigned</code> 和 <code>unsigned int</code>）。取而代之的是，在 C++ 中使用了些许晦涩的类型提升（Promotion）和转换规则，使得结果被修饰为一种利于编译器和链接器使用且不造成混淆的形式。Swift 与之相似。</p>
 <p>上述 <code>foo</code> 的示例简单分解如下：</p>
 <ol>
@@ -275,65 +275,65 @@ $ xcrun nm -a <span class="nb">test</span>
 <h2 id="非常有趣但作为一篇-swift-的文章我们花费了好久终于来到了">非常有趣，但作为一篇 Swift 的文章，我们花费了好久终于来到了！</h2>
 <p>Swift 的名字修饰与 C++ 有所不同。原则上讲，虽然 Swift 清晰地使用了一套基于 C++ 方案的编码，但在更成熟地类型系统中包含了更多信息，并表达概念。</p>
 <p>我们来看一个复杂的例子。思考以下过度设计且完全无用的 Swift 代码：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">$ xcrun swiftc -emit-library -o <span class="nb">test</span> -
-struct e <span class="o">{</span>
-        enum f <span class="o">{</span>
-                <span class="k">case</span> G, H, I
-        <span class="o">}</span>
-<span class="o">}</span>
-class a <span class="o">{</span>
-        class b <span class="o">{</span>
-                class c <span class="o">{</span>
-                        func d<span class="o">(</span>y: a, x w: b, v u: <span class="o">(</span>x: Int<span class="o">)</span> -&gt; Int<span class="o">)</span> -&gt; e.f <span class="o">{</span>
-                                <span class="k">return</span> e.f.G
-                        <span class="o">}</span>
-                <span class="o">}</span>
-        <span class="o">}</span>
-<span class="o">}</span>
-^D
-$ xcrun nm -g <span class="nb">test</span>
-...
-0000000000001c90 T __TFCCC4test1a1b1c1dfS2_FTS0_1xS1_1vFT1xSi_Si_OVS_1e1f
-...
-$
-</code></pre></div><p>译者注：由于本文发布时间较为久远，因此可使用以下实测过可以运行的代码来验证：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">$ xcrun swiftc -emit-library -o <span class="nb">test</span> -
-// 声明为 public 才可以在全局符号中看到
-public struct e <span class="o">{</span>
-  public enum f <span class="o">{</span>
-    <span class="k">case</span> G, H, I
-  <span class="o">}</span>
-<span class="o">}</span>
-
-public class a <span class="o">{</span>
-  public class b <span class="o">{</span>
-    public class c <span class="o">{</span>
-      // 新的语法规定「函数类型不能拥有参数标签」需要使用
-      // func d<span class="o">(</span>y: a, x w: b, v u: <span class="o">(</span>_ x: Int<span class="o">)</span> -&gt; Int<span class="o">)</span> -&gt; e.f
-      // 或 func d<span class="o">(</span>y: a, x w: b, v u: <span class="o">(</span>Int<span class="o">)</span> -&gt; Int<span class="o">)</span>
-      public func d<span class="o">(</span>y: a, x w: b, v u: <span class="o">(</span>Int<span class="o">)</span> -&gt; Int<span class="o">)</span> -&gt; e.f <span class="o">{</span>
-        <span class="k">return</span> e.f.G
-      <span class="o">}</span>
-    <span class="o">}</span>
-  <span class="o">}</span>
-<span class="o">}</span>
-^D
-$ nm -g <span class="nb">test</span>
-...
-<span class="m">0000000000001190</span> T _<span class="nv">$s4test1aC1bC1cC1d1y1x1vAA1eV1fOAC_AES2iXEtF</span>
-0000000000001dd8 S _<span class="nv">$s4test1aC1bC1cC1d1y1x1vAA1eV1fOAC_AES2iXEtFTq</span>
-<span class="m">0000000000001230</span> T _<span class="nv">$s4test1aC1bC1cCMa</span>
-00000000000024a8 D _<span class="nv">$s4test1aC1bC1cCMm</span>
-...
-$ xcrun swift-demangle --compact s4test1aC1bC1cC1d1y1x1vAA1eV1fOAC_AES2iXEtFTq
-method descriptor <span class="k">for</span> test.a.b.c.d<span class="o">(</span>y: test.a, x: test.a.b, v: <span class="o">(</span>Swift.Int<span class="o">)</span> -&gt; Swift.Int<span class="o">)</span> -&gt; test.e.f
-$ xcrun swift-demangle --compact s4test1aC1bC1cC1d1y1x1vAA1eV1fOAC_AES2iXEtF
-test.a.b.c.d<span class="o">(</span>y: test.a, x: test.a.b, v: <span class="o">(</span>Swift.Int<span class="o">)</span> -&gt; Swift.Int<span class="o">)</span> -&gt; test.e.f
-$ xcrun swift-demangle --compact s4test1aC1bC1cCMa
-<span class="nb">type</span> metadata accessor <span class="k">for</span> test.a.b.c
-$ xcrun swift-demangle --compact s4test1aC1bC1cCMm
-metaclass <span class="k">for</span> test.a.b.c
-</code></pre></div><p>Swift 将生成数百个符号，我们将拆分其中一个复杂的修饰名 <code>__TFCCC4test1a1b1c1dfS2_FTS0_1xS1_1vFT1xSi_Si_OVS_1e1f</code>。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">$ xcrun swiftc -emit-library -o <span class="nb">test</span> -
+</span></span><span class="line"><span class="cl">struct e <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        enum f <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="k">case</span> G, H, I
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">class a <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        class b <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                class c <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                        func d<span class="o">(</span>y: a, x w: b, v u: <span class="o">(</span>x: Int<span class="o">)</span> -&gt; Int<span class="o">)</span> -&gt; e.f <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                                <span class="k">return</span> e.f.G
+</span></span><span class="line"><span class="cl">                        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">                <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">^D
+</span></span><span class="line"><span class="cl">$ xcrun nm -g <span class="nb">test</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">0000000000001c90 T __TFCCC4test1a1b1c1dfS2_FTS0_1xS1_1vFT1xSi_Si_OVS_1e1f
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">$
+</span></span></code></pre></div><p>译者注：由于本文发布时间较为久远，因此可使用以下实测过可以运行的代码来验证：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">$ xcrun swiftc -emit-library -o <span class="nb">test</span> -
+</span></span><span class="line"><span class="cl">// 声明为 public 才可以在全局符号中看到
+</span></span><span class="line"><span class="cl">public struct e <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  public enum f <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">case</span> G, H, I
+</span></span><span class="line"><span class="cl">  <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">public class a <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  public class b <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    public class c <span class="o">{</span>
+</span></span><span class="line"><span class="cl">      // 新的语法规定「函数类型不能拥有参数标签」需要使用
+</span></span><span class="line"><span class="cl">      // func d<span class="o">(</span>y: a, x w: b, v u: <span class="o">(</span>_ x: Int<span class="o">)</span> -&gt; Int<span class="o">)</span> -&gt; e.f
+</span></span><span class="line"><span class="cl">      // 或 func d<span class="o">(</span>y: a, x w: b, v u: <span class="o">(</span>Int<span class="o">)</span> -&gt; Int<span class="o">)</span>
+</span></span><span class="line"><span class="cl">      public func d<span class="o">(</span>y: a, x w: b, v u: <span class="o">(</span>Int<span class="o">)</span> -&gt; Int<span class="o">)</span> -&gt; e.f <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> e.f.G
+</span></span><span class="line"><span class="cl">      <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">  <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">^D
+</span></span><span class="line"><span class="cl">$ nm -g <span class="nb">test</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"><span class="m">0000000000001190</span> T _<span class="nv">$s4test1aC1bC1cC1d1y1x1vAA1eV1fOAC_AES2iXEtF</span>
+</span></span><span class="line"><span class="cl">0000000000001dd8 S _<span class="nv">$s4test1aC1bC1cC1d1y1x1vAA1eV1fOAC_AES2iXEtFTq</span>
+</span></span><span class="line"><span class="cl"><span class="m">0000000000001230</span> T _<span class="nv">$s4test1aC1bC1cCMa</span>
+</span></span><span class="line"><span class="cl">00000000000024a8 D _<span class="nv">$s4test1aC1bC1cCMm</span>
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">$ xcrun swift-demangle --compact s4test1aC1bC1cC1d1y1x1vAA1eV1fOAC_AES2iXEtFTq
+</span></span><span class="line"><span class="cl">method descriptor <span class="k">for</span> test.a.b.c.d<span class="o">(</span>y: test.a, x: test.a.b, v: <span class="o">(</span>Swift.Int<span class="o">)</span> -&gt; Swift.Int<span class="o">)</span> -&gt; test.e.f
+</span></span><span class="line"><span class="cl">$ xcrun swift-demangle --compact s4test1aC1bC1cC1d1y1x1vAA1eV1fOAC_AES2iXEtF
+</span></span><span class="line"><span class="cl">test.a.b.c.d<span class="o">(</span>y: test.a, x: test.a.b, v: <span class="o">(</span>Swift.Int<span class="o">)</span> -&gt; Swift.Int<span class="o">)</span> -&gt; test.e.f
+</span></span><span class="line"><span class="cl">$ xcrun swift-demangle --compact s4test1aC1bC1cCMa
+</span></span><span class="line"><span class="cl"><span class="nb">type</span> metadata accessor <span class="k">for</span> test.a.b.c
+</span></span><span class="line"><span class="cl">$ xcrun swift-demangle --compact s4test1aC1bC1cCMm
+</span></span><span class="line"><span class="cl">metaclass <span class="k">for</span> test.a.b.c
+</span></span></code></pre></div><p>Swift 将生成数百个符号，我们将拆分其中一个复杂的修饰名 <code>__TFCCC4test1a1b1c1dfS2_FTS0_1xS1_1vFT1xSi_Si_OVS_1e1f</code>。</p>
 <p>按顺序：</p>
 <ol>
 <li>Swift 符号中仍存在 <code>_</code> 前缀。</li>

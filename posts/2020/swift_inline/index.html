@@ -266,209 +266,208 @@ body {
 </tbody>
 </table>
 <p>经过实际测试，如下 <code>foo</code> 函数在 <code>[-O]</code> 与 <code>[-Osize]</code> 等级下均被优化：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">func</span> <span class="nf">foo</span><span class="p">()</span> <span class="p">{</span>
-    <span class="bp">print</span><span class="p">(</span><span class="s">&#34;foo&#34;</span><span class="p">)</span> <span class="c1">// BREAKPOINT 2 🔴</span>
-
-<span class="n">foo</span><span class="p">()</span> <span class="c1">// BREAKPOINT 1 🔴</span>
-</code></pre></div><p>在 <code>[-Onone]</code> 等级的汇编如下（Xcode Menu - Debug - Debug Workflow - Always Show Disassembly）：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="c">; [-Onone]
-</span><span class="c"></span>
-<span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
-    <span class="err">0</span><span class="nf">x100000e50</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">pushq</span>  <span class="nv">%rbp</span>
-    <span class="err">0</span><span class="nf">x100000e51</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
-    <span class="err">0</span><span class="nf">x100000e54</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">subq</span>   <span class="no">$0x10</span><span class="p">,</span> <span class="nv">%rsp</span>
-    <span class="err">0</span><span class="nf">x100000e58</span> <span class="err">&lt;+</span><span class="mi">8</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movl</span>   <span class="nv">%edi</span><span class="p">,</span> <span class="p">-</span><span class="mi">0x4</span><span class="p">(</span><span class="nv">%rbp</span><span class="p">)</span>
-    <span class="err">0</span><span class="nf">x100000e5b</span> <span class="err">&lt;+</span><span class="mi">11</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">movq</span>   <span class="nv">%rsi</span><span class="p">,</span> <span class="p">-</span><span class="mi">0x10</span><span class="p">(</span><span class="nv">%rbp</span><span class="p">)</span>
-    <span class="c">; 断点 1 ⬇：函数调用（内联后则不存在该行汇编指令）
-</span><span class="c"></span><span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000e5f</span> <span class="err">&lt;+</span><span class="mi">15</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">callq</span>  <span class="mi">0x100000e70</span>               <span class="c">; demo.foo() -&gt; () at main.swift:11
-</span><span class="c"></span>    <span class="mi">0x100000e64</span> <span class="err">&lt;+</span><span class="mi">20</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">xorl</span>   <span class="nv">%eax</span><span class="p">,</span> <span class="nv">%eax</span>
-    <span class="err">0</span><span class="nf">x100000e66</span> <span class="err">&lt;+</span><span class="mi">22</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">addq</span>   <span class="no">$0x10</span><span class="p">,</span> <span class="nv">%rsp</span>
-    <span class="err">0</span><span class="nf">x100000e6a</span> <span class="err">&lt;+</span><span class="mi">26</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">popq</span>   <span class="nv">%rbp</span>
-    <span class="err">0</span><span class="nf">x100000e6b</span> <span class="err">&lt;+</span><span class="mi">27</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">retq</span>
-
-<span class="nf">demo</span><span class="err">`</span><span class="no">foo</span><span class="p">():</span>
-    <span class="err">0</span><span class="nf">x100000e70</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">pushq</span>  <span class="nv">%rbp</span>
-    <span class="err">0</span><span class="nf">x100000e71</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
-    <span class="err">0</span><span class="nf">x100000e74</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">subq</span>   <span class="no">$0x30</span><span class="p">,</span> <span class="nv">%rsp</span>
-    <span class="c">; 断点 2 ⬇：作用域在 foo() 内
-</span><span class="c"></span><span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000e78</span> <span class="err">&lt;+</span><span class="mi">8</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">movq</span>   <span class="mi">0x189</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span> <span class="nv">%rax</span>         <span class="c">; (void *)0x00007fff8b1517e0: type metadata for Any
-</span><span class="c"></span>    <span class="c">; ...
-</span><span class="c"></span>    <span class="mi">0x100000f17</span> <span class="err">&lt;+</span><span class="mi">167</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">retq</span>
-</code></pre></div><p>在 <code>[-O]</code> 等级的汇编如下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="c">; [-O]
-</span><span class="c"></span>
-<span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
-    <span class="c">; ...
-</span><span class="c"></span>    <span class="c">; 断点 2 ⬇：作用域在 main 内
-</span><span class="c"></span><span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000e32</span> <span class="err">&lt;+</span><span class="mi">50</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movq</span>   <span class="mi">0x1c7</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span> <span class="nv">%rax</span>         <span class="c">; (void *)0x00007fff8b149910: type metadata for Swift.String
-</span><span class="c"></span>    <span class="c">; ...
-</span><span class="c"></span>    <span class="mi">0x100000e82</span> <span class="err">&lt;+</span><span class="mi">130</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">retq</span>
-</code></pre></div><p>在 <code>[-Osize]</code> 等级的汇编如下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="c">; [-Osize]
-</span><span class="c"></span>
-<span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
-    <span class="c">; ...
-</span><span class="c"></span>    <span class="c">; 断点 2 ⬇：作用域在 main 内
-</span><span class="c"></span><span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000e3e</span> <span class="err">&lt;+</span><span class="mi">46</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movq</span>   <span class="mi">0x1bb</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span> <span class="nv">%rax</span>         <span class="c">; (void *)0x00007fff8b149910: type metadata for Swift.String
-</span><span class="c"></span>    <span class="c">; ...
-</span><span class="c"></span>    <span class="mi">0x100000e8a</span> <span class="err">&lt;+</span><span class="mi">122</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">retq</span>
-</code></pre></div><p><code>[-O]</code> 与 <code>[-Osize]</code> 的结果类似，即通过内联使得断点 1 不再执行；而断点 2 虽然得到执行，但通过查看汇编可以看出，断点 2 处的代码作用域已变为 <code>main</code>，且无 <code>call</code> 调用相关函数的指令，证明函数已经内联。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">foo</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="bp">print</span><span class="p">(</span><span class="s">&#34;foo&#34;</span><span class="p">)</span> <span class="c1">// BREAKPOINT 2 🔴</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">foo</span><span class="p">()</span> <span class="c1">// BREAKPOINT 1 🔴</span>
+</span></span></code></pre></div><p>在 <code>[-Onone]</code> 等级的汇编如下（Xcode Menu - Debug - Debug Workflow - Always Show Disassembly）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="line"><span class="cl"><span class="c">; [-Onone]
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>
+</span></span><span class="line"><span class="cl"><span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000e50</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">pushq</span>  <span class="nv">%rbp</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000e51</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000e54</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">subq</span>   <span class="no">$0x10</span><span class="p">,</span> <span class="nv">%rsp</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000e58</span> <span class="err">&lt;+</span><span class="mi">8</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movl</span>   <span class="nv">%edi</span><span class="p">,</span> <span class="p">-</span><span class="mi">0x4</span><span class="p">(</span><span class="nv">%rbp</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000e5b</span> <span class="err">&lt;+</span><span class="mi">11</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">movq</span>   <span class="nv">%rsi</span><span class="p">,</span> <span class="p">-</span><span class="mi">0x10</span><span class="p">(</span><span class="nv">%rbp</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="c">; 断点 1 ⬇：函数调用（内联后则不存在该行汇编指令）
+</span></span></span><span class="line"><span class="cl"><span class="c"></span><span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000e5f</span> <span class="err">&lt;+</span><span class="mi">15</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">callq</span>  <span class="mi">0x100000e70</span>               <span class="c">; demo.foo() -&gt; () at main.swift:11
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="mi">0x100000e64</span> <span class="err">&lt;+</span><span class="mi">20</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">xorl</span>   <span class="nv">%eax</span><span class="p">,</span> <span class="nv">%eax</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000e66</span> <span class="err">&lt;+</span><span class="mi">22</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">addq</span>   <span class="no">$0x10</span><span class="p">,</span> <span class="nv">%rsp</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000e6a</span> <span class="err">&lt;+</span><span class="mi">26</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">popq</span>   <span class="nv">%rbp</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000e6b</span> <span class="err">&lt;+</span><span class="mi">27</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">retq</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nf">demo</span><span class="err">`</span><span class="no">foo</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000e70</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">pushq</span>  <span class="nv">%rbp</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000e71</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000e74</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">subq</span>   <span class="no">$0x30</span><span class="p">,</span> <span class="nv">%rsp</span>
+</span></span><span class="line"><span class="cl">    <span class="c">; 断点 2 ⬇：作用域在 foo() 内
+</span></span></span><span class="line"><span class="cl"><span class="c"></span><span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000e78</span> <span class="err">&lt;+</span><span class="mi">8</span><span class="err">&gt;</span><span class="p">:</span>   <span class="no">movq</span>   <span class="mi">0x189</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span> <span class="nv">%rax</span>         <span class="c">; (void *)0x00007fff8b1517e0: type metadata for Any
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="c">; ...
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="mi">0x100000f17</span> <span class="err">&lt;+</span><span class="mi">167</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">retq</span>
+</span></span></code></pre></div><p>在 <code>[-O]</code> 等级的汇编如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="line"><span class="cl"><span class="c">; [-O]
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>
+</span></span><span class="line"><span class="cl"><span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="c">; ...
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="c">; 断点 2 ⬇：作用域在 main 内
+</span></span></span><span class="line"><span class="cl"><span class="c"></span><span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000e32</span> <span class="err">&lt;+</span><span class="mi">50</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movq</span>   <span class="mi">0x1c7</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span> <span class="nv">%rax</span>         <span class="c">; (void *)0x00007fff8b149910: type metadata for Swift.String
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="c">; ...
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="mi">0x100000e82</span> <span class="err">&lt;+</span><span class="mi">130</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">retq</span>
+</span></span></code></pre></div><p>在 <code>[-Osize]</code> 等级的汇编如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="line"><span class="cl"><span class="c">; [-Osize]
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>
+</span></span><span class="line"><span class="cl"><span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="c">; ...
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="c">; 断点 2 ⬇：作用域在 main 内
+</span></span></span><span class="line"><span class="cl"><span class="c"></span><span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000e3e</span> <span class="err">&lt;+</span><span class="mi">46</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movq</span>   <span class="mi">0x1bb</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span> <span class="nv">%rax</span>         <span class="c">; (void *)0x00007fff8b149910: type metadata for Swift.String
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="c">; ...
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="mi">0x100000e8a</span> <span class="err">&lt;+</span><span class="mi">122</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">retq</span>
+</span></span></code></pre></div><p><code>[-O]</code> 与 <code>[-Osize]</code> 的结果类似，即通过内联使得断点 1 不再执行；而断点 2 虽然得到执行，但通过查看汇编可以看出，断点 2 处的代码作用域已变为 <code>main</code>，且无 <code>call</code> 调用相关函数的指令，证明函数已经内联。</p>
 <h2 id="内联条件">内联条件</h2>
 <p>在开启编译器优化后，Swift 编译器便会针对函数进行内联优化，但并非所有函数都支持内联。</p>
 <ul>
 <li>函数体过长的函数将不支持内联；</li>
 </ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// [-O]</span>
-
-<span class="kd">func</span> <span class="nf">foo</span><span class="p">()</span> <span class="p">{</span>
-    <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
-    <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
-    <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
-<span class="p">}</span>
-
-<span class="n">foo</span><span class="p">()</span> <span class="c1">// BREAKPOINT 🔴</span>
-</code></pre></div><p>由于过长的函数体内联反而会导致实际代码行数增多，可能会影响性能，因此如上，当函数体内的 <code>print</code> 语句超过两句时，内联就会失效。我们可以从函数调用处的断点或者汇编来得出结论：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
-    <span class="err">0</span><span class="nf">x100000da0</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">pushq</span>  <span class="nv">%rbp</span>
-    <span class="err">0</span><span class="nf">x100000da1</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
-<span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000da4</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">callq</span>  <span class="mi">0x100000db0</span>               <span class="c">; demo.foo() -&gt; () at main.swift:11
-</span><span class="c"></span>    <span class="mi">0x100000da9</span> <span class="err">&lt;+</span><span class="mi">9</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">xorl</span>   <span class="nv">%eax</span><span class="p">,</span> <span class="nv">%eax</span>
-    <span class="err">0</span><span class="nf">x100000dab</span> <span class="err">&lt;+</span><span class="mi">11</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">popq</span>   <span class="nv">%rbp</span>
-    <span class="err">0</span><span class="nf">x100000dac</span> <span class="err">&lt;+</span><span class="mi">12</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">retq</span>
-</code></pre></div><ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="c1">// [-O]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">foo</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">foo</span><span class="p">()</span> <span class="c1">// BREAKPOINT 🔴</span>
+</span></span></code></pre></div><p>由于过长的函数体内联反而会导致实际代码行数增多，可能会影响性能，因此如上，当函数体内的 <code>print</code> 语句超过两句时，内联就会失效。我们可以从函数调用处的断点或者汇编来得出结论：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="line"><span class="cl"><span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000da0</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">pushq</span>  <span class="nv">%rbp</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000da1</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
+</span></span><span class="line"><span class="cl"><span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000da4</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">callq</span>  <span class="mi">0x100000db0</span>               <span class="c">; demo.foo() -&gt; () at main.swift:11
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="mi">0x100000da9</span> <span class="err">&lt;+</span><span class="mi">9</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">xorl</span>   <span class="nv">%eax</span><span class="p">,</span> <span class="nv">%eax</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000dab</span> <span class="err">&lt;+</span><span class="mi">11</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">popq</span>   <span class="nv">%rbp</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000dac</span> <span class="err">&lt;+</span><span class="mi">12</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">retq</span>
+</span></span></code></pre></div><ul>
 <li>包含递归调用的函数将不支持内联；</li>
 </ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// [-O]</span>
-
-<span class="kd">func</span> <span class="nf">foo</span><span class="p">(</span><span class="kc">_</span> <span class="n">i</span><span class="p">:</span> <span class="nb">Int</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="nb">Int</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="mi">1</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="n">i</span>
-    <span class="p">}</span>
-
-    <span class="kd">var</span> <span class="nv">result</span> <span class="p">=</span> <span class="n">foo</span><span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">result</span> <span class="o">+=</span> <span class="mi">1</span>
-
-    <span class="k">return</span> <span class="n">result</span>
-<span class="p">}</span>
-
-<span class="kc">_</span> <span class="p">=</span> <span class="n">foo</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-</code></pre></div><p>由于包含递归的函数体需要在函数内部调用自身，此时若使用内联便会造成无限展开。因此如上，当函数体内的存在自身的递归时，内联就会失效。我们可以从函数调用处的断点或者汇编来得出结论：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
-    <span class="err">0</span><span class="nf">x100000f70</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">pushq</span>  <span class="nv">%rbp</span>
-    <span class="err">0</span><span class="nf">x100000f71</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
-<span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000f74</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movl</span>   <span class="no">$0x5</span><span class="p">,</span> <span class="nv">%edi</span>
-    <span class="err">0</span><span class="nf">x100000f79</span> <span class="err">&lt;+</span><span class="mi">9</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">callq</span>  <span class="mi">0x100000f90</span>               <span class="c">; demo.foo(Swift.Int) -&gt; Swift.Int at main.swift:41
-</span><span class="c"></span>    <span class="mi">0x100000f7e</span> <span class="err">&lt;+</span><span class="mi">14</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">xorl</span>   <span class="nv">%eax</span><span class="p">,</span> <span class="nv">%eax</span>
-    <span class="err">0</span><span class="nf">x100000f80</span> <span class="err">&lt;+</span><span class="mi">16</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">popq</span>   <span class="nv">%rbp</span>
-    <span class="err">0</span><span class="nf">x100000f81</span> <span class="err">&lt;+</span><span class="mi">17</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">retq</span>
-</code></pre></div><blockquote>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="c1">// [-O]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">foo</span><span class="p">(</span><span class="kc">_</span> <span class="n">i</span><span class="p">:</span> <span class="nb">Int</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="nb">Int</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="mi">1</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">i</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nv">result</span> <span class="p">=</span> <span class="n">foo</span><span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">result</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">result</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kc">_</span> <span class="p">=</span> <span class="n">foo</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+</span></span></code></pre></div><p>由于包含递归的函数体需要在函数内部调用自身，此时若使用内联便会造成无限展开。因此如上，当函数体内的存在自身的递归时，内联就会失效。我们可以从函数调用处的断点或者汇编来得出结论：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="line"><span class="cl"><span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000f70</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">pushq</span>  <span class="nv">%rbp</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000f71</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
+</span></span><span class="line"><span class="cl"><span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000f74</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">movl</span>   <span class="no">$0x5</span><span class="p">,</span> <span class="nv">%edi</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000f79</span> <span class="err">&lt;+</span><span class="mi">9</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">callq</span>  <span class="mi">0x100000f90</span>               <span class="c">; demo.foo(Swift.Int) -&gt; Swift.Int at main.swift:41
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="mi">0x100000f7e</span> <span class="err">&lt;+</span><span class="mi">14</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">xorl</span>   <span class="nv">%eax</span><span class="p">,</span> <span class="nv">%eax</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000f80</span> <span class="err">&lt;+</span><span class="mi">16</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">popq</span>   <span class="nv">%rbp</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000f81</span> <span class="err">&lt;+</span><span class="mi">17</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">retq</span>
+</span></span></code></pre></div><blockquote>
 <p><strong>尾递归</strong></p>
 <p>对于递归函数需要注意的是，编译器会对尾递归（Tail Recursion，即递归位于函数末尾）进行额外优化，即尾递归优化（Tail Call Optimization）。如下一段求阶乘的代码：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// [-O]</span>
-
-<span class="kd">func</span> <span class="nf">foo</span><span class="p">(</span><span class="kc">_</span> <span class="n">i</span><span class="p">:</span> <span class="nb">Int</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="nb">Int</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="mi">1</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="n">i</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="n">foo</span><span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-<span class="p">}</span>
-
-<span class="kc">_</span> <span class="p">=</span> <span class="n">foo</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-</code></pre></div><p>将其转换为汇编如下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
-    <span class="err">0</span><span class="nf">x100000f90</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">pushq</span>  <span class="nv">%rbp</span>
-    <span class="err">0</span><span class="nf">x100000f91</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
-<span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000f94</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">xorl</span>   <span class="nv">%eax</span><span class="p">,</span> <span class="nv">%eax</span>
-    <span class="err">0</span><span class="nf">x100000f96</span> <span class="err">&lt;+</span><span class="mi">6</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">popq</span>   <span class="nv">%rbp</span>
-    <span class="err">0</span><span class="nf">x100000f97</span> <span class="err">&lt;+</span><span class="mi">7</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">retq</span>
-</code></pre></div><p>本文暂时不会涉及过多关于尾递归的内容。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="c1">// [-O]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">foo</span><span class="p">(</span><span class="kc">_</span> <span class="n">i</span><span class="p">:</span> <span class="nb">Int</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="nb">Int</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="mi">1</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">i</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">foo</span><span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kc">_</span> <span class="p">=</span> <span class="n">foo</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+</span></span></code></pre></div><p>将其转换为汇编如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="line"><span class="cl"><span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000f90</span> <span class="err">&lt;+</span><span class="mi">0</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">pushq</span>  <span class="nv">%rbp</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000f91</span> <span class="err">&lt;+</span><span class="mi">1</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">movq</span>   <span class="nv">%rsp</span><span class="p">,</span> <span class="nv">%rbp</span>
+</span></span><span class="line"><span class="cl"><span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000f94</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">xorl</span>   <span class="nv">%eax</span><span class="p">,</span> <span class="nv">%eax</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000f96</span> <span class="err">&lt;+</span><span class="mi">6</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">popq</span>   <span class="nv">%rbp</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100000f97</span> <span class="err">&lt;+</span><span class="mi">7</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">retq</span>
+</span></span></code></pre></div><p>本文暂时不会涉及过多关于尾递归的内容。</p>
 </blockquote>
 <ul>
 <li>包含动态派发的代码将不支持内联；</li>
 </ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="kd">class</span> <span class="nc">People</span> <span class="p">{</span>
-    <span class="kd">var</span> <span class="nv">name</span><span class="p">:</span> <span class="nb">String</span> <span class="p">=</span> <span class="s">&#34;Name&#34;</span>
-
-    <span class="kd">func</span> <span class="nf">bar</span><span class="p">()</span> <span class="p">{}</span>
-
-    <span class="kd">func</span> <span class="nf">foo</span><span class="p">()</span> <span class="p">{</span>
-        <span class="c1">// NOT Inline</span>
-        <span class="kd">var</span> <span class="nv">p</span><span class="p">:</span> <span class="n">People</span> <span class="p">=</span> <span class="n">Student</span><span class="p">()</span>
-        <span class="n">p</span> <span class="p">=</span> <span class="n">Teacher</span><span class="p">()</span>
-
-        <span class="n">p</span><span class="p">.</span><span class="n">bar</span><span class="p">()</span>
-
-        <span class="c1">// Inline</span>
-        <span class="kd">let</span> <span class="nv">q</span> <span class="p">=</span> <span class="n">Student</span><span class="p">()</span>
-
-        <span class="n">q</span><span class="p">.</span><span class="n">baz</span><span class="p">()</span> <span class="c1">// b -r Student.baz 🔴</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kd">class</span> <span class="nc">Teacher</span><span class="p">:</span> <span class="n">People</span> <span class="p">{</span>
-    <span class="kr">override</span> <span class="kd">func</span> <span class="nf">bar</span><span class="p">()</span> <span class="p">{</span>
-        <span class="bp">print</span><span class="p">(</span><span class="s">&#34;Teacher - </span><span class="si">\(</span><span class="n">name</span><span class="si">)</span><span class="s">&#34;</span><span class="p">)</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kd">class</span> <span class="nc">Student</span><span class="p">:</span> <span class="n">People</span> <span class="p">{</span>
-    <span class="kr">override</span> <span class="kd">func</span> <span class="nf">bar</span><span class="p">()</span> <span class="p">{</span>
-        <span class="bp">print</span><span class="p">(</span><span class="s">&#34;Student - </span><span class="si">\(</span><span class="n">name</span><span class="si">)</span><span class="s">&#34;</span><span class="p">)</span>
-    <span class="p">}</span>
-
-    <span class="kd">func</span> <span class="nf">baz</span><span class="p">()</span> <span class="p">{}</span>
-<span class="p">}</span>
-
-<span class="n">People</span><span class="p">().</span><span class="n">foo</span><span class="p">()</span>
-</code></pre></div><p>由于包含动态派发的函数只有在运行时才是确定的。因此如上，当使用多态时，内联就会失效。我们可以从函数调用处的断点或者汇编来得出结论：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
-    <span class="c">; ...
-</span><span class="c"></span>    <span class="err">0</span><span class="nf">x100001524</span> <span class="err">&lt;+</span><span class="mi">212</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">movq</span>   <span class="mi">0x18</span><span class="p">(</span><span class="nv">%rbx</span><span class="p">),</span> <span class="nv">%rdi</span>
-    <span class="err">0</span><span class="nf">x100001528</span> <span class="err">&lt;+</span><span class="mi">216</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">callq</span>  <span class="mi">0x100001be2</span>               <span class="c">; symbol stub for: swift_bridgeObjectRelease
-</span><span class="c"></span><span class="p">-</span><span class="err">&gt;</span>  <span class="mi">0x10000152d</span> <span class="err">&lt;+</span><span class="mi">221</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">callq</span>  <span class="mi">0x100001960</span>               <span class="c">; demo.Teacher.bar() -&gt; ()
-</span><span class="c"></span>    <span class="mi">0x100001532</span> <span class="err">&lt;+</span><span class="mi">226</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">movq</span>   <span class="nv">%r13</span><span class="p">,</span> <span class="nv">%rdi</span>
-    <span class="err">0</span><span class="nf">x100001535</span> <span class="err">&lt;+</span><span class="mi">229</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">callq</span>  <span class="mi">0x100001c0c</span>               <span class="c">; symbol stub for: swift_release
-</span><span class="c"></span>    <span class="c">; ...
-</span><span class="c"></span>
-</code></pre></div><h2 id="inline">@inline</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">People</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nv">name</span><span class="p">:</span> <span class="nb">String</span> <span class="p">=</span> <span class="s">&#34;Name&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">func</span> <span class="nf">bar</span><span class="p">()</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">func</span> <span class="nf">foo</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// NOT Inline</span>
+</span></span><span class="line"><span class="cl">        <span class="kd">var</span> <span class="nv">p</span><span class="p">:</span> <span class="n">People</span> <span class="p">=</span> <span class="n">Student</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">p</span> <span class="p">=</span> <span class="n">Teacher</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">p</span><span class="p">.</span><span class="n">bar</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1">// Inline</span>
+</span></span><span class="line"><span class="cl">        <span class="kd">let</span> <span class="nv">q</span> <span class="p">=</span> <span class="n">Student</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">q</span><span class="p">.</span><span class="n">baz</span><span class="p">()</span> <span class="c1">// b -r Student.baz 🔴</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">Teacher</span><span class="p">:</span> <span class="n">People</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kr">override</span> <span class="kd">func</span> <span class="nf">bar</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">print</span><span class="p">(</span><span class="s">&#34;Teacher - </span><span class="si">\(</span><span class="n">name</span><span class="si">)</span><span class="s">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">Student</span><span class="p">:</span> <span class="n">People</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kr">override</span> <span class="kd">func</span> <span class="nf">bar</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">print</span><span class="p">(</span><span class="s">&#34;Student - </span><span class="si">\(</span><span class="n">name</span><span class="si">)</span><span class="s">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">func</span> <span class="nf">baz</span><span class="p">()</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">People</span><span class="p">().</span><span class="n">foo</span><span class="p">()</span>
+</span></span></code></pre></div><p>由于包含动态派发的函数只有在运行时才是确定的。因此如上，当使用多态时，内联就会失效。我们可以从函数调用处的断点或者汇编来得出结论：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="line"><span class="cl"><span class="nf">demo</span><span class="err">`</span><span class="no">main</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="c">; ...
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="err">0</span><span class="nf">x100001524</span> <span class="err">&lt;+</span><span class="mi">212</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">movq</span>   <span class="mi">0x18</span><span class="p">(</span><span class="nv">%rbx</span><span class="p">),</span> <span class="nv">%rdi</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100001528</span> <span class="err">&lt;+</span><span class="mi">216</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">callq</span>  <span class="mi">0x100001be2</span>               <span class="c">; symbol stub for: swift_bridgeObjectRelease
+</span></span></span><span class="line"><span class="cl"><span class="c"></span><span class="p">-</span><span class="err">&gt;</span>  <span class="mi">0x10000152d</span> <span class="err">&lt;+</span><span class="mi">221</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">callq</span>  <span class="mi">0x100001960</span>               <span class="c">; demo.Teacher.bar() -&gt; ()
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="mi">0x100001532</span> <span class="err">&lt;+</span><span class="mi">226</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">movq</span>   <span class="nv">%r13</span><span class="p">,</span> <span class="nv">%rdi</span>
+</span></span><span class="line"><span class="cl">    <span class="err">0</span><span class="nf">x100001535</span> <span class="err">&lt;+</span><span class="mi">229</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">callq</span>  <span class="mi">0x100001c0c</span>               <span class="c">; symbol stub for: swift_release
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="c">; ...
+</span></span></span></code></pre></div><h2 id="inline">@inline</h2>
 <p>我们可以使用 <code>@inline</code> 来建议编译器去禁止（<code>never</code>）或在条件允许的情况下（除递归、动态派发等）总是（<code>__always</code>）内联，其优先级高于编译器优化。</p>
 <h3 id="inlinenever">@inline(never)</h3>
 <p><code>@inline(never)</code> 将使得原本在开启编译器优化时会被内联的函数不再内联：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// [-O] / [-Osize]</span>
-
-<span class="p">@</span><span class="n">inline</span><span class="p">(</span><span class="n">never</span><span class="p">)</span> <span class="kd">func</span> <span class="nf">bar</span><span class="p">()</span> <span class="p">{</span>
-    <span class="bp">print</span><span class="p">(</span><span class="s">&#34;bar&#34;</span><span class="p">)</span>
-<span class="p">}</span>
-
-<span class="n">bar</span><span class="p">()</span> <span class="c1">// BREAKPOINT 🔴</span>
-</code></pre></div><p>此时函数调用处的断点将有效，且转换为汇编也将显示存在 <code>call</code> 指令：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="c">; [-O] / [-Osize]
-</span><span class="c"></span>
-<span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000e74</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">callq</span>  <span class="mi">0x100000e80</span>               <span class="c">; demo.bar() -&gt; () at main.swift:1
-</span></code></pre></div><h3 id="inline__always">@inline(__always)</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="c1">// [-O] / [-Osize]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">@</span><span class="n">inline</span><span class="p">(</span><span class="n">never</span><span class="p">)</span> <span class="kd">func</span> <span class="nf">bar</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="bp">print</span><span class="p">(</span><span class="s">&#34;bar&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">bar</span><span class="p">()</span> <span class="c1">// BREAKPOINT 🔴</span>
+</span></span></code></pre></div><p>此时函数调用处的断点将有效，且转换为汇编也将显示存在 <code>call</code> 指令：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="line"><span class="cl"><span class="c">; [-O] / [-Osize]
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>
+</span></span><span class="line"><span class="cl"><span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000e74</span> <span class="err">&lt;+</span><span class="mi">4</span><span class="err">&gt;</span><span class="p">:</span>  <span class="no">callq</span>  <span class="mi">0x100000e80</span>               <span class="c">; demo.bar() -&gt; () at main.swift:1
+</span></span></span></code></pre></div><h3 id="inline__always">@inline(__always)</h3>
 <p>需要注意的是，<code>__always</code> 只在开启编译器优化时几乎总是内联，未开启时将不会被内联。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="p">@</span><span class="n">inline</span><span class="p">(</span><span class="n">__always</span><span class="p">)</span> <span class="kd">func</span> <span class="nf">baz</span><span class="p">()</span> <span class="p">{</span>
-    <span class="bp">print</span><span class="p">(</span><span class="s">&#34;baz&#34;</span><span class="p">)</span>
-<span class="p">}</span>
-
-<span class="n">baz</span><span class="p">()</span> <span class="c1">// BREAKPOINT 🔴</span>
-</code></pre></div><p>如上代码即使在 <code>[-Onone]</code> 等级下我们也可以通过断点和汇编看出其本质并没有被内联：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="c">; [-Onone]
-</span><span class="c"></span>
-<span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000e5f</span> <span class="err">&lt;+</span><span class="mi">15</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">callq</span>  <span class="mi">0x100000e70</span>               <span class="c">; demo.baz() -&gt; () at main.swift:3
-</span></code></pre></div><p>而在 <code>[-O]</code> 或 <code>[-Osize]</code> 下使用 <code>@inline(__always)</code> 则可以将原本因行数过多的函数进行内联：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="c1">// [-O] / [-Osize]</span>
-
-<span class="p">@</span><span class="n">inline</span><span class="p">(</span><span class="n">__always</span><span class="p">)</span> <span class="kd">func</span> <span class="nf">baz</span><span class="p">()</span> <span class="p">{</span>
-    <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
-    <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
-    <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
-    <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
-    <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
-<span class="p">}</span>
-
-<span class="n">baz</span><span class="p">()</span> <span class="c1">// BREAKPOINT 🔴</span>
-</code></pre></div><p><code>@inline(__always)</code> 虽然能够「控制」一部分函数进行内联，但其本质是对编译器行为的建议而非强制，因为有些函数并不能够被内联，比如上面递归中的案例。这里我们只需要了解其用处，而在实际开发中很少会用到。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="p">@</span><span class="n">inline</span><span class="p">(</span><span class="n">__always</span><span class="p">)</span> <span class="kd">func</span> <span class="nf">baz</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="bp">print</span><span class="p">(</span><span class="s">&#34;baz&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">baz</span><span class="p">()</span> <span class="c1">// BREAKPOINT 🔴</span>
+</span></span></code></pre></div><p>如上代码即使在 <code>[-Onone]</code> 等级下我们也可以通过断点和汇编看出其本质并没有被内联：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-asm" data-lang="asm"><span class="line"><span class="cl"><span class="c">; [-Onone]
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>
+</span></span><span class="line"><span class="cl"><span class="err">-&gt;</span>  <span class="err">0</span><span class="nf">x100000e5f</span> <span class="err">&lt;+</span><span class="mi">15</span><span class="err">&gt;</span><span class="p">:</span> <span class="no">callq</span>  <span class="mi">0x100000e70</span>               <span class="c">; demo.baz() -&gt; () at main.swift:3
+</span></span></span></code></pre></div><p>而在 <code>[-O]</code> 或 <code>[-Osize]</code> 下使用 <code>@inline(__always)</code> 则可以将原本因行数过多的函数进行内联：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-swift" data-lang="swift"><span class="line"><span class="cl"><span class="c1">// [-O] / [-Osize]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">@</span><span class="n">inline</span><span class="p">(</span><span class="n">__always</span><span class="p">)</span> <span class="kd">func</span> <span class="nf">baz</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="bp">print</span><span class="p">(</span><span class="kc">#function</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">baz</span><span class="p">()</span> <span class="c1">// BREAKPOINT 🔴</span>
+</span></span></code></pre></div><p><code>@inline(__always)</code> 虽然能够「控制」一部分函数进行内联，但其本质是对编译器行为的建议而非强制，因为有些函数并不能够被内联，比如上面递归中的案例。这里我们只需要了解其用处，而在实际开发中很少会用到。</p>
 </div>
                     <div class="post_footer">
                         

@@ -388,31 +388,31 @@ body {
 <p>Perf 在<a href="https://perf.wiki.kernel.org/index.php/Main_Page">内核 Wiki</a> 和 <a href="http://www.brendangregg.com/perf.html">Brendan Gregg 的网站</a>上均有文档。</p>
 <p>使用 <code>perf</code> 需要访问硬件性能计数器，所以我们无法在大多数虚拟机上使用（除非它们虚拟化访问性能计数器）。此外，我们需要 root 权限访问来使用内核的分析接口。</p>
 <p>最简单的 perf 使用方法就是在 <code>perf stat</code> 下运行我们的命令。这将给予高级别性能计数器，包括指令执行计数，这是总执行消耗的相对稳定近似值，并且在进行二分法时，这通常足以找出一个回归（如下）：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text">$ perf stat swiftc t.swift
-
- Performance counter stats for &#39;swiftc t.swift&#39;:
-
-       2140.543052      task-clock (msec)         #    0.966 CPUs utilized
-                17      context-switches          #    0.008 K/sec
-                 6      cpu-migrations            #    0.003 K/sec
-            52,084      page-faults               #    0.024 M/sec
-     5,373,530,212      cycles                    #    2.510 GHz
-     9,709,304,679      instructions              #    1.81  insn per cycle
-     1,812,011,233      branches                  #  846.519 M/sec
-        22,026,587      branch-misses             #    1.22% of all branches
-
-       2.216754787 seconds time elapsed
-</code></pre></div><p><code>perf</code> 提供了相对稳定和精确的开销测量，意味着当执行其它性能分析任务时，其可以被封装为一个有用的子程序，例如二分（见 <code>git bisect</code> 一节）或削弱（见 <code>creduce</code> 一节）。如下的 Shell 函数便十分有用：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text">count_instructions() {
-    perf stat -x , --log-fd 3    \
-      -e instructions -r 10 &#34;$@&#34; \
-      3&gt;&amp;1 2&gt;/dev/null 1&gt;&amp;2 | cut -d , -f 1
-}
-</code></pre></div><p>为了通过 perf 获得完整的分析 —— 。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text">$ perf record -e cycles -c 10000 --call-graph=lbr swiftc t.swift
-[ perf record: Woken up 5 times to write data ]
-[ perf record: Captured and wrote 1.676 MB perf.data (9731 samples) ]
-</code></pre></div><p><img src="/img/2020/swift_compiler_performance/PerfReport.png" alt=""></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">$ perf stat swiftc t.swift
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"> Performance counter stats for &#39;swiftc t.swift&#39;:
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">       2140.543052      task-clock (msec)         #    0.966 CPUs utilized
+</span></span><span class="line"><span class="cl">                17      context-switches          #    0.008 K/sec
+</span></span><span class="line"><span class="cl">                 6      cpu-migrations            #    0.003 K/sec
+</span></span><span class="line"><span class="cl">            52,084      page-faults               #    0.024 M/sec
+</span></span><span class="line"><span class="cl">     5,373,530,212      cycles                    #    2.510 GHz
+</span></span><span class="line"><span class="cl">     9,709,304,679      instructions              #    1.81  insn per cycle
+</span></span><span class="line"><span class="cl">     1,812,011,233      branches                  #  846.519 M/sec
+</span></span><span class="line"><span class="cl">        22,026,587      branch-misses             #    1.22% of all branches
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">       2.216754787 seconds time elapsed
+</span></span></code></pre></div><p><code>perf</code> 提供了相对稳定和精确的开销测量，意味着当执行其它性能分析任务时，其可以被封装为一个有用的子程序，例如二分（见 <code>git bisect</code> 一节）或削弱（见 <code>creduce</code> 一节）。如下的 Shell 函数便十分有用：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">count_instructions() {
+</span></span><span class="line"><span class="cl">    perf stat -x , --log-fd 3    \
+</span></span><span class="line"><span class="cl">      -e instructions -r 10 &#34;$@&#34; \
+</span></span><span class="line"><span class="cl">      3&gt;&amp;1 2&gt;/dev/null 1&gt;&amp;2 | cut -d , -f 1
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></div><p>为了通过 perf 获得完整的分析 —— 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">$ perf record -e cycles -c 10000 --call-graph=lbr swiftc t.swift
+</span></span><span class="line"><span class="cl">[ perf record: Woken up 5 times to write data ]
+</span></span><span class="line"><span class="cl">[ perf record: Captured and wrote 1.676 MB perf.data (9731 samples) ]
+</span></span></code></pre></div><p><img src="/img/2020/swift_compiler_performance/PerfReport.png" alt=""></p>
 <h4 id="诊断选项">诊断选项</h4>
 <h5 id="统一状态报告器">统一状态报告器</h5>
 <h6 id="跟踪状态事件">跟踪状态事件</h6>
