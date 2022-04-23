@@ -8,11 +8,16 @@
 
     <style>
 
-body {
+        body {
             font-family: 'Hiragino Sans GB', 'SFMono', 'Lato', '-apple-system';
             background-color: black;
         }
-        .container {
+        .container {            
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .content {
             /* border: 2px solid #73AD21;
             border-radius: 25px; */
             /* margin: 20px; */
@@ -26,7 +31,9 @@ body {
             word-break: break-all;
             
             font-size: 64px;
-            /* max-width: 10ch; */
+            max-width: 90%;
+            /* background-color: #ffe733; */
+            text-align: justify;
         }
 
         .block1 {
@@ -86,59 +93,111 @@ body {
             background-color: rgb(255, 29, 29);
             margin-right: 5px;
         }
+        
+        .block {
+            padding: 5px;
+            margin-right: 5px;
+
+        }
     </style>
 
     <body>
-        <div class="container" id="container">
-            <!-- <span class="block1">00000 00000 00000 00000 00000 00000 00000 00000 00000 00000 00000 00000</span> -->
-            <span class="block1">这是一个测试🌹</span>
-            <span class="block2">#椰树牌</span>
-            <span class="block3">听说瑞幸和椰树联名了耶</span>
-            <span class="block4">Hello World</span>
-            <span class="block7">🌟 那我可以请你喝咖啡嘛</span>
-            <span class="block5">绝绝子 X 椰树风</span>
-            <span class="block6">我真的栓 Q 🙏</span>
-            <span class="block3">YYDS</span>
+        <div class="container">
+            <div class="content" id="container">
+                <!-- <span class="block1">00000 00000 00000 00000 00000 00000 00000 00000 00000 00000 00000 00000</span> -->
+                <!-- <span class="block1">这是一个测试🌹</span>
+                <span class="block2">#椰树牌</span>
+                <span class="block3">听说瑞幸和椰树联名了耶</span>
+                <span class="block4">Hello World</span>
+                <span class="block7">🌟 那我可以请你喝咖啡嘛</span>
+                <span class="block5">绝绝子 X 椰树风</span>
+                <span class="block6">我真的栓 Q 🙏</span>
+                <span class="block3">YYDS</span> -->
+            </div>
         </div>
         <canvas id="canvas"></canvas>
     </body>
     <script>
-        function generateSentences() {
-	return [
-  	"这是一个测试🌹",
-    "椰树牌",
-    "哈哈哈",
-    "Hello World",
-    "绝绝子 X 椰树风",
-    "我真的栓 Q 🙏"
-  ]
+    function generateSentences() {
+        return [
+        "这是一个测试 🌹",
+        "#椰树牌",
+        "听说瑞幸和椰树联名了耶",
+        "Hello World",
+        "🌟 那我可以请你喝咖啡嘛",
+        "绝绝子 X 椰树风",
+        "我真的栓 Q 🙏",
+        "YYDS"
+    ]
 }
 
-	
-getFontSize = function(text, targetWidth, font) { 	
-	// https://stackoverflow.com/questions/51032611/find-font-size-to-fit-text-into-a-specific-width-using-pure-js
+getFontSize = function(textCount, targetWidth, font) {
+  // https://stackoverflow.com/questions/51032611/find-font-size-to-fit-text-into-a-specific-width-using-pure-js
+
+  // 生成文本
+  var text = ''
+  for (var i = 0; i < textCount; i++) {
+    text += '绝'
+  }
+
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
-  var size = 1; 	
-  ctx.font = size + 'px ' + font; 	 
-  while(ctx.measureText(text).width < targetWidth) { 		
-    size++; 		
-    ctx.font = size + 'px ' + font; 	
-  } 	 	
-  return size; 
+  var size = 1;
+  ctx.font = size + 'px ' + font;
+  while (ctx.measureText(text).width < targetWidth) { 		
+    size++;
+    ctx.font = size + 'px ' + font;
+  }
+
+  console.log('size: ', size)
+
+  return size;
 }
 
-function calculateFontSize() {
-	// 一行最多展示 10-12 个字
- 	const MaxCharactersInOneLine = 10
-  
-  // 屏幕宽度
-  const screenWidth = window.innerWidth
-  
-  // 计算出的字体大小
-  let targetWidth = screenWidth - 20*2 - 20*2
-  return getFontSize("你好我是绝绝子椰树呀", targetWidth, 'SFMono')
-  
+getFontWidthHeightRatio = function(font) {
+  const text = '绝'
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.font = 32 + 'px ' + font;
+
+  let metrics = ctx.measureText(text)
+  let width = metrics.width
+  // https://stackoverflow.com/questions/1134586/how-can-you-find-the-height-of-text-on-an-html-canvas
+  let height = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent
+
+  return width / height
+}
+
+function getTextCountInOneLine(width, height, fontHeightWidthRatio, allTextCount) {
+  let whRatio = width / height
+  return Math.sqrt(whRatio / fontWidthHeightRatio * allTextCount)
+}
+
+function calculateWordsLength(str) {
+    var len = 0;
+    for (var i = 0; i < str.length; i++) {
+        if (str.charCodeAt(i) > 127 || str.charCodeAt(i) == 94) {
+            len += 2;
+        } else {
+            len++;
+        }
+    }
+    console.log(len);
+}
+
+function calculateFontSize(width, height, fontHeightWidthRatio) {
+  let font = 'SFMono'
+  let text = generateSentences().reduce((acc, cur) => acc + cur + ' ', '')
+  let wordsLength = Math.floor(generateSentences().reduce((acc, cur) => acc + cur.length * 10 + 5, 0) / 10)
+
+//   wordsLength = Math.floor(calculateWordsLength(text) / 2)
+  // 铺满屏幕
+  let wordsInWidth = Math.floor(Math.sqrt(wordsLength * width / height / getFontWidthHeightRatio(font)))
+
+  // 613 533.7 7 46
+  console.log(height, width, wordsInWidth, wordsLength)
+
+  return getFontSize(wordsInWidth, width, font)
 }
 
 function setupFontSize(size) {
@@ -162,14 +221,38 @@ function setupFontSize(size) {
         item.style.borderWidth = size/10 + 'px'
     })
     // line-height:
-  console.log(size)
+    console.log(size)
 }
 
+function setup() {
+    // 设置 spans
 
-setupFontSize(calculateFontSize())
+    generateSentences().forEach(item => {
+        let index = Math.floor(Math.random() * generateSentences().length)
+        let span = document.createElement('span')
+        span.className = 'block' + index
+        span.innerText = item
+        span.style.marginRight = '15px'
+
+        // 设置 style
+
+        document.getElementById('container').appendChild(span)
+    })
+
+    let width = window.innerWidth * 0.9
+    let height = window.innerHeight
+
+    let fontSize = calculateFontSize(width, height)
+    setupFontSize(fontSize)
+}
+
+setup()
+
+// setupFontSize(calculateFontSize(window.innerWidth * 0.9, window.innerHeight))
 
 window.onresize = function(res){
-	setupFontSize(calculateFontSize())
+    setup()
+	// setupFontSize(calculateFontSize(window.innerWidth * 0.9, window.innerHeight))
 }
     </script>
 </html>
