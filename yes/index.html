@@ -36,6 +36,29 @@
 
         }
 
+        /* canvas */
+        #canvas {
+            z-index: -3;
+            /* background-color: #0091ff; */
+            position: absolute;
+            height: 100%;
+            width: 100%;
+        }
+
+        #image_canvas {
+            height: 100%;
+            width: 100%;
+            /* background-color: red; */
+        }
+
+        #canvas_cover {
+            z-index: -2;
+            background-color: black;
+            position: absolute;
+            height: 100%;
+            width: 100%;
+        }
+
         /* 内容区域 */
         #content {
             background-color: black;
@@ -256,6 +279,12 @@
 
     <body>
         <div id="container" class="container">
+            <div id="canvas">
+                <canvas id="image_canvas"></canvas>
+            </div>
+            <div id="canvas_cover">
+            </div>
+            
             <!-- 内容区域（背景） -->
             <div id="content"></div>
 
@@ -287,7 +316,6 @@
         <div id="preview_container" onclick="cancel()">
             <div id="preview_area" onclick="a()">
                 <img id="preview_img">
-                <img id="saved_img" style="z-index: 1;">
             </div>
         </div>
     </body>
@@ -417,26 +445,49 @@ function save() {
         .then(function (dataUrl) {
             let img = document.querySelector('#preview_img')
             let scale = 0.8
-            img.src = dataUrl
+            // img.src = dataUrl
             img.style.width = window.innerWidth * scale + 'px'
             img.style.height = window.innerHeight * scale + 'px'
             // img.style.width = window.innerWidth * 1 + 'px'
             // img.style.height = window.innerHeight * 1 + 'px'
 
-            // img.style.background = 'none'
-            // img.style.backgroundSize = window.innerWidth * 0.8 + 'px'
-            // img.style.backgroundImage = 'url(' + dataUrl + ')'
-            // img.style.backgroundPosition = -window.scrollX + 'px ' + -window.scrollY * 0.8 + 'px'
-            img.style.objectPosition = '0px ' + -window.scrollY * scale + 'px'
-            // img.style.marginTop = -window.scrollY * 0.6 + 'px'
-            // img.style.overflow = 'hidden'
-            img.style.objectFit = 'cover'
+            // // img.style.background = 'none'
+            // // img.style.backgroundSize = window.innerWidth * 0.8 + 'px'
+            // // img.style.backgroundImage = 'url(' + dataUrl + ')'
+            // // img.style.backgroundPosition = -window.scrollX + 'px ' + -window.scrollY * 0.8 + 'px'
+            // img.style.objectPosition = '0px ' + -window.scrollY * scale + 'px'
+            // // img.style.marginTop = -window.scrollY * 0.6 + 'px'
+            // // img.style.overflow = 'hidden'
+            // img.style.objectFit = 'cover'
 
             document.querySelector('#preview_bg_area').style.visibility = 'visible'
             document.querySelector('#preview_area').style.visibility = 'visible'
             document.querySelector('#preview_img').style.visibility = 'visible'
 
+            
+            var canvas = document.getElementById('image_canvas');
+            canvas.width = window.innerWidth
+            canvas.height = window.innerHeight
+            var context = canvas.getContext('2d');
+            context.fillRect(0, 0, window.innerWidth, window.innerHeight);
+            var imageObj = new Image();
 
+            imageObj.src = dataUrl
+            imageObj.onload = function() {
+                // draw cropped image
+                var sourceX = 0;
+                var sourceY = window.scrollY;
+                var sourceWidth = window.innerWidth;
+                var sourceHeight = window.innerHeight;
+                var destWidth = sourceWidth;
+                var destHeight = sourceHeight;
+                var destX = canvas.width / 2 - destWidth / 2;
+                var destY = canvas.height / 2 - destHeight / 2;
+
+                context.drawImage(imageObj, sourceX, sourceY, sourceWidth, sourceHeight, destX, destY, destWidth, destHeight)
+                var image = canvas.toDataURL("image/png", 1);
+                img.src = image
+            };
         })
         .catch(function (error) {
             console.error('oops, something went wrong!', error)
