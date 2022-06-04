@@ -43,8 +43,6 @@
     button {
         font-size: 22px;
         font-weight: bold;
-        background-color: #dc8de4;
-        color: cornsilk;
         border-radius: 10px;
         text-align: center;
         vertical-align: middle;
@@ -73,11 +71,20 @@
     }
 
     .copy_button {
+        background-color: #dc8de4;
+        color: cornsilk;
         height: 40px;
         margin-top: 10px;
         font-size: medium;
     }
 
+    #try_button {
+        background-color: #f2a0fb;
+        color: cornsilk;
+        height: 40px;
+        margin-top: 10px;
+        font-size: medium;
+    }
     
     .footer {
         font-size: small;
@@ -126,9 +133,36 @@
         font-size: medium;
         resize: none;
     }
+
+    /* body {
+        background-image:url(
+            "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='120px' width='120px'><text x='10' y='25' font-size='18' transform='rotate(45)'>我真的会谢</text></svg>"
+        );
+    } */
+
+    /* .bgtext {
+    position: relative;
+    } */
+
+    .main_body:after {
+    content: "";
+    font-size: 26px;
+    padding: 2px;
+    background-color: #ddb2e2;
+    color: rgba(59, 59, 59, 0.6);
+    position: fixed;
+    width: 250%;
+    top: -300px;
+    /* left: -150px; */
+    z-index: -1;
+    transform: rotate(45deg);
+    /* transform-origin: 100%; */
+    }
+
 </style>
 
 <body>
+    <!-- <div class="bgtext"> -->
     <div class="main_body">
         <h1>
             叭叭
@@ -154,8 +188,11 @@
             <textarea id="generate_content"></textarea>
             <!-- <div id="generate_content">
             </div> -->
-            <button class="copy_button" data-clipboard-action="copy"
-                data-clipboard-target="#generate_content">点我复制</button>
+            <div>
+                <button id="try_button" onclick="trySomething(event)">点我试试</button>
+                <button class="copy_button" data-clipboard-action="copy"
+                    data-clipboard-target="#generate_content">点我复制</button>
+            </div>
 
             <!-- Clipboard.js -->
             <script>
@@ -219,6 +256,7 @@
     (adsbygoogle = window.adsbygoogle || []).push({});
 </script> -->
     </div>
+    <!-- </div> -->
 
 </body>
 <script>
@@ -230,7 +268,8 @@
         container.style.display = 'flex';
         if (container.firstElementChild != null) {
             var word = repeatWords(input.value);
-                container.firstElementChild.innerHTML = word;
+            container.firstElementChild.innerHTML = word;
+            setupBackground(word);
             if (word == '') {
                container.style.display = 'none';
             }
@@ -262,6 +301,7 @@
     function randomWord() {
         var input = document.getElementById("keyword_input");
         input.value = defaultWords()[Math.floor(Math.random() * defaultWords().length)];
+        return input.value
     }
 
     function setWords() {
@@ -279,9 +319,67 @@
         inputKeyword();
     }
 
-    randomWord();
+    function setupBackground(word) {
+        function ruleSelector(selector) {
+            function uni(selector) {
+                return selector.replace(/::/g, ':')
+            }
+            return Array.prototype.filter.call(Array.prototype.concat.apply([], Array.prototype.map.call(document.styleSheets, function(x) {
+                return Array.prototype.slice.call(x.cssRules);
+            })), function(x) {
+                return uni(x.selectorText) === uni(selector);
+            });
+        }
+
+        var pseudo = ruleSelector(".main_body::after").slice(-1);
+        const max = 2000
+
+        var bg = ""
+
+        if (word == '') {
+            bg = '""'
+        } else {
+            for (var i = 0; i < max / word.length; i++) {
+                bg += word + " "
+            }
+        }
+
+        var isOff = localStorage.getItem('isOff')
+
+        pseudo.forEach(function(rule) {
+            if (+isOff) {
+                rule.style.content = '""';
+                // rule.style.backgroundColor = '#fff';
+            } else {
+                rule.style.content = "\"" + bg + "\"";
+            }
+        });
+    }
+
+    function loadSwitch() {
+        var isOff = localStorage.getItem('isOff')
+        var tryButton = document.getElementById("try_button")
+        tryButton.innerText = +isOff ? "点我试试" : "已开启背景，点我关闭";
+    }
+
+    function trySomething() {
+        var isOff = localStorage.getItem('isOff')
+        var newValue = +isOff ? 0 : 1;
+        localStorage.setItem('isOff', newValue);
+
+        var input = document.getElementById("keyword_input")
+        setupBackground(input.value);
+
+        var tryButton = document.getElementById("try_button")
+        tryButton.innerText = newValue ? "点我试试" : "已开启背景，点我关闭";
+    }
+
+    var word = randomWord();
     inputKeyword();
     setWords();
+
+    loadSwitch();
+    setupBackground(word);
 
 </script>
 </html>
