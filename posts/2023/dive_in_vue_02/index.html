@@ -422,9 +422,240 @@ body {
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">}</span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">mount</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">el</span><span class="p">,</span> <span class="nx">hydrating</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span></code></pre></div><p>在仅运行时中，<code>$mount</code> 将调用 <code>mountComponent</code> 挂载组件，而在运行时 + 编译器版本中，则先判断 <code>render</code> 函数，具体实现也有所差异。</p>
-<h3 id="runtime-only">Runtime-only</h3>
+</span></span></code></pre></div><p>在仅运行时中，<code>$mount</code> 将调用 <code>mountComponent</code> 挂载组件，而在运行时 + 编译器版本中，则先判断 <code>render</code> 函数，具体实现也有所差异。我们也可在源码 <code>vue/src/platforms/web/runtime/index.ts</code> 中找仅运行时的 <code>$mount</code> 实现：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="c1">// public mount method
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">Vue</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">$mount</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">el?</span>: <span class="kt">string</span> <span class="o">|</span> <span class="nx">Element</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">hydrating?</span>: <span class="kt">boolean</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span><span class="o">:</span> <span class="nx">Component</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">el</span> <span class="o">=</span> <span class="nx">el</span> <span class="o">&amp;&amp;</span> <span class="nx">inBrowser</span> <span class="o">?</span> <span class="nx">query</span><span class="p">(</span><span class="nx">el</span><span class="p">)</span> <span class="o">:</span> <span class="kc">undefined</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nx">mountComponent</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">el</span><span class="p">,</span> <span class="nx">hydrating</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h3 id="runtime-only">Runtime-only</h3>
 <p>Runtime-only，即仅运行时。相较于 Runtime + Compiler 少了编译器部分，那么自然 JS 体积就更小，按照官方说法仅运行时版本的体积将小 6KB。那么仅运行时是如何处理 Vue 模版的呢？</p>
+<p>首先，调用链路从 <code>main.js</code> 中 <code>new Vue({})</code> 开始，进入 <code>_init</code> 方法中，进而调用了 <code>$mount</code> 方法：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="c1">// main.js
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">new</span> <span class="nx">Vue</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">el</span><span class="o">:</span> <span class="s1">&#39;#app&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">render</span><span class="o">:</span> <span class="nx">h</span> <span class="p">=&gt;</span> <span class="nx">h</span><span class="p">(</span><span class="nx">App</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">})</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// vue.runtime.esm.js
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">function</span> <span class="nx">Vue</span><span class="p">(</span><span class="nx">options</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">NODE_ENV</span> <span class="o">!==</span> <span class="s1">&#39;production&#39;</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="p">(</span><span class="k">this</span> <span class="k">instanceof</span> <span class="nx">Vue</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">warn</span><span class="p">(</span><span class="s1">&#39;Vue is a constructor and should be called with the `new` keyword&#39;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">this</span><span class="p">.</span><span class="nx">_init</span><span class="p">(</span><span class="nx">options</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">initMixin$1</span><span class="p">(</span><span class="nx">Vue</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">Vue</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">_init</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">options</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span><span class="nx">vm</span><span class="p">.</span><span class="nx">$options</span><span class="p">.</span><span class="nx">el</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">vm</span><span class="p">.</span><span class="nx">$mount</span><span class="p">(</span><span class="nx">vm</span><span class="p">.</span><span class="nx">$options</span><span class="p">.</span><span class="nx">el</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">Vue</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">$mount</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">el</span><span class="p">,</span> <span class="nx">hydrating</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// el: #app 的 div，位于 index.html
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nx">el</span> <span class="o">=</span> <span class="nx">el</span> <span class="o">&amp;&amp;</span> <span class="nx">inBrowser</span> <span class="o">?</span> <span class="nx">query</span><span class="p">(</span><span class="nx">el</span><span class="p">)</span> <span class="o">:</span> <span class="kc">undefined</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">mountComponent</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">el</span><span class="p">,</span> <span class="nx">hydrating</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>而渲染的核心代码就在 <code>mountComponent</code> 中：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">mountComponent</span><span class="p">(</span><span class="nx">vm</span><span class="p">,</span> <span class="nx">el</span><span class="p">,</span> <span class="nx">hydrating</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">updateComponent</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 关键代码
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nx">updateComponent</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">vm</span><span class="p">.</span><span class="nx">_update</span><span class="p">(</span><span class="nx">vm</span><span class="p">.</span><span class="nx">_render</span><span class="p">(),</span> <span class="nx">hydrating</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">vm</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><details>
+<summary>-> 点击此处即可查看完整源码 <-</summary>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">mountComponent</span><span class="p">(</span><span class="nx">vm</span><span class="p">,</span> <span class="nx">el</span><span class="p">,</span> <span class="nx">hydrating</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">vm</span><span class="p">.</span><span class="nx">$el</span> <span class="o">=</span> <span class="nx">el</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">vm</span><span class="p">.</span><span class="nx">$options</span><span class="p">.</span><span class="nx">render</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// 不存在 render，使用 createEmptyVNode 作为默认 render
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">// @ts-expect-error invalid type
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="nx">vm</span><span class="p">.</span><span class="nx">$options</span><span class="p">.</span><span class="nx">render</span> <span class="o">=</span> <span class="nx">createEmptyVNode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">NODE_ENV</span> <span class="o">!==</span> <span class="s1">&#39;production&#39;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="c1">// 非线上环境会针对性提示当前处于仅运行时模式
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="cm">/* istanbul ignore if */</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">((</span><span class="nx">vm</span><span class="p">.</span><span class="nx">$options</span><span class="p">.</span><span class="nx">template</span> <span class="o">&amp;&amp;</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">$options</span><span class="p">.</span><span class="nx">template</span><span class="p">.</span><span class="nx">charAt</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">!==</span> <span class="s1">&#39;#&#39;</span><span class="p">)</span> <span class="o">||</span>
+</span></span><span class="line"><span class="cl">                <span class="nx">vm</span><span class="p">.</span><span class="nx">$options</span><span class="p">.</span><span class="nx">el</span> <span class="o">||</span>
+</span></span><span class="line"><span class="cl">                <span class="nx">el</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nx">warn</span><span class="p">(</span><span class="s1">&#39;You are using the runtime-only build of Vue where the template &#39;</span> <span class="o">+</span>
+</span></span><span class="line"><span class="cl">                    <span class="s1">&#39;compiler is not available. Either pre-compile the templates into &#39;</span> <span class="o">+</span>
+</span></span><span class="line"><span class="cl">                    <span class="s1">&#39;render functions, or use the compiler-included build.&#39;</span><span class="p">,</span> <span class="nx">vm</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">            <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nx">warn</span><span class="p">(</span><span class="s1">&#39;Failed to mount component: template or render function not defined.&#39;</span><span class="p">,</span> <span class="nx">vm</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// beforeMount 生命周期方法调用
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nx">callHook$1</span><span class="p">(</span><span class="nx">vm</span><span class="p">,</span> <span class="s1">&#39;beforeMount&#39;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">updateComponent</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="cm">/* istanbul ignore if */</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">NODE_ENV</span> <span class="o">!==</span> <span class="s1">&#39;production&#39;</span> <span class="o">&amp;&amp;</span> <span class="nx">config</span><span class="p">.</span><span class="nx">performance</span> <span class="o">&amp;&amp;</span> <span class="nx">mark</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// 性能打点相关，跳过
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="nx">updateComponent</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="kd">var</span> <span class="nx">name</span> <span class="o">=</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">_name</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="kd">var</span> <span class="nx">id</span> <span class="o">=</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">_uid</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="kd">var</span> <span class="nx">startTag</span> <span class="o">=</span> <span class="s2">&#34;vue-perf-start:&#34;</span><span class="p">.</span><span class="nx">concat</span><span class="p">(</span><span class="nx">id</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="kd">var</span> <span class="nx">endTag</span> <span class="o">=</span> <span class="s2">&#34;vue-perf-end:&#34;</span><span class="p">.</span><span class="nx">concat</span><span class="p">(</span><span class="nx">id</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">mark</span><span class="p">(</span><span class="nx">startTag</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="kd">var</span> <span class="nx">vnode</span> <span class="o">=</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">_render</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">mark</span><span class="p">(</span><span class="nx">endTag</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">measure</span><span class="p">(</span><span class="s2">&#34;vue &#34;</span><span class="p">.</span><span class="nx">concat</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span> <span class="s2">&#34; render&#34;</span><span class="p">),</span> <span class="nx">startTag</span><span class="p">,</span> <span class="nx">endTag</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">mark</span><span class="p">(</span><span class="nx">startTag</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">vm</span><span class="p">.</span><span class="nx">_update</span><span class="p">(</span><span class="nx">vnode</span><span class="p">,</span> <span class="nx">hydrating</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">mark</span><span class="p">(</span><span class="nx">endTag</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">measure</span><span class="p">(</span><span class="s2">&#34;vue &#34;</span><span class="p">.</span><span class="nx">concat</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span> <span class="s2">&#34; patch&#34;</span><span class="p">),</span> <span class="nx">startTag</span><span class="p">,</span> <span class="nx">endTag</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// 关键代码
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="nx">updateComponent</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">vm</span><span class="p">.</span><span class="nx">_update</span><span class="p">(</span><span class="nx">vm</span><span class="p">.</span><span class="nx">_render</span><span class="p">(),</span> <span class="nx">hydrating</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// beforeUpdate 生命周期方法插入
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kd">var</span> <span class="nx">watcherOptions</span> <span class="o">=</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">before</span><span class="o">:</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="nx">vm</span><span class="p">.</span><span class="nx">_isMounted</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="nx">vm</span><span class="p">.</span><span class="nx">_isDestroyed</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nx">callHook$1</span><span class="p">(</span><span class="nx">vm</span><span class="p">,</span> <span class="s1">&#39;beforeUpdate&#39;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 可能是一些打点
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">NODE_ENV</span> <span class="o">!==</span> <span class="s1">&#39;production&#39;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">watcherOptions</span><span class="p">.</span><span class="nx">onTrack</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">callHook$1</span><span class="p">(</span><span class="nx">vm</span><span class="p">,</span> <span class="s1">&#39;renderTracked&#39;</span><span class="p">,</span> <span class="p">[</span><span class="nx">e</span><span class="p">]);</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">watcherOptions</span><span class="p">.</span><span class="nx">onTrigger</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">callHook$1</span><span class="p">(</span><span class="nx">vm</span><span class="p">,</span> <span class="s1">&#39;renderTriggered&#39;</span><span class="p">,</span> <span class="p">[</span><span class="nx">e</span><span class="p">]);</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// we set this to vm._watcher inside the watcher&#39;s constructor
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// since the watcher&#39;s initial patch may call $forceUpdate (e.g. inside child
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// component&#39;s mounted hook), which relies on vm._watcher being already defined
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">new</span> <span class="nx">Watcher</span><span class="p">(</span><span class="nx">vm</span><span class="p">,</span> <span class="nx">updateComponent</span><span class="p">,</span> <span class="nx">noop</span><span class="p">,</span> <span class="nx">watcherOptions</span><span class="p">,</span> <span class="kc">true</span> <span class="cm">/* isRenderWatcher */</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">hydrating</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// flush buffer for flush: &#34;pre&#34; watchers queued in setup()
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kd">var</span> <span class="nx">preWatchers</span> <span class="o">=</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">_preWatchers</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="nx">preWatchers</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">preWatchers</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">preWatchers</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">run</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// manually mounted instance, call mounted on self
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// mounted is called for render-created child components in its inserted hook
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// mounted 生命周期方法调用
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="nx">vm</span><span class="p">.</span><span class="nx">$vnode</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">vm</span><span class="p">.</span><span class="nx">_isMounted</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">callHook$1</span><span class="p">(</span><span class="nx">vm</span><span class="p">,</span> <span class="s1">&#39;mounted&#39;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">vm</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div></details>
+<p>这里我们先略过 <code>Watcher</code> 的原理，先对 <code>_render</code> 与 <code>_update</code> 一探究竟：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">renderMixin</span><span class="p">(</span><span class="nx">Vue</span><span class="p">)</span> <span class="p">{</span> 
+</span></span><span class="line"><span class="cl">    <span class="nx">Vue</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">_render</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kd">var</span> <span class="nx">vm</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// _a: { el: &#39;#app&#39;, ... }, render: render 函数, _parentVnode: undefined
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="kd">var</span> <span class="nx">_a</span> <span class="o">=</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">$options</span><span class="p">,</span> <span class="nx">render</span> <span class="o">=</span> <span class="nx">_a</span><span class="p">.</span><span class="nx">render</span><span class="p">,</span> <span class="nx">_parentVnode</span> <span class="o">=</span> <span class="nx">_a</span><span class="p">.</span><span class="nx">_parentVnode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// set parent vnode. this allows render functions to have access
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">// to the data on the placeholder node.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="nx">vm</span><span class="p">.</span><span class="nx">$vnode</span> <span class="o">=</span> <span class="nx">_parentVnode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// render self
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="kd">var</span> <span class="nx">vnode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">try</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="c1">// There&#39;s no need to maintain a stack because all render fns are called
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="c1">// separately from one another. Nested component&#39;s render fns are called
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="c1">// when parent component is patched.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="nx">setCurrentInstance</span><span class="p">(</span><span class="nx">vm</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">currentRenderingInstance</span> <span class="o">=</span> <span class="nx">vm</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">vnode</span> <span class="o">=</span> <span class="nx">render</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">vm</span><span class="p">.</span><span class="nx">_renderProxy</span><span class="p">,</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">$createElement</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">catch</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">finally</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">currentRenderingInstance</span> <span class="o">=</span> <span class="kc">null</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">setCurrentInstance</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// set parent
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="nx">vnode</span><span class="p">.</span><span class="nx">parent</span> <span class="o">=</span> <span class="nx">_parentVnode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nx">vnode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><details>
+<summary>-> 点击此处即可查看完整源码 <-</summary>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">renderMixin</span><span class="p">(</span><span class="nx">Vue</span><span class="p">)</span> <span class="p">{</span> 
+</span></span><span class="line"><span class="cl">    <span class="nx">Vue</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">_render</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kd">var</span> <span class="nx">vm</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// _a: { el: &#39;#app&#39;, ... }, render: render 函数, _parentVnode: undefined
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="kd">var</span> <span class="nx">_a</span> <span class="o">=</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">$options</span><span class="p">,</span> <span class="nx">render</span> <span class="o">=</span> <span class="nx">_a</span><span class="p">.</span><span class="nx">render</span><span class="p">,</span> <span class="nx">_parentVnode</span> <span class="o">=</span> <span class="nx">_a</span><span class="p">.</span><span class="nx">_parentVnode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="nx">_parentVnode</span> <span class="o">&amp;&amp;</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">_isMounted</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="c1">// 跳过
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="nx">vm</span><span class="p">.</span><span class="nx">$scopedSlots</span> <span class="o">=</span> <span class="nx">normalizeScopedSlots</span><span class="p">(</span><span class="nx">vm</span><span class="p">.</span><span class="nx">$parent</span><span class="p">,</span> <span class="nx">_parentVnode</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="nx">scopedSlots</span><span class="p">,</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">$slots</span><span class="p">,</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">$scopedSlots</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="nx">vm</span><span class="p">.</span><span class="nx">_slotsProxy</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nx">syncSetupSlots</span><span class="p">(</span><span class="nx">vm</span><span class="p">.</span><span class="nx">_slotsProxy</span><span class="p">,</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">$scopedSlots</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// set parent vnode. this allows render functions to have access
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">// to the data on the placeholder node.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="nx">vm</span><span class="p">.</span><span class="nx">$vnode</span> <span class="o">=</span> <span class="nx">_parentVnode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// render self
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="kd">var</span> <span class="nx">vnode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">try</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="c1">// There&#39;s no need to maintain a stack because all render fns are called
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="c1">// separately from one another. Nested component&#39;s render fns are called
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="c1">// when parent component is patched.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="nx">setCurrentInstance</span><span class="p">(</span><span class="nx">vm</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">currentRenderingInstance</span> <span class="o">=</span> <span class="nx">vm</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">vnode</span> <span class="o">=</span> <span class="nx">render</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">vm</span><span class="p">.</span><span class="nx">_renderProxy</span><span class="p">,</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">$createElement</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">catch</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="c1">// 跳过
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="nx">handleError</span><span class="p">(</span><span class="nx">e</span><span class="p">,</span> <span class="nx">vm</span><span class="p">,</span> <span class="s2">&#34;render&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="c1">// return error render result,
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="c1">// or previous vnode to prevent render error causing blank component
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="cm">/* istanbul ignore else */</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">NODE_ENV</span> <span class="o">!==</span> <span class="s1">&#39;production&#39;</span> <span class="o">&amp;&amp;</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">$options</span><span class="p">.</span><span class="nx">renderError</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="k">try</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="nx">vnode</span> <span class="o">=</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">$options</span><span class="p">.</span><span class="nx">renderError</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">vm</span><span class="p">.</span><span class="nx">_renderProxy</span><span class="p">,</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">$createElement</span><span class="p">,</span> <span class="nx">e</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">                <span class="p">}</span>
+</span></span><span class="line"><span class="cl">                <span class="k">catch</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="nx">handleError</span><span class="p">(</span><span class="nx">e</span><span class="p">,</span> <span class="nx">vm</span><span class="p">,</span> <span class="s2">&#34;renderError&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">                    <span class="nx">vnode</span> <span class="o">=</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">_vnode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">                <span class="p">}</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">            <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nx">vnode</span> <span class="o">=</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">_vnode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">finally</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">currentRenderingInstance</span> <span class="o">=</span> <span class="kc">null</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">setCurrentInstance</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// if the returned array contains only a single node, allow it
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">// 跳过
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span><span class="nx">isArray</span><span class="p">(</span><span class="nx">vnode</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="nx">vnode</span><span class="p">.</span><span class="nx">length</span> <span class="o">===</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">vnode</span> <span class="o">=</span> <span class="nx">vnode</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// return empty vnode in case the render function errored out
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">// 跳过
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="nx">vnode</span> <span class="k">instanceof</span> <span class="nx">VNode</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">NODE_ENV</span> <span class="o">!==</span> <span class="s1">&#39;production&#39;</span> <span class="o">&amp;&amp;</span> <span class="nx">isArray</span><span class="p">(</span><span class="nx">vnode</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nx">warn</span><span class="p">(</span><span class="s1">&#39;Multiple root nodes returned from render function. Render function &#39;</span> <span class="o">+</span>
+</span></span><span class="line"><span class="cl">                    <span class="s1">&#39;should return a single root node.&#39;</span><span class="p">,</span> <span class="nx">vm</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">vnode</span> <span class="o">=</span> <span class="nx">createEmptyVNode</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// set parent
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="nx">vnode</span><span class="p">.</span><span class="nx">parent</span> <span class="o">=</span> <span class="nx">_parentVnode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nx">vnode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div></details>
 <h3 id="runtime--compiler">Runtime + Compiler</h3>
 <h2 id="tips">Tips</h2>
 <h3 id="脚手架">脚手架</h3>
@@ -477,7 +708,16 @@ body {
 </span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="p">.</span><span class="nx">_init</span><span class="p">(</span><span class="nx">options</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>因此传入构造函数的内容将作为 <code>options</code> 参数整体传入并参与到后续的使用中。</p>
-<h2 id="参考">参考</h2>
+<h3 id="createemptyvnode">createEmptyVNode</h3>
+<p><code>createEmptyVNode</code> 即创建一个空节点函数：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="kd">var</span> <span class="nx">createEmptyVNode</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">text</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="nx">text</span> <span class="o">===</span> <span class="k">void</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span> <span class="nx">text</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">node</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">VNode</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">node</span><span class="p">.</span><span class="nx">text</span> <span class="o">=</span> <span class="nx">text</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">node</span><span class="p">.</span><span class="nx">isComment</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">node</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><h2 id="参考">参考</h2>
 <ul>
 <li><a href="https://v2.vuejs.org/v2/guide/installation.html#Runtime-Compiler-vs-Runtime-only">Runtime + Compiler vs. Runtime-only - Vue.js</a></li>
 </ul>
