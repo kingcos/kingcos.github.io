@@ -8,7 +8,7 @@
 	
 	
 	
-	<title>深入 Vue（二）—— Vue 2 的运行时与编译器 ｜ kingcos</title>
+	<title>深入 Vue（二）—— Vue 2 的运行时与编译器（草稿） ｜ kingcos</title>
 	
     
     
@@ -214,7 +214,7 @@ body {
             <div class="post_page">
                 <div class="post animate__animated animate__fadeInDown">
                     <div class="post_title post_detail_title">
-                        <h2><a href='/posts/2023/dive_in_vue_02/'>深入 Vue（二）—— Vue 2 的运行时与编译器</a></h2>
+                        <h2><a href='/posts/2023/dive_in_vue_02/'>深入 Vue（二）—— Vue 2 的运行时与编译器（草稿）</a></h2>
                         <span class="date">2021.02.22</span>
                         <span>by kingcos</span>
                         
@@ -264,9 +264,9 @@ body {
 </span></span></code></pre></div><p>即：</p>
 <blockquote>
 <p>运行时 + 编译器：推荐多数用户选择
-仅运行时：体积大约小 6KB，但模版（或任何 Vue 指定的 HTML）<strong>仅</strong>可在 <code>.vue</code> 文件中使用 - 其它地方需要 <code>render</code> 函数才可使用</p>
+仅运行时：体积大约小 6KB（min+gzip），但模版（或任何 Vue 指定的 HTML）<strong>仅</strong>可在 <code>.vue</code> 文件中使用 - 其它地方需要 <code>render</code> 函数才可使用</p>
 </blockquote>
-<p>在<a href="../dive_in_vue_01">上一篇文章</a>，我们实现了 <code>compile</code> 函数以对 Vue 模版进行编译转换为浏览器可读的 HTML / JavaScript。那么此次提出的运行时是什么原理？两者有何差异？哪个又更为推荐？且听慢慢分解。</p>
+<p>在<a href="../dive_in_vue_01">上一篇文章</a>，我们实现了 <code>compile</code> 函数以对 Vue 模版进行编译转换为浏览器可读的 HTML / JavaScript。那么这里的运行时是什么原理？两者有何差异？哪个又更为推荐？且听下文慢慢分解。</p>
 <h2 id="实践">实践</h2>
 <p>话不多说，我们直接分别按两个选项建立 demo 工程。其中最明显的差异位于 <code>main.js</code> 的 Vue 对象构造：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="nx">App</span> <span class="nx">from</span> <span class="s1">&#39;./App&#39;</span>
@@ -295,7 +295,137 @@ body {
 </span></span><span class="line"><span class="cl">  <span class="nx">components</span><span class="o">:</span> <span class="p">{</span> <span class="nx">App</span> <span class="p">},</span>
 </span></span><span class="line"><span class="cl">  <span class="nx">template</span><span class="o">:</span> <span class="s1">&#39;&lt;App/&gt;&#39;</span>
 </span></span><span class="line"><span class="cl"><span class="p">})</span>
-</span></span></code></pre></div><p>从注释我们也可区分出，上方仅运行时，将 <code>App.vue</code> 通过 <code>render</code> 函数渲染；下方则使用了运行时 + 编译器，<code>App.vue</code> 作为组件引入，模版设置为 <code>&lt;App/&gt;</code> 元素。</p>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// app.vue 实现完全一致
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="o">&lt;</span><span class="nx">template</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="o">&lt;</span><span class="nx">div</span> <span class="nx">id</span><span class="o">=</span><span class="s2">&#34;app&#34;</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">&lt;</span><span class="nx">h3</span><span class="o">&gt;</span><span class="p">{{</span> <span class="nx">count</span> <span class="p">}}</span><span class="o">&lt;</span><span class="err">/h3&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">&lt;</span><span class="nx">button</span> <span class="nx">type</span><span class="o">=</span><span class="s2">&#34;button&#34;</span> <span class="nx">v</span><span class="o">-</span><span class="nx">on</span><span class="o">:</span><span class="nx">click</span><span class="o">=</span><span class="s2">&#34;increase&#34;</span><span class="o">&gt;+&lt;</span><span class="err">/button&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="o">&lt;</span><span class="err">/div&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="o">&lt;</span><span class="err">/template&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">&lt;</span><span class="nx">script</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">export</span> <span class="k">default</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;App&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">data</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">count</span><span class="o">:</span> <span class="mi">666</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">},</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">methods</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">increase</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">this</span><span class="p">.</span><span class="nx">count</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">&lt;</span><span class="err">/script&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="o">&lt;</span><span class="nx">style</span><span class="o">&gt;&lt;</span><span class="err">/style&gt;</span>
+</span></span></code></pre></div><p>从注释我们也可区分出，上方仅运行时，<code>App.vue</code> 将通过 <code>render</code> 函数渲染；下方则使用了运行时 + 编译器，<code>App.vue</code> 作为组件引入，模版则设置为 <code>&lt;App/&gt;</code> 元素。</p>
+<h3 id="vue-如何区分两者">Vue 如何区分两者</h3>
+<p>我们先把两者的具体实现放在一边，先来看看 Vue 是如何判断使用仅运行时还是运行时 + 编译器的，核心代码位于 <code>vue/src/platforms/web/runtime-with-compiler.ts</code> 的 <code>$mount</code> 函数中：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="nx">Vue</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">$mount</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">el?</span>: <span class="kt">string</span> <span class="o">|</span> <span class="nx">Element</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">hydrating?</span>: <span class="kt">boolean</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span><span class="o">:</span> <span class="nx">Component</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">el</span> <span class="o">=</span> <span class="nx">el</span> <span class="o">&amp;&amp;</span> <span class="nx">query</span><span class="p">(</span><span class="nx">el</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="cm">/* istanbul ignore if */</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="nx">el</span> <span class="o">===</span> <span class="nb">document</span><span class="p">.</span><span class="nx">body</span> <span class="o">||</span> <span class="nx">el</span> <span class="o">===</span> <span class="nb">document</span><span class="p">.</span><span class="nx">documentElement</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">__DEV__</span> <span class="o">&amp;&amp;</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">warn</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="sb">`Do not mount Vue to &lt;html&gt; or &lt;body&gt; - mount to normal elements instead.`</span>
+</span></span><span class="line"><span class="cl">      <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="k">this</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="kr">const</span> <span class="nx">options</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">$options</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// resolve template/el and convert to render function
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// =====&gt;&gt;&gt; HERE &lt;&lt;&lt;=====
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">options</span><span class="p">.</span><span class="nx">render</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 没有 render 的逻辑，即运行时 + 编译器
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kd">let</span> <span class="nx">template</span> <span class="o">=</span> <span class="nx">options</span><span class="p">.</span><span class="nx">template</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="nx">template</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">template</span> <span class="o">===</span> <span class="s1">&#39;string&#39;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="nx">template</span><span class="p">.</span><span class="nx">charAt</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">===</span> <span class="s1">&#39;#&#39;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">          <span class="nx">template</span> <span class="o">=</span> <span class="nx">idToTemplate</span><span class="p">(</span><span class="nx">template</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">          <span class="cm">/* istanbul ignore if */</span>
+</span></span><span class="line"><span class="cl">          <span class="k">if</span> <span class="p">(</span><span class="nx">__DEV__</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="nx">template</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">warn</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">              <span class="sb">`Template element not found or is empty: </span><span class="si">${</span><span class="nx">options</span><span class="p">.</span><span class="nx">template</span><span class="si">}</span><span class="sb">`</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">              <span class="k">this</span>
+</span></span><span class="line"><span class="cl">            <span class="p">)</span>
+</span></span><span class="line"><span class="cl">          <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">template</span><span class="p">.</span><span class="nx">nodeType</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">template</span> <span class="o">=</span> <span class="nx">template</span><span class="p">.</span><span class="nx">innerHTML</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="nx">__DEV__</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">          <span class="nx">warn</span><span class="p">(</span><span class="s1">&#39;invalid template option:&#39;</span> <span class="o">+</span> <span class="nx">template</span><span class="p">,</span> <span class="k">this</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="k">this</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">el</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="c1">// @ts-expect-error
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="nx">template</span> <span class="o">=</span> <span class="nx">getOuterHTML</span><span class="p">(</span><span class="nx">el</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="nx">template</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="cm">/* istanbul ignore if */</span>
+</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">(</span><span class="nx">__DEV__</span> <span class="o">&amp;&amp;</span> <span class="nx">config</span><span class="p">.</span><span class="nx">performance</span> <span class="o">&amp;&amp;</span> <span class="nx">mark</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">mark</span><span class="p">(</span><span class="s1">&#39;compile&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">      <span class="kr">const</span> <span class="p">{</span> <span class="nx">render</span><span class="p">,</span> <span class="nx">staticRenderFns</span> <span class="p">}</span> <span class="o">=</span> <span class="nx">compileToFunctions</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">template</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">          <span class="nx">outputSourceRange</span>: <span class="kt">__DEV__</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">          <span class="nx">shouldDecodeNewlines</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">          <span class="nx">shouldDecodeNewlinesForHref</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">          <span class="nx">delimiters</span>: <span class="kt">options.delimiters</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">          <span class="nx">comments</span>: <span class="kt">options.comments</span>
+</span></span><span class="line"><span class="cl">        <span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="k">this</span>
+</span></span><span class="line"><span class="cl">      <span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">options</span><span class="p">.</span><span class="nx">render</span> <span class="o">=</span> <span class="nx">render</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">options</span><span class="p">.</span><span class="nx">staticRenderFns</span> <span class="o">=</span> <span class="nx">staticRenderFns</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">      <span class="cm">/* istanbul ignore if */</span>
+</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">(</span><span class="nx">__DEV__</span> <span class="o">&amp;&amp;</span> <span class="nx">config</span><span class="p">.</span><span class="nx">performance</span> <span class="o">&amp;&amp;</span> <span class="nx">mark</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">mark</span><span class="p">(</span><span class="s1">&#39;compile end&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">measure</span><span class="p">(</span><span class="sb">`vue </span><span class="si">${</span><span class="k">this</span><span class="p">.</span><span class="nx">_name</span><span class="si">}</span><span class="sb"> compile`</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;compile end&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nx">mount</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">el</span><span class="p">,</span> <span class="nx">hydrating</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>即 Vue 是通过 <code>options.render</code> 是否存在来判断使用运行时还是编译器。然而上文提到说仅运行时的体积将缩小 6KB，又是怎么做到呢？</p>
+<p>我们可以将两个 demo 页面使用同样的代码实现（除了 <code>main.js</code>），并使用 <code>npm run build</code> 生成最终产物，再通过 <code>http-server</code> 本地访问。此时我们将发现其 <code>$mount</code> 方法中的实现差异：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="c1">// 仅运行时
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">Vue</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">$mount</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">el</span><span class="p">,</span> <span class="nx">hydrating</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">el</span> <span class="o">=</span> <span class="nx">el</span> <span class="o">&amp;&amp;</span> <span class="nx">inBrowser</span> <span class="o">?</span> <span class="nx">query</span><span class="p">(</span><span class="nx">el</span><span class="p">)</span> <span class="o">:</span> <span class="kc">undefined</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">mountComponent</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">el</span><span class="p">,</span> <span class="nx">hydrating</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 运行时 + 编译器
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">Vue</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">$mount</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">el</span><span class="p">,</span> <span class="nx">hydrating</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">el</span> <span class="o">=</span> <span class="nx">el</span> <span class="o">&amp;&amp;</span> <span class="nx">query</span><span class="p">(</span><span class="nx">el</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="cm">/* istanbul ignore if */</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="nx">el</span> <span class="o">===</span> <span class="nb">document</span><span class="p">.</span><span class="nx">body</span> <span class="o">||</span> <span class="nx">el</span> <span class="o">===</span> <span class="nb">document</span><span class="p">.</span><span class="nx">documentElement</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">NODE_ENV</span> <span class="o">!==</span> <span class="s1">&#39;production&#39;</span> <span class="o">&amp;&amp;</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">warn$2</span><span class="p">(</span><span class="s2">&#34;Do not mount Vue to &lt;html&gt; or &lt;body&gt; - mount to normal elements instead.&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">$options</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// resolve template/el and convert to render function
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">options</span><span class="p">.</span><span class="nx">render</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kd">var</span> <span class="nx">template</span> <span class="o">=</span> <span class="nx">options</span><span class="p">.</span><span class="nx">template</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">mount</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">el</span><span class="p">,</span> <span class="nx">hydrating</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>在仅运行时中，<code>$mount</code> 将调用 <code>mountComponent</code> 挂载组件，而在运行时 + 编译器版本中，则先判断 <code>render</code> 函数，具体实现也有所差异。</p>
+<h3 id="runtime-only">Runtime-only</h3>
+<p>Runtime-only，即仅运行时。相较于 Runtime + Compiler 少了编译器部分，那么自然 JS 体积就更小，按照官方说法仅运行时版本的体积将小 6KB。那么仅运行时是如何处理 Vue 模版的呢？</p>
+<h3 id="runtime--compiler">Runtime + Compiler</h3>
 <h2 id="tips">Tips</h2>
 <h3 id="脚手架">脚手架</h3>
 <blockquote>
@@ -303,7 +433,7 @@ body {
 <p>—— 维基百科</p>
 </blockquote>
 <p>在前端工程实践中，脚手架一词经常会出现，其来自于英文中的 scaffold。泛指 Vue CLI 等一些开箱即用的工具链，你也可以在 Vue 官网 <a href="https://vuejs.org/guide/scaling-up/tooling.html">https://vuejs.org/guide/scaling-up/tooling.html</a> 中查看 Vue 相关的工程脚手架。</p>
-<p>当然，Vue 应用也可以不通过脚手架创建，如下我们也可以直接通过 CDN 引入相关 JS 即可实现：</p>
+<p>当然，Vue 应用也可以不通过脚手架创建，如下我们可以直接通过 CDN 引入相关 JS 即可实现：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-html" data-lang="html"><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">div</span> <span class="na">id</span><span class="o">=</span><span class="s">&#34;app&#34;</span><span class="p">&gt;</span>
 </span></span><span class="line"><span class="cl">    <span class="p">&lt;</span><span class="nt">h3</span><span class="p">&gt;</span>{{ count }}<span class="p">&lt;/</span><span class="nt">h3</span><span class="p">&gt;</span>
 </span></span><span class="line"><span class="cl">    <span class="p">&lt;</span><span class="nt">button</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;button&#34;</span> <span class="na">v-on:click</span><span class="o">=</span><span class="s">&#34;increase&#34;</span><span class="p">&gt;</span>+<span class="p">&lt;/</span><span class="nt">button</span><span class="p">&gt;</span>
@@ -326,7 +456,32 @@ body {
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="p">})</span>
 </span></span><span class="line"><span class="cl"><span class="p">&lt;/</span><span class="nt">script</span><span class="p">&gt;</span>
-</span></span></code></pre></div></div>
+</span></span></code></pre></div><h3 id="vue-到底是什么"><code>Vue</code> 到底是什么？</h3>
+<p>我们在<a href="../dive_in_vue_01">上一篇文章</a>中将 <code>miniVue</code> 定义为一个类（<code>class</code>），但其实在 JavaScript 中本身并没有类这一类型。我们使用 <code>typeof(miniVue)</code> 也将获得 <code>function</code> 即函数。</p>
+<p>那为什么 <code>Vue</code> 在构造时需要使用 <code>new</code> 关键字？原来 JavaScript 中还有一种特殊的函数 —— 构造函数，通常使用首字母大写的形式命名。使用 <code>new</code> 调用构造函数后将默认返回对象（<code>object</code>），其中可以使用 <code>this</code> 构造对象。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">MyVue</span> <span class="p">(</span><span class="nx">options</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="k">this</span> <span class="k">instanceof</span> <span class="nx">MyVue</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">console</span><span class="p">.</span><span class="nx">warn</span><span class="p">(</span><span class="s1">&#39;MyVue is a constructor and should be called with the `new` keyword&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="nx">a</span> <span class="o">=</span> <span class="nx">MyVue</span><span class="p">({})</span>     <span class="c1">// undefined, this === window
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">var</span> <span class="nx">b</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">MyVue</span><span class="p">({})</span> <span class="c1">// MyVue, this -&gt; object(MyVue)
+</span></span></span></code></pre></div><p>在 Vue 2 源码 <code>vue/src/core/instance/index.ts</code> 中，<code>Vue</code> 就是如下构造函数的实现：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">Vue</span> <span class="p">(</span><span class="nx">options</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">NODE_ENV</span> <span class="o">!==</span> <span class="s1">&#39;production&#39;</span> <span class="o">&amp;&amp;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">!</span><span class="p">(</span><span class="k">this</span> <span class="k">instanceof</span> <span class="nx">Vue</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">warn</span><span class="p">(</span><span class="s1">&#39;Vue is a constructor and should be called with the `new` keyword&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="p">.</span><span class="nx">_init</span><span class="p">(</span><span class="nx">options</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>因此传入构造函数的内容将作为 <code>options</code> 参数整体传入并参与到后续的使用中。</p>
+<h2 id="参考">参考</h2>
+<ul>
+<li><a href="https://v2.vuejs.org/v2/guide/installation.html#Runtime-Compiler-vs-Runtime-only">Runtime + Compiler vs. Runtime-only - Vue.js</a></li>
+</ul>
+</div>
                     <div class="post_footer">
                         
                         <div class="meta">
