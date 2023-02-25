@@ -253,7 +253,23 @@ body {
 <h2 id="开始">开始</h2>
 <p>在<a href="../dive_in_vue_02">上一篇文章</a>中，我们先简单地介绍了 Vue 2 的运行时与编译器的区别，本篇继续尝试深入渲染部分。</p>
 <h2 id="仅运行时">仅运行时</h2>
-<h3 id="调用链路">调用链路</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="nx">App</span> <span class="nx">from</span> <span class="s1">&#39;./App&#39;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">Vue</span><span class="p">.</span><span class="nx">config</span><span class="p">.</span><span class="nx">productionTip</span> <span class="o">=</span> <span class="kc">false</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cm">/* eslint-disable no-new */</span>
+</span></span><span class="line"><span class="cl"><span class="k">new</span> <span class="nx">Vue</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">el</span><span class="o">:</span> <span class="s1">&#39;#app&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">render</span><span class="o">:</span> <span class="nx">h</span> <span class="p">=&gt;</span> <span class="nx">h</span><span class="p">(</span><span class="nx">App</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">})</span>
+</span></span></code></pre></div><p>这里 <code>render</code> 更清晰的代码如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="k">new</span> <span class="nx">Vue</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">el</span><span class="o">:</span> <span class="s1">&#39;#app&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">render</span><span class="o">:</span> <span class="p">(</span><span class="nx">fn</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">fn</span><span class="p">(</span><span class="s1">&#39;App&#39;</span><span class="p">,</span> <span class="nx">App</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">})</span>
+</span></span></code></pre></div><h3 id="调用链路">调用链路</h3>
 <p>上回书说到，当我们在仅运行时的 <code>render</code> 函数中断点时，调用栈如下：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Vue -&gt; Vue._init -&gt; Vue.$mount（挂载） -&gt; mountComponent -&gt; Watcher -&gt; Wacther.get -&gt; updateComponent -&gt; Vue._render -&gt; render（渲染）
 </span></span></code></pre></div><p>我们简单从源码里梳理以上的调用关系如下：</p>
@@ -331,7 +347,17 @@ body {
 </span></span><span class="line"><span class="cl">    <span class="p">};</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><h3 id="how-_render-works">How <code>_render</code> works?</h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">renderMixin</span><span class="p">(</span><span class="nx">Vue</span><span class="p">)</span> <span class="p">{</span>
+<p>我们把 <code>_render</code> 源码的核心部分抽出如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="c1">// main.js
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">new</span> <span class="nx">Vue</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">el</span><span class="o">:</span> <span class="s1">&#39;#app&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">render</span><span class="o">:</span> <span class="p">(</span><span class="nx">fn</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">fn</span><span class="p">(</span><span class="s1">&#39;App&#39;</span><span class="p">,</span> <span class="nx">App</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">})</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// vue.runtime.esm.js
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">function</span> <span class="nx">renderMixin</span><span class="p">(</span><span class="nx">Vue</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="nx">Vue</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">_render</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">        <span class="kd">var</span> <span class="nx">vm</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">        <span class="c1">// _a: { el: &#39;#app&#39;, ... }, render: render 函数, _parentVnode: undefined
@@ -340,12 +366,78 @@ body {
 </span></span><span class="line"><span class="cl">        <span class="c1">// render self
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="kd">var</span> <span class="nx">vnode</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">        <span class="k">try</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="nx">vnode</span> <span class="o">=</span> <span class="nx">render</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">vm</span><span class="p">.</span><span class="nx">_renderProxy</span><span class="p">,</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">$createElement</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="c1">// =====&gt;&gt;&gt; HERE &lt;&lt;&lt;=====
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="nx">vnode</span> <span class="o">=</span> <span class="nx">render</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">vm</span><span class="p">.</span><span class="nx">_renderProxy</span><span class="p">,</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">$createElement</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">        <span class="p">}</span>
 </span></span><span class="line"><span class="cl">        <span class="c1">// set parent
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="nx">vnode</span><span class="p">.</span><span class="nx">parent</span> <span class="o">=</span> <span class="nx">_parentVnode</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nx">vnode</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>我们将此处的 <code>render</code> 函数的调用及后续链路梳理得更清晰一些：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="c1">// this -&gt; vm._renderProxy
+</span></span></span><span class="line"><span class="cl"><span class="c1">// vnode = render(vm.$createElement)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">vnode</span> <span class="o">=</span> <span class="nx">vm</span><span class="p">.</span><span class="nx">$createElement</span><span class="p">(</span><span class="s1">&#39;App&#39;</span><span class="p">,</span> <span class="nx">App</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">initRender</span><span class="p">(</span><span class="nx">vm</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">vm</span><span class="p">.</span><span class="nx">$createElement</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span><span class="p">,</span> <span class="nx">c</span><span class="p">,</span> <span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">createElement$1</span><span class="p">(</span><span class="nx">vm</span><span class="p">,</span> <span class="nx">a</span><span class="p">,</span> <span class="nx">b</span><span class="p">,</span> <span class="nx">c</span><span class="p">,</span> <span class="nx">d</span><span class="p">,</span> <span class="kc">true</span><span class="p">);</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">createElement$1</span><span class="p">(</span><span class="nx">context</span><span class="p">,</span> <span class="nx">tag</span><span class="p">,</span> <span class="nx">data</span><span class="p">,</span> <span class="nx">children</span><span class="p">,</span> <span class="nx">normalizationType</span><span class="p">,</span> <span class="nx">alwaysNormalize</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// context: vm, tag: &#39;App&#39;, alwaysNormalize: true, 其他：undefined
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">return</span> <span class="nx">_createElement</span><span class="p">(</span><span class="nx">context</span><span class="p">,</span> <span class="nx">tag</span><span class="p">,</span> <span class="nx">data</span><span class="p">,</span> <span class="nx">children</span><span class="p">,</span> <span class="nx">normalizationType</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">_createElement</span><span class="p">(</span><span class="nx">context</span><span class="p">,</span> <span class="nx">tag</span><span class="p">,</span> <span class="nx">data</span><span class="p">,</span> <span class="nx">children</span><span class="p">,</span> <span class="nx">normalizationType</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="nx">normalizationType</span> <span class="o">===</span> <span class="nx">ALWAYS_NORMALIZE</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">children</span> <span class="o">=</span> <span class="nx">normalizeChildren</span><span class="p">(</span><span class="nx">children</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">normalizationType</span> <span class="o">===</span> <span class="nx">SIMPLE_NORMALIZE</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">children</span> <span class="o">=</span> <span class="nx">simpleNormalizeChildren</span><span class="p">(</span><span class="nx">children</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">vnode</span><span class="p">,</span> <span class="nx">ns</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">tag</span> <span class="o">===</span> <span class="s1">&#39;string&#39;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kd">var</span> <span class="nx">Ctor</span> <span class="o">=</span> <span class="k">void</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">ns</span> <span class="o">=</span> <span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">$vnode</span> <span class="o">&amp;&amp;</span> <span class="nx">context</span><span class="p">.</span><span class="nx">$vnode</span><span class="p">.</span><span class="nx">ns</span><span class="p">)</span> <span class="o">||</span> <span class="nx">config</span><span class="p">.</span><span class="nx">getTagNamespace</span><span class="p">(</span><span class="nx">tag</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="nx">config</span><span class="p">.</span><span class="nx">isReservedTag</span><span class="p">(</span><span class="nx">tag</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="c1">// platform built-in elements
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="k">if</span> <span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">NODE_ENV</span> <span class="o">!==</span> <span class="s1">&#39;production&#39;</span> <span class="o">&amp;&amp;</span>
+</span></span><span class="line"><span class="cl">                <span class="nx">isDef</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="o">&amp;&amp;</span>
+</span></span><span class="line"><span class="cl">                <span class="nx">isDef</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">nativeOn</span><span class="p">)</span> <span class="o">&amp;&amp;</span>
+</span></span><span class="line"><span class="cl">                <span class="nx">data</span><span class="p">.</span><span class="nx">tag</span> <span class="o">!==</span> <span class="s1">&#39;component&#39;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nx">warn</span><span class="p">(</span><span class="s2">&#34;The .native modifier for v-on is only valid on components but it was used on &lt;&#34;</span><span class="p">.</span><span class="nx">concat</span><span class="p">(</span><span class="nx">tag</span><span class="p">,</span> <span class="s2">&#34;&gt;.&#34;</span><span class="p">),</span> <span class="nx">context</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">vnode</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">VNode</span><span class="p">(</span><span class="nx">config</span><span class="p">.</span><span class="nx">parsePlatformTagName</span><span class="p">(</span><span class="nx">tag</span><span class="p">),</span> <span class="nx">data</span><span class="p">,</span> <span class="nx">children</span><span class="p">,</span> <span class="kc">undefined</span><span class="p">,</span> <span class="kc">undefined</span><span class="p">,</span> <span class="nx">context</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span> <span class="k">if</span> <span class="p">((</span><span class="o">!</span><span class="nx">data</span> <span class="o">||</span> <span class="o">!</span><span class="nx">data</span><span class="p">.</span><span class="nx">pre</span><span class="p">)</span> <span class="o">&amp;&amp;</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">isDef</span><span class="p">((</span><span class="nx">Ctor</span> <span class="o">=</span> <span class="nx">resolveAsset</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">$options</span><span class="p">,</span> <span class="s1">&#39;components&#39;</span><span class="p">,</span> <span class="nx">tag</span><span class="p">))))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="c1">// component
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="nx">vnode</span> <span class="o">=</span> <span class="nx">createComponent</span><span class="p">(</span><span class="nx">Ctor</span><span class="p">,</span> <span class="nx">data</span><span class="p">,</span> <span class="nx">context</span><span class="p">,</span> <span class="nx">children</span><span class="p">,</span> <span class="nx">tag</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="c1">// unknown or unlisted namespaced elements
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="c1">// check at runtime because it may get assigned a namespace when its
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="c1">// parent normalizes children
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="nx">vnode</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">VNode</span><span class="p">(</span><span class="nx">tag</span><span class="p">,</span> <span class="nx">data</span><span class="p">,</span> <span class="nx">children</span><span class="p">,</span> <span class="kc">undefined</span><span class="p">,</span> <span class="kc">undefined</span><span class="p">,</span> <span class="nx">context</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// direct component options / constructor
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="nx">vnode</span> <span class="o">=</span> <span class="nx">createComponent</span><span class="p">(</span><span class="nx">tag</span><span class="p">,</span> <span class="nx">data</span><span class="p">,</span> <span class="nx">context</span><span class="p">,</span> <span class="nx">children</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="nx">isArray</span><span class="p">(</span><span class="nx">vnode</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nx">vnode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">isDef</span><span class="p">(</span><span class="nx">vnode</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="nx">isDef</span><span class="p">(</span><span class="nx">ns</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">applyNS</span><span class="p">(</span><span class="nx">vnode</span><span class="p">,</span> <span class="nx">ns</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="nx">isDef</span><span class="p">(</span><span class="nx">data</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">registerDeepBindings</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nx">vnode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nx">createEmptyVNode</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">renderMixin</span><span class="p">(</span><span class="nx">Vue</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="nx">Vue</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">_render</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
@@ -492,74 +584,47 @@ body {
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">fn</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">]);</span>     <span class="c1">// Number {1} 2 undefined
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">fn</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]);</span>  <span class="c1">// Number {1} 2 3
 </span></span></span></code></pre></div><p><code>call()</code> 的功能也是函数调用，但差别在于第一个参数将被当作 <code>this</code> 指向；<code>apply()</code> 的功能则也是函数调用，但不同的是其最多有两个参数，且第二个参数可以理解为一个参数数组，摊开后传递给调用的函数。</p>
-<p>那么此时有个疑问，我们能否实现类似两者功能的函数呢？</p>
+<p>那么此时我有个疑问，如何实现类似两者功能的函数呢？</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">fn</span><span class="p">(</span><span class="nx">arg1</span><span class="p">,</span> <span class="nx">arg2</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arg1</span><span class="p">,</span> <span class="nx">arg2</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">v_call</span><span class="p">(</span><span class="nx">func</span><span class="p">,</span> <span class="nx">ctx</span><span class="p">,</span> <span class="p">...</span><span class="nx">args</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">func</span> <span class="o">!==</span> <span class="s1">&#39;function&#39;</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="c1">// 非函数类型
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">throw</span> <span class="k">new</span> <span class="nx">TypeError</span><span class="p">(</span><span class="s1">&#39;fn is not a function&#39;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1">// this 指向，默认为全局 window
+</span></span><span class="line"><span class="cl"><span class="c1">// 使用原型让所有函数均可调用
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nb">Function</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">v_call</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">ctx</span><span class="p">,</span> <span class="p">...</span><span class="nx">args</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ctx 为 this 指向，默认为全局 window
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nx">ctx</span> <span class="o">=</span> <span class="nx">ctx</span> <span class="o">||</span> <span class="nb">window</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">ctx</span> <span class="o">!==</span> <span class="s1">&#39;object&#39;</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">ctx</span> <span class="o">===</span> <span class="s1">&#39;number&#39;</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="nx">ctx</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Number</span><span class="p">(</span><span class="nx">ctx</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="k">throw</span> <span class="k">new</span> <span class="nx">TypeError</span><span class="p">(</span><span class="s1">&#39;ctx is not an object&#39;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1">// 将当前函数设为上下文的一个属性
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nx">ctx</span><span class="p">.</span><span class="nx">func</span> <span class="o">=</span> <span class="nx">func</span>
-</span></span><span class="line"><span class="cl">    <span class="c1">// 执行函数并保存返回值
+</span></span><span class="line"><span class="cl">    <span class="c1">// 将当前函数设为上下文原型的一个属性，避免非对象类型无法保存 func
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nx">ctx</span><span class="p">.</span><span class="nx">__proto__</span><span class="p">.</span><span class="nx">func</span> <span class="o">=</span> <span class="k">this</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 执行函数并保存返回值，注意这里要避免在原型上执行
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kr">const</span> <span class="nx">result</span> <span class="o">=</span> <span class="nx">ctx</span><span class="p">.</span><span class="nx">func</span><span class="p">(...</span><span class="nx">args</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="c1">// 删除上下文的 fn 属性
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">delete</span> <span class="nx">ctx</span><span class="p">.</span><span class="nx">func</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 删除上下文原型的 fn 属性
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">delete</span> <span class="nx">ctx</span><span class="p">.</span><span class="nx">__proto__</span><span class="p">.</span><span class="nx">func</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// 返回函数执行结果
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">return</span> <span class="nx">result</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">v_apply</span><span class="p">(</span><span class="nx">func</span><span class="p">,</span> <span class="nx">ctx</span><span class="p">,</span> <span class="nx">args</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">func</span> <span class="o">!==</span> <span class="s1">&#39;function&#39;</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="c1">// 非函数类型
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">throw</span> <span class="k">new</span> <span class="nx">TypeError</span><span class="p">(</span><span class="s1">&#39;fn is not a function&#39;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">Function</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">v_apply</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">ctx</span><span class="p">,</span> <span class="nx">args</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// this 指向，默认为全局 window
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nx">ctx</span> <span class="o">=</span> <span class="nx">ctx</span> <span class="o">||</span> <span class="nb">window</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">ctx</span> <span class="o">!==</span> <span class="s1">&#39;object&#39;</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">ctx</span> <span class="o">===</span> <span class="s1">&#39;number&#39;</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="nx">ctx</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Number</span><span class="p">(</span><span class="nx">ctx</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="k">throw</span> <span class="k">new</span> <span class="nx">TypeError</span><span class="p">(</span><span class="s1">&#39;ctx is not an object&#39;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1">// 将当前函数设为上下文的一个属性
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nx">ctx</span><span class="p">.</span><span class="nx">func</span> <span class="o">=</span> <span class="nx">func</span>
-</span></span><span class="line"><span class="cl">    <span class="c1">// 执行函数并保存返回值
+</span></span><span class="line"><span class="cl">    <span class="c1">// 将当前函数设为上下文原型的一个属性，避免非对象类型无法保存 func
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nx">ctx</span><span class="p">.</span><span class="nx">__proto__</span><span class="p">.</span><span class="nx">func</span> <span class="o">=</span> <span class="k">this</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 执行函数并保存返回值，注意这里要避免在原型上执行
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kr">const</span> <span class="nx">result</span> <span class="o">=</span> <span class="nx">ctx</span><span class="p">.</span><span class="nx">func</span><span class="p">(...(</span><span class="nx">args</span> <span class="o">||</span> <span class="p">[]))</span>
-</span></span><span class="line"><span class="cl">    <span class="c1">// 删除上下文的 fn 属性
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">delete</span> <span class="nx">ctx</span><span class="p">.</span><span class="nx">func</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 删除上下文原型的 fn 属性
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">delete</span> <span class="nx">ctx</span><span class="p">.</span><span class="nx">__proto__</span><span class="p">.</span><span class="nx">func</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// 返回函数执行结果
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">return</span> <span class="nx">result</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nx">v_call</span><span class="p">(</span><span class="nx">fn</span><span class="p">);</span>           <span class="c1">// Window {} undefined undefined
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">v_call</span><span class="p">(</span><span class="nx">fn</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>        <span class="c1">// Number {1, func} undefined undefined
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">v_call</span><span class="p">(</span><span class="nx">fn</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>     <span class="c1">// Number {1, func} 2 undefined
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">v_call</span><span class="p">(</span><span class="nx">fn</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">);</span>  <span class="c1">// Number {1, func} 2 3
+</span></span><span class="line"><span class="cl"><span class="nx">fn</span><span class="p">.</span><span class="nx">v_call</span><span class="p">();</span>         <span class="c1">// Window {} undefined undefined
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">fn</span><span class="p">.</span><span class="nx">v_call</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>        <span class="c1">// Number {1} undefined undefined
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">fn</span><span class="p">.</span><span class="nx">v_call</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>     <span class="c1">// Number {1} 2 undefined
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">fn</span><span class="p">.</span><span class="nx">v_call</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">);</span>  <span class="c1">// Number {1} 2 3
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>
-</span></span><span class="line"><span class="cl"><span class="nx">v_apply</span><span class="p">(</span><span class="nx">fn</span><span class="p">);</span>             <span class="c1">// Window {} undefined undefined
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">v_apply</span><span class="p">(</span><span class="nx">fn</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>          <span class="c1">// Number {1, func} undefined undefined
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">v_apply</span><span class="p">(</span><span class="nx">fn</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">]);</span>     <span class="c1">// Number {1, func} 2 undefined
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">v_apply</span><span class="p">(</span><span class="nx">fn</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]);</span>  <span class="c1">// Number {1, func} 2 3
+</span></span><span class="line"><span class="cl"><span class="nx">fn</span><span class="p">.</span><span class="nx">v_apply</span><span class="p">();</span>           <span class="c1">// Window {} undefined undefined
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">fn</span><span class="p">.</span><span class="nx">v_apply</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>          <span class="c1">// Number {1} undefined undefined
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">fn</span><span class="p">.</span><span class="nx">v_apply</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">]);</span>     <span class="c1">// Number {1} 2 undefined
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">fn</span><span class="p">.</span><span class="nx">v_apply</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]);</span>  <span class="c1">// Number {1} 2 3
 </span></span></span></code></pre></div><blockquote>
 <p>Q: JavaScript 内置的 call()、apply() 函数的源码具体在哪里
 A: `call() 和 apply() 方法是 JavaScript 中的内置函数，它们的实现源码在 JavaScript 引擎中，并不是开放的标准库函数，因此无法直接查看其源码。不过，根据规范，它们的实现方式可以由各个 JavaScript 引擎厂商自行实现，只需要遵循规范定义的函数签名和行为即可。不同 JavaScript 引擎的实现方式可能会有所不同。</p>
