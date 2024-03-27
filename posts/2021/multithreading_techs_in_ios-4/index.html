@@ -408,7 +408,8 @@ body {
 <h4 id="stripedmapt">StripedMap&lt;T&gt;</h4>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="c1">// objc-private.h
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>
-</span></span><span class="line"><span class="cl"><span class="k">enum</span> <span class="p">{</span> <span class="n">CacheLineSize</span> <span class="o">=</span> <span class="mi">64</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 缓存行大小是计算机体系结构中一个重要的概念，对于多线程编程来说，可以通过使数据对齐到缓存行的边界来避免伪共享等性能问题。
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">enum</span> <span class="p">{</span> <span class="n">CacheLineSize</span> <span class="o">=</span> <span class="mi">64</span> <span class="p">};</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// objc-sync.mm
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>
@@ -417,7 +418,7 @@ body {
 </span></span><span class="line"><span class="cl">    <span class="k">struct</span> <span class="n">SyncData</span><span class="o">*</span> <span class="n">nextData</span><span class="p">;</span>        <span class="c1">// 指向下一个同步数据（链表）
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">objc_object</span><span class="o">&gt;</span> <span class="n">object</span><span class="p">;</span> <span class="c1">// 对象；关于 DisguisedPtr，可详见 Reference 中的链接
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">int32_t</span> <span class="n">threadCount</span><span class="p">;</span>              <span class="c1">// number of THREADS using this block 使用该代码块的线程数
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">recursive_mutex_t</span> <span class="n">mutex</span><span class="p">;</span>          <span class="c1">// 递归锁
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">recursive_mutex_t</span> <span class="n">mutex</span><span class="p">;</span>          <span class="c1">// 递归锁，允许同一线程多次获取锁
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="n">SyncData</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">SyncList</span> <span class="p">{</span>
@@ -428,11 +429,14 @@ body {
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// - 修饰构造函数时（如下），使得自定义类型的对象可以用作有效的常量表达式；
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// - 修饰函数时，若函数参数可以在编译时刻计算出来，那么该函数将可以产生编译时刻的常量，否则与普通函数无异；
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// - 修饰对象时，constexpr 限定为编译时刻常量，const 修饰则限定为运行时常量。
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 在初始化时，data 为 nil，lock 为 fork_unsafe_lock
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// data = nil; lock = fork_unsafe_lock;
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">constexpr</span> <span class="nf">SyncList</span><span class="p">()</span> <span class="o">:</span> <span class="n">data</span><span class="p">(</span><span class="nb">nil</span><span class="p">),</span> <span class="n">lock</span><span class="p">(</span><span class="n">fork_unsafe_lock</span><span class="p">)</span> <span class="p">{</span> <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// Use multiple parallel lists to decrease contention among unrelated objects.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 使用多个并行列表来减少不相关对象之间的竞争。
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#define LOCK_FOR_OBJ(obj) sDataLists[obj].lock
 </span></span></span><span class="line"><span class="cl"><span class="cp">#define LIST_FOR_OBJ(obj) sDataLists[obj].data
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="k">static</span> <span class="n">StripedMap</span><span class="o">&lt;</span><span class="n">SyncList</span><span class="o">&gt;</span> <span class="n">sDataLists</span><span class="p">;</span>
@@ -440,6 +444,8 @@ body {
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>
 </span></span><span class="line"><span class="cl"><span class="k">enum</span> <span class="p">{</span> <span class="n">CacheLineSize</span> <span class="o">=</span> <span class="mi">64</span> <span class="p">};</span>
 </span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 提供了一种高效的方式来管理大量的锁对象，以降低在并发环境中的锁竞争和性能损失
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
 </span></span><span class="line"><span class="cl"><span class="c1">// StripedMap&lt;T&gt; is a map of void* -&gt; T, sized appropriately 
 </span></span></span><span class="line"><span class="cl"><span class="c1">// for cache-friendly lock striping. 
 </span></span></span><span class="line"><span class="cl"><span class="c1">// StripedMap&lt;T&gt; 是一种 void* -&gt; T 的映射，且恰好适用于缓存友好的锁分离。
@@ -455,12 +461,14 @@ body {
 </span></span><span class="line"><span class="cl"><span class="cp">#endif
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>
 </span></span><span class="line"><span class="cl">    <span class="k">struct</span> <span class="n">PaddedT</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="n">T</span> <span class="n">value</span> <span class="n">alignas</span><span class="p">(</span><span class="n">CacheLineSize</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// 确保 value 成员按照缓存行大小对齐
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">T</span> <span class="n">value</span> <span class="n">alignas</span><span class="p">(</span><span class="n">CacheLineSize</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="p">};</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="n">PaddedT</span> <span class="n">array</span><span class="p">[</span><span class="n">StripeCount</span><span class="p">];</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">static</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="nf">indexForPointer</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 根据指针的地址值计算出在数组中的索引位置。通过对地址值进行位移和异或操作，可以增加哈希的随机性，并减小哈希冲突的可能性，从而更均匀地分配指针到数组中不同的位置。
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">static</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="nf">indexForPointer</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">        <span class="n">uintptr_t</span> <span class="n">addr</span> <span class="o">=</span> <span class="n">reinterpret_cast</span><span class="o">&lt;</span><span class="n">uintptr_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">p</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">((</span><span class="n">addr</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span><span class="p">)</span> <span class="o">^</span> <span class="p">(</span><span class="n">addr</span> <span class="o">&gt;&gt;</span> <span class="mi">9</span><span class="p">))</span> <span class="o">%</span> <span class="n">StripeCount</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
@@ -607,6 +615,7 @@ body {
 
 </blockquote>
 <h3 id="id2data">id2data</h3>
+<p><code>id2data</code> 的本质是将传入的 <code>object</code> 封装成 <code>SyncData</code>，当缓存中存在或全局 <code>sDataLists</code> 包含时则直接使用，否则新建 <code>SyncData</code> 并缓存：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="c1">// objc-sync.mm
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>
 </span></span><span class="line"><span class="cl"><span class="c1">// Use multiple parallel lists to decrease contention among unrelated objects.
@@ -619,18 +628,20 @@ body {
 </span></span><span class="line"><span class="cl"><span class="k">static</span> <span class="n">SyncData</span><span class="o">*</span> <span class="nf">id2data</span><span class="p">(</span><span class="kt">id</span> <span class="n">object</span><span class="p">,</span> <span class="k">enum</span> <span class="n">usage</span> <span class="n">why</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl"><span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="n">spinlock_t</span> <span class="o">*</span><span class="n">lockp</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">LOCK_FOR_OBJ</span><span class="p">(</span><span class="n">object</span><span class="p">);</span> <span class="c1">// 自旋锁
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">SyncData</span> <span class="o">**</span><span class="n">listp</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">LIST_FOR_OBJ</span><span class="p">(</span><span class="n">object</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="n">SyncData</span><span class="o">*</span> <span class="n">result</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">SyncData</span> <span class="o">**</span><span class="n">listp</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">LIST_FOR_OBJ</span><span class="p">(</span><span class="n">object</span><span class="p">);</span>  <span class="c1">// 数据 -&gt; sDataLists[object].data -&gt; array[indexForPointer(object)].value.data -&gt; SyncData
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">SyncData</span><span class="o">*</span> <span class="n">result</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#if SUPPORT_DIRECT_THREAD_KEYS
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="c1">// Check per-thread single-entry fast cache for matching object
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">bool</span> <span class="n">fastCacheOccupied</span> <span class="o">=</span> <span class="nb">NO</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">SyncData</span> <span class="o">*</span><span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="n">SyncData</span> <span class="o">*</span><span class="p">)</span><span class="n">tls_get_direct</span><span class="p">(</span><span class="n">SYNC_DATA_DIRECT_KEY</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 从线程本地存储中获取与 SYNC_DATA_DIRECT_KEY 关联的数据，并将其转换为 SyncData* 类型
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">SyncData</span> <span class="o">*</span><span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="n">SyncData</span> <span class="o">*</span><span class="p">)</span><span class="n">tls_get_direct</span><span class="p">(</span><span class="n">SYNC_DATA_DIRECT_KEY</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">        <span class="n">fastCacheOccupied</span> <span class="o">=</span> <span class="nb">YES</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">data</span><span class="o">-&gt;</span><span class="n">object</span> <span class="o">==</span> <span class="n">object</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="c1">// Found a match in fast cache.
+</span></span><span class="line"><span class="cl">            <span class="c1">// 快速缓存中匹配到
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="c1">// Found a match in fast cache.
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="n">uintptr_t</span> <span class="n">lockCount</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">            <span class="n">result</span> <span class="o">=</span> <span class="n">data</span><span class="p">;</span>
@@ -666,6 +677,7 @@ body {
 </span></span><span class="line"><span class="cl"><span class="cp">#endif
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// Check per-thread cache of already-owned locks for matching object
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// 检查当前线程的缓存，看是否存在已经拥有的与指定对象相关的锁
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">SyncCache</span> <span class="o">*</span><span class="n">cache</span> <span class="o">=</span> <span class="n">fetch_cache</span><span class="p">(</span><span class="nb">NO</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">cache</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
@@ -702,6 +714,7 @@ body {
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// Thread cache didn&#39;t find anything.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// 线程缓存未命中。
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Walk in-use list looking for matching object
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Spinlock prevents multiple threads from creating multiple 
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// locks for the same new object.
@@ -709,7 +722,8 @@ body {
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// more than 20 or so distinct locks active, but we don&#39;t do that now.
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    
 </span></span><span class="line"><span class="cl">    <span class="n">lockp</span><span class="o">-&gt;</span><span class="n">lock</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// 使用自旋锁，在数据中查找
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
 </span></span><span class="line"><span class="cl">    <span class="p">{</span>
 </span></span><span class="line"><span class="cl">        <span class="n">SyncData</span><span class="o">*</span> <span class="n">p</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">        <span class="n">SyncData</span><span class="o">*</span> <span class="n">firstUnused</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
@@ -738,188 +752,7 @@ body {
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// Allocate a new SyncData and add to list.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// XXX allocating memory with a global lock held is bad practice,
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// might be worth releasing the lock, allocating, and searching again.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// But since we never free these guys we won&#39;t be stuck in allocation very often.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">posix_memalign</span><span class="p">((</span><span class="kt">void</span> <span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">result</span><span class="p">,</span> <span class="n">alignof</span><span class="p">(</span><span class="n">SyncData</span><span class="p">),</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">SyncData</span><span class="p">));</span>
-</span></span><span class="line"><span class="cl">    <span class="n">result</span><span class="o">-&gt;</span><span class="n">object</span> <span class="o">=</span> <span class="p">(</span><span class="n">objc_object</span> <span class="o">*</span><span class="p">)</span><span class="n">object</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">result</span><span class="o">-&gt;</span><span class="n">threadCount</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">new</span> <span class="p">(</span><span class="o">&amp;</span><span class="n">result</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">)</span> <span class="n">recursive_mutex_t</span><span class="p">(</span><span class="n">fork_unsafe_lock</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="n">result</span><span class="o">-&gt;</span><span class="n">nextData</span> <span class="o">=</span> <span class="o">*</span><span class="n">listp</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="o">*</span><span class="n">listp</span> <span class="o">=</span> <span class="n">result</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    
-</span></span><span class="line"><span class="cl"> <span class="nl">done</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">lockp</span><span class="o">-&gt;</span><span class="n">unlock</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="c1">// Only new ACQUIRE should get here.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">// All RELEASE and CHECK and recursive ACQUIRE are 
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">// handled by the per-thread caches above.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span><span class="n">why</span> <span class="o">==</span> <span class="n">RELEASE</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="c1">// Probably some thread is incorrectly exiting 
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="c1">// while the object is held by another thread.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">why</span> <span class="o">!=</span> <span class="n">ACQUIRE</span><span class="p">)</span> <span class="n">_objc_fatal</span><span class="p">(</span><span class="s">&#34;id2data is buggy&#34;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">result</span><span class="o">-&gt;</span><span class="n">object</span> <span class="o">!=</span> <span class="n">object</span><span class="p">)</span> <span class="n">_objc_fatal</span><span class="p">(</span><span class="s">&#34;id2data is buggy&#34;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="cp">#if SUPPORT_DIRECT_THREAD_KEYS
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">fastCacheOccupied</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="c1">// Save in fast thread cache
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="n">tls_set_direct</span><span class="p">(</span><span class="n">SYNC_DATA_DIRECT_KEY</span><span class="p">,</span> <span class="n">result</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">            <span class="n">tls_set_direct</span><span class="p">(</span><span class="n">SYNC_COUNT_DIRECT_KEY</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span><span class="o">*</span><span class="p">)</span><span class="mi">1</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span> <span class="k">else</span> 
-</span></span><span class="line"><span class="cl"><span class="cp">#endif
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>        <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="c1">// Save in thread cache
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">cache</span><span class="p">)</span> <span class="n">cache</span> <span class="o">=</span> <span class="n">fetch_cache</span><span class="p">(</span><span class="nb">YES</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">            <span class="n">cache</span><span class="o">-&gt;</span><span class="n">list</span><span class="p">[</span><span class="n">cache</span><span class="o">-&gt;</span><span class="n">used</span><span class="p">].</span><span class="n">data</span> <span class="o">=</span> <span class="n">result</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">            <span class="n">cache</span><span class="o">-&gt;</span><span class="n">list</span><span class="p">[</span><span class="n">cache</span><span class="o">-&gt;</span><span class="n">used</span><span class="p">].</span><span class="n">lockCount</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">            <span class="n">cache</span><span class="o">-&gt;</span><span class="n">used</span><span class="o">++</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><h3 id="syncdata">SyncData</h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-objectivec" data-lang="objectivec"><span class="line"><span class="cl"><span class="c1">// objc-private.h
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">enum</span> <span class="p">{</span> <span class="n">CacheLineSize</span> <span class="o">=</span> <span class="mi">64</span> <span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1">// objc-sync.mm
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">typedef</span> <span class="k">struct</span> <span class="nf">alignas</span><span class="p">(</span><span class="n">CacheLineSize</span><span class="p">)</span> <span class="n">SyncData</span> <span class="p">{</span> <span class="c1">// 内存对齐：64 字节
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">struct</span> <span class="n">SyncData</span><span class="o">*</span> <span class="n">nextData</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">DisguisedPtr</span><span class="o">&lt;</span><span class="n">objc_object</span><span class="o">&gt;</span> <span class="n">object</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">int32_t</span> <span class="n">threadCount</span><span class="p">;</span>  <span class="c1">// number of THREADS using this block // 使用 Block 的线程数
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">recursive_mutex_t</span> <span class="n">mutex</span><span class="p">;</span> <span class="c1">// 互斥锁
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="n">SyncData</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1">// Use multiple parallel lists to decrease contention among unrelated objects.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#define LOCK_FOR_OBJ(obj) sDataLists[obj].lock
-</span></span></span><span class="line"><span class="cl"><span class="cp">#define LIST_FOR_OBJ(obj) sDataLists[obj].data
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="k">static</span> <span class="n">StripedMap</span><span class="o">&lt;</span><span class="n">SyncList</span><span class="o">&gt;</span> <span class="n">sDataLists</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1">// id 转 SyncData
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="n">SyncData</span><span class="o">*</span> <span class="nf">id2data</span><span class="p">(</span><span class="kt">id</span> <span class="n">object</span><span class="p">,</span> <span class="k">enum</span> <span class="n">usage</span> <span class="n">why</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="n">spinlock_t</span> <span class="o">*</span><span class="n">lockp</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">LOCK_FOR_OBJ</span><span class="p">(</span><span class="n">object</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="n">SyncData</span> <span class="o">**</span><span class="n">listp</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">LIST_FOR_OBJ</span><span class="p">(</span><span class="n">object</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="n">SyncData</span><span class="o">*</span> <span class="n">result</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="cp">#if SUPPORT_DIRECT_THREAD_KEYS
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="c1">// Check per-thread single-entry fast cache for matching object
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">bool</span> <span class="n">fastCacheOccupied</span> <span class="o">=</span> <span class="nb">NO</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">SyncData</span> <span class="o">*</span><span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="n">SyncData</span> <span class="o">*</span><span class="p">)</span><span class="n">tls_get_direct</span><span class="p">(</span><span class="n">SYNC_DATA_DIRECT_KEY</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="n">fastCacheOccupied</span> <span class="o">=</span> <span class="nb">YES</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">data</span><span class="o">-&gt;</span><span class="n">object</span> <span class="o">==</span> <span class="n">object</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="c1">// Found a match in fast cache.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="n">uintptr_t</span> <span class="n">lockCount</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="n">result</span> <span class="o">=</span> <span class="n">data</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">            <span class="n">lockCount</span> <span class="o">=</span> <span class="p">(</span><span class="n">uintptr_t</span><span class="p">)</span><span class="n">tls_get_direct</span><span class="p">(</span><span class="n">SYNC_COUNT_DIRECT_KEY</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="n">result</span><span class="o">-&gt;</span><span class="n">threadCount</span> <span class="o">&lt;=</span> <span class="mi">0</span>  <span class="o">||</span>  <span class="n">lockCount</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="n">_objc_fatal</span><span class="p">(</span><span class="s">&#34;id2data fastcache is buggy&#34;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">            <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="k">switch</span><span class="p">(</span><span class="n">why</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="k">case</span> <span class="nl">ACQUIRE</span><span class="p">:</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="n">lockCount</span><span class="o">++</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">                <span class="n">tls_set_direct</span><span class="p">(</span><span class="n">SYNC_COUNT_DIRECT_KEY</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span><span class="o">*</span><span class="p">)</span><span class="n">lockCount</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">                <span class="k">break</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">            <span class="p">}</span>
-</span></span><span class="line"><span class="cl">            <span class="k">case</span> <span class="nl">RELEASE</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">lockCount</span><span class="o">--</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">                <span class="n">tls_set_direct</span><span class="p">(</span><span class="n">SYNC_COUNT_DIRECT_KEY</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span><span class="o">*</span><span class="p">)</span><span class="n">lockCount</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="p">(</span><span class="n">lockCount</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                    <span class="c1">// remove from fast cache
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>                    <span class="n">tls_set_direct</span><span class="p">(</span><span class="n">SYNC_DATA_DIRECT_KEY</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">                    <span class="c1">// atomic because may collide with concurrent ACQUIRE
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>                    <span class="n">OSAtomicDecrement32Barrier</span><span class="p">(</span><span class="o">&amp;</span><span class="n">result</span><span class="o">-&gt;</span><span class="n">threadCount</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">                <span class="p">}</span>
-</span></span><span class="line"><span class="cl">                <span class="k">break</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">            <span class="k">case</span> <span class="nl">CHECK</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="c1">// do nothing
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>                <span class="k">break</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">            <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl"><span class="cp">#endif
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
-</span></span><span class="line"><span class="cl">    <span class="c1">// Check per-thread cache of already-owned locks for matching object
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">SyncCache</span> <span class="o">*</span><span class="n">cache</span> <span class="o">=</span> <span class="n">fetch_cache</span><span class="p">(</span><span class="nb">NO</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">cache</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">cache</span><span class="o">-&gt;</span><span class="n">used</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="n">SyncCacheItem</span> <span class="o">*</span><span class="n">item</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">cache</span><span class="o">-&gt;</span><span class="n">list</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="n">item</span><span class="o">-&gt;</span><span class="n">data</span><span class="o">-&gt;</span><span class="n">object</span> <span class="o">!=</span> <span class="n">object</span><span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="c1">// Found a match.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="n">result</span> <span class="o">=</span> <span class="n">item</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="n">result</span><span class="o">-&gt;</span><span class="n">threadCount</span> <span class="o">&lt;=</span> <span class="mi">0</span>  <span class="o">||</span>  <span class="n">item</span><span class="o">-&gt;</span><span class="n">lockCount</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="n">_objc_fatal</span><span class="p">(</span><span class="s">&#34;id2data cache is buggy&#34;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">            <span class="p">}</span>
-</span></span><span class="line"><span class="cl">                
-</span></span><span class="line"><span class="cl">            <span class="k">switch</span><span class="p">(</span><span class="n">why</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="k">case</span> <span class="nl">ACQUIRE</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">item</span><span class="o">-&gt;</span><span class="n">lockCount</span><span class="o">++</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">                <span class="k">break</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">            <span class="k">case</span> <span class="nl">RELEASE</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">item</span><span class="o">-&gt;</span><span class="n">lockCount</span><span class="o">--</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="p">(</span><span class="n">item</span><span class="o">-&gt;</span><span class="n">lockCount</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                    <span class="c1">// remove from per-thread cache
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>                    <span class="n">cache</span><span class="o">-&gt;</span><span class="n">list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">cache</span><span class="o">-&gt;</span><span class="n">list</span><span class="p">[</span><span class="o">--</span><span class="n">cache</span><span class="o">-&gt;</span><span class="n">used</span><span class="p">];</span>
-</span></span><span class="line"><span class="cl">                    <span class="c1">// atomic because may collide with concurrent ACQUIRE
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>                    <span class="n">OSAtomicDecrement32Barrier</span><span class="p">(</span><span class="o">&amp;</span><span class="n">result</span><span class="o">-&gt;</span><span class="n">threadCount</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">                <span class="p">}</span>
-</span></span><span class="line"><span class="cl">                <span class="k">break</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">            <span class="k">case</span> <span class="nl">CHECK</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="c1">// do nothing
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>                <span class="k">break</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">            <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1">// Thread cache didn&#39;t find anything.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Walk in-use list looking for matching object
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Spinlock prevents multiple threads from creating multiple 
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// locks for the same new object.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// We could keep the nodes in some hash table if we find that there are
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// more than 20 or so distinct locks active, but we don&#39;t do that now.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    
-</span></span><span class="line"><span class="cl">    <span class="n">lockp</span><span class="o">-&gt;</span><span class="n">lock</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="n">SyncData</span><span class="o">*</span> <span class="n">p</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">SyncData</span><span class="o">*</span> <span class="n">firstUnused</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="p">(</span><span class="n">p</span> <span class="o">=</span> <span class="o">*</span><span class="n">listp</span><span class="p">;</span> <span class="n">p</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">;</span> <span class="n">p</span> <span class="o">=</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">nextData</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">object</span> <span class="o">==</span> <span class="n">object</span> <span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="n">result</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">                <span class="c1">// atomic because may collide with concurrent RELEASE
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>                <span class="n">OSAtomicIncrement32Barrier</span><span class="p">(</span><span class="o">&amp;</span><span class="n">result</span><span class="o">-&gt;</span><span class="n">threadCount</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">                <span class="k">goto</span> <span class="n">done</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">            <span class="p">}</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="n">firstUnused</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">threadCount</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">firstUnused</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">    
-</span></span><span class="line"><span class="cl">        <span class="c1">// no SyncData currently associated with object
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="n">why</span> <span class="o">==</span> <span class="n">RELEASE</span><span class="p">)</span> <span class="o">||</span> <span class="p">(</span><span class="n">why</span> <span class="o">==</span> <span class="n">CHECK</span><span class="p">)</span> <span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">goto</span> <span class="n">done</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    
-</span></span><span class="line"><span class="cl">        <span class="c1">// an unused one was found, use it
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span> <span class="n">firstUnused</span> <span class="o">!=</span> <span class="nb">NULL</span> <span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="n">result</span> <span class="o">=</span> <span class="n">firstUnused</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">            <span class="n">result</span><span class="o">-&gt;</span><span class="n">object</span> <span class="o">=</span> <span class="p">(</span><span class="n">objc_object</span> <span class="o">*</span><span class="p">)</span><span class="n">object</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">            <span class="n">result</span><span class="o">-&gt;</span><span class="n">threadCount</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">            <span class="k">goto</span> <span class="n">done</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1">// Allocate a new SyncData and add to list.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// 分配新的 SyncData 并添加到列表。
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// XXX allocating memory with a global lock held is bad practice,
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// might be worth releasing the lock, allocating, and searching again.
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// But since we never free these guys we won&#39;t be stuck in allocation very often.
