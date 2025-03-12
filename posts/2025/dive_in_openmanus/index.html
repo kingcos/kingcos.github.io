@@ -12,7 +12,7 @@
 	
     
     
-    <meta name="description" content="本文深入剖析了 OpenManus 的系统架构与核心组件，包括智能体、工具和流三大部分。文章详细介绍了各组件的功能与交互方式，展示了从用户输入到任务执行的完整流程，并解释了工具调用机制如何扩展大模型能力，为读者提供了理解OpenManus内部运作的全面视角。" />
+    <meta name="description" content="本文深入剖析了 OpenManus 的系统架构与核心组件，包括智能体、工具和流三大部分。文章详细介绍了各组件的功能与交互方式，展示了从用户输入到任务执行的完整流程，并解释了工具调用机制如何扩展大模型能力，为读者提供了理解 OpenManus 内部运作的全面视角。" />
     
 
     
@@ -270,7 +270,7 @@ body {
 <li>直至智能体达到最大执行次数结束</li>
 </ol>
 <p>系统架构如下：</p>
-<p><img src="/img/2025/dive_in_openmanus/1.png" alt="openmanus-architecture"></p>
+<p><img src="/img/2025/dive_in_openmanus/1.png" alt="OpenManus 系统架构"></p>
 <p>其核心组件主要有：</p>
 <ul>
 <li>智能体（agent）：负责思考、规划、执行任务</li>
@@ -359,7 +359,7 @@ body {
 </tbody>
 </table>
 <h3 id="流flow">流（flow）</h3>
-<p>根据现有代码逻辑，main.py 在执行过程中并不会使用到流组件，只有 run_flow.py 才会使用到，因此也只有后者才能被称作是多智能体（Multi-Agent）架构。</p>
+<p>根据现有代码逻辑，main.py 在执行过程中并不会使用到流组件，只有执行 run_flow.py 时才会使用到，因此也只有后者才能被称作是<strong>多智能体（Multi-Agent）架构</strong>。</p>
 <p>run_flow.py 下的主要执行流程为：</p>
 <ol>
 <li>等待用户输入任务描述（prompt）</li>
@@ -371,8 +371,19 @@ body {
 <li>标记当前步骤完成</li>
 <li>重复执行步骤 6 和 7，直至规划步骤为空</li>
 </ol>
+<p>在 OpenManus 中，流的实现也分为抽象基类和具体实现：</p>
+<ol>
+<li><code>BaseFlow</code>：所有流的抽象基类，定义流接口和参数规范。一个流可以包括多个智能体，具体的执行方法由子类继承实现</li>
+<li><code>PlanningFlow</code>：继承自 <code>BaseFlow</code>，负责实现规划流的具体执行逻辑，包括初始规划的创建、规划步骤的执行等</li>
+</ol>
+<p>规划流的创建基于 <code>FlowFactory</code> 工厂类，使得外部需要创建规划流时，只需传入流类型与智能体字典（<code>agents</code>）即可，具体实现由工厂类内部完成，而无需关心规划流的智能体配置。</p>
+<h2 id="总结">总结</h2>
+<p>总的来说，OpenManus 基于现有大模型的工具调用机制，结合 Python 生态中的各类工具，实现了一套简洁有效的智能体方案，为大模型执行复杂任务提供了参考，也为我们实现类似诉求提供了思路。</p>
 <h2 id="参考">参考</h2>
-<p><img src="https://platform.openai.com/docs/guides/function-calling?api-mode=chat&amp;strict-mode=enabled" alt="Function Calling - OpenAI"></p>
+<ul>
+<li><a href="https://github.com/mannaandpoem/OpenManus">OpenManus</a></li>
+<li><a href="https://platform.openai.com/docs/guides/function-calling?api-mode=chat&amp;strict-mode=enabled">Function Calling - OpenAI</a></li>
+</ul>
 </div>
                     <div class="post_footer">
                         
