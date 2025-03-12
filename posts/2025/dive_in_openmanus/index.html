@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="kingcos" />
+	
+	
+	
+	<title>深入 OpenManus ｜ kingcos</title>
+	
+    
+    
+    <meta name="description" content="本文深入剖析了 OpenManus 的系统架构与核心组件，包括智能体、工具和流三大部分。文章详细介绍了各组件的功能与交互方式，展示了从用户输入到任务执行的完整流程，并解释了工具调用机制如何扩展大模型能力，为读者提供了理解OpenManus内部运作的全面视角。" />
+    
+
+    
+    
+    <meta name="keywords" content="Hugo, theme, zozo" />
+    
+
+	
+    
+    <link rel="shortcut icon" href="https://kingcos.me/images/favicon.png" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.0/animate.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/zozo.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="https://kingcos.me/css/highlight.css" />
+
+    
+    
+</head>
+
+
+
+
+<body>
+    <div class="main animate__animated animate__fadeInDown">
+        <div class="nav_container animated fadeInDown">
+    <div class="site_nav" id="site_nav">
+        <ul>
+            
+            <li>
+                <a href="/">Home</a>
+            </li>
+            
+            <li>
+                <a href="/posts/">Archive</a>
+            </li>
+            
+            <li>
+                <a href="/tags/">Tags</a>
+            </li>
+            
+            <li>
+                <a href="/about/">About</a>
+            </li>
+            
+        </ul>
+    </div>
+    <div class="menu_icon">
+        <a id="menu_icon"><i class="ri-menu-line"></i></a>
+    </div>
+</div>
+
+
+<link rel="stylesheet" href="https://kingcos.me/scss/main.min.75b49085bfb07b1bf150a1d59b4773d857e0452a747e37243805218b528a4045.css" integrity="sha256-dbSQhb&#43;wexvxUKHVm0dz2FfgRSp0fjckOAUhi1KKQEU=" media="screen">
+
+<style>
+.nav_container {
+  height: 1rem;
+}
+ 
+table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+ 
+.markdown code {
+    white-space: normal;
+    word-wrap: break-word;
+    word-break: break-word;
+    line-height: 1.5em;
+    font-size: 0.85em;
+    font-weight: bold;
+    display: inline-block;
+     
+}
+
+ 
+.menu_icon a {
+    font-size: 16px;
+}
+
+ 
+body {
+    font-family: 'Hiragino Sans GB', 'SFMono', 'Lato', '-apple-system';
+    -webkit-font-smoothing: 'antialiased';
+}
+
+ 
+.markdown strong, .markdown b, .markdown em {
+    font-weight: bold;
+}
+
+.post .post_content p {
+     
+
+    line-height: 1.75em;
+}
+
+ 
+.markdown img {
+    max-width: 100%;
+    margin: 0 auto;
+    display: block;
+    border-radius: 0.25rem;
+}
+
+ 
+.ri-stack-line {
+    vertical-align: middle;
+}
+
+ 
+.ri-map-pin-time-line {
+    vertical-align: middle;
+}
+
+ 
+.chroma .lntd:nth-child(2) {
+    width: 100%;
+}
+
+ 
+
+ 
+.markdown .book-hint::before {
+    content: none;
+}
+
+.markdown .book-hint {
+    margin: 1rem 0;
+    padding: 0.5rem 1rem 0.5rem 0.75rem;
+
+    border-inline-start: 0.25rem solid #e9ecef;
+    border-radius: 0.25rem;
+
+    font-style: normal;
+     
+}
+
+.book-hint strong {
+    background-color: transparent;
+}
+
+.markdown .book-hint.info {
+    border-left-color:#6bf;
+    background-color:rgba(102,187,255,.1);
+}
+
+.markdown .book-hint.warning {
+    border-left-color:#fd6;
+    background-color:rgba(255,221,102,.1);
+}
+
+.markdown .book-hint.danger {
+    border-left-color:#f66;
+    background-color:rgba(255,102,102,.1);
+}
+
+</style>
+
+        <div class="header animated fadeInDown">
+    <div class="site_title_container">
+        <div class="site_title">
+            
+                <a href="https://kingcos.me/">
+                    
+                    <img class="kingcos" style="margin-top: -20px; margin-left: -10px;" src="/title.svg" width="150px">
+                </a>
+            
+        </div>
+        <div class="description">
+            <p class="sub_title">专注、坚持</p>
+            <div class="my_socials">
+                
+                
+                <a href="https://github.com/kingcos" title="github" target="_blank"><i class="ri-github-fill"></i></a>
+                
+                
+                
+                <a href="https://www.instagram.com/kingcos_v/" title="instagram" target="_blank"><i class="ri-instagram-fill"></i></a>
+                
+                
+                
+                <a href="https://twitter.com/kingcos_v" title="twitter" target="_blank"><i class="ri-twitter-fill"></i></a>
+                
+                
+                
+                <a href="https://weibo.com/u/1798410923" title="weibo" target="_blank"><i class="ri-weibo-fill"></i></a>
+                
+                
+                
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="content">
+            <div class="post_page">
+                <div class="post animate__animated animate__fadeInDown">
+                    <div class="post_title post_detail_title">
+                        <h2><a href='/posts/2025/dive_in_openmanus/'>深入 OpenManus</a></h2>
+                        <span class="date">2025.03.11</span>
+                        <span>by kingcos</span>
+                        
+                        
+                        
+                        
+                    </div>
+                    <div class="post_content markdown">
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>Release Notes</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <table>
+<thead>
+<tr>
+<th style="text-align:center">Date</th>
+<th style="text-align:center">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">2025-03-11</td>
+<td style="text-align:center">首次提交</td>
+</tr>
+</tbody>
+</table>
+
+    </div>
+  </label>
+</div>
+
+<h2 id="概览">概览</h2>
+<p>最近，Manus 的爆火引发了智能体 Agent 的热潮，OpenManus 作为其开源实现之一，也受到了不少关注。撇开营销与评价不谈，本文将对其进行拆解分析，并介绍其基本信息和系统架构。</p>
+<h2 id="基本信息">基本信息</h2>
+<ul>
+<li>代码版本：<a href="https://github.com/mannaandpoem/OpenManus/tree/e1a8cf00de8f268495cd2d2daa0a6ff8202cfd41">e1a8cf0</a></li>
+<li>主要语言：Python</li>
+<li>开源协议：MIT</li>
+</ul>
+<h2 id="系统架构">系统架构</h2>
+<p>OpenManus 的主要执行流程（main.py）为：</p>
+<ol>
+<li>创建 Manus 智能体</li>
+<li>等待用户输入任务描述（prompt）</li>
+<li>智能体执行（<code>run</code> -&gt; <code>step</code>）并选择是否使用工具（<code>think</code> -&gt; <code>act</code>）</li>
+<li>若需要使用，则工具执行并返回结果到智能体</li>
+<li>智能体更新记忆</li>
+<li>继续执行下一步（<code>step</code>）</li>
+<li>直至智能体达到最大执行次数结束</li>
+</ol>
+<p>系统架构如下：</p>
+<p><img src="/img/2025/dive_in_openmanus/1.png" alt="openmanus-architecture"></p>
+<p>其核心组件主要有：</p>
+<ul>
+<li>智能体（agent）：负责思考、规划、执行任务</li>
+<li>工具（tool）：负责为智能体提供各类工具能力，例如 Google 搜索、代码执行等</li>
+<li>流（flow）：负责编排和协调智能体执行（可选）</li>
+<li>LLM：负责提供大语言模型接口</li>
+</ul>
+<p>举个例子，如果把智能体比作我们自己，现在要执行做一道菜的任务，那么工具就类似锅、碗、刀、铲等，流程就是菜谱上的步骤，LLM 就是我们的大脑和手。</p>
+<h2 id="核心组件">核心组件</h2>
+<h3 id="智能体agent">智能体（agent）</h3>
+<p>在 OpenManus 中，智能体的实现主要分为<strong>抽象智能体</strong>和<strong>具象智能体</strong>两类，前者为后者提供基础功能，后者则继承前者并实现具体功能。</p>
+<p>抽象智能体：</p>
+<ol>
+<li><code>BaseAgent</code>：所有智能体的抽象基类。提供状态生命周期管理（<code>AgentState</code>）、记忆（<code>Memory</code>）与消息（<code>Message</code>）管理、执行循环（<code>run</code>）、死循环检测与处理机制（<code>handle_stuck_state</code>）、以及配置与初始化等基础功能</li>
+<li><code>ReActAgent</code>：继承自 <code>BaseAgent</code>，定义思考（<code>think</code>）和行动（<code>act</code>）的运行机制（<code>step</code>），便于子类继承并实现</li>
+<li><code>ToolCallAgent</code>：继承自 <code>ReActAgent</code>，基于大模型（<code>LLM</code>）的工具调用机制实现具体的思考和行动逻辑。其实该智能体已经可以直接使用，但由于没有定义为具体的工具类型，因此这里仍将其归类为抽象智能体</li>
+</ol>
+<p>具象智能体（均继承自 <code>ToolCallAgent</code>）：</p>
+<ol>
+<li><code>Manus</code>：通用智能体，集成多种工具解决各类任务，如 Python 代码执行、Google 搜索、浏览器使用、文件操作等，从 main.py 或 run_flow.py 中执行的都是 <code>Manus</code> 智能体</li>
+<li><code>PlanningAgent</code>：规划智能体，适合需要复杂规划的场景，基于大模型的工具（<code>PlanningTool</code>）调用机制实现，默认情况下不会执行该智能体</li>
+<li><code>SWEAgent</code>：软件工程（Software Engineering）智能体，集成 <code>Bash</code>、<code>StrReplaceEditor</code> 等工具，默认情况下不会执行该智能体</li>
+</ol>
+<blockquote>
+<p>智能体所需的提示词（Prompt）被单独定义在 prompt 目录中，可便于后期迭代与维护。</p>
+</blockquote>
+<h3 id="工具tool">工具（tool）</h3>
+<p>在上一节中，我们提到 <code>ToolCallAgent</code> 是基于大模型的工具调用机制实现的。工具调用（Tool Calling），也称函数调用（Function Calling），指的是<strong>在请求大模型时可以传入一组工具，由模型自主选择是否使用以及具体使用哪些工具，并返回 JSON 结构化数据便于开发者调用工具</strong>，扩展模型能力。流程类似下图：</p>
+<p><img src="/img/2025/dive_in_openmanus/2.png" alt="Function Calling - OpenAI"></p>
+<p>在 OpenManus 中，<code>BaseTool</code> 是所有工具的抽象基类，定义工具接口和参数规范；<code>ToolResult</code> 表示工具执行结果的标准格式，包含输出、错误和系统消息；<code>ToolCollection</code> 是负责管理多个工具的集合，提供统一的访问接口。</p>
+<p>具体的工具目前有以下 9 种：</p>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>描述</th>
+<th>关联智能体</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Bash</code></td>
+<td>执行 Shell 命令</td>
+<td><code>SWEAgent</code></td>
+</tr>
+<tr>
+<td><code>BrowserUseTool</code></td>
+<td>基于 <code>browser_use</code> 库操作浏览器</td>
+<td><code>Manus</code></td>
+</tr>
+<tr>
+<td><code>CreateChatCompletion</code></td>
+<td>创建结构化的 AI 响应内容</td>
+<td><code>ToolCallAgent</code></td>
+</tr>
+<tr>
+<td><code>FileSaver</code></td>
+<td>保存内容到文件</td>
+<td><code>Manus</code></td>
+</tr>
+<tr>
+<td><code>GoogleSearch</code></td>
+<td>Google 搜索工具</td>
+<td><code>Manus</code></td>
+</tr>
+<tr>
+<td><code>PlanningTool</code></td>
+<td>创建和管理计划，跟踪计划步骤</td>
+<td><code>PlanningAgent</code></td>
+</tr>
+<tr>
+<td><code>PythonExecute</code></td>
+<td>执行 Python 代码</td>
+<td><code>Manus</code></td>
+</tr>
+<tr>
+<td><code>StrReplaceEditor</code></td>
+<td>文件查看和编辑工具</td>
+<td><code>SWEAgent</code></td>
+</tr>
+<tr>
+<td><code>Terminate</code></td>
+<td>终止代理执行</td>
+<td>All</td>
+</tr>
+</tbody>
+</table>
+<h3 id="流flow">流（flow）</h3>
+<p>根据现有代码逻辑，main.py 在执行过程中并不会使用到流组件，只有 run_flow.py 才会使用到，因此也只有后者才能被称作是多智能体（Multi-Agent）架构。</p>
+<p>run_flow.py 下的主要执行流程为：</p>
+<ol>
+<li>等待用户输入任务描述（prompt）</li>
+<li>根据智能体字典（多智能体）创建流，即构造 <code>PlanningAgent</code></li>
+<li>执行流，即 <code>PlanningFlow</code> 的 <code>execute</code> 方法</li>
+<li>基于大模型的工具调用机制创建初始规划</li>
+<li>开始执行规划</li>
+<li>获取当前步骤合适的智能体并执行（<code>run</code>，后续同主要流程）</li>
+<li>标记当前步骤完成</li>
+<li>重复执行步骤 6 和 7，直至规划步骤为空</li>
+</ol>
+<h2 id="参考">参考</h2>
+<p><img src="https://platform.openai.com/docs/guides/function-calling?api-mode=chat&amp;strict-mode=enabled" alt="Function Calling - OpenAI"></p>
+</div>
+                    <div class="post_footer">
+                        
+                        <div class="meta">
+                            <div class="info">
+                                <span class="field tags">
+                                    <i class="ri-stack-line"></i>
+                                    
+                                    <a href="https://kingcos.me/tags/ai/">AI</a>
+                                    
+                                    <a href="https://kingcos.me/tags/focus/">Focus</a>
+                                    
+                                </span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<table style="border: 0;">
+  <tr>
+  <td style="border: 0; width: 30%;">
+    <img width='100%' src='/img/about/1.jpg'>
+  </td>
+  <td style="border: 0; width: 50%;">
+    
+    <ins class="adsbygoogle"
+     style="display:block;width:100%;"
+     data-ad-client="ca-pub-9925978992661955"
+     data-ad-slot="3213735320"
+     data-ad-format="rectangle"
+     data-full-width-responsive="false"></ins>
+  </td>
+  </tr>
+</table>
+
+<hr>
+
+<script>
+    (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+                
+                
+                
+
+
+
+
+
+
+
+    
+    
+    
+    <div>
+        <div id="github-comment">
+        </div>
+
+        <script type="text/javascript">
+        function getUtterances(isDark) {
+            var utterances = document.createElement('script');
+            utterances.type = 'text/javascript';
+            utterances.async = true;
+            utterances.setAttribute('issue-term', "pathname")
+            utterances.setAttribute('repo', "kingcos\/kingcos.github.io")
+            utterances.setAttribute('label', "comments")
+            isDark ? utterances.setAttribute('theme', "github-dark") : utterances.setAttribute('theme', "github-light")
+            utterances.crossorigin = 'anonymous';
+            utterances.src = 'https://utteranc.es/client.js';
+
+            return utterances
+        }
+        document.getElementById('github-comment').appendChild(getUtterances(false))
+        </script>
+    </div>
+    
+
+
+
+
+                
+            </div>
+        </div>
+    </div>
+    <a id="back_to_top" href="#" class="back_to_top"><i class="ri-arrow-up-s-line"></i></a>
+    <footer class="footer">
+    <div class="powered_by">
+        <a href="https://kingcos.me">Powered by kingcos with love.</a>
+    </div>
+
+    <div class="footer_slogan">
+        <span>❤️</span>
+    </div>
+</footer>
+    <script src="https://kingcos.me/js/jquery-3.5.1.min.js"></script>
+<link href="https://kingcos.me/css/fancybox.min.css" rel="stylesheet">
+<script src="https://kingcos.me/js/fancybox.min.js"></script>
+<script src="https://kingcos.me/js/zozo.js"></script>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\[\[', '\]\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js"]
+                }
+            }
+        });
+
+        MathJax.Hub.Queue(function () {
+            
+            
+            
+            var all = MathJax.Hub.getAllJax(), i;
+            for (i = 0; i < all.length; i += 1) {
+                all[i].SourceElement().parentNode.className += ' has-jax';
+            }
+        });
+    </script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style>
+
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-138311951-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+</body>
+
+</html>
