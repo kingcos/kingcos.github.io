@@ -8,11 +8,11 @@
 	
 	
 	
-	<title>浅析 OpenAI Agents SDK ｜ kingcos</title>
+	<title>浅谈小智 xiaozhi-esp32（一） ｜ kingcos</title>
 	
     
     
-    <meta name="description" content="Release Notes ↕ Date Notes 2025-03-12 首次提交 概览 继 Manus 以及一众开源智能体框架之后，OpenAI 也推出了自己的智能体框架：OpenAI Agents SDK。本文将基于源码进行简单分析，窥探其实现原理与流程。 基本信息 代码版本：c8f3cdd 主" />
+    <meta name="description" content="Release Notes ↕ Date Notes 2025-03-11 首次提交 概览 小智（xiaozhi-esp32）是一个开源的 AI 聊天机器人项目。 小智分为端侧与服务端，本篇仅聚焦于端侧。 基本信息 代码版本：release 1.4.6 主要语言：C&#43;&#43; 主要框架：ESP-ID" />
     
 
     
@@ -214,8 +214,8 @@ body {
             <div class="post_page">
                 <div class="post animate__animated animate__fadeInDown">
                     <div class="post_title post_detail_title">
-                        <h2><a href='/posts/2025/dive_in_openai_agents_sdk/'>浅析 OpenAI Agents SDK</a></h2>
-                        <span class="date">2025.03.12</span>
+                        <h2><a href='/posts/2025/dive_in_xiaozhi_1/'>浅谈小智 xiaozhi-esp32（一）</a></h2>
+                        <span class="date">2025.03.11</span>
                         <span>by kingcos</span>
                         
                         
@@ -238,7 +238,7 @@ body {
 </thead>
 <tbody>
 <tr>
-<td style="text-align:center">2025-03-12</td>
+<td style="text-align:center">2025-03-11</td>
 <td style="text-align:center">首次提交</td>
 </tr>
 </tbody>
@@ -249,39 +249,41 @@ body {
 </div>
 
 <h2 id="概览">概览</h2>
-<p>继 Manus 以及一众开源智能体框架之后，OpenAI 也推出了自己的智能体框架：OpenAI Agents SDK。本文将基于源码进行简单分析，窥探其实现原理与流程。</p>
-<h2 id="基本信息">基本信息</h2>
+<p>小智（<a href="https://github.com/78/xiaozhi-esp32">xiaozhi-esp32</a>）是一个开源的 AI 聊天机器人项目。</p>
+<p>小智分为端侧与服务端，本篇仅聚焦于端侧。</p>
+<h3 id="基本信息">基本信息</h3>
 <ul>
-<li>代码版本：<a href="https://github.com/openai/openai-agents-python/tree/c8f3cdd6c8543502de57352d5550d333d3fa1477">c8f3cdd</a></li>
-<li>主要语言：Python</li>
+<li>代码版本：<a href="https://github.com/78/xiaozhi-esp32/releases/tag/v1.4.6">release 1.4.6</a></li>
+<li>主要语言：C++</li>
+<li>主要框架：ESP-IDF</li>
 <li>开源协议：MIT</li>
 </ul>
-<h2 id="系统架构">系统架构</h2>
-<p>在 OpenAI Agents SDK 中，官方定义了以下几个核心概念：</p>
-<ol>
-<li><a href="https://openai.github.io/openai-agents-python/agents"><strong>Agent (智能体)</strong></a>：配置了指令、工具、护栏和移交功能的 LLM (大语言模型)</li>
-<li><a href="https://openai.github.io/openai-agents-python/handoff"><strong>Handoff (移交)</strong></a>：允许 Agent 将控制权转移给其他 Agent 以执行特定任务</li>
-<li><a href="https://openai.github.io/openai-agents-python/guardrails"><strong>Guardrail (护栏)</strong></a>：用于输入和输出验证的可配置安全检查</li>
-<li><a href="https://openai.github.io/openai-agents-python/tracing"><strong>Tracing (追踪)</strong></a>：内置的 Agent 运行跟踪功能，可查看、调试和优化工作流</li>
-</ol>
-<h2 id="核心组件">核心组件</h2>
-<h3 id="runner">Runner</h3>
-<p>OpenAI Agents SDK 的主入口是 <code>Runner</code> 类，其主要执行流程为：</p>
-<ol>
-<li>创建 Agent，传入名称、指令（<code>instructions</code>，即 Agent 的系统提示词），也可以内置工具</li>
-<li>执行 Runner（<code>Runner.run</code>）</li>
-<li>调用 <code>_run_single_turn</code> 方法</li>
-<li>执行 <code>OpenAIResponsesModel</code> 的 <code>get_response</code> -&gt; <code>_fetch_response</code></li>
-<li>调用 LLM 的 <code>create</code> 方法</li>
-<li>调用 <code>_get_single_step_result_from_response</code> 方法解析 LLM 的返回结果，并返回单步结果</li>
-<li>直到达到最大轮数（<code>max_turns</code>）或 Agent 已经生成最终输出</li>
-</ol>
-<h3 id="agent">Agent</h3>
-<h3 id="handoff">Handoff</h3>
-<h3 id="guardrail">Guardrail</h3>
-<h3 id="tracing">Tracing</h3>
-<h2 id="总结">总结</h2>
+<h2 id="整体架构">整体架构</h2>
+<p>整体架构梳理如下：</p>
+<p><img src="xiaozhi-esp32-architecture.png" alt="xiaozhi-esp32-architecture"></p>
+<h2 id="重点模块">重点模块</h2>
+<p>以 xxxx 硬件为标准</p>
+<h3 id="audio_codecs">audio_codecs</h3>
+<p>该目录下是音频编解码模块，其中 <code>AudioCodec</code> 抽象类定义了相关接口，并由具体硬件类型的音频编解码器实现。</p>
+<h3 id="display">display</h3>
+<h3 id="network">network</h3>
+<h3 id="board">board</h3>
+<p>board.GetDisplay()</p>
+<p>board.GetAudioCodec()</p>
+<p>board.StartNetwork()</p>
+<h3 id="唤醒词实现">唤醒词实现</h3>
+<h3 id="后台任务">后台任务</h3>
+<h3 id="ota">ota</h3>
+<h2 id="流程串联">流程串联</h2>
+<p>程序的主入口位于 main.cc 中的 <code>app_main()</code> 主函数，其中调用了 <code>Application::GetInstance().Start()</code> 启动整个应用，主要流程如下：</p>
+<p><img src="/img/2025/dive_in_xiaozhi_1/1.svg" alt="xiaozhi-esp32-main-flow"></p>
+<p><code>Start()</code> 函数中做了一系列初始化工作，通过 <code>Board</code> 抽象类统一初始化显示器、音频编解码器等硬件设备。同时还启动了两个异步任务：<code>MainLoop</code> 和 <code>CheckNewVersion</code>。其中 <code>MainLoop</code> 任务实现了事件循环（Event Loop）机制，通过死循环的方式监听并处理各类事件，包括音频输入捕获、音频输出播放以及任务调度等，确保系统能够实时响应并高效处理各类交互请求。</p>
 <h2 id="参考">参考</h2>
+<ul>
+<li><a href="https://github.com/78/xiaozhi-esp32">xiaozhi-esp32</a></li>
+<li><a href="https://xiaozhi-esp32-docs.readthedocs.io/en/latest/">xiaozhi-esp32-docs</a></li>
+<li><a href="https://docs.espressif.com/projects/esp-idf/zh_CN/v5.2.5/esp32/api-guides/startup.html">ESP-IDF 启动流程</a></li>
+</ul>
 </div>
                     <div class="post_footer">
                         
