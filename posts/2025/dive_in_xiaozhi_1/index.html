@@ -356,7 +356,6 @@ body {
 <p>board.GetDisplay()</p>
 <p>board.GetAudioCodec()</p>
 <p>board.StartNetwork()</p>
-<h3 id="唤醒词实现">唤醒词实现</h3>
 <h3 id="mainloop">MainLoop</h3>
 <p><code>MainLoop</code> 通过 <code>while (true)</code> 循环等待事件，负责持续处理音频输入、音频输出、任务调度等事件。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="c1">// application.cc
@@ -400,20 +399,16 @@ body {
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="c1">// application.cc
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Application</span><span class="o">::</span><span class="n">Start</span><span class="p">()</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="c1">// ... 开启 MainLoop
+</span></span><span class="line"><span class="cl">    <span class="c1">// ... 开启 MainLoop -&gt; InputAudio
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#if CONFIG_USE_AUDIO_PROCESSOR
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="c1">// 初始化音频处理器（初始化，设置工作参数，创建处理任务）
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">audio_processor_</span><span class="p">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">codec</span><span class="o">-&gt;</span><span class="n">input_channels</span><span class="p">(),</span> <span class="n">codec</span><span class="o">-&gt;</span><span class="n">input_reference</span><span class="p">());</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// 注册回调
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">audio_processor_</span><span class="p">.</span><span class="n">OnOutput</span><span class="p">([</span><span class="k">this</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int16_t</span><span class="o">&gt;&amp;&amp;</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="n">background_task_</span><span class="o">-&gt;</span><span class="n">Schedule</span><span class="p">([</span><span class="k">this</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">data</span><span class="p">)]()</span> <span class="k">mutable</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="n">opus_encoder_</span><span class="o">-&gt;</span><span class="n">Encode</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="p">[</span><span class="k">this</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;&amp;&amp;</span> <span class="n">opus</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="n">Schedule</span><span class="p">([</span><span class="k">this</span><span class="p">,</span> <span class="n">opus</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">opus</span><span class="p">)]()</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">protocol_</span><span class="o">-&gt;</span><span class="n">SendAudio</span><span class="p">(</span><span class="n">opus</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">                <span class="p">});</span>
-</span></span><span class="line"><span class="cl">            <span class="p">});</span>
-</span></span><span class="line"><span class="cl">        <span class="p">});</span>
-</span></span><span class="line"><span class="cl">    <span class="p">});</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">protocol_</span><span class="o">-&gt;</span><span class="n">SendAudio</span><span class="p">(</span><span class="n">opus</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">});</span>
 </span></span><span class="line"><span class="cl"><span class="cp">#endif
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="c1">// ...
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
@@ -429,85 +424,165 @@ body {
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// 音频数据（data）处理
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">codec</span><span class="o">-&gt;</span><span class="n">input_sample_rate</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">16000</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="c1">// 如果输入通道为2，则将数据分为左右声道
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span><span class="n">codec</span><span class="o">-&gt;</span><span class="n">input_channels</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="k">auto</span> <span class="n">mic_channel</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int16_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">/</span> <span class="mi">2</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">            <span class="k">auto</span> <span class="n">reference_channel</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int16_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">/</span> <span class="mi">2</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="p">(</span><span class="n">size_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">mic_channel</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="o">++</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">+=</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="n">mic_channel</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
-</span></span><span class="line"><span class="cl">                <span class="n">reference_channel</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">];</span>
-</span></span><span class="line"><span class="cl">            <span class="p">}</span>
-</span></span><span class="line"><span class="cl">            <span class="k">auto</span> <span class="n">resampled_mic</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int16_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">input_resampler_</span><span class="p">.</span><span class="n">GetOutputSamples</span><span class="p">(</span><span class="n">mic_channel</span><span class="p">.</span><span class="n">size</span><span class="p">()));</span>
-</span></span><span class="line"><span class="cl">            <span class="k">auto</span> <span class="n">resampled_reference</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int16_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">reference_resampler_</span><span class="p">.</span><span class="n">GetOutputSamples</span><span class="p">(</span><span class="n">reference_channel</span><span class="p">.</span><span class="n">size</span><span class="p">()));</span>
-</span></span><span class="line"><span class="cl">            <span class="n">input_resampler_</span><span class="p">.</span><span class="n">Process</span><span class="p">(</span><span class="n">mic_channel</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span> <span class="n">mic_channel</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="n">resampled_mic</span><span class="p">.</span><span class="n">data</span><span class="p">());</span>
-</span></span><span class="line"><span class="cl">            <span class="n">reference_resampler_</span><span class="p">.</span><span class="n">Process</span><span class="p">(</span><span class="n">reference_channel</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span> <span class="n">reference_channel</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="n">resampled_reference</span><span class="p">.</span><span class="n">data</span><span class="p">());</span>
-</span></span><span class="line"><span class="cl">            <span class="n">data</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="n">resampled_mic</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">+</span> <span class="n">resampled_reference</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="p">(</span><span class="n">size_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">resampled_mic</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="o">++</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">+=</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="n">data</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">resampled_mic</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-</span></span><span class="line"><span class="cl">                <span class="n">data</span><span class="p">[</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">resampled_reference</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-</span></span><span class="line"><span class="cl">            <span class="p">}</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="k">auto</span> <span class="n">resampled</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int16_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">input_resampler_</span><span class="p">.</span><span class="n">GetOutputSamples</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">size</span><span class="p">()));</span>
-</span></span><span class="line"><span class="cl">            <span class="n">input_resampler_</span><span class="p">.</span><span class="n">Process</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span> <span class="n">data</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="n">resampled</span><span class="p">.</span><span class="n">data</span><span class="p">());</span>
-</span></span><span class="line"><span class="cl">            <span class="n">data</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">resampled</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="cp">#if CONFIG_USE_WAKE_WORD_DETECT
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="c1">// 如果启用唤醒词检测（默认启用），则将音频数据传递给唤醒词检测器
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">wake_word_detect_</span><span class="p">.</span><span class="n">IsDetectionRunning</span><span class="p">())</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="n">wake_word_detect_</span><span class="p">.</span><span class="n">Feed</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl"><span class="cp">#endif
-</span></span></span><span class="line"><span class="cl"><span class="cp">#if CONFIG_USE_AUDIO_PROCESSOR
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#if CONFIG_USE_AUDIO_PROCESSOR
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="c1">// 如果启用音频处理器（默认启用），则将音频数据传递给音频处理器
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">audio_processor_</span><span class="p">.</span><span class="n">IsRunning</span><span class="p">())</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">        <span class="c1">// audio_processor_ 类型为 AudioProcessor
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">// esp_afe_vc_v1.feed
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">// Input -&gt; esp_afe_vc_v1.feed
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">audio_processor_</span><span class="p">.</span><span class="n">Input</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl"><span class="cp">#else
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">device_state_</span> <span class="o">==</span> <span class="n">kDeviceStateListening</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="n">background_task_</span><span class="o">-&gt;</span><span class="n">Schedule</span><span class="p">([</span><span class="k">this</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">data</span><span class="p">)]()</span> <span class="k">mutable</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="n">opus_encoder_</span><span class="o">-&gt;</span><span class="n">Encode</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="p">[</span><span class="k">this</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;&amp;&amp;</span> <span class="n">opus</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="n">Schedule</span><span class="p">([</span><span class="k">this</span><span class="p">,</span> <span class="n">opus</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">opus</span><span class="p">)]()</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">protocol_</span><span class="o">-&gt;</span><span class="n">SendAudio</span><span class="p">(</span><span class="n">opus</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">                <span class="p">});</span>
-</span></span><span class="line"><span class="cl">            <span class="p">});</span>
-</span></span><span class="line"><span class="cl">        <span class="p">});</span>
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="cp">#endif
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// audio_processor.cc
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">AudioProcessor</span><span class="o">::</span><span class="n">Initialize</span><span class="p">(</span><span class="kt">int</span> <span class="n">channels</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">reference</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">xTaskCreate</span><span class="p">([](</span><span class="kt">void</span><span class="o">*</span> <span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">auto</span> <span class="n">this_</span> <span class="o">=</span> <span class="p">(</span><span class="n">AudioProcessor</span><span class="o">*</span><span class="p">)</span><span class="n">arg</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// 创建音频处理器任务
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">this_</span><span class="o">-&gt;</span><span class="n">AudioProcessorTask</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="n">vTaskDelete</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span> <span class="s">&#34;audio_communication&#34;</span><span class="p">,</span> <span class="mi">4096</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="k">this</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">AudioProcessor</span><span class="o">::</span><span class="n">Input</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int16_t</span><span class="o">&gt;&amp;</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">// 将音频数据传递给音频处理器
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">esp_afe_vc_v1</span><span class="p">.</span><span class="n">feed</span><span class="p">(</span><span class="n">afe_communication_data_</span><span class="p">,</span> <span class="n">chunk</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">AudioProcessor</span><span class="o">::</span><span class="n">OnOutput</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int16_t</span><span class="o">&gt;&amp;&amp;</span> <span class="n">data</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">callback</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">output_callback_</span> <span class="o">=</span> <span class="n">callback</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// Initialize -&gt; AudioProcessorTask
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">void</span> <span class="n">AudioProcessor</span><span class="o">::</span><span class="n">AudioProcessorTask</span><span class="p">()</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="k">auto</span> <span class="n">fetch_size</span> <span class="o">=</span> <span class="n">esp_afe_sr_v1</span><span class="p">.</span><span class="n">get_fetch_chunksize</span><span class="p">(</span><span class="n">afe_communication_data_</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="k">auto</span> <span class="n">feed_size</span> <span class="o">=</span> <span class="n">esp_afe_sr_v1</span><span class="p">.</span><span class="n">get_feed_chunksize</span><span class="p">(</span><span class="n">afe_communication_data_</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ESP_LOGI</span><span class="p">(</span><span class="n">TAG</span><span class="p">,</span> <span class="s">&#34;Audio communication task started, feed size: %d fetch size: %d&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">feed_size</span><span class="p">,</span> <span class="n">fetch_size</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
 </span></span><span class="line"><span class="cl">    <span class="k">while</span> <span class="p">(</span><span class="nb">true</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">        <span class="c1">// 等待 PROCESSOR_RUNNING 事件
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">xEventGroupWaitBits</span><span class="p">(</span><span class="n">event_group_</span><span class="p">,</span> <span class="n">PROCESSOR_RUNNING</span><span class="p">,</span> <span class="n">pdFALSE</span><span class="p">,</span> <span class="n">pdTRUE</span><span class="p">,</span> <span class="n">portMAX_DELAY</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1">// 获取音频数据（audio_processor_.Input(data); 中设置的数据）
+</span></span><span class="line"><span class="cl">        <span class="c1">// 获取音频数据（AudioProcessor::Input 中设置的数据）
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">auto</span> <span class="n">res</span> <span class="o">=</span> <span class="n">esp_afe_vc_v1</span><span class="p">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">afe_communication_data_</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">((</span><span class="n">xEventGroupGetBits</span><span class="p">(</span><span class="n">event_group_</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">PROCESSOR_RUNNING</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="k">continue</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">res</span> <span class="o">==</span> <span class="k">nullptr</span> <span class="o">||</span> <span class="n">res</span><span class="o">-&gt;</span><span class="n">ret_value</span> <span class="o">==</span> <span class="n">ESP_FAIL</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="n">res</span> <span class="o">!=</span> <span class="k">nullptr</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="n">ESP_LOGI</span><span class="p">(</span><span class="n">TAG</span><span class="p">,</span> <span class="s">&#34;Error code: %d&#34;</span><span class="p">,</span> <span class="n">res</span><span class="o">-&gt;</span><span class="n">ret_value</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">            <span class="p">}</span>
-</span></span><span class="line"><span class="cl">            <span class="k">continue</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
 </span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">output_callback_</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">            <span class="c1">// 回调 -&gt; OnOutput
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="n">output_callback_</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int16_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">res</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">,</span> <span class="n">res</span><span class="o">-&gt;</span><span class="n">data</span> <span class="o">+</span> <span class="n">res</span><span class="o">-&gt;</span><span class="n">data_size</span> <span class="o">/</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int16_t</span><span class="p">)));</span>
 </span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h3 id="唤醒词检测">唤醒词检测</h3>
+<p>在 <code>MainLoop</code> 的 <code>InputAudio</code> 中也包含了唤醒词检测逻辑，整体流程类似 <code>InputAudio</code>，具体如下：</p>
+<p><img src="/img/2025/dive_in_xiaozhi_1/3.svg" alt="Audio input flow"></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="c1">// application.cc
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Application</span><span class="o">::</span><span class="n">Start</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#if CONFIG_USE_WAKE_WORD_DETECT
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="n">wake_word_detect_</span><span class="p">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">codec</span><span class="o">-&gt;</span><span class="n">input_channels</span><span class="p">(),</span> <span class="n">codec</span><span class="o">-&gt;</span><span class="n">input_reference</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">    <span class="n">wake_word_detect_</span><span class="p">.</span><span class="n">OnVadStateChange</span><span class="p">([</span><span class="k">this</span><span class="p">](</span><span class="kt">bool</span> <span class="n">speaking</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// VAD（语音活动检测）状态变化回调
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// 唤醒词检测回调
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">wake_word_detect_</span><span class="p">.</span><span class="n">OnWakeWordDetected</span><span class="p">([</span><span class="k">this</span><span class="p">](</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&amp;</span> <span class="n">wake_word</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Schedule</span><span class="p">([</span><span class="k">this</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wake_word</span><span class="p">]()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="n">device_state_</span> <span class="o">==</span> <span class="n">kDeviceStateIdle</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="c1">// 空闲状态
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>                <span class="n">SetDeviceState</span><span class="p">(</span><span class="n">kDeviceStateConnecting</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">                <span class="n">wake_word_detect_</span><span class="p">.</span><span class="n">EncodeWakeWordData</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">protocol_</span><span class="o">-&gt;</span><span class="n">OpenAudioChannel</span><span class="p">())</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">wake_word_detect_</span><span class="p">.</span><span class="n">StartDetection</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">                <span class="p">}</span>
+</span></span><span class="line"><span class="cl">                
+</span></span><span class="line"><span class="cl">                <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span> <span class="n">opus</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">                <span class="c1">// Encode and send the wake word data to the server
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>                <span class="c1">// 编码唤醒词数据并发送给服务器
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>                <span class="k">while</span> <span class="p">(</span><span class="n">wake_word_detect_</span><span class="p">.</span><span class="n">GetWakeWordOpus</span><span class="p">(</span><span class="n">opus</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">protocol_</span><span class="o">-&gt;</span><span class="n">SendAudio</span><span class="p">(</span><span class="n">opus</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">                <span class="p">}</span>
+</span></span><span class="line"><span class="cl">                <span class="c1">// Set the chat state to wake word detected
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>                <span class="n">protocol_</span><span class="o">-&gt;</span><span class="n">SendWakeWordDetected</span><span class="p">(</span><span class="n">wake_word</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">                <span class="n">ESP_LOGI</span><span class="p">(</span><span class="n">TAG</span><span class="p">,</span> <span class="s">&#34;Wake word detected: %s&#34;</span><span class="p">,</span> <span class="n">wake_word</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">                <span class="n">keep_listening_</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">                <span class="n">SetDeviceState</span><span class="p">(</span><span class="n">kDeviceStateIdle</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="p">(</span><span class="n">device_state_</span> <span class="o">==</span> <span class="n">kDeviceStateSpeaking</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="c1">// 正在说话
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>                <span class="n">AbortSpeaking</span><span class="p">(</span><span class="n">kAbortReasonWakeWordDetected</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="p">(</span><span class="n">device_state_</span> <span class="o">==</span> <span class="n">kDeviceStateActivating</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="c1">// 正在激活
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>                <span class="n">SetDeviceState</span><span class="p">(</span><span class="n">kDeviceStateIdle</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1">// Resume detection
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="n">wake_word_detect_</span><span class="p">.</span><span class="n">StartDetection</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="p">});</span>
+</span></span><span class="line"><span class="cl">    <span class="p">});</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 启动唤醒词检测
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">wake_word_detect_</span><span class="p">.</span><span class="n">StartDetection</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Application</span><span class="o">::</span><span class="n">InputAudio</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#if CONFIG_USE_WAKE_WORD_DETECT
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="c1">// 如果启用唤醒词检测（默认启用），则将音频数据传递给唤醒词检测器
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">wake_word_detect_</span><span class="p">.</span><span class="n">IsDetectionRunning</span><span class="p">())</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">wake_word_detect_</span><span class="p">.</span><span class="n">Feed</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// wake_word_detect.cc
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">WakeWordDetect</span><span class="o">::</span><span class="n">Initialize</span><span class="p">(</span><span class="kt">int</span> <span class="n">channels</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">reference</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">xTaskCreate</span><span class="p">([](</span><span class="kt">void</span><span class="o">*</span> <span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">auto</span> <span class="n">this_</span> <span class="o">=</span> <span class="p">(</span><span class="n">WakeWordDetect</span><span class="o">*</span><span class="p">)</span><span class="n">arg</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// 创建唤醒词检测任务
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">this_</span><span class="o">-&gt;</span><span class="n">AudioDetectionTask</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="n">vTaskDelete</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span> <span class="s">&#34;audio_detection&#34;</span><span class="p">,</span> <span class="mi">4096</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="k">this</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="k">nullptr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">WakeWordDetect</span><span class="o">::</span><span class="n">Feed</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int16_t</span><span class="o">&gt;&amp;</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">// 将音频数据传递给唤醒词检测器
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">esp_afe_sr_v1</span><span class="p">.</span><span class="n">feed</span><span class="p">(</span><span class="n">afe_detection_data_</span><span class="p">,</span> <span class="n">input_buffer_</span><span class="p">.</span><span class="n">data</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">WakeWordDetect</span><span class="o">::</span><span class="n">OnWakeWordDetected</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&amp;</span> <span class="n">wake_word</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">callback</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">wake_word_detected_callback_</span> <span class="o">=</span> <span class="n">callback</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">WakeWordDetect</span><span class="o">::</span><span class="n">AudioDetectionTask</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">while</span> <span class="p">(</span><span class="nb">true</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// 等待 DETECTION_RUNNING_EVENT 事件
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">xEventGroupWaitBits</span><span class="p">(</span><span class="n">event_group_</span><span class="p">,</span> <span class="n">DETECTION_RUNNING_EVENT</span><span class="p">,</span> <span class="n">pdFALSE</span><span class="p">,</span> <span class="n">pdTRUE</span><span class="p">,</span> <span class="n">portMAX_DELAY</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// 获取音频数据（WakeWordDetect::Feed 中设置的数据）
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">auto</span> <span class="n">res</span> <span class="o">=</span> <span class="n">esp_afe_sr_v1</span><span class="p">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">afe_detection_data_</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="k">if</span> <span class="p">(</span><span class="n">wake_word_detected_callback_</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="c1">// 回调 -&gt; OnWakeWordDetected
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>                <span class="n">wake_word_detected_callback_</span><span class="p">(</span><span class="n">last_detected_wake_word_</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><h2 id="参考">参考</h2>
