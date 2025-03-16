@@ -328,7 +328,9 @@ body {
 <p>小智支持两种长连接协议：WebSocket 和 MQTT（默认），支持在 menuconfig 中配置。<code>protocol_</code> 在实现中是一个智能指针，指向具体实现了通信协议的对象，用于管理设备与服务端的通信。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="c1">// application.cc
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>
-</span></span><span class="line"><span class="cl"><span class="cp">#ifdef CONFIG_CONNECTION_TYPE_WEBSOCKET
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Application</span><span class="o">::</span><span class="n">Start</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#ifdef CONFIG_CONNECTION_TYPE_WEBSOCKET
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="n">protocol_</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">WebsocketProtocol</span><span class="o">&gt;</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="cp">#else
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="n">protocol_</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">MqttProtocol</span><span class="o">&gt;</span><span class="p">();</span>
@@ -351,6 +353,18 @@ body {
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">});</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="n">protocol_</span><span class="o">-&gt;</span><span class="n">Start</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// websocket_protocol.cc
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">WebsocketProtocol</span><span class="o">::</span><span class="n">SendAudio</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;&amp;</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">websocket_</span> <span class="o">==</span> <span class="k">nullptr</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">websocket_</span><span class="o">-&gt;</span><span class="n">Send</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span> <span class="n">data</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="nb">true</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p><code>WebsocketProtocol</code> 和 <code>MqttProtocol</code> 均遵守 <code>Protocol</code> 协议。</p>
 <h3 id="board">board</h3>
 <p>board.GetDisplay()</p>
